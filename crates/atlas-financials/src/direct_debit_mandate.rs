@@ -13,7 +13,11 @@ impl DirectDebitMandateService {
     /// This is an Oracle Fusion Financials feature for Payments/Receivables,
     /// authorizing a creditor to collect funds directly from a debtor's bank account.
     #[must_use]
-    pub fn create_mandate(customer_id: &str, bank_account_id: &str, amount_limit: f64) -> MandateResult {
+    pub fn create_mandate(
+        customer_id: &str,
+        bank_account_id: &str,
+        amount_limit: f64,
+    ) -> MandateResult {
         if amount_limit <= 0.0 {
             return MandateResult {
                 mandate_id: "".to_string(),
@@ -23,7 +27,7 @@ impl DirectDebitMandateService {
                 status: "REJECTED".to_string(),
             };
         }
-        
+
         MandateResult {
             mandate_id: format!("DDM-{}-{}", customer_id, bank_account_id),
             customer_id: customer_id.to_string(),
@@ -42,7 +46,7 @@ impl DirectDebitMandateService {
             "ACTIVE".to_string()
         }
     }
-    
+
     /// Revokes a Direct Debit Mandate.
     #[must_use]
     pub fn revoke_mandate(mandate_id: &str) -> String {

@@ -8,11 +8,11 @@
 //! - Dashboard summary
 //! - Validation edge cases
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 use uuid::Uuid;
 
 async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
@@ -20,20 +20,40 @@ async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router)
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
     // Clean finance charge test data
-    sqlx::query("DELETE FROM _atlas.finance_charge_activities").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.finance_charge_lines").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.finance_charge_invoices").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.finance_charge_runs").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.finance_charge_tiers").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.finance_charge_terms").execute(&state.db_pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_activities")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_lines")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_invoices")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_runs")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_tiers")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_terms")
+        .execute(&state.db_pool)
+        .await
+        .ok();
     sqlx::query("CREATE SCHEMA IF NOT EXISTS _atlas")
         .execute(&state.db_pool)
         .await
         .ok();
-    sqlx::raw_sql(include_str!("../../../../migrations/147_finance_charge_management.sql"))
-        .execute(&state.db_pool)
-        .await
-        .expect("Failed to run finance charge migration");
+    sqlx::raw_sql(include_str!(
+        "../../../../migrations/147_finance_charge_management.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .expect("Failed to run finance charge migration");
     let app = build_router(state.clone());
     (state, app)
 }
@@ -57,18 +77,31 @@ async fn create_term(
     if let Some(rate) = charge_rate {
         payload["chargeRate"] = json!(rate);
     }
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/finance-charges/terms")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/finance-charges/terms")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("CREATE TERM status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create term: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create term: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -85,18 +118,31 @@ async fn create_run(
     if let Some(tc) = term_code {
         payload["termCode"] = json!(tc);
     }
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/finance-charges/runs")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/finance-charges/runs")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("CREATE RUN status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create run: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create run: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -123,18 +169,31 @@ async fn add_line(
         "chargeAmount": charge_amount,
         "currencyCode": "USD",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/lines", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/finance-charges/runs/{}/lines", run_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("ADD LINE status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to add line: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to add line: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -145,7 +204,14 @@ async fn add_line(
 #[tokio::test]
 async fn test_create_percentage_term() {
     let (_state, app) = setup_test().await;
-    let term = create_term(&app, "FC-STD", "Standard Finance Charge", "percentage", Some(1.5)).await;
+    let term = create_term(
+        &app,
+        "FC-STD",
+        "Standard Finance Charge",
+        "percentage",
+        Some(1.5),
+    )
+    .await;
 
     assert_eq!(term["termCode"], "FC-STD");
     assert_eq!(term["termName"], "Standard Finance Charge");
@@ -181,14 +247,22 @@ async fn test_get_term() {
     let term_id: Uuid = term["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/finance-charges/terms/{}", term_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/finance-charges/terms/{}", term_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["termCode"], "FC-GET");
 }
 
@@ -199,14 +273,22 @@ async fn test_list_terms() {
     create_term(&app, "FC-L2", "Term 2", "flat_fee", None).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/finance-charges/terms")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/finance-charges/terms")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -219,13 +301,19 @@ async fn test_create_term_invalid_charge_type() {
         "termName": "Bad Type",
         "chargeType": "invalid",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/finance-charges/terms")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/finance-charges/terms")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -238,13 +326,19 @@ async fn test_create_term_percentage_requires_rate() {
         "termName": "No Rate",
         "chargeType": "percentage",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/finance-charges/terms")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/finance-charges/terms")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -271,11 +365,17 @@ async fn test_get_run() {
     let run_id: Uuid = run["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/finance-charges/runs/{}", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/finance-charges/runs/{}", run_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 }
 
@@ -286,14 +386,22 @@ async fn test_get_run_by_number() {
     let number = run["runNumber"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/finance-charges/runs/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/finance-charges/runs/number/{}", number))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["runNumber"], number);
 }
 
@@ -304,14 +412,22 @@ async fn test_list_runs() {
     create_run(&app, "2024-07-31", None).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/finance-charges/runs")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/finance-charges/runs")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -322,11 +438,18 @@ async fn test_delete_draft_run() {
     let number = run["runNumber"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/finance-charges/runs/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/finance-charges/runs/number/{}", number))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -340,20 +463,37 @@ async fn test_delete_non_draft_run_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Move to submitted
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "submitted"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/transition",
+                    run_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "submitted"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to delete submitted run
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/finance-charges/runs/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/finance-charges/runs/number/{}", number))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -370,29 +510,55 @@ async fn test_run_full_lifecycle_submitted_approved_applied() {
     let (k, v) = auth_header(&admin_claims());
 
     // Draft → Submitted
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "submitted"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/transition",
+                    run_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "submitted"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "submitted");
 
     // Submitted → Approved
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "approved"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/transition",
+                    run_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "approved"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "approved");
 
     // Add a line (should fail since run is approved, not draft)
@@ -405,13 +571,19 @@ async fn test_run_full_lifecycle_submitted_approved_applied() {
         "outstandingAmount": 10000.0,
         "chargeAmount": 150.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/lines", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/finance-charges/runs/{}/lines", run_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -423,16 +595,29 @@ async fn test_run_cancel_from_draft() {
 
     let (k, v) = auth_header(&admin_claims());
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "cancelled"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/transition",
+                    run_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "cancelled"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "cancelled");
 }
 
@@ -445,13 +630,24 @@ async fn test_invalid_run_transition() {
     let (k, v) = auth_header(&admin_claims());
 
     // Draft → Applied (invalid, must go through submitted → approved first)
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "applied"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/transition",
+                    run_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "applied"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -463,13 +659,24 @@ async fn test_invalid_run_transition_status() {
 
     let (k, v) = auth_header(&admin_claims());
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "invalid_status"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/transition",
+                    run_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "invalid_status"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -494,17 +701,29 @@ async fn test_add_charge_line_and_totals() {
 
     // Verify run totals updated
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/finance-charges/runs/{}", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/finance-charges/runs/{}", run_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert_eq!(body["totalInvoicesAssessed"], 2);
     let total: f64 = body["totalChargesAssessed"].as_f64().unwrap();
-    assert!((total - 250.0).abs() < 0.01, "Expected total charges 250.0, got {}", total);
+    assert!(
+        (total - 250.0).abs() < 0.01,
+        "Expected total charges 250.0, got {}",
+        total
+    );
 }
 
 #[tokio::test]
@@ -518,14 +737,22 @@ async fn test_list_lines() {
     add_line(&app, run_id, "Cust C", "INV-3", 60, 2000.0, 60.0).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/finance-charges/runs/{}/lines", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/finance-charges/runs/{}/lines", run_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["data"].as_array().unwrap().len(), 3);
 }
 
@@ -539,18 +766,34 @@ async fn test_waive_line() {
     let line_id: Uuid = line["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/lines/{}/waive", line_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"reason": "Long-standing customer, one-time courtesy"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/finance-charges/lines/{}/waive", line_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(
+                        &json!({"reason": "Long-standing customer, one-time courtesy"}),
+                    )
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "waived");
-    assert_eq!(body["waivedReason"], "Long-standing customer, one-time courtesy");
+    assert_eq!(
+        body["waivedReason"],
+        "Long-standing customer, one-time courtesy"
+    );
 }
 
 #[tokio::test]
@@ -563,13 +806,21 @@ async fn test_waive_line_without_reason_fails() {
     let line_id: Uuid = line["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/lines/{}/waive", line_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"reason": ""})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/finance-charges/lines/{}/waive", line_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"reason": ""})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -588,13 +839,19 @@ async fn test_add_line_negative_charge_fails() {
         "outstandingAmount": 5000.0,
         "chargeAmount": -100.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/lines", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/finance-charges/runs/{}/lines", run_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -616,57 +873,119 @@ async fn test_generate_invoices_full_flow() {
     let (k, v) = auth_header(&admin_claims());
 
     // Draft → Submitted
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "submitted"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/transition",
+                    run_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "submitted"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Submitted → Approved
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "approved"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/transition",
+                    run_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "approved"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Generate invoices
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/generate-invoices", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/generate-invoices",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     let invoices = body["data"].as_array().unwrap();
     // Should have 2 invoices: one for Acme Corp (combined), one for Beta Inc
-    assert_eq!(invoices.len(), 2, "Expected 2 invoices (one per customer), got {}", invoices.len());
+    assert_eq!(
+        invoices.len(),
+        2,
+        "Expected 2 invoices (one per customer), got {}",
+        invoices.len()
+    );
 
     // Find Acme invoice
-    let acme_inv = invoices.iter().find(|i| i["customerName"] == "Acme Corp").unwrap();
+    let acme_inv = invoices
+        .iter()
+        .find(|i| i["customerName"] == "Acme Corp")
+        .unwrap();
     let acme_total: f64 = acme_inv["totalChargeAmount"].as_f64().unwrap();
-    assert!((acme_total - 250.0).abs() < 0.01, "Acme total should be 250.0, got {}", acme_total);
-    assert!(acme_inv["chargeInvoiceNumber"].as_str().unwrap().starts_with("FCI-"));
+    assert!(
+        (acme_total - 250.0).abs() < 0.01,
+        "Acme total should be 250.0, got {}",
+        acme_total
+    );
+    assert!(acme_inv["chargeInvoiceNumber"]
+        .as_str()
+        .unwrap()
+        .starts_with("FCI-"));
     assert_eq!(acme_inv["status"], "open");
 
     // Find Beta invoice
-    let beta_inv = invoices.iter().find(|i| i["customerName"] == "Beta Inc").unwrap();
+    let beta_inv = invoices
+        .iter()
+        .find(|i| i["customerName"] == "Beta Inc")
+        .unwrap();
     let beta_total: f64 = beta_inv["totalChargeAmount"].as_f64().unwrap();
-    assert!((beta_total - 45.0).abs() < 0.01, "Beta total should be 45.0, got {}", beta_total);
+    assert!(
+        (beta_total - 45.0).abs() < 0.01,
+        "Beta total should be 45.0, got {}",
+        beta_total
+    );
 
     // Verify run transitioned to applied
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/finance-charges/runs/{}", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let run_body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/finance-charges/runs/{}", run_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let run_body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(run_body["status"], "applied");
 }
 
@@ -679,11 +998,21 @@ async fn test_generate_invoices_only_for_approved_run() {
     let (k, v) = auth_header(&admin_claims());
 
     // Try to generate invoices from draft run
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/generate-invoices", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/generate-invoices",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -703,37 +1032,72 @@ async fn test_invoice_transition_to_paid() {
 
     // Approve run
     for status in &["submitted", "approved"] {
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({"status": *status})).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!(
+                        "/api/v1/finance-charges/runs/{}/transition",
+                        run_id
+                    ))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({"status": *status})).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Generate invoices
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/generate-invoices", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/generate-invoices",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let invoice = &body["data"].as_array().unwrap()[0];
     let inv_id: Uuid = invoice["id"].as_str().unwrap().parse().unwrap();
 
     // Transition to paid
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/invoices/{}/transition", inv_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "paid"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/invoices/{}/transition",
+                    inv_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "paid"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "paid");
 }
 
@@ -748,34 +1112,73 @@ async fn test_invoice_cancel() {
     let (k, v) = auth_header(&admin_claims());
 
     for status in &["submitted", "approved"] {
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({"status": *status})).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!(
+                        "/api/v1/finance-charges/runs/{}/transition",
+                        run_id
+                    ))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({"status": *status})).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/generate-invoices", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
-    let inv_id: Uuid = body["data"].as_array().unwrap()[0]["id"].as_str().unwrap().parse().unwrap();
-
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/invoices/{}/transition", inv_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "cancelled"})).unwrap()))
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/generate-invoices",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
+    let inv_id: Uuid = body["data"].as_array().unwrap()[0]["id"]
+        .as_str()
         .unwrap()
-    ).await.unwrap();
+        .parse()
+        .unwrap();
+
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/invoices/{}/transition",
+                    inv_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "cancelled"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "cancelled");
 }
 
@@ -790,29 +1193,56 @@ async fn test_list_invoices() {
     let (k, v) = auth_header(&admin_claims());
 
     for status in &["submitted", "approved"] {
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/finance-charges/runs/{}/transition", run_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({"status": *status})).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!(
+                        "/api/v1/finance-charges/runs/{}/transition",
+                        run_id
+                    ))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({"status": *status})).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/finance-charges/runs/{}/generate-invoices", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/finance-charges/runs/{}/generate-invoices",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/finance-charges/invoices")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/finance-charges/invoices")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 1);
 }
 
@@ -827,13 +1257,21 @@ async fn test_dashboard() {
     create_run(&app, "2024-06-30", None).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/finance-charges/dashboard")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/finance-charges/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("DASHBOARD status={}: {}", status, body_str);
     assert_eq!(status, StatusCode::OK, "Dashboard failed: {:?}", body_str);
@@ -863,11 +1301,17 @@ async fn test_dashboard() {
 async fn test_get_term_not_found() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/finance-charges/terms/{}", Uuid::new_v4()))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/finance-charges/terms/{}", Uuid::new_v4()))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -875,11 +1319,17 @@ async fn test_get_term_not_found() {
 async fn test_get_run_not_found() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/finance-charges/runs/{}", Uuid::new_v4()))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/finance-charges/runs/{}", Uuid::new_v4()))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -887,10 +1337,19 @@ async fn test_get_run_not_found() {
 async fn test_get_invoice_not_found() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/finance-charges/invoices/{}", Uuid::new_v4()))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/finance-charges/invoices/{}",
+                    Uuid::new_v4()
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }

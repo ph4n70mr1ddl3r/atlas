@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for risk categories, risks, controls, mappings,
 //! control tests, issues, and dashboard summary.
 
-use atlas_shared::{
-    RiskCategory, RiskEntry, ControlEntry, RiskControlMapping,
-    ControlTest, RiskIssue, RiskDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, ControlEntry, ControlTest, RiskCategory, RiskControlMapping,
+    RiskDashboard, RiskEntry, RiskIssue,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -18,94 +17,187 @@ use uuid::Uuid;
 pub trait RiskManagementRepository: Send + Sync {
     // Risk Categories
     async fn create_category(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        parent_category_id: Option<Uuid>, sort_order: i32, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        parent_category_id: Option<Uuid>,
+        sort_order: i32,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<RiskCategory>;
     async fn get_category(&self, id: Uuid) -> AtlasResult<Option<RiskCategory>>;
-    async fn get_category_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<RiskCategory>>;
+    async fn get_category_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<RiskCategory>>;
     async fn list_categories(&self, org_id: Uuid) -> AtlasResult<Vec<RiskCategory>>;
     async fn delete_category(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Risk Register
     async fn create_risk(
-        &self, org_id: Uuid, risk_number: &str, title: &str, description: Option<&str>,
-        category_id: Option<Uuid>, risk_source: &str, likelihood: i32, impact: i32,
-        risk_level: &str, owner_id: Option<Uuid>, owner_name: Option<&str>,
-        response_strategy: Option<&str>, business_units: serde_json::Value,
-        related_entity_type: Option<&str>, related_entity_id: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        risk_number: &str,
+        title: &str,
+        description: Option<&str>,
+        category_id: Option<Uuid>,
+        risk_source: &str,
+        likelihood: i32,
+        impact: i32,
+        risk_level: &str,
+        owner_id: Option<Uuid>,
+        owner_name: Option<&str>,
+        response_strategy: Option<&str>,
+        business_units: serde_json::Value,
+        related_entity_type: Option<&str>,
+        related_entity_id: Option<Uuid>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<RiskEntry>;
     async fn get_risk(&self, id: Uuid) -> AtlasResult<Option<RiskEntry>>;
-    async fn get_risk_by_number(&self, org_id: Uuid, risk_number: &str) -> AtlasResult<Option<RiskEntry>>;
+    async fn get_risk_by_number(
+        &self,
+        org_id: Uuid,
+        risk_number: &str,
+    ) -> AtlasResult<Option<RiskEntry>>;
     async fn list_risks(
-        &self, org_id: Uuid, status: Option<&str>, risk_level: Option<&str>, risk_source: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        risk_level: Option<&str>,
+        risk_source: Option<&str>,
     ) -> AtlasResult<Vec<RiskEntry>>;
     async fn update_risk_status(&self, id: Uuid, status: &str) -> AtlasResult<RiskEntry>;
     async fn assess_risk(
-        &self, id: Uuid, likelihood: i32, impact: i32, risk_level: &str,
-        residual_likelihood: Option<i32>, residual_impact: Option<i32>,
+        &self,
+        id: Uuid,
+        likelihood: i32,
+        impact: i32,
+        risk_level: &str,
+        residual_likelihood: Option<i32>,
+        residual_impact: Option<i32>,
     ) -> AtlasResult<RiskEntry>;
     async fn delete_risk(&self, org_id: Uuid, risk_number: &str) -> AtlasResult<()>;
 
     // Control Registry
     async fn create_control(
-        &self, org_id: Uuid, control_number: &str, title: &str, description: Option<&str>,
-        control_type: &str, control_nature: &str, frequency: &str,
-        objective: Option<&str>, test_procedures: Option<&str>,
-        owner_id: Option<Uuid>, owner_name: Option<&str>, is_key_control: bool,
-        business_processes: serde_json::Value, regulatory_frameworks: serde_json::Value,
+        &self,
+        org_id: Uuid,
+        control_number: &str,
+        title: &str,
+        description: Option<&str>,
+        control_type: &str,
+        control_nature: &str,
+        frequency: &str,
+        objective: Option<&str>,
+        test_procedures: Option<&str>,
+        owner_id: Option<Uuid>,
+        owner_name: Option<&str>,
+        is_key_control: bool,
+        business_processes: serde_json::Value,
+        regulatory_frameworks: serde_json::Value,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ControlEntry>;
     async fn get_control(&self, id: Uuid) -> AtlasResult<Option<ControlEntry>>;
-    async fn get_control_by_number(&self, org_id: Uuid, control_number: &str) -> AtlasResult<Option<ControlEntry>>;
+    async fn get_control_by_number(
+        &self,
+        org_id: Uuid,
+        control_number: &str,
+    ) -> AtlasResult<Option<ControlEntry>>;
     async fn list_controls(
-        &self, org_id: Uuid, status: Option<&str>, control_type: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        control_type: Option<&str>,
     ) -> AtlasResult<Vec<ControlEntry>>;
     async fn update_control_status(&self, id: Uuid, status: &str) -> AtlasResult<ControlEntry>;
-    async fn update_control_effectiveness(&self, id: Uuid, effectiveness: &str) -> AtlasResult<ControlEntry>;
+    async fn update_control_effectiveness(
+        &self,
+        id: Uuid,
+        effectiveness: &str,
+    ) -> AtlasResult<ControlEntry>;
     async fn delete_control(&self, org_id: Uuid, control_number: &str) -> AtlasResult<()>;
 
     // Risk-Control Mappings
     async fn create_risk_control_mapping(
-        &self, org_id: Uuid, risk_id: Uuid, control_id: Uuid,
-        mitigation_effectiveness: &str, description: Option<&str>, mapped_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        risk_id: Uuid,
+        control_id: Uuid,
+        mitigation_effectiveness: &str,
+        description: Option<&str>,
+        mapped_by: Option<Uuid>,
     ) -> AtlasResult<RiskControlMapping>;
     async fn list_risk_mappings(&self, risk_id: Uuid) -> AtlasResult<Vec<RiskControlMapping>>;
-    async fn list_control_mappings(&self, control_id: Uuid) -> AtlasResult<Vec<RiskControlMapping>>;
+    async fn list_control_mappings(&self, control_id: Uuid)
+        -> AtlasResult<Vec<RiskControlMapping>>;
     async fn delete_mapping(&self, id: Uuid) -> AtlasResult<()>;
 
     // Control Tests
     async fn create_control_test(
-        &self, org_id: Uuid, control_id: Uuid, test_number: &str, test_plan: &str,
-        test_period_start: chrono::NaiveDate, test_period_end: chrono::NaiveDate,
-        tester_id: Option<Uuid>, tester_name: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        control_id: Uuid,
+        test_number: &str,
+        test_plan: &str,
+        test_period_start: chrono::NaiveDate,
+        test_period_end: chrono::NaiveDate,
+        tester_id: Option<Uuid>,
+        tester_name: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ControlTest>;
     async fn get_control_test(&self, id: Uuid) -> AtlasResult<Option<ControlTest>>;
     async fn list_control_tests(&self, control_id: Uuid) -> AtlasResult<Vec<ControlTest>>;
     async fn update_control_test_status(&self, id: Uuid, status: &str) -> AtlasResult<ControlTest>;
     async fn complete_control_test(
-        &self, id: Uuid, result: &str, findings: Option<&str>,
-        deficiency_severity: Option<&str>, sample_size: Option<i32>, sample_exceptions: Option<i32>,
+        &self,
+        id: Uuid,
+        result: &str,
+        findings: Option<&str>,
+        deficiency_severity: Option<&str>,
+        sample_size: Option<i32>,
+        sample_exceptions: Option<i32>,
     ) -> AtlasResult<ControlTest>;
     async fn delete_control_test(&self, org_id: Uuid, test_number: &str) -> AtlasResult<()>;
 
     // Issues
     async fn create_issue(
-        &self, org_id: Uuid, issue_number: &str, title: &str, description: &str,
-        source: &str, risk_id: Option<Uuid>, control_id: Option<Uuid>,
-        control_test_id: Option<Uuid>, severity: &str, priority: &str,
-        owner_id: Option<Uuid>, owner_name: Option<&str>,
-        remediation_plan: Option<&str>, remediation_due_date: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        issue_number: &str,
+        title: &str,
+        description: &str,
+        source: &str,
+        risk_id: Option<Uuid>,
+        control_id: Option<Uuid>,
+        control_test_id: Option<Uuid>,
+        severity: &str,
+        priority: &str,
+        owner_id: Option<Uuid>,
+        owner_name: Option<&str>,
+        remediation_plan: Option<&str>,
+        remediation_due_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<RiskIssue>;
     async fn get_issue(&self, id: Uuid) -> AtlasResult<Option<RiskIssue>>;
-    async fn get_issue_by_number(&self, org_id: Uuid, issue_number: &str) -> AtlasResult<Option<RiskIssue>>;
+    async fn get_issue_by_number(
+        &self,
+        org_id: Uuid,
+        issue_number: &str,
+    ) -> AtlasResult<Option<RiskIssue>>;
     async fn list_issues(
-        &self, org_id: Uuid, status: Option<&str>, severity: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        severity: Option<&str>,
     ) -> AtlasResult<Vec<RiskIssue>>;
     async fn update_issue_status(&self, id: Uuid, status: &str) -> AtlasResult<RiskIssue>;
     async fn resolve_issue(
-        &self, id: Uuid, root_cause: Option<&str>, corrective_actions: Option<&str>,
+        &self,
+        id: Uuid,
+        root_cause: Option<&str>,
+        corrective_actions: Option<&str>,
     ) -> AtlasResult<RiskIssue>;
     async fn delete_issue(&self, org_id: Uuid, issue_number: &str) -> AtlasResult<()>;
 
@@ -119,7 +211,7 @@ pub struct PostgresRiskManagementRepository {
 }
 
 impl PostgresRiskManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -160,11 +252,15 @@ fn row_to_risk(row: &sqlx::postgres::PgRow) -> RiskEntry {
         status: row.try_get("status").unwrap_or_default(),
         owner_id: row.try_get("owner_id").unwrap_or_default(),
         owner_name: row.try_get("owner_name").unwrap_or_default(),
-        business_units: row.try_get("business_units").unwrap_or(serde_json::json!([])),
+        business_units: row
+            .try_get("business_units")
+            .unwrap_or(serde_json::json!([])),
         response_strategy: row.try_get("response_strategy").unwrap_or_default(),
         residual_likelihood: row.try_get("residual_likelihood").unwrap_or_default(),
         residual_impact: row.try_get("residual_impact").unwrap_or_default(),
-        identified_date: row.try_get("identified_date").unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+        identified_date: row
+            .try_get("identified_date")
+            .unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
         last_assessed_date: row.try_get("last_assessed_date").unwrap_or_default(),
         next_review_date: row.try_get("next_review_date").unwrap_or_default(),
         closed_date: row.try_get("closed_date").unwrap_or_default(),
@@ -195,8 +291,12 @@ fn row_to_control(row: &sqlx::postgres::PgRow) -> ControlEntry {
         is_key_control: row.try_get("is_key_control").unwrap_or(false),
         effectiveness: row.try_get("effectiveness").unwrap_or_default(),
         status: row.try_get("status").unwrap_or_default(),
-        business_processes: row.try_get("business_processes").unwrap_or(serde_json::json!([])),
-        regulatory_frameworks: row.try_get("regulatory_frameworks").unwrap_or(serde_json::json!([])),
+        business_processes: row
+            .try_get("business_processes")
+            .unwrap_or(serde_json::json!([])),
+        regulatory_frameworks: row
+            .try_get("regulatory_frameworks")
+            .unwrap_or(serde_json::json!([])),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.try_get("created_by").unwrap_or_default(),
         created_at: row.try_get("created_at").unwrap_or(chrono::Utc::now()),
@@ -228,14 +328,20 @@ fn row_to_test(row: &sqlx::postgres::PgRow) -> ControlTest {
         control_id: row.try_get("control_id").unwrap_or_default(),
         test_number: row.try_get("test_number").unwrap_or_default(),
         test_plan: row.try_get("test_plan").unwrap_or_default(),
-        test_period_start: row.try_get("test_period_start").unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
-        test_period_end: row.try_get("test_period_end").unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 12, 31).unwrap()),
+        test_period_start: row
+            .try_get("test_period_start")
+            .unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+        test_period_end: row
+            .try_get("test_period_end")
+            .unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 12, 31).unwrap()),
         tester_id: row.try_get("tester_id").unwrap_or_default(),
         tester_name: row.try_get("tester_name").unwrap_or_default(),
         result: row.try_get("result").unwrap_or_default(),
         findings: row.try_get("findings").unwrap_or_default(),
         deficiency_severity: row.try_get("deficiency_severity").unwrap_or_default(),
-        evidence_document_ids: row.try_get("evidence_document_ids").unwrap_or(serde_json::json!([])),
+        evidence_document_ids: row
+            .try_get("evidence_document_ids")
+            .unwrap_or(serde_json::json!([])),
         sample_size: row.try_get("sample_size").unwrap_or_default(),
         sample_exceptions: row.try_get("sample_exceptions").unwrap_or_default(),
         started_at: row.try_get("started_at").unwrap_or_default(),
@@ -270,10 +376,14 @@ fn row_to_issue(row: &sqlx::postgres::PgRow) -> RiskIssue {
         owner_name: row.try_get("owner_name").unwrap_or_default(),
         remediation_plan: row.try_get("remediation_plan").unwrap_or_default(),
         remediation_due_date: row.try_get("remediation_due_date").unwrap_or_default(),
-        remediation_completed_date: row.try_get("remediation_completed_date").unwrap_or_default(),
+        remediation_completed_date: row
+            .try_get("remediation_completed_date")
+            .unwrap_or_default(),
         root_cause: row.try_get("root_cause").unwrap_or_default(),
         corrective_actions: row.try_get("corrective_actions").unwrap_or_default(),
-        identified_date: row.try_get("identified_date").unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+        identified_date: row
+            .try_get("identified_date")
+            .unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
         resolved_date: row.try_get("resolved_date").unwrap_or_default(),
         closed_date: row.try_get("closed_date").unwrap_or_default(),
         regulatory_reference: row.try_get("regulatory_reference").unwrap_or_default(),
@@ -291,8 +401,14 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
     // ========================================================================
 
     async fn create_category(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        parent_category_id: Option<Uuid>, sort_order: i32, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        parent_category_id: Option<Uuid>,
+        sort_order: i32,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<RiskCategory> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.risk_categories
@@ -308,14 +424,24 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
 
     async fn get_category(&self, id: Uuid) -> AtlasResult<Option<RiskCategory>> {
         let row = sqlx::query("SELECT * FROM _atlas.risk_categories WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_category))
     }
 
-    async fn get_category_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<RiskCategory>> {
+    async fn get_category_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<RiskCategory>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.risk_categories WHERE organization_id = $1 AND code = $2"
-        ).bind(org_id).bind(code).fetch_optional(&self.pool).await?;
+            "SELECT * FROM _atlas.risk_categories WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(row.as_ref().map(row_to_category))
     }
 
@@ -328,10 +454,16 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
 
     async fn delete_category(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.risk_categories WHERE organization_id = $1 AND code = $2"
-        ).bind(org_id).bind(code).execute(&self.pool).await?;
+            "DELETE FROM _atlas.risk_categories WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Category '{code}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Category '{code}' not found"
+            )));
         }
         Ok(())
     }
@@ -341,11 +473,22 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
     // ========================================================================
 
     async fn create_risk(
-        &self, org_id: Uuid, risk_number: &str, title: &str, description: Option<&str>,
-        category_id: Option<Uuid>, risk_source: &str, likelihood: i32, impact: i32,
-        risk_level: &str, owner_id: Option<Uuid>, owner_name: Option<&str>,
-        response_strategy: Option<&str>, business_units: serde_json::Value,
-        related_entity_type: Option<&str>, related_entity_id: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        risk_number: &str,
+        title: &str,
+        description: Option<&str>,
+        category_id: Option<Uuid>,
+        risk_source: &str,
+        likelihood: i32,
+        impact: i32,
+        risk_level: &str,
+        owner_id: Option<Uuid>,
+        owner_name: Option<&str>,
+        response_strategy: Option<&str>,
+        business_units: serde_json::Value,
+        related_entity_type: Option<&str>,
+        related_entity_id: Option<Uuid>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<RiskEntry> {
         let row = sqlx::query(
@@ -358,30 +501,56 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
                     $10, $11, $12, $13, $14, $15, '{}'::jsonb, $16)
             RETURNING *",
         )
-        .bind(org_id).bind(risk_number).bind(title).bind(description)
-        .bind(category_id).bind(risk_source).bind(likelihood).bind(impact)
-        .bind(risk_level).bind(owner_id).bind(owner_name)
-        .bind(response_strategy).bind(&business_units)
-        .bind(related_entity_type).bind(related_entity_id).bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(risk_number)
+        .bind(title)
+        .bind(description)
+        .bind(category_id)
+        .bind(risk_source)
+        .bind(likelihood)
+        .bind(impact)
+        .bind(risk_level)
+        .bind(owner_id)
+        .bind(owner_name)
+        .bind(response_strategy)
+        .bind(&business_units)
+        .bind(related_entity_type)
+        .bind(related_entity_id)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_risk(&row))
     }
 
     async fn get_risk(&self, id: Uuid) -> AtlasResult<Option<RiskEntry>> {
         let row = sqlx::query("SELECT * FROM _atlas.risk_register WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_risk))
     }
 
-    async fn get_risk_by_number(&self, org_id: Uuid, risk_number: &str) -> AtlasResult<Option<RiskEntry>> {
+    async fn get_risk_by_number(
+        &self,
+        org_id: Uuid,
+        risk_number: &str,
+    ) -> AtlasResult<Option<RiskEntry>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.risk_register WHERE organization_id = $1 AND risk_number = $2"
-        ).bind(org_id).bind(risk_number).fetch_optional(&self.pool).await?;
+            "SELECT * FROM _atlas.risk_register WHERE organization_id = $1 AND risk_number = $2",
+        )
+        .bind(org_id)
+        .bind(risk_number)
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(row.as_ref().map(row_to_risk))
     }
 
     async fn list_risks(
-        &self, org_id: Uuid, status: Option<&str>, risk_level: Option<&str>, risk_source: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        risk_level: Option<&str>,
+        risk_source: Option<&str>,
     ) -> AtlasResult<Vec<RiskEntry>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.risk_register
@@ -391,25 +560,41 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
                  AND ($4::text IS NULL OR risk_source = $4)
                ORDER BY risk_score DESC, created_at DESC",
         )
-        .bind(org_id).bind(status).bind(risk_level).bind(risk_source)
-        .fetch_all(&self.pool).await?;
+        .bind(org_id)
+        .bind(status)
+        .bind(risk_level)
+        .bind(risk_source)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows.iter().map(row_to_risk).collect())
     }
 
     async fn update_risk_status(&self, id: Uuid, status: &str) -> AtlasResult<RiskEntry> {
-        let _closed_date = if status == "closed" { "CURRENT_DATE" } else { "NULL" };
+        let _closed_date = if status == "closed" {
+            "CURRENT_DATE"
+        } else {
+            "NULL"
+        };
         let query = r"UPDATE _atlas.risk_register SET status = $2, closed_date = CASE WHEN $3 THEN CURRENT_DATE ELSE closed_date END, updated_at = now()
                WHERE id = $1 RETURNING *".to_string();
         let row = sqlx::query(&query)
-            .bind(id).bind(status).bind(status == "closed")
-            .fetch_one(&self.pool).await
+            .bind(id)
+            .bind(status)
+            .bind(status == "closed")
+            .fetch_one(&self.pool)
+            .await
             .map_err(|_| AtlasError::EntityNotFound(format!("Risk {id} not found")))?;
         Ok(row_to_risk(&row))
     }
 
     async fn assess_risk(
-        &self, id: Uuid, likelihood: i32, impact: i32, risk_level: &str,
-        residual_likelihood: Option<i32>, residual_impact: Option<i32>,
+        &self,
+        id: Uuid,
+        likelihood: i32,
+        impact: i32,
+        risk_level: &str,
+        residual_likelihood: Option<i32>,
+        residual_impact: Option<i32>,
     ) -> AtlasResult<RiskEntry> {
         let row = sqlx::query(
             r"UPDATE _atlas.risk_register
@@ -419,19 +604,30 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
                    updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(likelihood).bind(impact).bind(risk_level)
-        .bind(residual_likelihood).bind(residual_impact)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(likelihood)
+        .bind(impact)
+        .bind(risk_level)
+        .bind(residual_likelihood)
+        .bind(residual_impact)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|_| AtlasError::EntityNotFound(format!("Risk {id} not found")))?;
         Ok(row_to_risk(&row))
     }
 
     async fn delete_risk(&self, org_id: Uuid, risk_number: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.risk_register WHERE organization_id = $1 AND risk_number = $2"
-        ).bind(org_id).bind(risk_number).execute(&self.pool).await?;
+            "DELETE FROM _atlas.risk_register WHERE organization_id = $1 AND risk_number = $2",
+        )
+        .bind(org_id)
+        .bind(risk_number)
+        .execute(&self.pool)
+        .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Risk '{risk_number}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Risk '{risk_number}' not found"
+            )));
         }
         Ok(())
     }
@@ -441,11 +637,21 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
     // ========================================================================
 
     async fn create_control(
-        &self, org_id: Uuid, control_number: &str, title: &str, description: Option<&str>,
-        control_type: &str, control_nature: &str, frequency: &str,
-        objective: Option<&str>, test_procedures: Option<&str>,
-        owner_id: Option<Uuid>, owner_name: Option<&str>, is_key_control: bool,
-        business_processes: serde_json::Value, regulatory_frameworks: serde_json::Value,
+        &self,
+        org_id: Uuid,
+        control_number: &str,
+        title: &str,
+        description: Option<&str>,
+        control_type: &str,
+        control_nature: &str,
+        frequency: &str,
+        objective: Option<&str>,
+        test_procedures: Option<&str>,
+        owner_id: Option<Uuid>,
+        owner_name: Option<&str>,
+        is_key_control: bool,
+        business_processes: serde_json::Value,
+        regulatory_frameworks: serde_json::Value,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ControlEntry> {
         let row = sqlx::query(
@@ -458,22 +664,39 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, '{}'::jsonb, $15)
             RETURNING *",
         )
-        .bind(org_id).bind(control_number).bind(title).bind(description)
-        .bind(control_type).bind(control_nature).bind(frequency)
-        .bind(objective).bind(test_procedures).bind(owner_id).bind(owner_name)
-        .bind(is_key_control).bind(&business_processes).bind(&regulatory_frameworks)
+        .bind(org_id)
+        .bind(control_number)
+        .bind(title)
+        .bind(description)
+        .bind(control_type)
+        .bind(control_nature)
+        .bind(frequency)
+        .bind(objective)
+        .bind(test_procedures)
+        .bind(owner_id)
+        .bind(owner_name)
+        .bind(is_key_control)
+        .bind(&business_processes)
+        .bind(&regulatory_frameworks)
         .bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_control(&row))
     }
 
     async fn get_control(&self, id: Uuid) -> AtlasResult<Option<ControlEntry>> {
         let row = sqlx::query("SELECT * FROM _atlas.control_registry WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_control))
     }
 
-    async fn get_control_by_number(&self, org_id: Uuid, control_number: &str) -> AtlasResult<Option<ControlEntry>> {
+    async fn get_control_by_number(
+        &self,
+        org_id: Uuid,
+        control_number: &str,
+    ) -> AtlasResult<Option<ControlEntry>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.control_registry WHERE organization_id = $1 AND control_number = $2"
         ).bind(org_id).bind(control_number).fetch_optional(&self.pool).await?;
@@ -481,7 +704,10 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
     }
 
     async fn list_controls(
-        &self, org_id: Uuid, status: Option<&str>, control_type: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        control_type: Option<&str>,
     ) -> AtlasResult<Vec<ControlEntry>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.control_registry
@@ -490,8 +716,11 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
                  AND ($3::text IS NULL OR control_type = $3)
                ORDER BY created_at DESC",
         )
-        .bind(org_id).bind(status).bind(control_type)
-        .fetch_all(&self.pool).await?;
+        .bind(org_id)
+        .bind(status)
+        .bind(control_type)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows.iter().map(row_to_control).collect())
     }
 
@@ -504,7 +733,11 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         Ok(row_to_control(&row))
     }
 
-    async fn update_control_effectiveness(&self, id: Uuid, effectiveness: &str) -> AtlasResult<ControlEntry> {
+    async fn update_control_effectiveness(
+        &self,
+        id: Uuid,
+        effectiveness: &str,
+    ) -> AtlasResult<ControlEntry> {
         let row = sqlx::query(
             "UPDATE _atlas.control_registry SET effectiveness = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(effectiveness)
@@ -518,7 +751,9 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
             "DELETE FROM _atlas.control_registry WHERE organization_id = $1 AND control_number = $2"
         ).bind(org_id).bind(control_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Control '{control_number}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Control '{control_number}' not found"
+            )));
         }
         Ok(())
     }
@@ -528,8 +763,13 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
     // ========================================================================
 
     async fn create_risk_control_mapping(
-        &self, org_id: Uuid, risk_id: Uuid, control_id: Uuid,
-        mitigation_effectiveness: &str, description: Option<&str>, mapped_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        risk_id: Uuid,
+        control_id: Uuid,
+        mitigation_effectiveness: &str,
+        description: Option<&str>,
+        mapped_by: Option<Uuid>,
     ) -> AtlasResult<RiskControlMapping> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.risk_control_mappings
@@ -550,7 +790,10 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         Ok(rows.iter().map(row_to_mapping).collect())
     }
 
-    async fn list_control_mappings(&self, control_id: Uuid) -> AtlasResult<Vec<RiskControlMapping>> {
+    async fn list_control_mappings(
+        &self,
+        control_id: Uuid,
+    ) -> AtlasResult<Vec<RiskControlMapping>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.risk_control_mappings WHERE control_id = $1 AND status = 'active' ORDER BY created_at"
         ).bind(control_id).fetch_all(&self.pool).await?;
@@ -559,7 +802,9 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
 
     async fn delete_mapping(&self, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query("DELETE FROM _atlas.risk_control_mappings WHERE id = $1")
-            .bind(id).execute(&self.pool).await?;
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound("Mapping not found".to_string()));
         }
@@ -571,9 +816,16 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
     // ========================================================================
 
     async fn create_control_test(
-        &self, org_id: Uuid, control_id: Uuid, test_number: &str, test_plan: &str,
-        test_period_start: chrono::NaiveDate, test_period_end: chrono::NaiveDate,
-        tester_id: Option<Uuid>, tester_name: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        control_id: Uuid,
+        test_number: &str,
+        test_plan: &str,
+        test_period_start: chrono::NaiveDate,
+        test_period_end: chrono::NaiveDate,
+        tester_id: Option<Uuid>,
+        tester_name: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ControlTest> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.control_tests
@@ -583,40 +835,64 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '[]'::jsonb, '{}'::jsonb, $9)
             RETURNING *",
         )
-        .bind(org_id).bind(control_id).bind(test_number).bind(test_plan)
-        .bind(test_period_start).bind(test_period_end)
-        .bind(tester_id).bind(tester_name).bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(control_id)
+        .bind(test_number)
+        .bind(test_plan)
+        .bind(test_period_start)
+        .bind(test_period_end)
+        .bind(tester_id)
+        .bind(tester_name)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_test(&row))
     }
 
     async fn get_control_test(&self, id: Uuid) -> AtlasResult<Option<ControlTest>> {
         let row = sqlx::query("SELECT * FROM _atlas.control_tests WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_test))
     }
 
     async fn list_control_tests(&self, control_id: Uuid) -> AtlasResult<Vec<ControlTest>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.control_tests WHERE control_id = $1 ORDER BY created_at DESC"
-        ).bind(control_id).fetch_all(&self.pool).await?;
+            "SELECT * FROM _atlas.control_tests WHERE control_id = $1 ORDER BY created_at DESC",
+        )
+        .bind(control_id)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows.iter().map(row_to_test).collect())
     }
 
     async fn update_control_test_status(&self, id: Uuid, status: &str) -> AtlasResult<ControlTest> {
-        let _started = if status == "in_progress" { "now()" } else { "started_at" };
+        let _started = if status == "in_progress" {
+            "now()"
+        } else {
+            "started_at"
+        };
         let query = r"UPDATE _atlas.control_tests SET status = $2, started_at = CASE WHEN $3 THEN now() ELSE started_at END, updated_at = now()
                WHERE id = $1 RETURNING *".to_string();
         let row = sqlx::query(&query)
-            .bind(id).bind(status).bind(status == "in_progress")
-            .fetch_one(&self.pool).await
+            .bind(id)
+            .bind(status)
+            .bind(status == "in_progress")
+            .fetch_one(&self.pool)
+            .await
             .map_err(|_| AtlasError::EntityNotFound(format!("Control test {id} not found")))?;
         Ok(row_to_test(&row))
     }
 
     async fn complete_control_test(
-        &self, id: Uuid, result: &str, findings: Option<&str>,
-        deficiency_severity: Option<&str>, sample_size: Option<i32>, sample_exceptions: Option<i32>,
+        &self,
+        id: Uuid,
+        result: &str,
+        findings: Option<&str>,
+        deficiency_severity: Option<&str>,
+        sample_size: Option<i32>,
+        sample_exceptions: Option<i32>,
     ) -> AtlasResult<ControlTest> {
         let row = sqlx::query(
             r"UPDATE _atlas.control_tests
@@ -625,19 +901,30 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
                    status = 'completed', completed_at = now(), updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(result).bind(findings).bind(deficiency_severity)
-        .bind(sample_size).bind(sample_exceptions)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(result)
+        .bind(findings)
+        .bind(deficiency_severity)
+        .bind(sample_size)
+        .bind(sample_exceptions)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|_| AtlasError::EntityNotFound(format!("Control test {id} not found")))?;
         Ok(row_to_test(&row))
     }
 
     async fn delete_control_test(&self, org_id: Uuid, test_number: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.control_tests WHERE organization_id = $1 AND test_number = $2"
-        ).bind(org_id).bind(test_number).execute(&self.pool).await?;
+            "DELETE FROM _atlas.control_tests WHERE organization_id = $1 AND test_number = $2",
+        )
+        .bind(org_id)
+        .bind(test_number)
+        .execute(&self.pool)
+        .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Test '{test_number}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Test '{test_number}' not found"
+            )));
         }
         Ok(())
     }
@@ -647,11 +934,21 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
     // ========================================================================
 
     async fn create_issue(
-        &self, org_id: Uuid, issue_number: &str, title: &str, description: &str,
-        source: &str, risk_id: Option<Uuid>, control_id: Option<Uuid>,
-        control_test_id: Option<Uuid>, severity: &str, priority: &str,
-        owner_id: Option<Uuid>, owner_name: Option<&str>,
-        remediation_plan: Option<&str>, remediation_due_date: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        issue_number: &str,
+        title: &str,
+        description: &str,
+        source: &str,
+        risk_id: Option<Uuid>,
+        control_id: Option<Uuid>,
+        control_test_id: Option<Uuid>,
+        severity: &str,
+        priority: &str,
+        owner_id: Option<Uuid>,
+        owner_name: Option<&str>,
+        remediation_plan: Option<&str>,
+        remediation_due_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<RiskIssue> {
         let row = sqlx::query(
@@ -664,30 +961,54 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
                     $11, $12, $13, $14, '{}'::jsonb, $15)
             RETURNING *",
         )
-        .bind(org_id).bind(issue_number).bind(title).bind(description).bind(source)
-        .bind(risk_id).bind(control_id).bind(control_test_id)
-        .bind(severity).bind(priority)
-        .bind(owner_id).bind(owner_name).bind(remediation_plan).bind(remediation_due_date)
+        .bind(org_id)
+        .bind(issue_number)
+        .bind(title)
+        .bind(description)
+        .bind(source)
+        .bind(risk_id)
+        .bind(control_id)
+        .bind(control_test_id)
+        .bind(severity)
+        .bind(priority)
+        .bind(owner_id)
+        .bind(owner_name)
+        .bind(remediation_plan)
+        .bind(remediation_due_date)
         .bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_issue(&row))
     }
 
     async fn get_issue(&self, id: Uuid) -> AtlasResult<Option<RiskIssue>> {
         let row = sqlx::query("SELECT * FROM _atlas.risk_issues WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_issue))
     }
 
-    async fn get_issue_by_number(&self, org_id: Uuid, issue_number: &str) -> AtlasResult<Option<RiskIssue>> {
+    async fn get_issue_by_number(
+        &self,
+        org_id: Uuid,
+        issue_number: &str,
+    ) -> AtlasResult<Option<RiskIssue>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.risk_issues WHERE organization_id = $1 AND issue_number = $2"
-        ).bind(org_id).bind(issue_number).fetch_optional(&self.pool).await?;
+            "SELECT * FROM _atlas.risk_issues WHERE organization_id = $1 AND issue_number = $2",
+        )
+        .bind(org_id)
+        .bind(issue_number)
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(row.as_ref().map(row_to_issue))
     }
 
     async fn list_issues(
-        &self, org_id: Uuid, status: Option<&str>, severity: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        severity: Option<&str>,
     ) -> AtlasResult<Vec<RiskIssue>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.risk_issues
@@ -722,7 +1043,10 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
     }
 
     async fn resolve_issue(
-        &self, id: Uuid, root_cause: Option<&str>, corrective_actions: Option<&str>,
+        &self,
+        id: Uuid,
+        root_cause: Option<&str>,
+        corrective_actions: Option<&str>,
     ) -> AtlasResult<RiskIssue> {
         let row = sqlx::query(
             r"UPDATE _atlas.risk_issues
@@ -730,18 +1054,27 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
                    resolved_date = CURRENT_DATE, updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(root_cause).bind(corrective_actions)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(root_cause)
+        .bind(corrective_actions)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|_| AtlasError::EntityNotFound(format!("Issue {id} not found")))?;
         Ok(row_to_issue(&row))
     }
 
     async fn delete_issue(&self, org_id: Uuid, issue_number: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.risk_issues WHERE organization_id = $1 AND issue_number = $2"
-        ).bind(org_id).bind(issue_number).execute(&self.pool).await?;
+            "DELETE FROM _atlas.risk_issues WHERE organization_id = $1 AND issue_number = $2",
+        )
+        .bind(org_id)
+        .bind(issue_number)
+        .execute(&self.pool)
+        .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Issue '{issue_number}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Issue '{issue_number}' not found"
+            )));
         }
         Ok(())
     }
@@ -790,8 +1123,12 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
 
         // Count controls
         let ctrl_rows = sqlx::query(
-            "SELECT status, effectiveness FROM _atlas.control_registry WHERE organization_id = $1"
-        ).bind(org_id).fetch_all(&self.pool).await.unwrap_or_default();
+            "SELECT status, effectiveness FROM _atlas.control_registry WHERE organization_id = $1",
+        )
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
+        .unwrap_or_default();
 
         let mut active_controls = 0i32;
         let mut effective_controls = 0i32;
@@ -802,7 +1139,9 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         for row in &ctrl_rows {
             let status: String = row.try_get("status").unwrap_or_default();
             let eff: String = row.try_get("effectiveness").unwrap_or_default();
-            if status == "active" { active_controls += 1; }
+            if status == "active" {
+                active_controls += 1;
+            }
             match eff.as_str() {
                 "effective" => effective_controls += 1,
                 "ineffective" => ineffective_controls += 1,
@@ -813,9 +1152,12 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         }
 
         // Count tests
-        let test_rows = sqlx::query(
-            "SELECT result FROM _atlas.control_tests WHERE organization_id = $1"
-        ).bind(org_id).fetch_all(&self.pool).await.unwrap_or_default();
+        let test_rows =
+            sqlx::query("SELECT result FROM _atlas.control_tests WHERE organization_id = $1")
+                .bind(org_id)
+                .fetch_all(&self.pool)
+                .await
+                .unwrap_or_default();
 
         let mut passed_tests = 0i32;
         let mut failed_tests = 0i32;
@@ -841,12 +1183,15 @@ impl RiskManagementRepository for PostgresRiskManagementRepository {
         for row in &issue_rows {
             let severity: String = row.try_get("severity").unwrap_or_default();
             let status: String = row.try_get("status").unwrap_or_default();
-            let due: Option<chrono::NaiveDate> = row.try_get("remediation_due_date").unwrap_or_default();
+            let due: Option<chrono::NaiveDate> =
+                row.try_get("remediation_due_date").unwrap_or_default();
 
             if !matches!(status.as_str(), "resolved" | "closed" | "accepted") {
                 open_issues += 1;
             }
-            if severity == "critical" { critical_issues += 1; }
+            if severity == "critical" {
+                critical_issues += 1;
+            }
             if let Some(d) = due {
                 if d < today && !matches!(status.as_str(), "resolved" | "closed") {
                     overdue_remediations += 1;

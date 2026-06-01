@@ -1,33 +1,35 @@
 //! Schema Repository
-//! 
+//!
 //! Trait and implementations for storing entity definitions.
 
-use atlas_shared::{EntityDefinition, AtlasError, AtlasResult, IndexDefinition, WorkflowDefinition};
-use atlas_shared::FieldDefinition;
 use async_trait::async_trait;
-use sqlx::PgPool;
-use sqlx::FromRow;
-use uuid::Uuid;
+use atlas_shared::FieldDefinition;
+use atlas_shared::{
+    AtlasError, AtlasResult, EntityDefinition, IndexDefinition, WorkflowDefinition,
+};
 use serde_json::Value;
+use sqlx::FromRow;
+use sqlx::PgPool;
+use uuid::Uuid;
 
 /// Repository trait for entity definitions
 #[async_trait]
 pub trait SchemaRepository: Send + Sync {
     /// Get all entity definitions
     async fn get_all_entities(&self) -> AtlasResult<Vec<EntityDefinition>>;
-    
+
     /// Get a single entity by name
     async fn get_entity(&self, name: &str) -> AtlasResult<Option<EntityDefinition>>;
-    
+
     /// Create or update an entity
     async fn upsert_entity(&self, entity: &EntityDefinition) -> AtlasResult<()>;
-    
+
     /// Delete an entity
     async fn delete_entity(&self, name: &str) -> AtlasResult<()>;
-    
+
     /// Get entity version
     async fn get_entity_version(&self, name: &str) -> AtlasResult<Option<i64>>;
-    
+
     /// Set entity version
     async fn set_entity_version(&self, name: &str, version: i64) -> AtlasResult<()>;
 }
@@ -57,7 +59,7 @@ pub struct PostgresSchemaRepository {
 }
 
 impl PostgresSchemaRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -74,14 +76,14 @@ impl SchemaRepository for PostgresSchemaRepository {
                 is_audit_enabled, is_soft_delete, icon, color, metadata
             FROM _atlas.entities
             ORDER BY name
-            "
+            ",
         )
         .fetch_all(&self.pool)
         .await?;
-        
+
         Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
-    
+
     async fn get_entity(&self, name: &str) -> AtlasResult<Option<EntityDefinition>> {
         let row = sqlx::query_as::<_, EntityRow>(
             r"
@@ -91,22 +93,30 @@ impl SchemaRepository for PostgresSchemaRepository {
                 is_audit_enabled, is_soft_delete, icon, color, metadata
             FROM _atlas.entities
             WHERE name = $1
-            "
+            ",
         )
         .bind(name)
         .fetch_optional(&self.pool)
         .await?;
-        
+
         Ok(row.map(std::convert::Into::into))
     }
-    
+
     async fn upsert_entity(&self, entity: &EntityDefinition) -> AtlasResult<()> {
         let id = entity.id.unwrap_or_else(Uuid::new_v4);
-        let fields_json = serde_json::to_value(&entity.fields).map_err(|e| AtlasError::SchemaError(e.to_string()))?;
-        let indexes_json = serde_json::to_value(&entity.indexes).map_err(|e| AtlasError::SchemaError(e.to_string()))?;
-        let workflow_json = entity.workflow.as_ref().and_then(|w| serde_json::to_value(w).ok());
-        let security_json = entity.security.as_ref().and_then(|s| serde_json::to_value(s).ok());
-        
+        let fields_json = serde_json::to_value(&entity.fields)
+            .map_err(|e| AtlasError::SchemaError(e.to_string()))?;
+        let indexes_json = serde_json::to_value(&entity.indexes)
+            .map_err(|e| AtlasError::SchemaError(e.to_string()))?;
+        let workflow_json = entity
+            .workflow
+            .as_ref()
+            .and_then(|w| serde_json::to_value(w).ok());
+        let security_json = entity
+            .security
+            .as_ref()
+            .and_then(|s| serde_json::to_value(s).ok());
+
         sqlx::query(
             r"
             INSERT INTO _atlas.entities (
@@ -129,7 +139,7 @@ impl SchemaRepository for PostgresSchemaRepository {
                 color = EXCLUDED.color,
                 metadata = EXCLUDED.metadata,
                 updated_at = now()
-            "
+            ",
         )
         .bind(id)
         .bind(&entity.name)
@@ -148,10 +158,10 @@ impl SchemaRepository for PostgresSchemaRepository {
         .bind(&entity.metadata)
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
-    
+
     async fn delete_entity(&self, name: &str) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.entities WHERE name = $1")
             .bind(name)
@@ -159,67 +169,68 @@ impl SchemaRepository for PostgresSchemaRepository {
             .await?;
         Ok(())
     }
-    
+
     async fn get_entity_version(&self, name: &str) -> AtlasResult<Option<i64>> {
         let row = sqlx::query_scalar::<_, i64>(
             r"
             SELECT version FROM _atlas.config_versions 
             WHERE entity_name = $1
             ORDER BY version DESC LIMIT 1
-            "
+            ",
         )
         .bind(name)
         .fetch_optional(&self.pool)
         .await?;
-        
+
         Ok(row)
     }
-    
+
     async fn set_entity_version(&self, name: &str, version: i64) -> AtlasResult<()> {
         let config = serde_json::json!({});
-        
+
         sqlx::query(
             r"
             INSERT INTO _atlas.config_versions (entity_name, version, config)
             VALUES ($1, $2, $3)
-            "
+            ",
         )
         .bind(name)
         .bind(version)
         .bind(&config)
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
 }
 
 impl From<EntityRow> for EntityDefinition {
     fn from(row: EntityRow) -> Self {
-        let fields: Vec<FieldDefinition> = serde_json::from_value(row.fields)
-            .unwrap_or_else(|e| {
-                tracing::error!("Failed to deserialize entity fields: {}", e);
-                vec![]
-            });
-        let indexes: Vec<IndexDefinition> = serde_json::from_value(row.indexes)
-            .unwrap_or_else(|e| {
+        let fields: Vec<FieldDefinition> = serde_json::from_value(row.fields).unwrap_or_else(|e| {
+            tracing::error!("Failed to deserialize entity fields: {}", e);
+            vec![]
+        });
+        let indexes: Vec<IndexDefinition> =
+            serde_json::from_value(row.indexes).unwrap_or_else(|e| {
                 tracing::error!("Failed to deserialize entity indexes: {}", e);
                 vec![]
             });
-        let workflow: Option<WorkflowDefinition> = row.workflow
-            .and_then(|w| {
-                serde_json::from_value(w).map_err(|e| {
+        let workflow: Option<WorkflowDefinition> = row.workflow.and_then(|w| {
+            serde_json::from_value(w)
+                .map_err(|e| {
                     tracing::error!("Failed to deserialize workflow: {}", e);
                     e
-                }).ok()
-            });
-        let security = row.security
-            .and_then(|s| {
-                serde_json::from_value(s).map_err(|e| {
+                })
+                .ok()
+        });
+        let security = row.security.and_then(|s| {
+            serde_json::from_value(s)
+                .map_err(|e| {
                     tracing::error!("Failed to deserialize security policy: {}", e);
                     e
-                }).ok()
-            });
+                })
+                .ok()
+        });
 
         Self {
             id: row.id,

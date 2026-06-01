@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for marketing campaign data.
 
-use atlas_shared::{
-    CampaignType, MarketingCampaign, CampaignMember, CampaignResponse,
-    MarketingDashboard, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, CampaignMember, CampaignResponse, CampaignType, MarketingCampaign,
+    MarketingDashboard,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -23,7 +23,11 @@ pub trait MarketingRepository: Send + Sync {
         channel: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CampaignType>;
-    async fn get_campaign_type_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CampaignType>>;
+    async fn get_campaign_type_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CampaignType>>;
     async fn list_campaign_types(&self, org_id: Uuid) -> AtlasResult<Vec<CampaignType>>;
     async fn delete_campaign_type(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -52,13 +56,36 @@ pub trait MarketingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<MarketingCampaign>;
     async fn get_campaign(&self, id: Uuid) -> AtlasResult<Option<MarketingCampaign>>;
-    async fn get_campaign_by_number(&self, org_id: Uuid, campaign_number: &str) -> AtlasResult<Option<MarketingCampaign>>;
-    async fn list_campaigns(&self, org_id: Uuid, status: Option<&str>, channel: Option<&str>, owner_id: Option<Uuid>) -> AtlasResult<Vec<MarketingCampaign>>;
-    async fn update_campaign_status(&self, id: Uuid, status: &str) -> AtlasResult<MarketingCampaign>;
+    async fn get_campaign_by_number(
+        &self,
+        org_id: Uuid,
+        campaign_number: &str,
+    ) -> AtlasResult<Option<MarketingCampaign>>;
+    async fn list_campaigns(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        channel: Option<&str>,
+        owner_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<MarketingCampaign>>;
+    async fn update_campaign_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<MarketingCampaign>;
     async fn activate_campaign(&self, id: Uuid) -> AtlasResult<MarketingCampaign>;
     async fn complete_campaign(&self, id: Uuid) -> AtlasResult<MarketingCampaign>;
     async fn cancel_campaign(&self, id: Uuid) -> AtlasResult<MarketingCampaign>;
-    async fn update_campaign_actuals(&self, id: Uuid, actual_cost: &str, actual_responses: i32, actual_revenue: &str, converted_leads: i32, converted_opportunities: i32, converted_won: i32) -> AtlasResult<()>;
+    async fn update_campaign_actuals(
+        &self,
+        id: Uuid,
+        actual_cost: &str,
+        actual_responses: i32,
+        actual_revenue: &str,
+        converted_leads: i32,
+        converted_opportunities: i32,
+        converted_won: i32,
+    ) -> AtlasResult<()>;
     async fn delete_campaign(&self, org_id: Uuid, campaign_number: &str) -> AtlasResult<()>;
 
     // Campaign Members
@@ -74,8 +101,17 @@ pub trait MarketingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CampaignMember>;
     async fn get_campaign_member(&self, id: Uuid) -> AtlasResult<Option<CampaignMember>>;
-    async fn list_campaign_members(&self, campaign_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CampaignMember>>;
-    async fn update_member_status(&self, id: Uuid, status: &str, response: Option<&str>) -> AtlasResult<CampaignMember>;
+    async fn list_campaign_members(
+        &self,
+        campaign_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CampaignMember>>;
+    async fn update_member_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        response: Option<&str>,
+    ) -> AtlasResult<CampaignMember>;
     async fn delete_campaign_member(&self, id: Uuid) -> AtlasResult<()>;
 
     // Campaign Responses
@@ -95,7 +131,11 @@ pub trait MarketingRepository: Send + Sync {
         source_url: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CampaignResponse>;
-    async fn list_responses(&self, campaign_id: Uuid, response_type: Option<&str>) -> AtlasResult<Vec<CampaignResponse>>;
+    async fn list_responses(
+        &self,
+        campaign_id: Uuid,
+        response_type: Option<&str>,
+    ) -> AtlasResult<Vec<CampaignResponse>>;
     async fn delete_response(&self, id: Uuid) -> AtlasResult<()>;
 
     // Dashboard
@@ -108,7 +148,7 @@ pub struct PostgresMarketingRepository {
 }
 
 impl PostgresMarketingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -244,7 +284,11 @@ impl MarketingRepository for PostgresMarketingRepository {
         Ok(row_to_campaign_type(&row))
     }
 
-    async fn get_campaign_type_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CampaignType>> {
+    async fn get_campaign_type_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CampaignType>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.campaign_types WHERE organization_id = $1 AND code = $2 AND is_active = true",
         )
@@ -266,7 +310,10 @@ impl MarketingRepository for PostgresMarketingRepository {
 
     async fn delete_campaign_type(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.campaign_types WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code).execute(&self.pool).await
+            .bind(org_id)
+            .bind(code)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -305,25 +352,46 @@ impl MarketingRepository for PostgresMarketingRepository {
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
                RETURNING *",
         )
-        .bind(org_id).bind(campaign_number).bind(name).bind(description)
-        .bind(campaign_type_id).bind(campaign_type_name).bind(channel)
-        .bind(budget.parse::<f64>().unwrap_or(0.0)).bind(currency_code)
-        .bind(start_date).bind(end_date).bind(owner_id).bind(owner_name)
-        .bind(expected_responses).bind(expected_revenue.parse::<f64>().unwrap_or(0.0))
-        .bind(parent_campaign_id).bind(parent_campaign_name).bind(&tags).bind(notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(campaign_number)
+        .bind(name)
+        .bind(description)
+        .bind(campaign_type_id)
+        .bind(campaign_type_name)
+        .bind(channel)
+        .bind(budget.parse::<f64>().unwrap_or(0.0))
+        .bind(currency_code)
+        .bind(start_date)
+        .bind(end_date)
+        .bind(owner_id)
+        .bind(owner_name)
+        .bind(expected_responses)
+        .bind(expected_revenue.parse::<f64>().unwrap_or(0.0))
+        .bind(parent_campaign_id)
+        .bind(parent_campaign_name)
+        .bind(&tags)
+        .bind(notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_campaign(&row))
     }
 
     async fn get_campaign(&self, id: Uuid) -> AtlasResult<Option<MarketingCampaign>> {
         let row = sqlx::query("SELECT * FROM _atlas.marketing_campaigns WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_campaign(&r)))
     }
 
-    async fn get_campaign_by_number(&self, org_id: Uuid, campaign_number: &str) -> AtlasResult<Option<MarketingCampaign>> {
+    async fn get_campaign_by_number(
+        &self,
+        org_id: Uuid,
+        campaign_number: &str,
+    ) -> AtlasResult<Option<MarketingCampaign>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.marketing_campaigns WHERE organization_id = $1 AND campaign_number = $2",
         )
@@ -332,7 +400,13 @@ impl MarketingRepository for PostgresMarketingRepository {
         Ok(row.map(|r| row_to_campaign(&r)))
     }
 
-    async fn list_campaigns(&self, org_id: Uuid, status: Option<&str>, channel: Option<&str>, owner_id: Option<Uuid>) -> AtlasResult<Vec<MarketingCampaign>> {
+    async fn list_campaigns(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        channel: Option<&str>,
+        owner_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<MarketingCampaign>> {
         let rows = match (status, channel, owner_id) {
             (Some(s), None, None) => sqlx::query(
                 "SELECT * FROM _atlas.marketing_campaigns WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC",
@@ -353,7 +427,11 @@ impl MarketingRepository for PostgresMarketingRepository {
         Ok(rows.iter().map(row_to_campaign).collect())
     }
 
-    async fn update_campaign_status(&self, id: Uuid, status: &str) -> AtlasResult<MarketingCampaign> {
+    async fn update_campaign_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<MarketingCampaign> {
         let row = sqlx::query(
             "UPDATE _atlas.marketing_campaigns SET status = $2, updated_at = now() WHERE id = $1 RETURNING *",
         )
@@ -368,7 +446,9 @@ impl MarketingRepository for PostgresMarketingRepository {
                SET status = 'active', activated_at = now(), updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).fetch_one(&self.pool).await
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_campaign(&row))
     }
@@ -379,7 +459,9 @@ impl MarketingRepository for PostgresMarketingRepository {
                SET status = 'completed', completed_at = now(), updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).fetch_one(&self.pool).await
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_campaign(&row))
     }
@@ -390,12 +472,23 @@ impl MarketingRepository for PostgresMarketingRepository {
                SET status = 'cancelled', cancelled_at = now(), updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).fetch_one(&self.pool).await
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_campaign(&row))
     }
 
-    async fn update_campaign_actuals(&self, id: Uuid, actual_cost: &str, actual_responses: i32, actual_revenue: &str, converted_leads: i32, converted_opportunities: i32, converted_won: i32) -> AtlasResult<()> {
+    async fn update_campaign_actuals(
+        &self,
+        id: Uuid,
+        actual_cost: &str,
+        actual_responses: i32,
+        actual_revenue: &str,
+        converted_leads: i32,
+        converted_opportunities: i32,
+        converted_won: i32,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.marketing_campaigns
                SET actual_cost = $2, actual_responses = $3, actual_revenue = $4,
@@ -410,7 +503,8 @@ impl MarketingRepository for PostgresMarketingRepository {
         .bind(converted_leads)
         .bind(converted_opportunities)
         .bind(converted_won)
-        .execute(&self.pool).await
+        .execute(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -448,12 +542,18 @@ impl MarketingRepository for PostgresMarketingRepository {
 
     async fn get_campaign_member(&self, id: Uuid) -> AtlasResult<Option<CampaignMember>> {
         let row = sqlx::query("SELECT * FROM _atlas.campaign_members WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_member(&r)))
     }
 
-    async fn list_campaign_members(&self, campaign_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CampaignMember>> {
+    async fn list_campaign_members(
+        &self,
+        campaign_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CampaignMember>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.campaign_members WHERE campaign_id = $1 AND status = $2 ORDER BY created_at DESC",
@@ -466,26 +566,43 @@ impl MarketingRepository for PostgresMarketingRepository {
         Ok(rows.iter().map(row_to_member).collect())
     }
 
-    async fn update_member_status(&self, id: Uuid, status: &str, response: Option<&str>) -> AtlasResult<CampaignMember> {
+    async fn update_member_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        response: Option<&str>,
+    ) -> AtlasResult<CampaignMember> {
         let row = if response.is_some() {
             sqlx::query(
                 r"UPDATE _atlas.campaign_members
                    SET status = $2, response = $3, responded_at = now(), updated_at = now()
                    WHERE id = $1 RETURNING *",
-            ).bind(id).bind(status).bind(response).fetch_one(&self.pool).await
+            )
+            .bind(id)
+            .bind(status)
+            .bind(response)
+            .fetch_one(&self.pool)
+            .await
         } else {
             sqlx::query(
                 r"UPDATE _atlas.campaign_members
                    SET status = $2, updated_at = now()
                    WHERE id = $1 RETURNING *",
-            ).bind(id).bind(status).fetch_one(&self.pool).await
-        }.map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+            )
+            .bind(id)
+            .bind(status)
+            .fetch_one(&self.pool)
+            .await
+        }
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_member(&row))
     }
 
     async fn delete_campaign_member(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.campaign_members WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -514,16 +631,30 @@ impl MarketingRepository for PostgresMarketingRepository {
                  description, value, currency_code, source_url, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *",
         )
-        .bind(org_id).bind(campaign_id).bind(member_id).bind(response_type)
-        .bind(contact_id).bind(contact_name).bind(contact_email).bind(lead_id)
-        .bind(description).bind(value.parse::<f64>().unwrap_or(0.0))
-        .bind(currency_code).bind(source_url).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(campaign_id)
+        .bind(member_id)
+        .bind(response_type)
+        .bind(contact_id)
+        .bind(contact_name)
+        .bind(contact_email)
+        .bind(lead_id)
+        .bind(description)
+        .bind(value.parse::<f64>().unwrap_or(0.0))
+        .bind(currency_code)
+        .bind(source_url)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_response(&row))
     }
 
-    async fn list_responses(&self, campaign_id: Uuid, response_type: Option<&str>) -> AtlasResult<Vec<CampaignResponse>> {
+    async fn list_responses(
+        &self,
+        campaign_id: Uuid,
+        response_type: Option<&str>,
+    ) -> AtlasResult<Vec<CampaignResponse>> {
         let rows = if let Some(rt) = response_type {
             sqlx::query(
                 "SELECT * FROM _atlas.campaign_responses WHERE campaign_id = $1 AND response_type = $2 ORDER BY responded_at DESC",
@@ -538,7 +669,9 @@ impl MarketingRepository for PostgresMarketingRepository {
 
     async fn delete_response(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.campaign_responses WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -558,7 +691,9 @@ impl MarketingRepository for PostgresMarketingRepository {
                 COALESCE(SUM(converted_leads), 0) as total_leads
                FROM _atlas.marketing_campaigns WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let total_cost: f64 = row.try_get("total_cost").unwrap_or(0.0);
@@ -575,16 +710,21 @@ impl MarketingRepository for PostgresMarketingRepository {
                FROM _atlas.marketing_campaigns WHERE organization_id = $1
                GROUP BY status ORDER BY status",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let by_status: serde_json::Value = status_rows.iter().map(|r| {
-            serde_json::json!({
-                "status": r.get::<String, _>("status"),
-                "count": r.get::<i64, _>("cnt"),
-                "budget": format!("{:.2}", r.get::<f64, _>("total_budget")),
+        let by_status: serde_json::Value = status_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "status": r.get::<String, _>("status"),
+                    "count": r.get::<i64, _>("cnt"),
+                    "budget": format!("{:.2}", r.get::<f64, _>("total_budget")),
+                })
             })
-        }).collect();
+            .collect();
 
         // By channel
         let channel_rows = sqlx::query(
@@ -592,16 +732,21 @@ impl MarketingRepository for PostgresMarketingRepository {
                FROM _atlas.marketing_campaigns WHERE organization_id = $1
                GROUP BY channel ORDER BY total_budget DESC",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let by_channel: serde_json::Value = channel_rows.iter().map(|r| {
-            serde_json::json!({
-                "channel": r.get::<String, _>("channel"),
-                "count": r.get::<i64, _>("cnt"),
-                "budget": format!("{:.2}", r.get::<f64, _>("total_budget")),
+        let by_channel: serde_json::Value = channel_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "channel": r.get::<String, _>("channel"),
+                    "count": r.get::<i64, _>("cnt"),
+                    "budget": format!("{:.2}", r.get::<f64, _>("total_budget")),
+                })
             })
-        }).collect();
+            .collect();
 
         // Top campaigns by actual_revenue
         let top_rows = sqlx::query(
@@ -612,23 +757,32 @@ impl MarketingRepository for PostgresMarketingRepository {
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let top_campaigns: serde_json::Value = top_rows.iter().map(|r| {
-            serde_json::json!({
-                "campaignNumber": r.get::<String, _>("campaign_number"),
-                "name": r.get::<String, _>("name"),
-                "actualRevenue": format!("{:.2}", r.get::<f64, _>("actual_revenue")),
-                "actualCost": format!("{:.2}", r.get::<f64, _>("actual_cost")),
-                "responses": r.get::<i32, _>("actual_responses"),
+        let top_campaigns: serde_json::Value = top_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "campaignNumber": r.get::<String, _>("campaign_number"),
+                    "name": r.get::<String, _>("name"),
+                    "actualRevenue": format!("{:.2}", r.get::<f64, _>("actual_revenue")),
+                    "actualCost": format!("{:.2}", r.get::<f64, _>("actual_cost")),
+                    "responses": r.get::<i32, _>("actual_responses"),
+                })
             })
-        }).collect();
+            .collect();
 
         Ok(MarketingDashboard {
             total_campaigns: row.get::<i64, _>("total") as i32,
             active_campaigns: row.get::<i64, _>("active") as i32,
             completed_campaigns: row.get::<i64, _>("completed") as i32,
-            total_budget: format!("{:.2}", row.try_get::<f64, _>("total_budget").unwrap_or(0.0)),
+            total_budget: format!(
+                "{:.2}",
+                row.try_get::<f64, _>("total_budget").unwrap_or(0.0)
+            ),
             total_actual_cost: format!("{total_cost:.2}"),
-            total_expected_revenue: format!("{:.2}", row.try_get::<f64, _>("expected_rev").unwrap_or(0.0)),
+            total_expected_revenue: format!(
+                "{:.2}",
+                row.try_get::<f64, _>("expected_rev").unwrap_or(0.0)
+            ),
             total_actual_revenue: format!("{actual_rev:.2}"),
             total_responses: row.get::<i64, _>("total_responses") as i32,
             total_converted_leads: row.get::<i64, _>("total_leads") as i32,

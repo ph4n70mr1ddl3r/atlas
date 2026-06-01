@@ -8,11 +8,11 @@
 //! - Asset transfers
 //! - Asset retirements with gain/loss
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_fa_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -23,8 +23,11 @@ async fn setup_fa_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Rout
 }
 
 async fn create_test_category(
-    app: &axum::Router, code: &str, name: &str,
-    depreciation_method: &str, useful_life_months: i32,
+    app: &axum::Router,
+    code: &str,
+    name: &str,
+    depreciation_method: &str,
+    useful_life_months: i32,
 ) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({
@@ -38,17 +41,31 @@ async fn create_test_category(
         "default_depr_expense_account_code": "6200",
         "default_gain_loss_account_code": "8100",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/fixed-assets/categories")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/fixed-assets/categories")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to create category");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
 async fn create_test_book(
-    app: &axum::Router, code: &str, name: &str, book_type: &str,
+    app: &axum::Router,
+    code: &str,
+    name: &str,
+    book_type: &str,
 ) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({
@@ -58,18 +75,33 @@ async fn create_test_book(
         "auto_depreciation": true,
         "depreciation_calendar": "monthly",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/fixed-assets/books")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/fixed-assets/books")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to create book");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
 async fn create_test_asset(
-    app: &axum::Router, asset_number: &str, asset_name: &str,
-    original_cost: &str, category_code: Option<&str>, book_code: Option<&str>,
+    app: &axum::Router,
+    asset_number: &str,
+    asset_name: &str,
+    original_cost: &str,
+    category_code: Option<&str>,
+    book_code: Option<&str>,
 ) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let mut payload = json!({
@@ -88,12 +120,23 @@ async fn create_test_asset(
     if let Some(bc) = book_code {
         payload["book_code"] = json!(bc);
     }
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/fixed-assets/assets")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/fixed-assets/assets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to create asset");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -124,13 +167,23 @@ async fn test_list_asset_categories() {
     create_test_category(&app, "VEHICLES", "Vehicles", "straight_line", 48).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET").uri("/api/v1/fixed-assets/categories")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/fixed-assets/categories")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(result["data"].as_array().unwrap().len(), 2);
 }
@@ -143,13 +196,23 @@ async fn test_get_asset_category() {
     create_test_category(&app, "BUILDINGS", "Buildings", "straight_line", 360).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET").uri("/api/v1/fixed-assets/categories/BUILDINGS")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/fixed-assets/categories/BUILDINGS")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cat: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(cat["name"], "Buildings");
     assert_eq!(cat["default_useful_life_months"], 360);
@@ -163,10 +226,18 @@ async fn test_delete_asset_category() {
     create_test_category(&app, "FURNITURE", "Furniture", "straight_line", 36).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE").uri("/api/v1/fixed-assets/categories/FURNITURE")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/fixed-assets/categories/FURNITURE")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -196,13 +267,23 @@ async fn test_list_asset_books() {
     create_test_book(&app, "TAX_US", "US Tax Book", "tax").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET").uri("/api/v1/fixed-assets/books")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/fixed-assets/books")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(result["data"].as_array().unwrap().len(), 2);
 }
@@ -219,7 +300,15 @@ async fn test_create_fixed_asset() {
     create_test_category(&app, "IT_EQUIP", "IT Equipment", "straight_line", 60).await;
     create_test_book(&app, "CORPORATE", "Corporate Book", "corporate").await;
 
-    let asset = create_test_asset(&app, "FA-001", "MacBook Pro", "2500.00", Some("IT_EQUIP"), Some("CORPORATE")).await;
+    let asset = create_test_asset(
+        &app,
+        "FA-001",
+        "MacBook Pro",
+        "2500.00",
+        Some("IT_EQUIP"),
+        Some("CORPORATE"),
+    )
+    .await;
 
     assert_eq!(asset["asset_number"], "FA-001");
     assert_eq!(asset["asset_name"], "MacBook Pro");
@@ -239,92 +328,182 @@ async fn test_asset_full_lifecycle() {
     create_test_book(&app, "CORPORATE", "Corporate Book", "corporate").await;
 
     // 1. Create asset
-    let asset = create_test_asset(&app, "FA-100", "Server Rack", "10000.00", Some("IT_EQUIP"), Some("CORPORATE")).await;
+    let asset = create_test_asset(
+        &app,
+        "FA-100",
+        "Server Rack",
+        "10000.00",
+        Some("IT_EQUIP"),
+        Some("CORPORATE"),
+    )
+    .await;
     let asset_id = asset["id"].as_str().unwrap();
     assert_eq!(asset["status"], "draft");
 
     // 2. Acquire asset
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/fixed-assets/assets/{}/acquire", asset_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/fixed-assets/assets/{}/acquire", asset_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let acquired: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(acquired["status"], "acquired");
 
     // 3. Place in service
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/fixed-assets/assets/{}/place-in-service", asset_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/fixed-assets/assets/{}/place-in-service",
+                    asset_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let in_service: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(in_service["status"], "in_service");
 
     // 4. Calculate depreciation
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/fixed-assets/assets/{}/depreciate", asset_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "fiscal_year": 2026,
-            "period_number": 1,
-            "period_name": "APR-2026",
-            "depreciation_date": "2026-04-30"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/fixed-assets/assets/{}/depreciate",
+                    asset_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "fiscal_year": 2026,
+                        "period_number": 1,
+                        "period_name": "APR-2026",
+                        "depreciation_date": "2026-04-30"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dep_result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     // Straight-line: 10000 / 60 = 166.67
-    let dep_amount: f64 = dep_result["depreciation_amount"].as_str().unwrap().parse().unwrap();
+    let dep_amount: f64 = dep_result["depreciation_amount"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
     assert!((dep_amount - 166.67).abs() < 1.0);
 
     // 5. Verify depreciation history
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/fixed-assets/assets/{}/depreciation-history", asset_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/fixed-assets/assets/{}/depreciation-history",
+                    asset_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let history: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(history["data"].as_array().unwrap().len(), 1);
 
     // 6. Retire asset
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/fixed-assets/retirements")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "asset_id": asset_id,
-            "retirement_type": "sale",
-            "retirement_date": "2026-06-30",
-            "proceeds": "8500.00",
-            "removal_cost": "0",
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/fixed-assets/retirements")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "asset_id": asset_id,
+                        "retirement_type": "sale",
+                        "retirement_date": "2026-06-30",
+                        "proceeds": "8500.00",
+                        "removal_cost": "0",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let retirement: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let retirement_id = retirement["id"].as_str().unwrap();
     assert_eq!(retirement["retirement_type"], "sale");
     assert_eq!(retirement["status"], "pending");
     // Gain/Loss = 8500 - 9833.33 - 0 = -1333.33 (loss since NBV ~ 9833.33)
-    let gain_loss: f64 = retirement["gain_loss_amount"].as_str().unwrap().parse().unwrap();
+    let gain_loss: f64 = retirement["gain_loss_amount"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
     assert!(gain_loss > 0.0, "Should have a gain or loss amount");
 
     // 7. Approve retirement
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/fixed-assets/retirements/{}/approve", retirement_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/fixed-assets/retirements/{}/approve",
+                    retirement_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let approved: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(approved["status"], "completed");
 }
@@ -340,25 +519,60 @@ async fn test_list_assets_by_status() {
 
     create_test_category(&app, "IT_EQUIP", "IT Equipment", "straight_line", 60).await;
 
-    let a1 = create_test_asset(&app, "FA-010", "Laptop 1", "1500.00", Some("IT_EQUIP"), None).await;
-    let _a2 = create_test_asset(&app, "FA-011", "Laptop 2", "1500.00", Some("IT_EQUIP"), None).await;
+    let a1 = create_test_asset(
+        &app,
+        "FA-010",
+        "Laptop 1",
+        "1500.00",
+        Some("IT_EQUIP"),
+        None,
+    )
+    .await;
+    let _a2 = create_test_asset(
+        &app,
+        "FA-011",
+        "Laptop 2",
+        "1500.00",
+        Some("IT_EQUIP"),
+        None,
+    )
+    .await;
 
     // Acquire first asset
     let (k, v) = auth_header(&admin_claims());
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/fixed-assets/assets/{}/acquire", a1["id"].as_str().unwrap()))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/fixed-assets/assets/{}/acquire",
+                    a1["id"].as_str().unwrap()
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // List only draft assets
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/fixed-assets/assets?status=draft")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/fixed-assets/assets?status=draft")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(result["data"].as_array().unwrap().len(), 1);
 }
@@ -374,46 +588,99 @@ async fn test_asset_transfer() {
 
     create_test_category(&app, "IT_EQUIP", "IT Equipment", "straight_line", 60).await;
 
-    let asset = create_test_asset(&app, "FA-200", "Projector", "3000.00", Some("IT_EQUIP"), None).await;
+    let asset = create_test_asset(
+        &app,
+        "FA-200",
+        "Projector",
+        "3000.00",
+        Some("IT_EQUIP"),
+        None,
+    )
+    .await;
     let asset_id = asset["id"].as_str().unwrap();
 
     // Acquire and place in service
     let (k, v) = auth_header(&admin_claims());
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/fixed-assets/assets/{}/acquire", asset_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/fixed-assets/assets/{}/place-in-service", asset_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/fixed-assets/assets/{}/acquire", asset_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/fixed-assets/assets/{}/place-in-service",
+                    asset_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Create transfer
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/fixed-assets/transfers")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "asset_id": asset_id,
-            "to_department_name": "Marketing",
-            "to_location": "Marketing Office",
-            "transfer_date": "2026-05-01",
-            "reason": "Department reorganization"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/fixed-assets/transfers")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "asset_id": asset_id,
+                        "to_department_name": "Marketing",
+                        "to_location": "Marketing Office",
+                        "transfer_date": "2026-05-01",
+                        "reason": "Department reorganization"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let transfer: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let transfer_id = transfer["id"].as_str().unwrap();
     assert_eq!(transfer["status"], "pending");
     assert_eq!(transfer["to_department_name"], "Marketing");
 
     // Approve transfer
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/fixed-assets/transfers/{}/approve", transfer_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/fixed-assets/transfers/{}/approve",
+                    transfer_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let approved: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(approved["status"], "completed");
 }
@@ -431,15 +698,29 @@ async fn test_cannot_depreciate_draft_asset() {
     let asset_id = asset["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/fixed-assets/assets/{}/depreciate", asset_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "fiscal_year": 2026,
-            "period_number": 1,
-            "depreciation_date": "2026-04-30"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/fixed-assets/assets/{}/depreciate",
+                    asset_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "fiscal_year": 2026,
+                        "period_number": 1,
+                        "depreciation_date": "2026-04-30"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -452,15 +733,26 @@ async fn test_cannot_transfer_draft_asset() {
     let asset_id = asset["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/fixed-assets/transfers")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "asset_id": asset_id,
-            "to_department_name": "HR",
-            "transfer_date": "2026-05-01"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/fixed-assets/transfers")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "asset_id": asset_id,
+                        "to_department_name": "HR",
+                        "transfer_date": "2026-05-01"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -470,15 +762,27 @@ async fn test_cannot_create_asset_with_negative_cost() {
     let (_state, app) = setup_fa_test().await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/fixed-assets/assets")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "asset_number": "FA-400",
-            "asset_name": "Bad Asset",
-            "asset_type": "tangible",
-            "original_cost": "-1000.00",
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/fixed-assets/assets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "asset_number": "FA-400",
+                        "asset_name": "Bad Asset",
+                        "asset_type": "tangible",
+                        "original_cost": "-1000.00",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -488,14 +792,26 @@ async fn test_cannot_create_asset_with_invalid_type() {
     let (_state, app) = setup_fa_test().await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/fixed-assets/assets")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "asset_number": "FA-401",
-            "asset_name": "Bad Type",
-            "asset_type": "nonexistent",
-            "original_cost": "1000.00",
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/fixed-assets/assets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "asset_number": "FA-401",
+                        "asset_name": "Bad Type",
+                        "asset_type": "nonexistent",
+                        "original_cost": "1000.00",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }

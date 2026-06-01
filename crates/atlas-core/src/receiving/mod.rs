@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: SCM > Receiving > Receiving
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ReceivingEngine;
-pub use repository::{ReceivingRepository, PostgresReceivingRepository};
+pub use repository::{PostgresReceivingRepository, ReceivingRepository};

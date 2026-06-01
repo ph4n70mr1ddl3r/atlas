@@ -2,13 +2,11 @@
 //!
 //! `PostgreSQL` storage for sales lead and opportunity data.
 
-use atlas_shared::{
-    LeadSource, LeadRatingModel, SalesLead, OpportunityStage,
-    SalesOpportunity, OpportunityLine, SalesActivity,
-    OpportunityStageHistory, SalesPipelineDashboard,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, LeadRatingModel, LeadSource, OpportunityLine, OpportunityStage,
+    OpportunityStageHistory, SalesActivity, SalesLead, SalesOpportunity, SalesPipelineDashboard,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -24,7 +22,11 @@ pub trait LeadOpportunityRepository: Send + Sync {
         description: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<LeadSource>;
-    async fn get_lead_source_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<LeadSource>>;
+    async fn get_lead_source_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<LeadSource>>;
     async fn list_lead_sources(&self, org_id: Uuid) -> AtlasResult<Vec<LeadSource>>;
     async fn delete_lead_source(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -39,7 +41,11 @@ pub trait LeadOpportunityRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LeadRatingModel>;
     async fn get_lead_rating_model(&self, id: Uuid) -> AtlasResult<Option<LeadRatingModel>>;
-    async fn get_lead_rating_model_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<LeadRatingModel>>;
+    async fn get_lead_rating_model_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<LeadRatingModel>>;
     async fn list_lead_rating_models(&self, org_id: Uuid) -> AtlasResult<Vec<LeadRatingModel>>;
     async fn delete_lead_rating_model(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -67,10 +73,24 @@ pub trait LeadOpportunityRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesLead>;
     async fn get_lead(&self, id: Uuid) -> AtlasResult<Option<SalesLead>>;
-    async fn get_lead_by_number(&self, org_id: Uuid, lead_number: &str) -> AtlasResult<Option<SalesLead>>;
-    async fn list_leads(&self, org_id: Uuid, status: Option<&str>, owner_id: Option<Uuid>) -> AtlasResult<Vec<SalesLead>>;
+    async fn get_lead_by_number(
+        &self,
+        org_id: Uuid,
+        lead_number: &str,
+    ) -> AtlasResult<Option<SalesLead>>;
+    async fn list_leads(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        owner_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SalesLead>>;
     async fn update_lead_status(&self, id: Uuid, status: &str) -> AtlasResult<SalesLead>;
-    async fn update_lead_score(&self, id: Uuid, score: &str, rating: &str) -> AtlasResult<SalesLead>;
+    async fn update_lead_score(
+        &self,
+        id: Uuid,
+        score: &str,
+        rating: &str,
+    ) -> AtlasResult<SalesLead>;
     async fn convert_lead(
         &self,
         id: Uuid,
@@ -93,7 +113,11 @@ pub trait LeadOpportunityRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<OpportunityStage>;
     async fn get_opportunity_stage(&self, id: Uuid) -> AtlasResult<Option<OpportunityStage>>;
-    async fn get_opportunity_stage_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<OpportunityStage>>;
+    async fn get_opportunity_stage_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<OpportunityStage>>;
     async fn list_opportunity_stages(&self, org_id: Uuid) -> AtlasResult<Vec<OpportunityStage>>;
     async fn delete_opportunity_stage(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -120,8 +144,18 @@ pub trait LeadOpportunityRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesOpportunity>;
     async fn get_opportunity(&self, id: Uuid) -> AtlasResult<Option<SalesOpportunity>>;
-    async fn get_opportunity_by_number(&self, org_id: Uuid, opportunity_number: &str) -> AtlasResult<Option<SalesOpportunity>>;
-    async fn list_opportunities(&self, org_id: Uuid, status: Option<&str>, owner_id: Option<Uuid>, stage_id: Option<Uuid>) -> AtlasResult<Vec<SalesOpportunity>>;
+    async fn get_opportunity_by_number(
+        &self,
+        org_id: Uuid,
+        opportunity_number: &str,
+    ) -> AtlasResult<Option<SalesOpportunity>>;
+    async fn list_opportunities(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        owner_id: Option<Uuid>,
+        stage_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SalesOpportunity>>;
     async fn update_opportunity_stage(
         &self,
         id: Uuid,
@@ -130,9 +164,18 @@ pub trait LeadOpportunityRepository: Send + Sync {
         probability: &str,
         weighted_amount: &str,
     ) -> AtlasResult<SalesOpportunity>;
-    async fn update_opportunity_amount(&self, id: Uuid, amount: &str, weighted_amount: &str) -> AtlasResult<SalesOpportunity>;
+    async fn update_opportunity_amount(
+        &self,
+        id: Uuid,
+        amount: &str,
+        weighted_amount: &str,
+    ) -> AtlasResult<SalesOpportunity>;
     async fn close_opportunity_won(&self, id: Uuid) -> AtlasResult<SalesOpportunity>;
-    async fn close_opportunity_lost(&self, id: Uuid, lost_reason: Option<&str>) -> AtlasResult<SalesOpportunity>;
+    async fn close_opportunity_lost(
+        &self,
+        id: Uuid,
+        lost_reason: Option<&str>,
+    ) -> AtlasResult<SalesOpportunity>;
     async fn delete_opportunity(&self, org_id: Uuid, opportunity_number: &str) -> AtlasResult<()>;
 
     // Opportunity Lines
@@ -149,7 +192,10 @@ pub trait LeadOpportunityRepository: Send + Sync {
         line_amount: &str,
         discount_percent: &str,
     ) -> AtlasResult<OpportunityLine>;
-    async fn list_opportunity_lines(&self, opportunity_id: Uuid) -> AtlasResult<Vec<OpportunityLine>>;
+    async fn list_opportunity_lines(
+        &self,
+        opportunity_id: Uuid,
+    ) -> AtlasResult<Vec<OpportunityLine>>;
     async fn delete_opportunity_line(&self, id: Uuid) -> AtlasResult<()>;
 
     // Sales Activities
@@ -171,8 +217,17 @@ pub trait LeadOpportunityRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesActivity>;
     async fn get_activity(&self, id: Uuid) -> AtlasResult<Option<SalesActivity>>;
-    async fn list_activities(&self, org_id: Uuid, lead_id: Option<Uuid>, opportunity_id: Option<Uuid>) -> AtlasResult<Vec<SalesActivity>>;
-    async fn complete_activity(&self, id: Uuid, outcome: Option<&str>) -> AtlasResult<SalesActivity>;
+    async fn list_activities(
+        &self,
+        org_id: Uuid,
+        lead_id: Option<Uuid>,
+        opportunity_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SalesActivity>>;
+    async fn complete_activity(
+        &self,
+        id: Uuid,
+        outcome: Option<&str>,
+    ) -> AtlasResult<SalesActivity>;
     async fn cancel_activity(&self, id: Uuid) -> AtlasResult<SalesActivity>;
     async fn delete_activity(&self, id: Uuid) -> AtlasResult<()>;
 
@@ -187,7 +242,10 @@ pub trait LeadOpportunityRepository: Send + Sync {
         changed_by_name: Option<&str>,
         notes: Option<&str>,
     ) -> AtlasResult<OpportunityStageHistory>;
-    async fn list_stage_history(&self, opportunity_id: Uuid) -> AtlasResult<Vec<OpportunityStageHistory>>;
+    async fn list_stage_history(
+        &self,
+        opportunity_id: Uuid,
+    ) -> AtlasResult<Vec<OpportunityStageHistory>>;
 
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<SalesPipelineDashboard>;
@@ -199,7 +257,7 @@ pub struct PostgresLeadOpportunityRepository {
 }
 
 impl PostgresLeadOpportunityRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -220,13 +278,22 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
             r"INSERT INTO _atlas.lead_sources (organization_id, code, name, description, created_by)
                VALUES ($1, $2, $3, $4, $5) RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_lead_source(&row))
     }
 
-    async fn get_lead_source_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<LeadSource>> {
+    async fn get_lead_source_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<LeadSource>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.lead_sources WHERE organization_id = $1 AND code = $2 AND is_active = true",
         )
@@ -248,7 +315,10 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
 
     async fn delete_lead_source(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.lead_sources WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code).execute(&self.pool).await
+            .bind(org_id)
+            .bind(code)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -274,14 +344,21 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
     }
 
     async fn get_lead_rating_model(&self, id: Uuid) -> AtlasResult<Option<LeadRatingModel>> {
-        let row = sqlx::query("SELECT * FROM _atlas.lead_rating_models WHERE id = $1 AND is_active = true")
-            .bind(id)
-            .fetch_optional(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query(
+            "SELECT * FROM _atlas.lead_rating_models WHERE id = $1 AND is_active = true",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_lead_rating_model(&r)))
     }
 
-    async fn get_lead_rating_model_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<LeadRatingModel>> {
+    async fn get_lead_rating_model_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<LeadRatingModel>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.lead_rating_models WHERE organization_id = $1 AND code = $2 AND is_active = true",
         )
@@ -302,9 +379,14 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
     }
 
     async fn delete_lead_rating_model(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        sqlx::query("DELETE FROM _atlas.lead_rating_models WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code).execute(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "DELETE FROM _atlas.lead_rating_models WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -340,35 +422,62 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
                RETURNING *",
         )
-        .bind(org_id).bind(lead_number).bind(first_name).bind(last_name)
-        .bind(company).bind(title).bind(email).bind(phone).bind(website)
-        .bind(industry).bind(lead_source_id).bind(lead_source_name)
+        .bind(org_id)
+        .bind(lead_number)
+        .bind(first_name)
+        .bind(last_name)
+        .bind(company)
+        .bind(title)
+        .bind(email)
+        .bind(phone)
+        .bind(website)
+        .bind(industry)
+        .bind(lead_source_id)
+        .bind(lead_source_name)
         .bind(lead_rating_model_id)
         .bind(estimated_value.parse::<f64>().unwrap_or(0.0))
-        .bind(currency_code).bind(owner_id).bind(owner_name)
-        .bind(notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(currency_code)
+        .bind(owner_id)
+        .bind(owner_name)
+        .bind(notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_lead(&row))
     }
 
     async fn get_lead(&self, id: Uuid) -> AtlasResult<Option<SalesLead>> {
         let row = sqlx::query("SELECT * FROM _atlas.sales_leads WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_lead(&r)))
     }
 
-    async fn get_lead_by_number(&self, org_id: Uuid, lead_number: &str) -> AtlasResult<Option<SalesLead>> {
+    async fn get_lead_by_number(
+        &self,
+        org_id: Uuid,
+        lead_number: &str,
+    ) -> AtlasResult<Option<SalesLead>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.sales_leads WHERE organization_id = $1 AND lead_number = $2",
         )
-        .bind(org_id).bind(lead_number).fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(lead_number)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_lead(&r)))
     }
 
-    async fn list_leads(&self, org_id: Uuid, status: Option<&str>, owner_id: Option<Uuid>) -> AtlasResult<Vec<SalesLead>> {
+    async fn list_leads(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        owner_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SalesLead>> {
         let rows = match (status, owner_id) {
             (Some(s), Some(oid)) => sqlx::query(
                 "SELECT * FROM _atlas.sales_leads WHERE organization_id = $1 AND status = $2 AND owner_id = $3 ORDER BY created_at DESC",
@@ -395,7 +504,12 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         Ok(row_to_lead(&row))
     }
 
-    async fn update_lead_score(&self, id: Uuid, score: &str, rating: &str) -> AtlasResult<SalesLead> {
+    async fn update_lead_score(
+        &self,
+        id: Uuid,
+        score: &str,
+        rating: &str,
+    ) -> AtlasResult<SalesLead> {
         let row = sqlx::query(
             "UPDATE _atlas.sales_leads SET lead_score = $2, lead_rating = $3, updated_at = now() WHERE id = $1 RETURNING *",
         )
@@ -417,16 +531,24 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                    converted_customer_id = $3, converted_at = now(), updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(opportunity_id).bind(customer_id)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(opportunity_id)
+        .bind(customer_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_lead(&row))
     }
 
     async fn delete_lead(&self, org_id: Uuid, lead_number: &str) -> AtlasResult<()> {
-        sqlx::query("DELETE FROM _atlas.sales_leads WHERE organization_id = $1 AND lead_number = $2")
-            .bind(org_id).bind(lead_number).execute(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "DELETE FROM _atlas.sales_leads WHERE organization_id = $1 AND lead_number = $2",
+        )
+        .bind(org_id)
+        .bind(lead_number)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -457,13 +579,21 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
     }
 
     async fn get_opportunity_stage(&self, id: Uuid) -> AtlasResult<Option<OpportunityStage>> {
-        let row = sqlx::query("SELECT * FROM _atlas.opportunity_stages WHERE id = $1 AND is_active = true")
-            .bind(id).fetch_optional(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query(
+            "SELECT * FROM _atlas.opportunity_stages WHERE id = $1 AND is_active = true",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_stage(&r)))
     }
 
-    async fn get_opportunity_stage_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<OpportunityStage>> {
+    async fn get_opportunity_stage_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<OpportunityStage>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.opportunity_stages WHERE organization_id = $1 AND code = $2 AND is_active = true",
         )
@@ -482,9 +612,14 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
     }
 
     async fn delete_opportunity_stage(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        sqlx::query("DELETE FROM _atlas.opportunity_stages WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code).execute(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "DELETE FROM _atlas.opportunity_stages WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -523,24 +658,45 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
                RETURNING *",
         )
-        .bind(org_id).bind(opportunity_number).bind(name).bind(description)
-        .bind(customer_id).bind(customer_name).bind(lead_id).bind(stage_id).bind(stage_name)
-        .bind(amount_val).bind(currency_code).bind(prob_val).bind(weighted)
-        .bind(expected_close_date).bind(owner_id).bind(owner_name)
-        .bind(contact_id).bind(contact_name).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(opportunity_number)
+        .bind(name)
+        .bind(description)
+        .bind(customer_id)
+        .bind(customer_name)
+        .bind(lead_id)
+        .bind(stage_id)
+        .bind(stage_name)
+        .bind(amount_val)
+        .bind(currency_code)
+        .bind(prob_val)
+        .bind(weighted)
+        .bind(expected_close_date)
+        .bind(owner_id)
+        .bind(owner_name)
+        .bind(contact_id)
+        .bind(contact_name)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_opportunity(&row))
     }
 
     async fn get_opportunity(&self, id: Uuid) -> AtlasResult<Option<SalesOpportunity>> {
         let row = sqlx::query("SELECT * FROM _atlas.sales_opportunities WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_opportunity(&r)))
     }
 
-    async fn get_opportunity_by_number(&self, org_id: Uuid, opportunity_number: &str) -> AtlasResult<Option<SalesOpportunity>> {
+    async fn get_opportunity_by_number(
+        &self,
+        org_id: Uuid,
+        opportunity_number: &str,
+    ) -> AtlasResult<Option<SalesOpportunity>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.sales_opportunities WHERE organization_id = $1 AND opportunity_number = $2",
         )
@@ -549,7 +705,13 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         Ok(row.map(|r| row_to_opportunity(&r)))
     }
 
-    async fn list_opportunities(&self, org_id: Uuid, status: Option<&str>, owner_id: Option<Uuid>, stage_id: Option<Uuid>) -> AtlasResult<Vec<SalesOpportunity>> {
+    async fn list_opportunities(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        owner_id: Option<Uuid>,
+        stage_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SalesOpportunity>> {
         let rows = match (status, owner_id, stage_id) {
             (Some(s), Some(oid), None) => sqlx::query(
                 "SELECT * FROM _atlas.sales_opportunities WHERE organization_id = $1 AND status = $2 AND owner_id = $3 ORDER BY created_at DESC",
@@ -591,7 +753,12 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         Ok(row_to_opportunity(&row))
     }
 
-    async fn update_opportunity_amount(&self, id: Uuid, amount: &str, weighted_amount: &str) -> AtlasResult<SalesOpportunity> {
+    async fn update_opportunity_amount(
+        &self,
+        id: Uuid,
+        amount: &str,
+        weighted_amount: &str,
+    ) -> AtlasResult<SalesOpportunity> {
         let row = sqlx::query(
             "UPDATE _atlas.sales_opportunities SET amount = $2, weighted_amount = $3, updated_at = now() WHERE id = $1 RETURNING *",
         )
@@ -608,19 +775,28 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                    actual_close_date = CURRENT_DATE, updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).fetch_one(&self.pool).await
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_opportunity(&row))
     }
 
-    async fn close_opportunity_lost(&self, id: Uuid, lost_reason: Option<&str>) -> AtlasResult<SalesOpportunity> {
+    async fn close_opportunity_lost(
+        &self,
+        id: Uuid,
+        lost_reason: Option<&str>,
+    ) -> AtlasResult<SalesOpportunity> {
         let row = sqlx::query(
             r"UPDATE _atlas.sales_opportunities
                SET status = 'lost', probability = 0, weighted_amount = 0,
                    lost_reason = $2, actual_close_date = CURRENT_DATE, updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(lost_reason).fetch_one(&self.pool).await
+        .bind(id)
+        .bind(lost_reason)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_opportunity(&row))
     }
@@ -652,29 +828,41 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                  description, quantity, unit_price, line_amount, discount_percent)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *",
         )
-        .bind(org_id).bind(opportunity_id).bind(line_number).bind(product_name)
-        .bind(product_code).bind(description)
+        .bind(org_id)
+        .bind(opportunity_id)
+        .bind(line_number)
+        .bind(product_name)
+        .bind(product_code)
+        .bind(description)
         .bind(quantity.parse::<f64>().unwrap_or(1.0))
         .bind(unit_price.parse::<f64>().unwrap_or(0.0))
         .bind(line_amount.parse::<f64>().unwrap_or(0.0))
         .bind(discount_percent.parse::<f64>().unwrap_or(0.0))
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_opportunity_line(&row))
     }
 
-    async fn list_opportunity_lines(&self, opportunity_id: Uuid) -> AtlasResult<Vec<OpportunityLine>> {
+    async fn list_opportunity_lines(
+        &self,
+        opportunity_id: Uuid,
+    ) -> AtlasResult<Vec<OpportunityLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.opportunity_lines WHERE opportunity_id = $1 ORDER BY line_number",
         )
-        .bind(opportunity_id).fetch_all(&self.pool).await
+        .bind(opportunity_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_opportunity_line).collect())
     }
 
     async fn delete_opportunity_line(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.opportunity_lines WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -704,22 +892,41 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                  owner_id, owner_name, start_at, end_at, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *",
         )
-        .bind(org_id).bind(subject).bind(description).bind(activity_type).bind(priority)
-        .bind(lead_id).bind(opportunity_id).bind(contact_id).bind(contact_name)
-        .bind(owner_id).bind(owner_name).bind(start_at).bind(end_at).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(subject)
+        .bind(description)
+        .bind(activity_type)
+        .bind(priority)
+        .bind(lead_id)
+        .bind(opportunity_id)
+        .bind(contact_id)
+        .bind(contact_name)
+        .bind(owner_id)
+        .bind(owner_name)
+        .bind(start_at)
+        .bind(end_at)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_activity(&row))
     }
 
     async fn get_activity(&self, id: Uuid) -> AtlasResult<Option<SalesActivity>> {
         let row = sqlx::query("SELECT * FROM _atlas.sales_activities WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_activity(&r)))
     }
 
-    async fn list_activities(&self, org_id: Uuid, lead_id: Option<Uuid>, opportunity_id: Option<Uuid>) -> AtlasResult<Vec<SalesActivity>> {
+    async fn list_activities(
+        &self,
+        org_id: Uuid,
+        lead_id: Option<Uuid>,
+        opportunity_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SalesActivity>> {
         let rows = match (lead_id, opportunity_id) {
             (Some(lid), None) => sqlx::query(
                 "SELECT * FROM _atlas.sales_activities WHERE organization_id = $1 AND lead_id = $2 ORDER BY start_at DESC",
@@ -734,7 +941,11 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         Ok(rows.iter().map(row_to_activity).collect())
     }
 
-    async fn complete_activity(&self, id: Uuid, outcome: Option<&str>) -> AtlasResult<SalesActivity> {
+    async fn complete_activity(
+        &self,
+        id: Uuid,
+        outcome: Option<&str>,
+    ) -> AtlasResult<SalesActivity> {
         let row = sqlx::query(
             "UPDATE _atlas.sales_activities SET status = 'completed', outcome = $2, completed_at = now(), updated_at = now() WHERE id = $1 RETURNING *",
         )
@@ -754,7 +965,9 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
 
     async fn delete_activity(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.sales_activities WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -782,7 +995,10 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         Ok(row_to_stage_history(&row))
     }
 
-    async fn list_stage_history(&self, opportunity_id: Uuid) -> AtlasResult<Vec<OpportunityStageHistory>> {
+    async fn list_stage_history(
+        &self,
+        opportunity_id: Uuid,
+    ) -> AtlasResult<Vec<OpportunityStageHistory>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.opportunity_stage_history WHERE opportunity_id = $1 ORDER BY changed_at DESC",
         )
@@ -802,7 +1018,9 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                 COUNT(*) FILTER (WHERE status = 'converted') as converted
                FROM _atlas.sales_leads WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         // Opportunity counts and values
@@ -817,7 +1035,9 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                 COALESCE(SUM(amount) FILTER (WHERE status = 'won'), 0) as won_value
                FROM _atlas.sales_opportunities WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let total_leads: i64 = lead_row.get("total");
@@ -825,7 +1045,11 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
         let won: i64 = opp_row.get("won");
         let won_value: f64 = opp_row.try_get("won_value").unwrap_or(0.0);
         let avg_deal = if won > 0 { won_value / won as f64 } else { 0.0 };
-        let win_rate = if total_opp > 0 { (won as f64 / total_opp as f64) * 100.0 } else { 0.0 };
+        let win_rate = if total_opp > 0 {
+            (won as f64 / total_opp as f64) * 100.0
+        } else {
+            0.0
+        };
 
         // By stage
         let stage_rows = sqlx::query(
@@ -834,17 +1058,22 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                WHERE organization_id = $1 AND status = 'open'
                GROUP BY stage_name ORDER BY stage_name",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         use sqlx::Row;
-        let by_stage: serde_json::Value = stage_rows.iter().map(|r| {
-            serde_json::json!({
-                "stage": r.get::<Option<&str>, _>("stage_name").unwrap_or("Unknown"),
-                "count": r.get::<i64, _>("cnt"),
-                "value": format!("{:.2}", r.get::<f64, _>("total")),
+        let by_stage: serde_json::Value = stage_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "stage": r.get::<Option<&str>, _>("stage_name").unwrap_or("Unknown"),
+                    "count": r.get::<i64, _>("cnt"),
+                    "value": format!("{:.2}", r.get::<f64, _>("total")),
+                })
             })
-        }).collect();
+            .collect();
 
         // By owner
         let owner_rows = sqlx::query(
@@ -853,16 +1082,21 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
                WHERE organization_id = $1 AND status = 'open'
                GROUP BY owner_name ORDER BY total DESC",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let by_owner: serde_json::Value = owner_rows.iter().map(|r| {
-            serde_json::json!({
-                "owner": r.get::<Option<&str>, _>("owner_name").unwrap_or("Unassigned"),
-                "count": r.get::<i64, _>("cnt"),
-                "value": format!("{:.2}", r.get::<f64, _>("total")),
+        let by_owner: serde_json::Value = owner_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "owner": r.get::<Option<&str>, _>("owner_name").unwrap_or("Unassigned"),
+                    "count": r.get::<i64, _>("cnt"),
+                    "value": format!("{:.2}", r.get::<f64, _>("total")),
+                })
             })
-        }).collect();
+            .collect();
 
         Ok(SalesPipelineDashboard {
             total_leads: total_leads as i32,
@@ -873,8 +1107,16 @@ impl LeadOpportunityRepository for PostgresLeadOpportunityRepository {
             open_opportunities: opp_row.get::<i64, _>("open_opp") as i32,
             won_opportunities: won as i32,
             lost_opportunities: opp_row.get::<i64, _>("lost") as i32,
-            total_pipeline_value: format!("{:.2}", opp_row.try_get::<f64, _>("total_pipeline").unwrap_or(0.0)),
-            weighted_pipeline_value: format!("{:.2}", opp_row.try_get::<f64, _>("weighted_pipeline").unwrap_or(0.0)),
+            total_pipeline_value: format!(
+                "{:.2}",
+                opp_row.try_get::<f64, _>("total_pipeline").unwrap_or(0.0)
+            ),
+            weighted_pipeline_value: format!(
+                "{:.2}",
+                opp_row
+                    .try_get::<f64, _>("weighted_pipeline")
+                    .unwrap_or(0.0)
+            ),
             total_won_value: format!("{won_value:.2}"),
             average_deal_size: format!("{avg_deal:.2}"),
             win_rate: format!("{win_rate:.1}"),

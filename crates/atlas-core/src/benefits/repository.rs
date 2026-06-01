@@ -2,11 +2,8 @@
 //!
 //! `PostgreSQL` storage for benefits plans, enrollments, and deductions.
 
-use atlas_shared::{
-    BenefitsPlan, BenefitsEnrollment, BenefitsDeduction,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult, BenefitsDeduction, BenefitsEnrollment, BenefitsPlan};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -38,7 +35,11 @@ pub trait BenefitsRepository: Send + Sync {
 
     async fn get_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<BenefitsPlan>>;
     async fn get_plan_by_id(&self, id: Uuid) -> AtlasResult<Option<BenefitsPlan>>;
-    async fn list_plans(&self, org_id: Uuid, plan_type: Option<&str>) -> AtlasResult<Vec<BenefitsPlan>>;
+    async fn list_plans(
+        &self,
+        org_id: Uuid,
+        plan_type: Option<&str>,
+    ) -> AtlasResult<Vec<BenefitsPlan>>;
     async fn delete_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Benefits Enrollments
@@ -69,8 +70,19 @@ pub trait BenefitsRepository: Send + Sync {
     ) -> AtlasResult<BenefitsEnrollment>;
 
     async fn get_enrollment(&self, id: Uuid) -> AtlasResult<Option<BenefitsEnrollment>>;
-    async fn get_active_enrollment(&self, org_id: Uuid, employee_id: Uuid, plan_id: Uuid) -> AtlasResult<Option<BenefitsEnrollment>>;
-    async fn list_enrollments(&self, org_id: Uuid, employee_id: Option<Uuid>, plan_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<BenefitsEnrollment>>;
+    async fn get_active_enrollment(
+        &self,
+        org_id: Uuid,
+        employee_id: Uuid,
+        plan_id: Uuid,
+    ) -> AtlasResult<Option<BenefitsEnrollment>>;
+    async fn list_enrollments(
+        &self,
+        org_id: Uuid,
+        employee_id: Option<Uuid>,
+        plan_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<BenefitsEnrollment>>;
     async fn update_enrollment_status(
         &self,
         id: Uuid,
@@ -102,7 +114,12 @@ pub trait BenefitsRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BenefitsDeduction>;
 
-    async fn list_deductions(&self, org_id: Uuid, employee_id: Option<Uuid>, enrollment_id: Option<Uuid>) -> AtlasResult<Vec<BenefitsDeduction>>;
+    async fn list_deductions(
+        &self,
+        org_id: Uuid,
+        employee_id: Option<Uuid>,
+        enrollment_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<BenefitsDeduction>>;
     async fn mark_deduction_processed(&self, id: Uuid) -> AtlasResult<()>;
 }
 
@@ -112,7 +129,7 @@ pub struct PostgresBenefitsRepository {
 }
 
 impl PostgresBenefitsRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -257,12 +274,23 @@ impl BenefitsRepository for PostgresBenefitsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(plan_type)
-        .bind(&coverage_tiers).bind(provider_name).bind(provider_plan_id)
-        .bind(plan_year_start).bind(plan_year_end)
-        .bind(open_enrollment_start).bind(open_enrollment_end)
-        .bind(allow_life_event_changes).bind(requires_eoi)
-        .bind(waiting_period_days).bind(max_dependents).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(plan_type)
+        .bind(&coverage_tiers)
+        .bind(provider_name)
+        .bind(provider_plan_id)
+        .bind(plan_year_start)
+        .bind(plan_year_end)
+        .bind(open_enrollment_start)
+        .bind(open_enrollment_end)
+        .bind(allow_life_event_changes)
+        .bind(requires_eoi)
+        .bind(waiting_period_days)
+        .bind(max_dependents)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -282,17 +310,19 @@ impl BenefitsRepository for PostgresBenefitsRepository {
     }
 
     async fn get_plan_by_id(&self, id: Uuid) -> AtlasResult<Option<BenefitsPlan>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.benefits_plans WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.benefits_plans WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_plan(&r)))
     }
 
-    async fn list_plans(&self, org_id: Uuid, plan_type: Option<&str>) -> AtlasResult<Vec<BenefitsPlan>> {
+    async fn list_plans(
+        &self,
+        org_id: Uuid,
+        plan_type: Option<&str>,
+    ) -> AtlasResult<Vec<BenefitsPlan>> {
         let rows = match plan_type {
             Some(pt) => sqlx::query(
                 "SELECT * FROM _atlas.benefits_plans WHERE organization_id = $1 AND plan_type = $2 AND is_active = true ORDER BY code"
@@ -367,14 +397,27 @@ impl BenefitsRepository for PostgresBenefitsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(employee_id).bind(employee_name)
-        .bind(plan_id).bind(plan_code).bind(plan_name).bind(plan_type)
-        .bind(coverage_tier).bind(enrollment_type).bind(status)
-        .bind(effective_start_date).bind(effective_end_date)
-        .bind(employee_cost).bind(employer_cost).bind(total_cost)
-        .bind(deduction_frequency).bind(deduction_account_code)
+        .bind(org_id)
+        .bind(employee_id)
+        .bind(employee_name)
+        .bind(plan_id)
+        .bind(plan_code)
+        .bind(plan_name)
+        .bind(plan_type)
+        .bind(coverage_tier)
+        .bind(enrollment_type)
+        .bind(status)
+        .bind(effective_start_date)
+        .bind(effective_end_date)
+        .bind(employee_cost)
+        .bind(employer_cost)
+        .bind(total_cost)
+        .bind(deduction_frequency)
+        .bind(deduction_account_code)
         .bind(employer_contribution_account_code)
-        .bind(&dependents).bind(life_event_reason).bind(life_event_date)
+        .bind(&dependents)
+        .bind(life_event_reason)
+        .bind(life_event_date)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -384,17 +427,20 @@ impl BenefitsRepository for PostgresBenefitsRepository {
     }
 
     async fn get_enrollment(&self, id: Uuid) -> AtlasResult<Option<BenefitsEnrollment>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.benefits_enrollments WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.benefits_enrollments WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_enrollment(&r)))
     }
 
-    async fn get_active_enrollment(&self, org_id: Uuid, employee_id: Uuid, plan_id: Uuid) -> AtlasResult<Option<BenefitsEnrollment>> {
+    async fn get_active_enrollment(
+        &self,
+        org_id: Uuid,
+        employee_id: Uuid,
+        plan_id: Uuid,
+    ) -> AtlasResult<Option<BenefitsEnrollment>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.benefits_enrollments WHERE organization_id = $1 AND employee_id = $2 AND plan_id = $3 AND status IN ('active', 'pending')"
         )
@@ -405,7 +451,13 @@ impl BenefitsRepository for PostgresBenefitsRepository {
         Ok(row.map(|r| self.row_to_enrollment(&r)))
     }
 
-    async fn list_enrollments(&self, org_id: Uuid, employee_id: Option<Uuid>, plan_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<BenefitsEnrollment>> {
+    async fn list_enrollments(
+        &self,
+        org_id: Uuid,
+        employee_id: Option<Uuid>,
+        plan_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<BenefitsEnrollment>> {
         let rows = match (employee_id, plan_id, status) {
             (Some(eid), Some(pid), Some(s)) => sqlx::query(
                 "SELECT * FROM _atlas.benefits_enrollments WHERE organization_id = $1 AND employee_id = $2 AND plan_id = $3 AND status = $4 ORDER BY created_at DESC"
@@ -460,7 +512,10 @@ impl BenefitsRepository for PostgresBenefitsRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(processed_by).bind(cancellation_reason)
+        .bind(id)
+        .bind(status)
+        .bind(processed_by)
+        .bind(cancellation_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -481,7 +536,8 @@ impl BenefitsRepository for PostgresBenefitsRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(cancellation_reason)
+        .bind(id)
+        .bind(cancellation_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -521,11 +577,19 @@ impl BenefitsRepository for PostgresBenefitsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(enrollment_id).bind(employee_id).bind(plan_id)
-        .bind(plan_code).bind(plan_name)
-        .bind(employee_amount).bind(employer_amount).bind(total_amount)
-        .bind(pay_period_start).bind(pay_period_end)
-        .bind(deduction_account_code).bind(created_by)
+        .bind(org_id)
+        .bind(enrollment_id)
+        .bind(employee_id)
+        .bind(plan_id)
+        .bind(plan_code)
+        .bind(plan_name)
+        .bind(employee_amount)
+        .bind(employer_amount)
+        .bind(total_amount)
+        .bind(pay_period_start)
+        .bind(pay_period_end)
+        .bind(deduction_account_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -533,7 +597,12 @@ impl BenefitsRepository for PostgresBenefitsRepository {
         Ok(self.row_to_deduction(&row))
     }
 
-    async fn list_deductions(&self, org_id: Uuid, employee_id: Option<Uuid>, enrollment_id: Option<Uuid>) -> AtlasResult<Vec<BenefitsDeduction>> {
+    async fn list_deductions(
+        &self,
+        org_id: Uuid,
+        employee_id: Option<Uuid>,
+        enrollment_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<BenefitsDeduction>> {
         let rows = match (employee_id, enrollment_id) {
             (Some(eid), Some(enid)) => sqlx::query(
                 "SELECT * FROM _atlas.benefits_deductions WHERE organization_id = $1 AND employee_id = $2 AND enrollment_id = $3 ORDER BY pay_period_start DESC"

@@ -10,11 +10,11 @@
 //! - Budgetary control dashboard
 //! - Validation edge cases and error handling
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_funds_reservation_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -87,7 +87,8 @@ async fn create_test_reservation(
 #[tokio::test]
 async fn test_create_reservation() {
     let (_state, app) = setup_funds_reservation_test().await;
-    let reservation = create_test_reservation(&app, "FR-001", "BUD-OPS-2024", 50000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-001", "BUD-OPS-2024", 50000.0, "advisory").await;
     assert_eq!(reservation["reservation_number"], "FR-001");
     assert_eq!(reservation["budget_code"], "BUD-OPS-2024");
     assert_eq!(reservation["control_level"], "advisory");
@@ -128,7 +129,9 @@ async fn test_create_reservation_with_source_reference() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let reservation: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(reservation["source_type"], "purchase_requisition");
     assert_eq!(reservation["source_number"], "PR-00123");
@@ -248,7 +251,9 @@ async fn test_get_reservation() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fetched: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(fetched["reservation_number"], "FR-GET");
     assert_eq!(fetched["budget_code"], "BUD-001");
@@ -272,7 +277,9 @@ async fn test_get_reservation_by_number() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fetched: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(fetched["reservation_number"], "FR-BYNUM");
     assert_eq!(fetched["control_level"], "absolute");
@@ -297,7 +304,9 @@ async fn test_list_reservations() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 2);
 }
@@ -330,7 +339,8 @@ async fn test_delete_reservation() {
 #[tokio::test]
 async fn test_consume_reservation_partial() {
     let (_state, app) = setup_funds_reservation_test().await;
-    let reservation = create_test_reservation(&app, "FR-CONSUME", "BUD-001", 50000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-CONSUME", "BUD-001", 50000.0, "advisory").await;
     let id = reservation["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -339,7 +349,10 @@ async fn test_consume_reservation_partial() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/funds-reservation/reservations/id/{}/consume", id))
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/consume",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -350,7 +363,9 @@ async fn test_consume_reservation_partial() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!((updated["consumed_amount"].as_f64().unwrap() - 20000.0).abs() < 0.01);
     assert!((updated["remaining_amount"].as_f64().unwrap() - 30000.0).abs() < 0.01);
@@ -359,7 +374,8 @@ async fn test_consume_reservation_partial() {
 #[tokio::test]
 async fn test_consume_reservation_full() {
     let (_state, app) = setup_funds_reservation_test().await;
-    let reservation = create_test_reservation(&app, "FR-FULL", "BUD-001", 25000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-FULL", "BUD-001", 25000.0, "advisory").await;
     let id = reservation["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -368,7 +384,10 @@ async fn test_consume_reservation_full() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/funds-reservation/reservations/id/{}/consume", id))
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/consume",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -379,7 +398,9 @@ async fn test_consume_reservation_full() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "fully_consumed");
     assert!((updated["remaining_amount"].as_f64().unwrap()).abs() < 0.01);
@@ -388,7 +409,8 @@ async fn test_consume_reservation_full() {
 #[tokio::test]
 async fn test_consume_exceeds_remaining() {
     let (_state, app) = setup_funds_reservation_test().await;
-    let reservation = create_test_reservation(&app, "FR-OVER", "BUD-001", 10000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-OVER", "BUD-001", 10000.0, "advisory").await;
     let id = reservation["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -397,7 +419,10 @@ async fn test_consume_exceeds_remaining() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/funds-reservation/reservations/id/{}/consume", id))
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/consume",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -417,7 +442,8 @@ async fn test_consume_exceeds_remaining() {
 #[tokio::test]
 async fn test_release_reservation_partial() {
     let (_state, app) = setup_funds_reservation_test().await;
-    let reservation = create_test_reservation(&app, "FR-RELEASE", "BUD-001", 40000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-RELEASE", "BUD-001", 40000.0, "advisory").await;
     let id = reservation["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -426,7 +452,10 @@ async fn test_release_reservation_partial() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/funds-reservation/reservations/id/{}/release", id))
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/release",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -437,7 +466,9 @@ async fn test_release_reservation_partial() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!((updated["released_amount"].as_f64().unwrap() - 15000.0).abs() < 0.01);
     assert!((updated["remaining_amount"].as_f64().unwrap() - 25000.0).abs() < 0.01);
@@ -446,7 +477,8 @@ async fn test_release_reservation_partial() {
 #[tokio::test]
 async fn test_release_reservation_full() {
     let (_state, app) = setup_funds_reservation_test().await;
-    let reservation = create_test_reservation(&app, "FR-REL-FULL", "BUD-001", 20000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-REL-FULL", "BUD-001", 20000.0, "advisory").await;
     let id = reservation["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -455,7 +487,10 @@ async fn test_release_reservation_full() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/funds-reservation/reservations/id/{}/release", id))
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/release",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -466,7 +501,9 @@ async fn test_release_reservation_full() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "released");
 }
@@ -478,7 +515,8 @@ async fn test_release_reservation_full() {
 #[tokio::test]
 async fn test_cancel_reservation() {
     let (_state, app) = setup_funds_reservation_test().await;
-    let reservation = create_test_reservation(&app, "FR-CANCEL", "BUD-001", 30000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-CANCEL", "BUD-001", 30000.0, "advisory").await;
     let id = reservation["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -487,21 +525,30 @@ async fn test_cancel_reservation() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/funds-reservation/reservations/id/{}/cancel", id))
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/cancel",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
-                    serde_json::to_string(&json!({"reason": "Project cancelled by management"})).unwrap(),
+                    serde_json::to_string(&json!({"reason": "Project cancelled by management"}))
+                        .unwrap(),
                 ))
                 .unwrap(),
         )
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "cancelled");
-    assert_eq!(updated["cancellation_reason"], "Project cancelled by management");
+    assert_eq!(
+        updated["cancellation_reason"],
+        "Project cancelled by management"
+    );
     assert!((updated["released_amount"].as_f64().unwrap() - 30000.0).abs() < 0.01);
     assert!((updated["remaining_amount"].as_f64().unwrap()).abs() < 0.01);
 }
@@ -513,7 +560,8 @@ async fn test_cancel_reservation() {
 #[tokio::test]
 async fn test_create_reservation_line() {
     let (_state, app) = setup_funds_reservation_test().await;
-    let reservation = create_test_reservation(&app, "FR-LINE", "BUD-001", 50000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-LINE", "BUD-001", 50000.0, "advisory").await;
     let reservation_id = reservation["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -522,7 +570,10 @@ async fn test_create_reservation_line() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/funds-reservation/reservations/id/{}/lines", reservation_id))
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/lines",
+                    reservation_id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -540,7 +591,9 @@ async fn test_create_reservation_line() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let line: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(line["account_code"], "1000-100-1000");
     assert!((line["reserved_amount"].as_f64().unwrap() - 30000.0).abs() < 0.01);
@@ -549,18 +602,25 @@ async fn test_create_reservation_line() {
 #[tokio::test]
 async fn test_list_reservation_lines() {
     let (_state, app) = setup_funds_reservation_test().await;
-    let reservation = create_test_reservation(&app, "FR-LINES", "BUD-001", 60000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-LINES", "BUD-001", 60000.0, "advisory").await;
     let reservation_id = reservation["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
 
     // Create two lines
-    for (i, (account, amount)) in [("1000-100", 35000.0), ("1000-200", 25000.0)].iter().enumerate() {
+    for (i, (account, amount)) in [("1000-100", 35000.0), ("1000-200", 25000.0)]
+        .iter()
+        .enumerate()
+    {
         app.clone()
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri(format!("/api/v1/funds-reservation/reservations/id/{}/lines", reservation_id))
+                    .uri(format!(
+                        "/api/v1/funds-reservation/reservations/id/{}/lines",
+                        reservation_id
+                    ))
                     .header("Content-Type", "application/json")
                     .header(&k, &v)
                     .body(Body::from(
@@ -581,7 +641,10 @@ async fn test_list_reservation_lines() {
         .clone()
         .oneshot(
             Request::builder()
-                .uri(format!("/api/v1/funds-reservation/reservations/id/{}/lines", reservation_id))
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/lines",
+                    reservation_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -589,7 +652,9 @@ async fn test_list_reservation_lines() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(list["data"].as_array().unwrap().len(), 2);
 }
@@ -614,7 +679,9 @@ async fn test_check_fund_availability() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let availability: serde_json::Value = serde_json::from_slice(&body).unwrap();
     // Should contain these fields regardless of budget data
     assert!(availability["account_code"].is_string());
@@ -648,7 +715,9 @@ async fn test_budgetary_control_dashboard() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(dashboard["total_reservations"].as_i64().unwrap() >= 2);
     assert!(dashboard["active_reservations"].as_i64().unwrap() >= 2);
@@ -663,105 +732,150 @@ async fn test_reservation_full_lifecycle() {
     let (_state, app) = setup_funds_reservation_test().await;
 
     // 1. Create a reservation
-    let reservation = create_test_reservation(&app, "FR-LIFE", "BUD-OPS-2024", 100000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-LIFE", "BUD-OPS-2024", 100000.0, "advisory").await;
     let id = reservation["id"].as_str().unwrap();
     assert_eq!(reservation["status"], "active");
     assert!((reservation["reserved_amount"].as_f64().unwrap() - 100000.0).abs() < 0.01);
 
     // 2. Add reservation lines
     let (k, v) = auth_header(&admin_claims());
-    let line_resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/funds-reservation/reservations/id/{}/lines", id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "lineNumber": 1,
-                    "accountCode": "6000-100",
-                    "accountDescription": "Software Licenses",
-                    "reservedAmount": 60000.0
-                }))
+    let line_resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/lines",
+                    id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "lineNumber": 1,
+                        "accountCode": "6000-100",
+                        "accountDescription": "Software Licenses",
+                        "reservedAmount": 60000.0
+                    }))
+                    .unwrap(),
+                ))
                 .unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+        )
+        .await
+        .unwrap();
     assert_eq!(line_resp.status(), StatusCode::CREATED);
 
-    let line_resp2 = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/funds-reservation/reservations/id/{}/lines", id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "lineNumber": 2,
-                    "accountCode": "6000-200",
-                    "accountDescription": "Hardware",
-                    "reservedAmount": 40000.0
-                }))
+    let line_resp2 = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/lines",
+                    id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "lineNumber": 2,
+                        "accountCode": "6000-200",
+                        "accountDescription": "Hardware",
+                        "reservedAmount": 40000.0
+                    }))
+                    .unwrap(),
+                ))
                 .unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+        )
+        .await
+        .unwrap();
     assert_eq!(line_resp2.status(), StatusCode::CREATED);
 
     // 3. Partially consume (first invoice received)
-    let consume_resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/funds-reservation/reservations/id/{}/consume", id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({"consumeAmount": 45000.0})).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let consume_resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/consume",
+                    id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"consumeAmount": 45000.0})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(consume_resp.status(), StatusCode::OK);
     let consumed: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(consume_resp.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(consume_resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!((consumed["consumed_amount"].as_f64().unwrap() - 45000.0).abs() < 0.01);
     assert!((consumed["remaining_amount"].as_f64().unwrap() - 55000.0).abs() < 0.01);
 
     // 4. Release unneeded funds
-    let release_resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/funds-reservation/reservations/id/{}/release", id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({"releaseAmount": 20000.0})).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let release_resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/release",
+                    id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"releaseAmount": 20000.0})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(release_resp.status(), StatusCode::OK);
     let released: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(release_resp.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(release_resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!((released["released_amount"].as_f64().unwrap() - 20000.0).abs() < 0.01);
     assert!((released["remaining_amount"].as_f64().unwrap() - 35000.0).abs() < 0.01);
 
     // 5. Consume remaining
-    let final_consume = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/funds-reservation/reservations/id/{}/consume", id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({"consumeAmount": 35000.0})).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let final_consume = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/consume",
+                    id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"consumeAmount": 35000.0})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(final_consume.status(), StatusCode::OK);
     let final_state: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(final_consume.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(final_consume.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(final_state["status"], "fully_consumed");
     assert!((final_state["consumed_amount"].as_f64().unwrap() - 80000.0).abs() < 0.01);
     assert!((final_state["released_amount"].as_f64().unwrap() - 20000.0).abs() < 0.01);
@@ -776,40 +890,58 @@ async fn test_reservation_create_then_cancel() {
     let (_state, app) = setup_funds_reservation_test().await;
 
     // 1. Create a reservation
-    let reservation = create_test_reservation(&app, "FR-CAN-LIFE", "BUD-001", 75000.0, "advisory").await;
+    let reservation =
+        create_test_reservation(&app, "FR-CAN-LIFE", "BUD-001", 75000.0, "advisory").await;
     let id = reservation["id"].as_str().unwrap();
 
     // 2. Partially consume
     let (k, v) = auth_header(&admin_claims());
-    let consume_resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/funds-reservation/reservations/id/{}/consume", id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({"consumeAmount": 25000.0})).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let consume_resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/consume",
+                    id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"consumeAmount": 25000.0})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(consume_resp.status(), StatusCode::OK);
 
     // 3. Cancel remaining
-    let cancel_resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/funds-reservation/reservations/id/{}/cancel", id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({"reason": "Budget reallocation"})).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let cancel_resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/funds-reservation/reservations/id/{}/cancel",
+                    id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"reason": "Budget reallocation"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(cancel_resp.status(), StatusCode::OK);
     let cancelled: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(cancel_resp.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(cancel_resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(cancelled["status"], "cancelled");
     assert!((cancelled["consumed_amount"].as_f64().unwrap() - 25000.0).abs() < 0.01);
     // Released amount should be the un-consumed portion

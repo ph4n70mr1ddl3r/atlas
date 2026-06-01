@@ -3,52 +3,128 @@
 //! `PostgreSQL` storage for derivative instruments, hedge relationships,
 //! effectiveness tests, and hedge documentation.
 
-use atlas_shared::{
-    DerivativeInstrument, HedgeRelationship, HedgeEffectivenessTest,
-    HedgeDocumentation, HedgeDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, DerivativeInstrument, HedgeDashboard, HedgeDocumentation,
+    HedgeEffectivenessTest, HedgeRelationship,
+};
+use serde_json::Value;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
-use serde_json::Value;
 
 /// Repository trait for hedge management data storage
 #[async_trait]
 pub trait HedgeManagementRepository: Send + Sync {
     // Derivative Instruments
-    async fn create_derivative(&self, derivative: &DerivativeCreateParams) -> AtlasResult<DerivativeInstrument>;
-    async fn get_derivative(&self, org_id: Uuid, instrument_number: &str) -> AtlasResult<Option<DerivativeInstrument>>;
+    async fn create_derivative(
+        &self,
+        derivative: &DerivativeCreateParams,
+    ) -> AtlasResult<DerivativeInstrument>;
+    async fn get_derivative(
+        &self,
+        org_id: Uuid,
+        instrument_number: &str,
+    ) -> AtlasResult<Option<DerivativeInstrument>>;
     async fn get_derivative_by_id(&self, id: Uuid) -> AtlasResult<Option<DerivativeInstrument>>;
-    async fn list_derivatives(&self, org_id: Uuid, status: Option<&str>, instrument_type: Option<&str>) -> AtlasResult<Vec<DerivativeInstrument>>;
-    async fn update_derivative_status(&self, id: Uuid, status: &str) -> AtlasResult<DerivativeInstrument>;
-    async fn update_derivative_valuation(&self, id: Uuid, fair_value: &str, unrealized_gl: &str, valuation_method: Option<&str>, valuation_date: Option<chrono::NaiveDate>) -> AtlasResult<DerivativeInstrument>;
+    async fn list_derivatives(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        instrument_type: Option<&str>,
+    ) -> AtlasResult<Vec<DerivativeInstrument>>;
+    async fn update_derivative_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<DerivativeInstrument>;
+    async fn update_derivative_valuation(
+        &self,
+        id: Uuid,
+        fair_value: &str,
+        unrealized_gl: &str,
+        valuation_method: Option<&str>,
+        valuation_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<DerivativeInstrument>;
     async fn delete_derivative(&self, org_id: Uuid, instrument_number: &str) -> AtlasResult<()>;
     async fn get_latest_derivative_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Hedge Relationships
-    async fn create_hedge_relationship(&self, params: &HedgeRelationshipCreateParams) -> AtlasResult<HedgeRelationship>;
-    async fn get_hedge_relationship(&self, org_id: Uuid, hedge_id: &str) -> AtlasResult<Option<HedgeRelationship>>;
-    async fn get_hedge_relationship_by_id(&self, id: Uuid) -> AtlasResult<Option<HedgeRelationship>>;
-    async fn list_hedge_relationships(&self, org_id: Uuid, status: Option<&str>, hedge_type: Option<&str>) -> AtlasResult<Vec<HedgeRelationship>>;
-    async fn update_hedge_relationship_status(&self, id: Uuid, status: &str) -> AtlasResult<HedgeRelationship>;
-    async fn update_hedge_effectiveness(&self, id: Uuid, test_date: chrono::NaiveDate, result: &str) -> AtlasResult<HedgeRelationship>;
+    async fn create_hedge_relationship(
+        &self,
+        params: &HedgeRelationshipCreateParams,
+    ) -> AtlasResult<HedgeRelationship>;
+    async fn get_hedge_relationship(
+        &self,
+        org_id: Uuid,
+        hedge_id: &str,
+    ) -> AtlasResult<Option<HedgeRelationship>>;
+    async fn get_hedge_relationship_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<HedgeRelationship>>;
+    async fn list_hedge_relationships(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        hedge_type: Option<&str>,
+    ) -> AtlasResult<Vec<HedgeRelationship>>;
+    async fn update_hedge_relationship_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<HedgeRelationship>;
+    async fn update_hedge_effectiveness(
+        &self,
+        id: Uuid,
+        test_date: chrono::NaiveDate,
+        result: &str,
+    ) -> AtlasResult<HedgeRelationship>;
     async fn delete_hedge_relationship(&self, org_id: Uuid, hedge_id: &str) -> AtlasResult<()>;
     async fn get_latest_hedge_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Effectiveness Tests
-    async fn create_effectiveness_test(&self, params: &EffectivenessTestCreateParams) -> AtlasResult<HedgeEffectivenessTest>;
-    async fn get_effectiveness_test(&self, id: Uuid) -> AtlasResult<Option<HedgeEffectivenessTest>>;
-    async fn list_effectiveness_tests(&self, hedge_relationship_id: Uuid) -> AtlasResult<Vec<HedgeEffectivenessTest>>;
-    async fn update_effectiveness_test_status(&self, id: Uuid, status: &str) -> AtlasResult<HedgeEffectivenessTest>;
+    async fn create_effectiveness_test(
+        &self,
+        params: &EffectivenessTestCreateParams,
+    ) -> AtlasResult<HedgeEffectivenessTest>;
+    async fn get_effectiveness_test(&self, id: Uuid)
+        -> AtlasResult<Option<HedgeEffectivenessTest>>;
+    async fn list_effectiveness_tests(
+        &self,
+        hedge_relationship_id: Uuid,
+    ) -> AtlasResult<Vec<HedgeEffectivenessTest>>;
+    async fn update_effectiveness_test_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<HedgeEffectivenessTest>;
     async fn get_latest_test_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Documentation
-    async fn create_hedge_documentation(&self, params: &DocumentationCreateParams) -> AtlasResult<HedgeDocumentation>;
-    async fn get_hedge_documentation(&self, org_id: Uuid, document_number: &str) -> AtlasResult<Option<HedgeDocumentation>>;
-    async fn get_hedge_documentation_by_id(&self, id: Uuid) -> AtlasResult<Option<HedgeDocumentation>>;
-    async fn list_hedge_documentation(&self, org_id: Uuid, hedge_relationship_id: Option<Uuid>) -> AtlasResult<Vec<HedgeDocumentation>>;
-    async fn update_documentation_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<HedgeDocumentation>;
+    async fn create_hedge_documentation(
+        &self,
+        params: &DocumentationCreateParams,
+    ) -> AtlasResult<HedgeDocumentation>;
+    async fn get_hedge_documentation(
+        &self,
+        org_id: Uuid,
+        document_number: &str,
+    ) -> AtlasResult<Option<HedgeDocumentation>>;
+    async fn get_hedge_documentation_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<HedgeDocumentation>>;
+    async fn list_hedge_documentation(
+        &self,
+        org_id: Uuid,
+        hedge_relationship_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<HedgeDocumentation>>;
+    async fn update_documentation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<HedgeDocumentation>;
     async fn delete_documentation(&self, org_id: Uuid, document_number: &str) -> AtlasResult<()>;
 
     // Dashboard
@@ -155,7 +231,8 @@ pub struct DocumentationCreateParams {
 
 // Helper functions for reading NUMERIC columns as text
 fn get_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> String {
-    row.try_get::<String, _>(col).unwrap_or_else(|_| "0.00".to_string())
+    row.try_get::<String, _>(col)
+        .unwrap_or_else(|_| "0.00".to_string())
 }
 
 fn get_optional_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> Option<String> {
@@ -248,8 +325,14 @@ fn row_to_effectiveness_test(row: &sqlx::postgres::PgRow) -> HedgeEffectivenessT
         test_date: row.get("test_date"),
         test_period_start: row.get("test_period_start"),
         test_period_end: row.get("test_period_end"),
-        derivative_fair_value_change: get_optional_numeric_text(row, "derivative_fair_value_change"),
-        hedged_item_fair_value_change: get_optional_numeric_text(row, "hedged_item_fair_value_change"),
+        derivative_fair_value_change: get_optional_numeric_text(
+            row,
+            "derivative_fair_value_change",
+        ),
+        hedged_item_fair_value_change: get_optional_numeric_text(
+            row,
+            "hedged_item_fair_value_change",
+        ),
         hedge_ratio_result: row.get("hedge_ratio_result"),
         ratio_lower_bound: row.get("ratio_lower_bound"),
         ratio_upper_bound: row.get("ratio_upper_bound"),
@@ -301,7 +384,7 @@ pub struct PostgresHedgeManagementRepository {
 }
 
 impl PostgresHedgeManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -313,7 +396,10 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
     // Derivative Instruments
     // ========================================================================
 
-    async fn create_derivative(&self, p: &DerivativeCreateParams) -> AtlasResult<DerivativeInstrument> {
+    async fn create_derivative(
+        &self,
+        p: &DerivativeCreateParams,
+    ) -> AtlasResult<DerivativeInstrument> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.derivative_instruments
                 (organization_id, instrument_number, instrument_type, underlying_type,
@@ -338,7 +424,11 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
         Ok(row_to_derivative(&row))
     }
 
-    async fn get_derivative(&self, org_id: Uuid, instrument_number: &str) -> AtlasResult<Option<DerivativeInstrument>> {
+    async fn get_derivative(
+        &self,
+        org_id: Uuid,
+        instrument_number: &str,
+    ) -> AtlasResult<Option<DerivativeInstrument>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.derivative_instruments WHERE organization_id=$1 AND instrument_number=$2"
         )
@@ -349,29 +439,40 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
     }
 
     async fn get_derivative_by_id(&self, id: Uuid) -> AtlasResult<Option<DerivativeInstrument>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.derivative_instruments WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.derivative_instruments WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_derivative(&r)))
     }
 
-    async fn list_derivatives(&self, org_id: Uuid, status: Option<&str>, instrument_type: Option<&str>) -> AtlasResult<Vec<DerivativeInstrument>> {
+    async fn list_derivatives(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        instrument_type: Option<&str>,
+    ) -> AtlasResult<Vec<DerivativeInstrument>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.derivative_instruments
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             AND ($3::text IS NULL OR instrument_type=$3)
             ORDER BY instrument_number",
         )
-        .bind(org_id).bind(status).bind(instrument_type)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .bind(instrument_type)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_derivative).collect())
     }
 
-    async fn update_derivative_status(&self, id: Uuid, status: &str) -> AtlasResult<DerivativeInstrument> {
+    async fn update_derivative_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<DerivativeInstrument> {
         let row = sqlx::query(
             "UPDATE _atlas.derivative_instruments SET status=$2, updated_at=now() WHERE id=$1 RETURNING *"
         )
@@ -381,7 +482,14 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
         Ok(row_to_derivative(&row))
     }
 
-    async fn update_derivative_valuation(&self, id: Uuid, fair_value: &str, unrealized_gl: &str, valuation_method: Option<&str>, valuation_date: Option<chrono::NaiveDate>) -> AtlasResult<DerivativeInstrument> {
+    async fn update_derivative_valuation(
+        &self,
+        id: Uuid,
+        fair_value: &str,
+        unrealized_gl: &str,
+        valuation_method: Option<&str>,
+        valuation_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<DerivativeInstrument> {
         let row = sqlx::query(
             r"UPDATE _atlas.derivative_instruments
             SET fair_value=$2, unrealized_gain_loss=$3,
@@ -390,8 +498,13 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
                 updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(fair_value).bind(unrealized_gl).bind(valuation_method).bind(valuation_date)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(fair_value)
+        .bind(unrealized_gl)
+        .bind(valuation_method)
+        .bind(valuation_date)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_derivative(&row))
     }
@@ -408,9 +521,11 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn get_latest_derivative_number(&self, org_id: Uuid) -> AtlasResult<i32> {
         let row = sqlx::query(
-            "SELECT COUNT(*) as cnt FROM _atlas.derivative_instruments WHERE organization_id=$1"
+            "SELECT COUNT(*) as cnt FROM _atlas.derivative_instruments WHERE organization_id=$1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         let count: i64 = row.try_get("cnt").unwrap_or(0);
         Ok(count as i32)
@@ -420,7 +535,10 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
     // Hedge Relationships
     // ========================================================================
 
-    async fn create_hedge_relationship(&self, p: &HedgeRelationshipCreateParams) -> AtlasResult<HedgeRelationship> {
+    async fn create_hedge_relationship(
+        &self,
+        p: &HedgeRelationshipCreateParams,
+    ) -> AtlasResult<HedgeRelationship> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.hedge_relationships
                 (organization_id, hedge_id, hedge_type, derivative_id, derivative_number,
@@ -431,52 +549,86 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
             RETURNING *",
         )
-        .bind(p.org_id).bind(&p.hedge_id).bind(&p.hedge_type)
-        .bind(p.derivative_id).bind(&p.derivative_number)
-        .bind(&p.hedged_item_description).bind(p.hedged_item_id).bind(&p.hedged_risk)
-        .bind(&p.hedge_strategy).bind(&p.hedged_item_reference).bind(&p.hedged_item_currency)
-        .bind(&p.hedged_amount).bind(&p.hedge_ratio)
-        .bind(p.designated_start_date).bind(p.designated_end_date).bind(&p.effectiveness_method)
-        .bind(&p.critical_terms_match).bind(&p.hedge_documentation_ref).bind(&p.notes).bind(p.created_by)
-        .fetch_one(&self.pool).await
+        .bind(p.org_id)
+        .bind(&p.hedge_id)
+        .bind(&p.hedge_type)
+        .bind(p.derivative_id)
+        .bind(&p.derivative_number)
+        .bind(&p.hedged_item_description)
+        .bind(p.hedged_item_id)
+        .bind(&p.hedged_risk)
+        .bind(&p.hedge_strategy)
+        .bind(&p.hedged_item_reference)
+        .bind(&p.hedged_item_currency)
+        .bind(&p.hedged_amount)
+        .bind(&p.hedge_ratio)
+        .bind(p.designated_start_date)
+        .bind(p.designated_end_date)
+        .bind(&p.effectiveness_method)
+        .bind(&p.critical_terms_match)
+        .bind(&p.hedge_documentation_ref)
+        .bind(&p.notes)
+        .bind(p.created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_hedge_relationship(&row))
     }
 
-    async fn get_hedge_relationship(&self, org_id: Uuid, hedge_id: &str) -> AtlasResult<Option<HedgeRelationship>> {
+    async fn get_hedge_relationship(
+        &self,
+        org_id: Uuid,
+        hedge_id: &str,
+    ) -> AtlasResult<Option<HedgeRelationship>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.hedge_relationships WHERE organization_id=$1 AND hedge_id=$2"
+            "SELECT * FROM _atlas.hedge_relationships WHERE organization_id=$1 AND hedge_id=$2",
         )
-        .bind(org_id).bind(hedge_id)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(hedge_id)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_hedge_relationship(&r)))
     }
 
-    async fn get_hedge_relationship_by_id(&self, id: Uuid) -> AtlasResult<Option<HedgeRelationship>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.hedge_relationships WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_hedge_relationship_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<HedgeRelationship>> {
+        let row = sqlx::query("SELECT * FROM _atlas.hedge_relationships WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_hedge_relationship(&r)))
     }
 
-    async fn list_hedge_relationships(&self, org_id: Uuid, status: Option<&str>, hedge_type: Option<&str>) -> AtlasResult<Vec<HedgeRelationship>> {
+    async fn list_hedge_relationships(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        hedge_type: Option<&str>,
+    ) -> AtlasResult<Vec<HedgeRelationship>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.hedge_relationships
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             AND ($3::text IS NULL OR hedge_type=$3)
             ORDER BY hedge_id",
         )
-        .bind(org_id).bind(status).bind(hedge_type)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .bind(hedge_type)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_hedge_relationship).collect())
     }
 
-    async fn update_hedge_relationship_status(&self, id: Uuid, status: &str) -> AtlasResult<HedgeRelationship> {
+    async fn update_hedge_relationship_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<HedgeRelationship> {
         let row = sqlx::query(
             "UPDATE _atlas.hedge_relationships SET status=$2, updated_at=now() WHERE id=$1 RETURNING *"
         )
@@ -486,33 +638,45 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
         Ok(row_to_hedge_relationship(&row))
     }
 
-    async fn update_hedge_effectiveness(&self, id: Uuid, test_date: chrono::NaiveDate, result: &str) -> AtlasResult<HedgeRelationship> {
+    async fn update_hedge_effectiveness(
+        &self,
+        id: Uuid,
+        test_date: chrono::NaiveDate,
+        result: &str,
+    ) -> AtlasResult<HedgeRelationship> {
         let row = sqlx::query(
             r"UPDATE _atlas.hedge_relationships SET last_effectiveness_test_date=$2,
                 last_effectiveness_result=$3, updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(test_date).bind(result)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(test_date)
+        .bind(result)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_hedge_relationship(&row))
     }
 
     async fn delete_hedge_relationship(&self, org_id: Uuid, hedge_id: &str) -> AtlasResult<()> {
         sqlx::query(
-            "DELETE FROM _atlas.hedge_relationships WHERE organization_id=$1 AND hedge_id=$2"
+            "DELETE FROM _atlas.hedge_relationships WHERE organization_id=$1 AND hedge_id=$2",
         )
-        .bind(org_id).bind(hedge_id)
-        .execute(&self.pool).await
+        .bind(org_id)
+        .bind(hedge_id)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn get_latest_hedge_number(&self, org_id: Uuid) -> AtlasResult<i32> {
         let row = sqlx::query(
-            "SELECT COUNT(*) as cnt FROM _atlas.hedge_relationships WHERE organization_id=$1"
+            "SELECT COUNT(*) as cnt FROM _atlas.hedge_relationships WHERE organization_id=$1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         let count: i64 = row.try_get("cnt").unwrap_or(0);
         Ok(count as i32)
@@ -522,7 +686,10 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
     // Effectiveness Tests
     // ========================================================================
 
-    async fn create_effectiveness_test(&self, p: &EffectivenessTestCreateParams) -> AtlasResult<HedgeEffectivenessTest> {
+    async fn create_effectiveness_test(
+        &self,
+        p: &EffectivenessTestCreateParams,
+    ) -> AtlasResult<HedgeEffectivenessTest> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.hedge_effectiveness_tests
                 (organization_id, hedge_relationship_id, hedge_id, test_type,
@@ -534,28 +701,47 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
             RETURNING *",
         )
-        .bind(p.org_id).bind(p.hedge_relationship_id).bind(&p.hedge_id).bind(&p.test_type)
-        .bind(&p.effectiveness_method).bind(p.test_date).bind(p.test_period_start).bind(p.test_period_end)
-        .bind(&p.derivative_fair_value_change).bind(&p.hedged_item_fair_value_change)
-        .bind(&p.hedge_ratio_result).bind(&p.ratio_lower_bound).bind(&p.ratio_upper_bound)
-        .bind(&p.effectiveness_result).bind(&p.ineffective_amount).bind(&p.cumulative_gain_loss)
-        .bind(&p.regression_r_squared).bind(&p.notes).bind(p.created_by)
-        .fetch_one(&self.pool).await
+        .bind(p.org_id)
+        .bind(p.hedge_relationship_id)
+        .bind(&p.hedge_id)
+        .bind(&p.test_type)
+        .bind(&p.effectiveness_method)
+        .bind(p.test_date)
+        .bind(p.test_period_start)
+        .bind(p.test_period_end)
+        .bind(&p.derivative_fair_value_change)
+        .bind(&p.hedged_item_fair_value_change)
+        .bind(&p.hedge_ratio_result)
+        .bind(&p.ratio_lower_bound)
+        .bind(&p.ratio_upper_bound)
+        .bind(&p.effectiveness_result)
+        .bind(&p.ineffective_amount)
+        .bind(&p.cumulative_gain_loss)
+        .bind(&p.regression_r_squared)
+        .bind(&p.notes)
+        .bind(p.created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_effectiveness_test(&row))
     }
 
-    async fn get_effectiveness_test(&self, id: Uuid) -> AtlasResult<Option<HedgeEffectivenessTest>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.hedge_effectiveness_tests WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_effectiveness_test(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<HedgeEffectivenessTest>> {
+        let row = sqlx::query("SELECT * FROM _atlas.hedge_effectiveness_tests WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_effectiveness_test(&r)))
     }
 
-    async fn list_effectiveness_tests(&self, hedge_relationship_id: Uuid) -> AtlasResult<Vec<HedgeEffectivenessTest>> {
+    async fn list_effectiveness_tests(
+        &self,
+        hedge_relationship_id: Uuid,
+    ) -> AtlasResult<Vec<HedgeEffectivenessTest>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.hedge_effectiveness_tests WHERE hedge_relationship_id=$1 ORDER BY test_date DESC"
         )
@@ -565,7 +751,11 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
         Ok(rows.iter().map(row_to_effectiveness_test).collect())
     }
 
-    async fn update_effectiveness_test_status(&self, id: Uuid, status: &str) -> AtlasResult<HedgeEffectivenessTest> {
+    async fn update_effectiveness_test_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<HedgeEffectivenessTest> {
         let row = sqlx::query(
             "UPDATE _atlas.hedge_effectiveness_tests SET status=$2, updated_at=now() WHERE id=$1 RETURNING *"
         )
@@ -577,9 +767,11 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
 
     async fn get_latest_test_number(&self, org_id: Uuid) -> AtlasResult<i32> {
         let row = sqlx::query(
-            "SELECT COUNT(*) as cnt FROM _atlas.hedge_documentation WHERE organization_id=$1"
+            "SELECT COUNT(*) as cnt FROM _atlas.hedge_documentation WHERE organization_id=$1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         let count: i64 = row.try_get("cnt").unwrap_or(0);
         Ok(count as i32)
@@ -589,7 +781,10 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
     // Documentation
     // ========================================================================
 
-    async fn create_hedge_documentation(&self, p: &DocumentationCreateParams) -> AtlasResult<HedgeDocumentation> {
+    async fn create_hedge_documentation(
+        &self,
+        p: &DocumentationCreateParams,
+    ) -> AtlasResult<HedgeDocumentation> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.hedge_documentation
                 (organization_id, hedge_relationship_id, hedge_id, document_number,
@@ -601,18 +796,34 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
             RETURNING *",
         )
-        .bind(p.org_id).bind(p.hedge_relationship_id).bind(&p.hedge_id).bind(&p.document_number)
-        .bind(&p.hedge_type).bind(&p.risk_management_objective).bind(&p.hedging_strategy_description)
-        .bind(&p.hedged_item_description).bind(&p.hedged_risk_description)
-        .bind(&p.derivative_description).bind(&p.effectiveness_method_description)
-        .bind(&p.assessment_frequency).bind(p.designation_date).bind(p.documentation_date)
-        .bind(&p.prepared_by).bind(&p.notes).bind(p.created_by)
-        .fetch_one(&self.pool).await
+        .bind(p.org_id)
+        .bind(p.hedge_relationship_id)
+        .bind(&p.hedge_id)
+        .bind(&p.document_number)
+        .bind(&p.hedge_type)
+        .bind(&p.risk_management_objective)
+        .bind(&p.hedging_strategy_description)
+        .bind(&p.hedged_item_description)
+        .bind(&p.hedged_risk_description)
+        .bind(&p.derivative_description)
+        .bind(&p.effectiveness_method_description)
+        .bind(&p.assessment_frequency)
+        .bind(p.designation_date)
+        .bind(p.documentation_date)
+        .bind(&p.prepared_by)
+        .bind(&p.notes)
+        .bind(p.created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_documentation(&row))
     }
 
-    async fn get_hedge_documentation(&self, org_id: Uuid, document_number: &str) -> AtlasResult<Option<HedgeDocumentation>> {
+    async fn get_hedge_documentation(
+        &self,
+        org_id: Uuid,
+        document_number: &str,
+    ) -> AtlasResult<Option<HedgeDocumentation>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.hedge_documentation WHERE organization_id=$1 AND document_number=$2"
         )
@@ -622,29 +833,42 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
         Ok(row.map(|r| row_to_documentation(&r)))
     }
 
-    async fn get_hedge_documentation_by_id(&self, id: Uuid) -> AtlasResult<Option<HedgeDocumentation>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.hedge_documentation WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_hedge_documentation_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<HedgeDocumentation>> {
+        let row = sqlx::query("SELECT * FROM _atlas.hedge_documentation WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_documentation(&r)))
     }
 
-    async fn list_hedge_documentation(&self, org_id: Uuid, hedge_relationship_id: Option<Uuid>) -> AtlasResult<Vec<HedgeDocumentation>> {
+    async fn list_hedge_documentation(
+        &self,
+        org_id: Uuid,
+        hedge_relationship_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<HedgeDocumentation>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.hedge_documentation
             WHERE organization_id=$1 AND ($2::uuid IS NULL OR hedge_relationship_id=$2)
             ORDER BY document_number",
         )
-        .bind(org_id).bind(hedge_relationship_id)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(hedge_relationship_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_documentation).collect())
     }
 
-    async fn update_documentation_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<HedgeDocumentation> {
+    async fn update_documentation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<HedgeDocumentation> {
         let row = sqlx::query(
             r"UPDATE _atlas.hedge_documentation SET status=$2,
                 approved_by=COALESCE($3, approved_by),
@@ -652,8 +876,11 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
                 updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(status).bind(approved_by)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_documentation(&row))
     }
@@ -685,8 +912,12 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let active_deriv: i64 = deriv_row.try_get("active_deriv").unwrap_or(0);
-        let total_notional: String = deriv_row.try_get("total_notional").unwrap_or_else(|_| "0".to_string());
-        let total_ugl: String = deriv_row.try_get("total_ugl").unwrap_or_else(|_| "0".to_string());
+        let total_notional: String = deriv_row
+            .try_get("total_notional")
+            .unwrap_or_else(|_| "0".to_string());
+        let total_ugl: String = deriv_row
+            .try_get("total_ugl")
+            .unwrap_or_else(|_| "0".to_string());
 
         // Get hedge relationship summary
         let hedge_row = sqlx::query(
@@ -701,7 +932,9 @@ impl HedgeManagementRepository for PostgresHedgeManagementRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let active_hedges: i64 = hedge_row.try_get("active_hedges").unwrap_or(0);
-        let total_hedged: String = hedge_row.try_get("total_hedged").unwrap_or_else(|_| "0".to_string());
+        let total_hedged: String = hedge_row
+            .try_get("total_hedged")
+            .unwrap_or_else(|_| "0".to_string());
         let effective: i64 = hedge_row.try_get("effective").unwrap_or(0);
         let ineffective: i64 = hedge_row.try_get("ineffective").unwrap_or(0);
 

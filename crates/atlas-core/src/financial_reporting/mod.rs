@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > General Ledger > Financial Reporting Center
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::FinancialReportingEngine;
 pub use repository::{FinancialReportingRepository, PostgresFinancialReportingRepository};

@@ -15,7 +15,7 @@ pub struct HoldReleaseResult {
 
 impl InvoiceHoldService {
     /// Places a hold on an Accounts Payable invoice.
-    /// This is an Oracle Fusion Financials feature that prevents an invoice 
+    /// This is an Oracle Fusion Financials feature that prevents an invoice
     /// from being selected for payment until the hold is released.
     #[must_use]
     pub fn place_hold(invoice_id: &str, hold_reason_code: &str) -> InvoiceHoldResult {
@@ -110,7 +110,10 @@ mod tests {
 
     #[test]
     fn test_release_hold_valid() {
-        let result = InvoiceHoldService::release_hold("HLD-INV-500-PRICE_DISCREPANCY", "DISCREPANCY_RESOLVED");
+        let result = InvoiceHoldService::release_hold(
+            "HLD-INV-500-PRICE_DISCREPANCY",
+            "DISCREPANCY_RESOLVED",
+        );
         assert_eq!(result.hold_id, "HLD-INV-500-PRICE_DISCREPANCY");
         assert_eq!(result.release_reason_code, "DISCREPANCY_RESOLVED");
         assert_eq!(result.status, "RELEASED");

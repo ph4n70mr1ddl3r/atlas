@@ -18,4 +18,4 @@ mod engine;
 mod repository;
 
 pub use engine::ScheduledProcessEngine;
-pub use repository::{ScheduledProcessRepository, PostgresScheduledProcessRepository};
+pub use repository::{PostgresScheduledProcessRepository, ScheduledProcessRepository};

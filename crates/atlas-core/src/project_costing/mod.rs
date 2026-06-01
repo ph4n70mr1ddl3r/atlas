@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Project Management > Project Costing
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ProjectCostingEngine;
-pub use repository::{ProjectCostingRepository, PostgresProjectCostingRepository};
+pub use repository::{PostgresProjectCostingRepository, ProjectCostingRepository};

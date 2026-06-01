@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for process templates, process instances,
 //! recurrence schedules, and execution logs.
 
-use atlas_shared::{
-    ScheduledProcess, ScheduledProcessTemplate, ScheduledProcessRecurrence,
-    ScheduledProcessLog, ScheduledProcessDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, ScheduledProcess, ScheduledProcessDashboardSummary,
+    ScheduledProcessLog, ScheduledProcessRecurrence, ScheduledProcessTemplate,
+};
 use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -19,65 +18,123 @@ pub trait ScheduledProcessRepository: Send + Sync {
     // Templates
     #[allow(clippy::too_many_arguments)]
     async fn create_template(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        process_type: &str, executor_type: &str,
-        executor_config: serde_json::Value, parameters: serde_json::Value,
-        default_parameters: serde_json::Value, timeout_minutes: i32,
-        max_retries: i32, retry_delay_minutes: i32, requires_approval: bool,
-        approval_chain_id: Option<Uuid>, effective_from: Option<chrono::NaiveDate>,
-        effective_to: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        process_type: &str,
+        executor_type: &str,
+        executor_config: serde_json::Value,
+        parameters: serde_json::Value,
+        default_parameters: serde_json::Value,
+        timeout_minutes: i32,
+        max_retries: i32,
+        retry_delay_minutes: i32,
+        requires_approval: bool,
+        approval_chain_id: Option<Uuid>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ScheduledProcessTemplate>;
 
-    async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ScheduledProcessTemplate>>;
+    async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ScheduledProcessTemplate>>;
     async fn get_template_by_id(&self, id: Uuid) -> AtlasResult<Option<ScheduledProcessTemplate>>;
-    async fn list_templates(&self, org_id: Uuid, process_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<ScheduledProcessTemplate>>;
-    async fn update_template_status(&self, id: Uuid, is_active: bool) -> AtlasResult<ScheduledProcessTemplate>;
+    async fn list_templates(
+        &self,
+        org_id: Uuid,
+        process_type: Option<&str>,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<ScheduledProcessTemplate>>;
+    async fn update_template_status(
+        &self,
+        id: Uuid,
+        is_active: bool,
+    ) -> AtlasResult<ScheduledProcessTemplate>;
     async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Processes
     #[allow(clippy::too_many_arguments)]
     async fn create_process(
-        &self, org_id: Uuid, template_id: Option<Uuid>, template_code: Option<&str>,
-        process_name: &str, process_type: &str, description: Option<&str>,
-        status: &str, priority: &str, scheduled_start_at: Option<DateTime<Utc>>,
-        timeout_minutes: i32, max_retries: i32,
-        parameters: serde_json::Value, submitted_by: Uuid,
+        &self,
+        org_id: Uuid,
+        template_id: Option<Uuid>,
+        template_code: Option<&str>,
+        process_name: &str,
+        process_type: &str,
+        description: Option<&str>,
+        status: &str,
+        priority: &str,
+        scheduled_start_at: Option<DateTime<Utc>>,
+        timeout_minutes: i32,
+        max_retries: i32,
+        parameters: serde_json::Value,
+        submitted_by: Uuid,
     ) -> AtlasResult<ScheduledProcess>;
 
     async fn get_process(&self, id: Uuid) -> AtlasResult<Option<ScheduledProcess>>;
     async fn list_processes(
-        &self, org_id: Uuid, status: Option<&str>, submitted_by: Option<Uuid>,
-        process_type: Option<&str>, limit: Option<i32>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        submitted_by: Option<Uuid>,
+        process_type: Option<&str>,
+        limit: Option<i32>,
     ) -> AtlasResult<Vec<ScheduledProcess>>;
 
     #[allow(clippy::too_many_arguments)]
     async fn update_process_status(
-        &self, id: Uuid, status: &str, started_at: Option<DateTime<Utc>>,
-        completed_at: Option<DateTime<Utc>>, cancelled_at: Option<DateTime<Utc>>,
+        &self,
+        id: Uuid,
+        status: &str,
+        started_at: Option<DateTime<Utc>>,
+        completed_at: Option<DateTime<Utc>>,
+        cancelled_at: Option<DateTime<Utc>>,
         cancelled_by: Option<Uuid>,
     ) -> AtlasResult<ScheduledProcess>;
 
     #[allow(clippy::too_many_arguments)]
     async fn complete_process(
-        &self, id: Uuid, status: &str, completed_at: Option<DateTime<Utc>>,
-        result_summary: Option<&str>, output_file_url: Option<&str>,
-        log_output: Option<&str>, progress_percent: Option<i32>,
+        &self,
+        id: Uuid,
+        status: &str,
+        completed_at: Option<DateTime<Utc>>,
+        result_summary: Option<&str>,
+        output_file_url: Option<&str>,
+        log_output: Option<&str>,
+        progress_percent: Option<i32>,
     ) -> AtlasResult<ScheduledProcess>;
 
     #[allow(clippy::too_many_arguments)]
     async fn fail_process(
-        &self, id: Uuid, status: &str, completed_at: Option<DateTime<Utc>>,
-        error_message: Option<&str>, log_output: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        completed_at: Option<DateTime<Utc>>,
+        error_message: Option<&str>,
+        log_output: Option<&str>,
     ) -> AtlasResult<ScheduledProcess>;
 
     #[allow(clippy::too_many_arguments)]
     async fn cancel_process(
-        &self, id: Uuid, status: &str, cancelled_at: Option<DateTime<Utc>>,
-        cancelled_by: Option<Uuid>, cancel_reason: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        cancelled_at: Option<DateTime<Utc>>,
+        cancelled_by: Option<Uuid>,
+        cancel_reason: Option<&str>,
     ) -> AtlasResult<ScheduledProcess>;
 
     async fn retry_process(&self, id: Uuid, retry_count: i32) -> AtlasResult<ScheduledProcess>;
-    async fn update_progress(&self, id: Uuid, progress_percent: i32) -> AtlasResult<ScheduledProcess>;
+    async fn update_progress(
+        &self,
+        id: Uuid,
+        progress_percent: i32,
+    ) -> AtlasResult<ScheduledProcess>;
     async fn update_heartbeat(&self, id: Uuid) -> AtlasResult<ScheduledProcess>;
     async fn update_process_recurrence(&self, id: Uuid, recurrence_id: Uuid) -> AtlasResult<()>;
     async fn find_timed_out_processes(&self) -> AtlasResult<Vec<ScheduledProcess>>;
@@ -85,38 +142,70 @@ pub trait ScheduledProcessRepository: Send + Sync {
     // Recurrences
     #[allow(clippy::too_many_arguments)]
     async fn create_recurrence(
-        &self, org_id: Uuid, name: &str, description: Option<&str>,
-        template_id: Uuid, template_code: Option<&str>,
-        parameters: serde_json::Value, recurrence_type: &str,
+        &self,
+        org_id: Uuid,
+        name: &str,
+        description: Option<&str>,
+        template_id: Uuid,
+        template_code: Option<&str>,
+        parameters: serde_json::Value,
+        recurrence_type: &str,
         recurrence_config: serde_json::Value,
-        start_date: chrono::NaiveDate, end_date: Option<chrono::NaiveDate>,
-        next_run_at: Option<DateTime<Utc>>, max_runs: Option<i32>,
+        start_date: chrono::NaiveDate,
+        end_date: Option<chrono::NaiveDate>,
+        next_run_at: Option<DateTime<Utc>>,
+        max_runs: Option<i32>,
         submitted_by: Option<Uuid>,
     ) -> AtlasResult<ScheduledProcessRecurrence>;
 
     async fn get_recurrence(&self, id: Uuid) -> AtlasResult<Option<ScheduledProcessRecurrence>>;
-    async fn list_recurrences(&self, org_id: Uuid, is_active: Option<bool>) -> AtlasResult<Vec<ScheduledProcessRecurrence>>;
-    async fn update_recurrence_status(&self, id: Uuid, is_active: bool) -> AtlasResult<ScheduledProcessRecurrence>;
+    async fn list_recurrences(
+        &self,
+        org_id: Uuid,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<ScheduledProcessRecurrence>>;
+    async fn update_recurrence_status(
+        &self,
+        id: Uuid,
+        is_active: bool,
+    ) -> AtlasResult<ScheduledProcessRecurrence>;
     async fn update_recurrence_after_run(
-        &self, id: Uuid, last_run_at: Option<DateTime<Utc>>,
-        next_run_at: Option<DateTime<Utc>>, run_count: i32,
+        &self,
+        id: Uuid,
+        last_run_at: Option<DateTime<Utc>>,
+        next_run_at: Option<DateTime<Utc>>,
+        run_count: i32,
     ) -> AtlasResult<()>;
     async fn delete_recurrence(&self, id: Uuid) -> AtlasResult<()>;
-    async fn find_due_recurrences(&self, now: DateTime<Utc>) -> AtlasResult<Vec<ScheduledProcessRecurrence>>;
+    async fn find_due_recurrences(
+        &self,
+        now: DateTime<Utc>,
+    ) -> AtlasResult<Vec<ScheduledProcessRecurrence>>;
 
     // Logs
     async fn create_log(
-        &self, org_id: Uuid, process_id: Uuid, log_level: &str,
-        message: &str, details: Option<serde_json::Value>,
-        step_name: Option<&str>, duration_ms: Option<i32>,
+        &self,
+        org_id: Uuid,
+        process_id: Uuid,
+        log_level: &str,
+        message: &str,
+        details: Option<serde_json::Value>,
+        step_name: Option<&str>,
+        duration_ms: Option<i32>,
     ) -> AtlasResult<ScheduledProcessLog>;
 
     async fn list_logs(
-        &self, process_id: Uuid, log_level: Option<&str>, limit: Option<i32>,
+        &self,
+        process_id: Uuid,
+        log_level: Option<&str>,
+        limit: Option<i32>,
     ) -> AtlasResult<Vec<ScheduledProcessLog>>;
 
     // Dashboard
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ScheduledProcessDashboardSummary>;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ScheduledProcessDashboardSummary>;
 }
 
 /// `PostgreSQL` implementation
@@ -125,7 +214,7 @@ pub struct PostgresScheduledProcessRepository {
 }
 
 impl PostgresScheduledProcessRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -238,13 +327,24 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
     // ---- Templates ----
 
     async fn create_template(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        process_type: &str, executor_type: &str,
-        executor_config: serde_json::Value, parameters: serde_json::Value,
-        default_parameters: serde_json::Value, timeout_minutes: i32,
-        max_retries: i32, retry_delay_minutes: i32, requires_approval: bool,
-        approval_chain_id: Option<Uuid>, effective_from: Option<chrono::NaiveDate>,
-        effective_to: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        process_type: &str,
+        executor_type: &str,
+        executor_config: serde_json::Value,
+        parameters: serde_json::Value,
+        default_parameters: serde_json::Value,
+        timeout_minutes: i32,
+        max_retries: i32,
+        retry_delay_minutes: i32,
+        requires_approval: bool,
+        approval_chain_id: Option<Uuid>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ScheduledProcessTemplate> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.scheduled_process_templates
@@ -255,38 +355,60 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
             RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(process_type).bind(executor_type)
-        .bind(&executor_config).bind(&parameters).bind(&default_parameters)
-        .bind(timeout_minutes).bind(max_retries).bind(retry_delay_minutes)
-        .bind(requires_approval).bind(approval_chain_id)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(process_type)
+        .bind(executor_type)
+        .bind(&executor_config)
+        .bind(&parameters)
+        .bind(&default_parameters)
+        .bind(timeout_minutes)
+        .bind(max_retries)
+        .bind(retry_delay_minutes)
+        .bind(requires_approval)
+        .bind(approval_chain_id)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_template(&row))
     }
 
-    async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ScheduledProcessTemplate>> {
+    async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ScheduledProcessTemplate>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.scheduled_process_templates WHERE organization_id=$1 AND code=$2"
+            "SELECT * FROM _atlas.scheduled_process_templates WHERE organization_id=$1 AND code=$2",
         )
-        .bind(org_id).bind(code)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_template(&r)))
     }
 
     async fn get_template_by_id(&self, id: Uuid) -> AtlasResult<Option<ScheduledProcessTemplate>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.scheduled_process_templates WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.scheduled_process_templates WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_template(&r)))
     }
 
-    async fn list_templates(&self, org_id: Uuid, process_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<ScheduledProcessTemplate>> {
+    async fn list_templates(
+        &self,
+        org_id: Uuid,
+        process_type: Option<&str>,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<ScheduledProcessTemplate>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.scheduled_process_templates
             WHERE organization_id=$1
@@ -294,29 +416,40 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
               AND ($3::bool IS NULL OR is_active=$3)
             ORDER BY code",
         )
-        .bind(org_id).bind(process_type).bind(is_active)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(process_type)
+        .bind(is_active)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_template).collect())
     }
 
-    async fn update_template_status(&self, id: Uuid, is_active: bool) -> AtlasResult<ScheduledProcessTemplate> {
+    async fn update_template_status(
+        &self,
+        id: Uuid,
+        is_active: bool,
+    ) -> AtlasResult<ScheduledProcessTemplate> {
         let row = sqlx::query(
             r"UPDATE _atlas.scheduled_process_templates SET is_active=$2, updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(is_active)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(is_active)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_template(&row))
     }
 
     async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         sqlx::query(
-            "DELETE FROM _atlas.scheduled_process_templates WHERE organization_id=$1 AND code=$2"
+            "DELETE FROM _atlas.scheduled_process_templates WHERE organization_id=$1 AND code=$2",
         )
-        .bind(org_id).bind(code)
-        .execute(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -324,11 +457,20 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
     // ---- Processes ----
 
     async fn create_process(
-        &self, org_id: Uuid, template_id: Option<Uuid>, template_code: Option<&str>,
-        process_name: &str, process_type: &str, description: Option<&str>,
-        status: &str, priority: &str, scheduled_start_at: Option<DateTime<Utc>>,
-        timeout_minutes: i32, max_retries: i32,
-        parameters: serde_json::Value, submitted_by: Uuid,
+        &self,
+        org_id: Uuid,
+        template_id: Option<Uuid>,
+        template_code: Option<&str>,
+        process_name: &str,
+        process_type: &str,
+        description: Option<&str>,
+        status: &str,
+        priority: &str,
+        scheduled_start_at: Option<DateTime<Utc>>,
+        timeout_minutes: i32,
+        max_retries: i32,
+        parameters: serde_json::Value,
+        submitted_by: Uuid,
     ) -> AtlasResult<ScheduledProcess> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.scheduled_processes
@@ -338,29 +480,41 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
             RETURNING *",
         )
-        .bind(org_id).bind(template_id).bind(template_code)
-        .bind(process_name).bind(process_type).bind(description)
-        .bind(status).bind(priority).bind(scheduled_start_at)
-        .bind(timeout_minutes).bind(max_retries)
-        .bind(&parameters).bind(submitted_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(template_id)
+        .bind(template_code)
+        .bind(process_name)
+        .bind(process_type)
+        .bind(description)
+        .bind(status)
+        .bind(priority)
+        .bind(scheduled_start_at)
+        .bind(timeout_minutes)
+        .bind(max_retries)
+        .bind(&parameters)
+        .bind(submitted_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_process(&row))
     }
 
     async fn get_process(&self, id: Uuid) -> AtlasResult<Option<ScheduledProcess>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.scheduled_processes WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.scheduled_processes WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_process(&r)))
     }
 
     async fn list_processes(
-        &self, org_id: Uuid, status: Option<&str>, submitted_by: Option<Uuid>,
-        process_type: Option<&str>, limit: Option<i32>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        submitted_by: Option<Uuid>,
+        process_type: Option<&str>,
+        limit: Option<i32>,
     ) -> AtlasResult<Vec<ScheduledProcess>> {
         let limit_val = limit.unwrap_or(100);
         let rows = sqlx::query(
@@ -371,15 +525,24 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
               AND ($4::text IS NULL OR process_type=$4)
             ORDER BY submitted_at DESC LIMIT $5",
         )
-        .bind(org_id).bind(status).bind(submitted_by).bind(process_type).bind(limit_val)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .bind(submitted_by)
+        .bind(process_type)
+        .bind(limit_val)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_process).collect())
     }
 
     async fn update_process_status(
-        &self, id: Uuid, status: &str, started_at: Option<DateTime<Utc>>,
-        completed_at: Option<DateTime<Utc>>, cancelled_at: Option<DateTime<Utc>>,
+        &self,
+        id: Uuid,
+        status: &str,
+        started_at: Option<DateTime<Utc>>,
+        completed_at: Option<DateTime<Utc>>,
+        cancelled_at: Option<DateTime<Utc>>,
         cancelled_by: Option<Uuid>,
     ) -> AtlasResult<ScheduledProcess> {
         let row = sqlx::query(
@@ -391,17 +554,27 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
                 updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(status).bind(started_at).bind(completed_at)
-        .bind(cancelled_at).bind(cancelled_by)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .bind(started_at)
+        .bind(completed_at)
+        .bind(cancelled_at)
+        .bind(cancelled_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_process(&row))
     }
 
     async fn complete_process(
-        &self, id: Uuid, status: &str, completed_at: Option<DateTime<Utc>>,
-        result_summary: Option<&str>, output_file_url: Option<&str>,
-        log_output: Option<&str>, progress_percent: Option<i32>,
+        &self,
+        id: Uuid,
+        status: &str,
+        completed_at: Option<DateTime<Utc>>,
+        result_summary: Option<&str>,
+        output_file_url: Option<&str>,
+        log_output: Option<&str>,
+        progress_percent: Option<i32>,
     ) -> AtlasResult<ScheduledProcess> {
         let row = sqlx::query(
             r"UPDATE _atlas.scheduled_processes
@@ -411,17 +584,26 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
                 updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(status).bind(completed_at)
-        .bind(result_summary).bind(output_file_url).bind(log_output)
+        .bind(id)
+        .bind(status)
+        .bind(completed_at)
+        .bind(result_summary)
+        .bind(output_file_url)
+        .bind(log_output)
         .bind(progress_percent)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_process(&row))
     }
 
     async fn fail_process(
-        &self, id: Uuid, status: &str, completed_at: Option<DateTime<Utc>>,
-        error_message: Option<&str>, log_output: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        completed_at: Option<DateTime<Utc>>,
+        error_message: Option<&str>,
+        log_output: Option<&str>,
     ) -> AtlasResult<ScheduledProcess> {
         let row = sqlx::query(
             r"UPDATE _atlas.scheduled_processes
@@ -429,16 +611,24 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
                 error_message=$4, log_output=$5, updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(status).bind(completed_at)
-        .bind(error_message).bind(log_output)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .bind(completed_at)
+        .bind(error_message)
+        .bind(log_output)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_process(&row))
     }
 
     async fn cancel_process(
-        &self, id: Uuid, status: &str, cancelled_at: Option<DateTime<Utc>>,
-        cancelled_by: Option<Uuid>, cancel_reason: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        cancelled_at: Option<DateTime<Utc>>,
+        cancelled_by: Option<Uuid>,
+        cancel_reason: Option<&str>,
     ) -> AtlasResult<ScheduledProcess> {
         let row = sqlx::query(
             r"UPDATE _atlas.scheduled_processes
@@ -446,9 +636,13 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
                 cancelled_by=$4, cancel_reason=$5, updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(status).bind(cancelled_at)
-        .bind(cancelled_by).bind(cancel_reason)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .bind(cancelled_at)
+        .bind(cancelled_by)
+        .bind(cancel_reason)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_process(&row))
     }
@@ -461,20 +655,28 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
                 error_message=NULL, updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(retry_count)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(retry_count)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_process(&row))
     }
 
-    async fn update_progress(&self, id: Uuid, progress_percent: i32) -> AtlasResult<ScheduledProcess> {
+    async fn update_progress(
+        &self,
+        id: Uuid,
+        progress_percent: i32,
+    ) -> AtlasResult<ScheduledProcess> {
         let row = sqlx::query(
             r"UPDATE _atlas.scheduled_processes
             SET progress_percent=$2, last_heartbeat_at=now(), updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(progress_percent)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(progress_percent)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_process(&row))
     }
@@ -486,17 +688,20 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
             WHERE id=$1 RETURNING *",
         )
         .bind(id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_process(&row))
     }
 
     async fn update_process_recurrence(&self, id: Uuid, recurrence_id: Uuid) -> AtlasResult<()> {
         sqlx::query(
-            "UPDATE _atlas.scheduled_processes SET recurrence_id=$2, updated_at=now() WHERE id=$1"
+            "UPDATE _atlas.scheduled_processes SET recurrence_id=$2, updated_at=now() WHERE id=$1",
         )
-        .bind(id).bind(recurrence_id)
-        .execute(&self.pool).await
+        .bind(id)
+        .bind(recurrence_id)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -509,7 +714,8 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
               AND started_at < now() - (timeout_minutes || ' minutes')::interval
             ",
         )
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_process).collect())
     }
@@ -517,12 +723,19 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
     // ---- Recurrences ----
 
     async fn create_recurrence(
-        &self, org_id: Uuid, name: &str, description: Option<&str>,
-        template_id: Uuid, template_code: Option<&str>,
-        parameters: serde_json::Value, recurrence_type: &str,
+        &self,
+        org_id: Uuid,
+        name: &str,
+        description: Option<&str>,
+        template_id: Uuid,
+        template_code: Option<&str>,
+        parameters: serde_json::Value,
+        recurrence_type: &str,
         recurrence_config: serde_json::Value,
-        start_date: chrono::NaiveDate, end_date: Option<chrono::NaiveDate>,
-        next_run_at: Option<DateTime<Utc>>, max_runs: Option<i32>,
+        start_date: chrono::NaiveDate,
+        end_date: Option<chrono::NaiveDate>,
+        next_run_at: Option<DateTime<Utc>>,
+        max_runs: Option<i32>,
         submitted_by: Option<Uuid>,
     ) -> AtlasResult<ScheduledProcessRecurrence> {
         let row = sqlx::query(
@@ -533,60 +746,87 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
             RETURNING *",
         )
-        .bind(org_id).bind(name).bind(description)
-        .bind(template_id).bind(template_code)
-        .bind(&parameters).bind(recurrence_type).bind(&recurrence_config)
-        .bind(start_date).bind(end_date)
-        .bind(next_run_at).bind(max_runs).bind(submitted_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(name)
+        .bind(description)
+        .bind(template_id)
+        .bind(template_code)
+        .bind(&parameters)
+        .bind(recurrence_type)
+        .bind(&recurrence_config)
+        .bind(start_date)
+        .bind(end_date)
+        .bind(next_run_at)
+        .bind(max_runs)
+        .bind(submitted_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_recurrence(&row))
     }
 
     async fn get_recurrence(&self, id: Uuid) -> AtlasResult<Option<ScheduledProcessRecurrence>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.scheduled_process_recurrences WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.scheduled_process_recurrences WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_recurrence(&r)))
     }
 
-    async fn list_recurrences(&self, org_id: Uuid, is_active: Option<bool>) -> AtlasResult<Vec<ScheduledProcessRecurrence>> {
+    async fn list_recurrences(
+        &self,
+        org_id: Uuid,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<ScheduledProcessRecurrence>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.scheduled_process_recurrences
             WHERE organization_id=$1 AND ($2::bool IS NULL OR is_active=$2)
             ORDER BY name",
         )
-        .bind(org_id).bind(is_active)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(is_active)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_recurrence).collect())
     }
 
-    async fn update_recurrence_status(&self, id: Uuid, is_active: bool) -> AtlasResult<ScheduledProcessRecurrence> {
+    async fn update_recurrence_status(
+        &self,
+        id: Uuid,
+        is_active: bool,
+    ) -> AtlasResult<ScheduledProcessRecurrence> {
         let row = sqlx::query(
             r"UPDATE _atlas.scheduled_process_recurrences SET is_active=$2, updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(is_active)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(is_active)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_recurrence(&row))
     }
 
     async fn update_recurrence_after_run(
-        &self, id: Uuid, last_run_at: Option<DateTime<Utc>>,
-        next_run_at: Option<DateTime<Utc>>, run_count: i32,
+        &self,
+        id: Uuid,
+        last_run_at: Option<DateTime<Utc>>,
+        next_run_at: Option<DateTime<Utc>>,
+        run_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.scheduled_process_recurrences
             SET last_run_at=$2, next_run_at=$3, run_count=$4, updated_at=now()
             WHERE id=$1",
         )
-        .bind(id).bind(last_run_at).bind(next_run_at).bind(run_count)
-        .execute(&self.pool).await
+        .bind(id)
+        .bind(last_run_at)
+        .bind(next_run_at)
+        .bind(run_count)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -594,12 +834,16 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
     async fn delete_recurrence(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.scheduled_process_recurrences WHERE id=$1")
             .bind(id)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
-    async fn find_due_recurrences(&self, now: DateTime<Utc>) -> AtlasResult<Vec<ScheduledProcessRecurrence>> {
+    async fn find_due_recurrences(
+        &self,
+        now: DateTime<Utc>,
+    ) -> AtlasResult<Vec<ScheduledProcessRecurrence>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.scheduled_process_recurrences
             WHERE is_active=true
@@ -609,7 +853,8 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
             ORDER BY next_run_at",
         )
         .bind(now)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_recurrence).collect())
     }
@@ -617,9 +862,14 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
     // ---- Logs ----
 
     async fn create_log(
-        &self, org_id: Uuid, process_id: Uuid, log_level: &str,
-        message: &str, details: Option<serde_json::Value>,
-        step_name: Option<&str>, duration_ms: Option<i32>,
+        &self,
+        org_id: Uuid,
+        process_id: Uuid,
+        log_level: &str,
+        message: &str,
+        details: Option<serde_json::Value>,
+        step_name: Option<&str>,
+        duration_ms: Option<i32>,
     ) -> AtlasResult<ScheduledProcessLog> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.scheduled_process_logs
@@ -627,15 +877,24 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7)
             RETURNING *",
         )
-        .bind(org_id).bind(process_id).bind(log_level)
-        .bind(message).bind(details).bind(step_name).bind(duration_ms)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(process_id)
+        .bind(log_level)
+        .bind(message)
+        .bind(details)
+        .bind(step_name)
+        .bind(duration_ms)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_log(&row))
     }
 
     async fn list_logs(
-        &self, process_id: Uuid, log_level: Option<&str>, limit: Option<i32>,
+        &self,
+        process_id: Uuid,
+        log_level: Option<&str>,
+        limit: Option<i32>,
     ) -> AtlasResult<Vec<ScheduledProcessLog>> {
         let limit_val = limit.unwrap_or(200);
         let rows = sqlx::query(
@@ -643,15 +902,21 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
             WHERE process_id=$1 AND ($2::text IS NULL OR log_level=$2)
             ORDER BY created_at ASC LIMIT $3",
         )
-        .bind(process_id).bind(log_level).bind(limit_val)
-        .fetch_all(&self.pool).await
+        .bind(process_id)
+        .bind(log_level)
+        .bind(limit_val)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_log).collect())
     }
 
     // ---- Dashboard ----
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ScheduledProcessDashboardSummary> {
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ScheduledProcessDashboardSummary> {
         let row = sqlx::query(
             r"SELECT
                 COUNT(*) as total,
@@ -663,7 +928,9 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
                 COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled
             FROM _atlas.scheduled_processes WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total: i64 = row.try_get("total").unwrap_or(0);
@@ -685,14 +952,18 @@ impl ScheduledProcessRepository for PostgresScheduledProcessRepository {
             WHERE organization_id=$1
             ORDER BY submitted_at DESC LIMIT 10",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let type_rows = sqlx::query(
             r"SELECT process_type, COUNT(*) as count FROM _atlas.scheduled_processes
             WHERE organization_id=$1 GROUP BY process_type",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut by_type = serde_json::Map::new();

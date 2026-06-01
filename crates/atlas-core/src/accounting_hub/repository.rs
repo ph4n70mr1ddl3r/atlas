@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for external systems, accounting events, and mapping rules.
 
-use atlas_shared::{
-    ExternalSystem, AccountingEvent, TransactionMappingRule, AccountingHubDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AccountingEvent, AccountingHubDashboardSummary, AtlasError, AtlasResult, ExternalSystem,
+    TransactionMappingRule,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -17,59 +17,120 @@ pub trait AccountingHubRepository: Send + Sync {
     // External Systems
     async fn create_external_system(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        system_type: &str, connection_config: serde_json::Value,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        system_type: &str,
+        connection_config: serde_json::Value,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ExternalSystem>;
 
-    async fn get_external_system(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ExternalSystem>>;
+    async fn get_external_system(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ExternalSystem>>;
     async fn get_external_system_by_id(&self, id: Uuid) -> AtlasResult<Option<ExternalSystem>>;
     async fn list_external_systems(&self, org_id: Uuid) -> AtlasResult<Vec<ExternalSystem>>;
     async fn delete_external_system(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
-    async fn update_system_stats(&self, id: Uuid, events_received: i32, events_processed: i32, events_failed: i32) -> AtlasResult<()>;
+    async fn update_system_stats(
+        &self,
+        id: Uuid,
+        events_received: i32,
+        events_processed: i32,
+        events_failed: i32,
+    ) -> AtlasResult<()>;
 
     // Accounting Events
     async fn create_accounting_event(
         &self,
-        org_id: Uuid, event_number: &str, external_system_id: Uuid,
-        external_system_code: Option<&str>, event_type: &str, event_class: &str,
-        source_event_id: &str, payload: serde_json::Value,
-        transaction_attributes: serde_json::Value, accounting_method_id: Option<Uuid>,
-        status: &str, event_date: chrono::NaiveDate, accounting_date: Option<chrono::NaiveDate>,
-        currency_code: &str, total_amount: Option<&str>, description: Option<&str>,
+        org_id: Uuid,
+        event_number: &str,
+        external_system_id: Uuid,
+        external_system_code: Option<&str>,
+        event_type: &str,
+        event_class: &str,
+        source_event_id: &str,
+        payload: serde_json::Value,
+        transaction_attributes: serde_json::Value,
+        accounting_method_id: Option<Uuid>,
+        status: &str,
+        event_date: chrono::NaiveDate,
+        accounting_date: Option<chrono::NaiveDate>,
+        currency_code: &str,
+        total_amount: Option<&str>,
+        description: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingEvent>;
 
     async fn get_accounting_event(&self, id: Uuid) -> AtlasResult<Option<AccountingEvent>>;
-    async fn get_event_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<AccountingEvent>>;
+    async fn get_event_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<AccountingEvent>>;
     async fn list_accounting_events(
-        &self, org_id: Uuid, status: Option<&str>,
-        external_system_id: Option<Uuid>, event_type: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        external_system_id: Option<Uuid>,
+        event_type: Option<&str>,
     ) -> AtlasResult<Vec<AccountingEvent>>;
     async fn update_event_status(
-        &self, id: Uuid, status: &str, error_message: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        error_message: Option<&str>,
         transaction_attributes: Option<serde_json::Value>,
-        journal_entry_id: Option<Uuid>, processed_by: Option<Uuid>,
+        journal_entry_id: Option<Uuid>,
+        processed_by: Option<Uuid>,
     ) -> AtlasResult<AccountingEvent>;
 
     // Mapping Rules
     async fn create_mapping_rule(
         &self,
-        org_id: Uuid, external_system_id: Uuid, code: &str, name: &str,
-        description: Option<&str>, event_type: &str, event_class: &str,
-        priority: i32, conditions: serde_json::Value, field_mappings: serde_json::Value,
-        accounting_method_id: Option<Uuid>, stop_on_match: bool,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        external_system_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        event_type: &str,
+        event_class: &str,
+        priority: i32,
+        conditions: serde_json::Value,
+        field_mappings: serde_json::Value,
+        accounting_method_id: Option<Uuid>,
+        stop_on_match: bool,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransactionMappingRule>;
 
-    async fn get_mapping_rule(&self, org_id: Uuid, external_system_id: Uuid, code: &str) -> AtlasResult<Option<TransactionMappingRule>>;
-    async fn list_mapping_rules(&self, org_id: Uuid, external_system_id: Option<Uuid>) -> AtlasResult<Vec<TransactionMappingRule>>;
-    async fn list_active_mapping_rules(&self, org_id: Uuid, external_system_id: Uuid, event_type: &str) -> AtlasResult<Vec<TransactionMappingRule>>;
+    async fn get_mapping_rule(
+        &self,
+        org_id: Uuid,
+        external_system_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TransactionMappingRule>>;
+    async fn list_mapping_rules(
+        &self,
+        org_id: Uuid,
+        external_system_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<TransactionMappingRule>>;
+    async fn list_active_mapping_rules(
+        &self,
+        org_id: Uuid,
+        external_system_id: Uuid,
+        event_type: &str,
+    ) -> AtlasResult<Vec<TransactionMappingRule>>;
     async fn delete_mapping_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Dashboard
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<AccountingHubDashboardSummary>;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<AccountingHubDashboardSummary>;
 }
 
 /// `PostgreSQL` implementation
@@ -78,7 +139,7 @@ pub struct PostgresAccountingHubRepository {
 }
 
 impl PostgresAccountingHubRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -97,7 +158,9 @@ macro_rules! row_to_system {
             is_active: $row.get("is_active"),
             last_event_received: $row.get("last_event_received"),
             total_events_received: $row.try_get::<i32, _>("total_events_received").unwrap_or(0),
-            total_events_processed: $row.try_get::<i32, _>("total_events_processed").unwrap_or(0),
+            total_events_processed: $row
+                .try_get::<i32, _>("total_events_processed")
+                .unwrap_or(0),
             total_events_failed: $row.try_get::<i32, _>("total_events_failed").unwrap_or(0),
             metadata: $row.get("metadata"),
             created_by: $row.get("created_by"),
@@ -127,7 +190,10 @@ macro_rules! row_to_event {
             event_date: $row.get("event_date"),
             accounting_date: $row.get("accounting_date"),
             currency_code: $row.get("currency_code"),
-            total_amount: $row.try_get::<f64, _>("total_amount").ok().map(|v| format!("{:.2}", v)),
+            total_amount: $row
+                .try_get::<f64, _>("total_amount")
+                .ok()
+                .map(|v| format!("{:.2}", v)),
             description: $row.get("description"),
             processed_by: $row.get("processed_by"),
             processed_at: $row.get("processed_at"),
@@ -169,8 +235,12 @@ macro_rules! row_to_mapping {
 impl AccountingHubRepository for PostgresAccountingHubRepository {
     async fn create_external_system(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        system_type: &str, connection_config: serde_json::Value,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        system_type: &str,
+        connection_config: serde_json::Value,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ExternalSystem> {
         let row = sqlx::query(
@@ -187,7 +257,11 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
         Ok(row_to_system!(row))
     }
 
-    async fn get_external_system(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ExternalSystem>> {
+    async fn get_external_system(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ExternalSystem>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.external_systems WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -229,14 +303,23 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
         Ok(())
     }
 
-    async fn update_system_stats(&self, id: Uuid, events_received: i32, events_processed: i32, events_failed: i32) -> AtlasResult<()> {
+    async fn update_system_stats(
+        &self,
+        id: Uuid,
+        events_received: i32,
+        events_processed: i32,
+        events_failed: i32,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.external_systems
             SET total_events_received = $1, total_events_processed = $2, total_events_failed = $3,
                 last_event_received = now(), updated_at = now()
             WHERE id = $4",
         )
-        .bind(events_received).bind(events_processed).bind(events_failed).bind(id)
+        .bind(events_received)
+        .bind(events_processed)
+        .bind(events_failed)
+        .bind(id)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -245,12 +328,22 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
 
     async fn create_accounting_event(
         &self,
-        org_id: Uuid, event_number: &str, external_system_id: Uuid,
-        external_system_code: Option<&str>, event_type: &str, event_class: &str,
-        source_event_id: &str, payload: serde_json::Value,
-        transaction_attributes: serde_json::Value, accounting_method_id: Option<Uuid>,
-        status: &str, event_date: chrono::NaiveDate, accounting_date: Option<chrono::NaiveDate>,
-        currency_code: &str, total_amount: Option<&str>, description: Option<&str>,
+        org_id: Uuid,
+        event_number: &str,
+        external_system_id: Uuid,
+        external_system_code: Option<&str>,
+        event_type: &str,
+        event_class: &str,
+        source_event_id: &str,
+        payload: serde_json::Value,
+        transaction_attributes: serde_json::Value,
+        accounting_method_id: Option<Uuid>,
+        status: &str,
+        event_date: chrono::NaiveDate,
+        accounting_date: Option<chrono::NaiveDate>,
+        currency_code: &str,
+        total_amount: Option<&str>,
+        description: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingEvent> {
         let row = sqlx::query(
@@ -262,13 +355,23 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING *",
         )
-        .bind(org_id).bind(event_number).bind(external_system_id).bind(external_system_code)
-        .bind(event_type).bind(event_class).bind(source_event_id).bind(&payload)
-        .bind(&transaction_attributes).bind(accounting_method_id)
-        .bind(status).bind(event_date).bind(accounting_date)
+        .bind(org_id)
+        .bind(event_number)
+        .bind(external_system_id)
+        .bind(external_system_code)
+        .bind(event_type)
+        .bind(event_class)
+        .bind(source_event_id)
+        .bind(&payload)
+        .bind(&transaction_attributes)
+        .bind(accounting_method_id)
+        .bind(status)
+        .bind(event_date)
+        .bind(accounting_date)
         .bind(currency_code)
         .bind(total_amount.and_then(|v| v.parse::<f64>().ok()))
-        .bind(description).bind(created_by)
+        .bind(description)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -284,7 +387,11 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
         Ok(row.map(|r| row_to_event!(r)))
     }
 
-    async fn get_event_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<AccountingEvent>> {
+    async fn get_event_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<AccountingEvent>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.accounting_events WHERE organization_id = $1 AND event_number = $2"
         )
@@ -296,30 +403,54 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
     }
 
     async fn list_accounting_events(
-        &self, org_id: Uuid, status: Option<&str>,
-        external_system_id: Option<Uuid>, event_type: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        external_system_id: Option<Uuid>,
+        event_type: Option<&str>,
     ) -> AtlasResult<Vec<AccountingEvent>> {
-        let mut query = String::from("SELECT * FROM _atlas.accounting_events WHERE organization_id = $1");
+        let mut query =
+            String::from("SELECT * FROM _atlas.accounting_events WHERE organization_id = $1");
         let mut param_idx = 2;
-        if status.is_some() { query.push_str(&format!(" AND status = ${param_idx}")); param_idx += 1; }
-        if external_system_id.is_some() { query.push_str(&format!(" AND external_system_id = ${param_idx}")); param_idx += 1; }
-        if event_type.is_some() { query.push_str(&format!(" AND event_type = ${param_idx}")); }
+        if status.is_some() {
+            query.push_str(&format!(" AND status = ${param_idx}"));
+            param_idx += 1;
+        }
+        if external_system_id.is_some() {
+            query.push_str(&format!(" AND external_system_id = ${param_idx}"));
+            param_idx += 1;
+        }
+        if event_type.is_some() {
+            query.push_str(&format!(" AND event_type = ${param_idx}"));
+        }
         query.push_str(" ORDER BY event_date DESC, created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
-        if let Some(s) = status { q = q.bind(s); }
-        if let Some(e) = external_system_id { q = q.bind(e); }
-        if let Some(e) = event_type { q = q.bind(e); }
+        if let Some(s) = status {
+            q = q.bind(s);
+        }
+        if let Some(e) = external_system_id {
+            q = q.bind(e);
+        }
+        if let Some(e) = event_type {
+            q = q.bind(e);
+        }
 
-        let rows = q.fetch_all(&self.pool).await
+        let rows = q
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| row_to_event!(r)).collect())
     }
 
     async fn update_event_status(
-        &self, id: Uuid, status: &str, error_message: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        error_message: Option<&str>,
         transaction_attributes: Option<serde_json::Value>,
-        journal_entry_id: Option<Uuid>, processed_by: Option<Uuid>,
+        journal_entry_id: Option<Uuid>,
+        processed_by: Option<Uuid>,
     ) -> AtlasResult<AccountingEvent> {
         let row = sqlx::query(
             r"UPDATE _atlas.accounting_events
@@ -341,11 +472,20 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
 
     async fn create_mapping_rule(
         &self,
-        org_id: Uuid, external_system_id: Uuid, code: &str, name: &str,
-        description: Option<&str>, event_type: &str, event_class: &str,
-        priority: i32, conditions: serde_json::Value, field_mappings: serde_json::Value,
-        accounting_method_id: Option<Uuid>, stop_on_match: bool,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        external_system_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        event_type: &str,
+        event_class: &str,
+        priority: i32,
+        conditions: serde_json::Value,
+        field_mappings: serde_json::Value,
+        accounting_method_id: Option<Uuid>,
+        stop_on_match: bool,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransactionMappingRule> {
         let row = sqlx::query(
@@ -356,16 +496,33 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *",
         )
-        .bind(org_id).bind(external_system_id).bind(code).bind(name).bind(description)
-        .bind(event_type).bind(event_class).bind(priority).bind(&conditions).bind(&field_mappings)
-        .bind(accounting_method_id).bind(stop_on_match).bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(external_system_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(event_type)
+        .bind(event_class)
+        .bind(priority)
+        .bind(&conditions)
+        .bind(&field_mappings)
+        .bind(accounting_method_id)
+        .bind(stop_on_match)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_mapping!(row))
     }
 
-    async fn get_mapping_rule(&self, org_id: Uuid, external_system_id: Uuid, code: &str) -> AtlasResult<Option<TransactionMappingRule>> {
+    async fn get_mapping_rule(
+        &self,
+        org_id: Uuid,
+        external_system_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TransactionMappingRule>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.transaction_mapping_rules WHERE organization_id = $1 AND external_system_id = $2 AND code = $3 AND is_active = true"
         )
@@ -376,7 +533,11 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
         Ok(row.map(|r| row_to_mapping!(r)))
     }
 
-    async fn list_mapping_rules(&self, org_id: Uuid, external_system_id: Option<Uuid>) -> AtlasResult<Vec<TransactionMappingRule>> {
+    async fn list_mapping_rules(
+        &self,
+        org_id: Uuid,
+        external_system_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<TransactionMappingRule>> {
         let rows = if let Some(sid) = external_system_id {
             sqlx::query(
                 "SELECT * FROM _atlas.transaction_mapping_rules WHERE organization_id = $1 AND external_system_id = $2 AND is_active = true ORDER BY priority"
@@ -393,7 +554,12 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
         Ok(rows.iter().map(|r| row_to_mapping!(r)).collect())
     }
 
-    async fn list_active_mapping_rules(&self, org_id: Uuid, external_system_id: Uuid, event_type: &str) -> AtlasResult<Vec<TransactionMappingRule>> {
+    async fn list_active_mapping_rules(
+        &self,
+        org_id: Uuid,
+        external_system_id: Uuid,
+        event_type: &str,
+    ) -> AtlasResult<Vec<TransactionMappingRule>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.transaction_mapping_rules
             WHERE organization_id = $1 AND external_system_id = $2 AND event_type = $3
@@ -402,7 +568,9 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
               AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
             ORDER BY priority",
         )
-        .bind(org_id).bind(external_system_id).bind(event_type)
+        .bind(org_id)
+        .bind(external_system_id)
+        .bind(event_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -420,47 +588,77 @@ impl AccountingHubRepository for PostgresAccountingHubRepository {
         Ok(())
     }
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<AccountingHubDashboardSummary> {
-        let systems = sqlx::query(
-            "SELECT * FROM _atlas.external_systems WHERE organization_id = $1"
-        )
-        .bind(org_id)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<AccountingHubDashboardSummary> {
+        let systems =
+            sqlx::query("SELECT * FROM _atlas.external_systems WHERE organization_id = $1")
+                .bind(org_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let events = sqlx::query(
-            "SELECT * FROM _atlas.accounting_events WHERE organization_id = $1"
-        )
-        .bind(org_id)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let events =
+            sqlx::query("SELECT * FROM _atlas.accounting_events WHERE organization_id = $1")
+                .bind(org_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_systems = systems.len() as i32;
-        let active_systems = systems.iter().filter(|s| s.get::<bool, _>("is_active")).count() as i32;
+        let active_systems = systems
+            .iter()
+            .filter(|s| s.get::<bool, _>("is_active"))
+            .count() as i32;
         let total_events = events.len() as i32;
-        let received_events = events.iter().filter(|e| e.get::<String, _>("status") == "received").count() as i32;
-        let accounted_events = events.iter().filter(|e| e.get::<String, _>("status") == "accounted").count() as i32;
-        let posted_events = events.iter().filter(|e| e.get::<String, _>("status") == "posted" || e.get::<String, _>("status") == "transferred").count() as i32;
-        let error_events = events.iter().filter(|e| e.get::<String, _>("status") == "error").count() as i32;
+        let received_events = events
+            .iter()
+            .filter(|e| e.get::<String, _>("status") == "received")
+            .count() as i32;
+        let accounted_events = events
+            .iter()
+            .filter(|e| e.get::<String, _>("status") == "accounted")
+            .count() as i32;
+        let posted_events = events
+            .iter()
+            .filter(|e| {
+                e.get::<String, _>("status") == "posted"
+                    || e.get::<String, _>("status") == "transferred"
+            })
+            .count() as i32;
+        let error_events = events
+            .iter()
+            .filter(|e| e.get::<String, _>("status") == "error")
+            .count() as i32;
 
-        let total_amount: f64 = events.iter()
+        let total_amount: f64 = events
+            .iter()
             .filter_map(|e| e.try_get::<f64, _>("total_amount").ok())
             .sum();
 
-        let by_system: serde_json::Value = systems.iter().map(|s| {
-            let code: String = s.get("code");
-            let count = events.iter().filter(|e| e.get::<Uuid, _>("external_system_id") == s.get::<Uuid, _>("id")).count();
-            serde_json::json!({"system": code, "count": count})
-        }).collect();
-
-        let by_type: serde_json::Value = events.iter()
-            .map(|e| e.get::<String, _>("event_type"))
-            .fold(std::collections::HashMap::<String, i32>::new(), |mut acc, t| {
-                *acc.entry(t).or_insert(0) += 1;
-                acc
+        let by_system: serde_json::Value = systems
+            .iter()
+            .map(|s| {
+                let code: String = s.get("code");
+                let count = events
+                    .iter()
+                    .filter(|e| e.get::<Uuid, _>("external_system_id") == s.get::<Uuid, _>("id"))
+                    .count();
+                serde_json::json!({"system": code, "count": count})
             })
+            .collect();
+
+        let by_type: serde_json::Value = events
+            .iter()
+            .map(|e| e.get::<String, _>("event_type"))
+            .fold(
+                std::collections::HashMap::<String, i32>::new(),
+                |mut acc, t| {
+                    *acc.entry(t).or_insert(0) += 1;
+                    acc
+                },
+            )
             .into_iter()
             .map(|(k, v)| serde_json::json!({"event_type": k, "count": v}))
             .collect();

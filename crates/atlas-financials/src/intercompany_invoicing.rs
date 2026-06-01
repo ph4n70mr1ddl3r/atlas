@@ -20,7 +20,7 @@ pub struct IntercompanyTransaction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct GeneratedInvoice {
     pub invoice_id: String,
-    pub invoice_type: String, // "AR" or "AP"
+    pub invoice_type: String,    // "AR" or "AP"
     pub organization_id: String, // Org that owns the invoice
     pub counterpart_id: String,  // The other org acting as Customer (for AR) or Supplier (for AP)
     pub amount: f64,
@@ -58,7 +58,9 @@ impl IntercompanyInvoicingService {
                 new_status: "FAILED".to_string(),
                 ar_invoice: None,
                 ap_invoice: None,
-                error_message: Some("Intercompany transaction amount must be greater than zero.".to_string()),
+                error_message: Some(
+                    "Intercompany transaction amount must be greater than zero.".to_string(),
+                ),
             };
         }
 
@@ -127,14 +129,14 @@ mod tests {
         let ar = result.ar_invoice.unwrap();
         assert_eq!(ar.invoice_type, "AR");
         assert_eq!(ar.organization_id, "ORG-US"); // Provider owns AR
-        assert_eq!(ar.counterpart_id, "ORG-UK");  // Receiver is the customer
+        assert_eq!(ar.counterpart_id, "ORG-UK"); // Receiver is the customer
         assert_eq!(ar.amount, 5000.0);
 
         // Validate AP Invoice
         let ap = result.ap_invoice.unwrap();
         assert_eq!(ap.invoice_type, "AP");
         assert_eq!(ap.organization_id, "ORG-UK"); // Receiver owns AP
-        assert_eq!(ap.counterpart_id, "ORG-US");  // Provider is the supplier
+        assert_eq!(ap.counterpart_id, "ORG-US"); // Provider is the supplier
         assert_eq!(ap.amount, 5000.0);
     }
 
@@ -154,7 +156,10 @@ mod tests {
 
         assert!(!result.is_successful);
         assert_eq!(result.new_status, "FAILED");
-        assert_eq!(result.error_message.unwrap(), "Provider and Receiver organizations must be distinct for intercompany invoicing.");
+        assert_eq!(
+            result.error_message.unwrap(),
+            "Provider and Receiver organizations must be distinct for intercompany invoicing."
+        );
         assert!(result.ar_invoice.is_none());
         assert!(result.ap_invoice.is_none());
     }
@@ -175,7 +180,10 @@ mod tests {
 
         assert!(!result.is_successful);
         assert_eq!(result.new_status, "FAILED");
-        assert_eq!(result.error_message.unwrap(), "Intercompany transaction amount must be greater than zero.");
+        assert_eq!(
+            result.error_message.unwrap(),
+            "Intercompany transaction amount must be greater than zero."
+        );
     }
 
     #[test]
@@ -194,6 +202,9 @@ mod tests {
 
         assert!(!result.is_successful);
         assert_eq!(result.new_status, "INVOICED");
-        assert_eq!(result.error_message.unwrap(), "Transaction has already been invoiced.");
+        assert_eq!(
+            result.error_message.unwrap(),
+            "Transaction has already been invoiced."
+        );
     }
 }

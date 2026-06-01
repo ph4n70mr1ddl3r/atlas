@@ -4,14 +4,12 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: General Ledger > Currency Revaluation
 
-use atlas_shared::{
-    CurrencyRevaluationDefinition, CurrencyRevaluationDefinitionRequest,
-    CurrencyRevaluationAccount, CurrencyRevaluationAccountRequest,
-    CurrencyRevaluationRun, CurrencyRevaluationRunRequest,
-    CurrencyRevaluationDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::CurrencyRevaluationRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CurrencyRevaluationAccount, CurrencyRevaluationAccountRequest,
+    CurrencyRevaluationDashboardSummary, CurrencyRevaluationDefinition,
+    CurrencyRevaluationDefinitionRequest, CurrencyRevaluationRun, CurrencyRevaluationRunRequest,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -19,7 +17,15 @@ use uuid::Uuid;
 #[allow(dead_code)]
 const VALID_REVALUATION_TYPES: &[&str] = &["period_end", "balance_sheet", "income_statement"];
 #[allow(dead_code)]
-const VALID_RATE_TYPES: &[&str] = &["daily", "spot", "corporate", "period_average", "period_end", "user", "fixed"];
+const VALID_RATE_TYPES: &[&str] = &[
+    "daily",
+    "spot",
+    "corporate",
+    "period_average",
+    "period_end",
+    "user",
+    "fixed",
+];
 #[allow(dead_code)]
 const VALID_ACCOUNT_TYPES: &[&str] = &["asset", "liability", "equity", "revenue", "expense"];
 #[allow(dead_code)]
@@ -48,10 +54,14 @@ impl CurrencyRevaluationEngine {
     ) -> AtlasResult<CurrencyRevaluationDefinition> {
         // Validate
         if request.code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Definition code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Definition code is required".to_string(),
+            ));
         }
         if request.name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Definition name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Definition name is required".to_string(),
+            ));
         }
         if !VALID_REVALUATION_TYPES.contains(&request.revaluation_type.as_str()) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -68,84 +78,125 @@ impl CurrencyRevaluationEngine {
             )));
         }
         if request.gain_account_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Gain account code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Gain account code is required".to_string(),
+            ));
         }
         if request.loss_account_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Loss account code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Loss account code is required".to_string(),
+            ));
         }
 
         // Check uniqueness
-        if self.repository.get_definition_by_code(org_id, &request.code).await?.is_some() {
+        if self
+            .repository
+            .get_definition_by_code(org_id, &request.code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
-                "Revaluation definition with code '{}' already exists", request.code
+                "Revaluation definition with code '{}' already exists",
+                request.code
             )));
         }
 
-        info!("Creating revaluation definition {} ({})", request.code, request.name);
+        info!(
+            "Creating revaluation definition {} ({})",
+            request.code, request.name
+        );
 
-        let definition = self.repository.create_definition(
-            org_id,
-            &request.code,
-            &request.name,
-            request.description.as_deref(),
-            &request.revaluation_type,
-            &request.currency_code,
-            &request.rate_type,
-            &request.gain_account_code,
-            &request.loss_account_code,
-            request.unrealized_gain_account_code.as_deref(),
-            request.unrealized_loss_account_code.as_deref(),
-            request.account_range_from.as_deref(),
-            request.account_range_to.as_deref(),
-            request.include_subledger,
-            request.auto_reverse,
-            request.reversal_period_offset,
-            request.effective_from,
-            request.effective_to,
-            created_by,
-        ).await?;
+        let definition = self
+            .repository
+            .create_definition(
+                org_id,
+                &request.code,
+                &request.name,
+                request.description.as_deref(),
+                &request.revaluation_type,
+                &request.currency_code,
+                &request.rate_type,
+                &request.gain_account_code,
+                &request.loss_account_code,
+                request.unrealized_gain_account_code.as_deref(),
+                request.unrealized_loss_account_code.as_deref(),
+                request.account_range_from.as_deref(),
+                request.account_range_to.as_deref(),
+                request.include_subledger,
+                request.auto_reverse,
+                request.reversal_period_offset,
+                request.effective_from,
+                request.effective_to,
+                created_by,
+            )
+            .await?;
 
         // Add accounts if provided
         if let Some(accounts) = &request.accounts {
             for acct_req in accounts {
-                self.repository.add_account(
-                    org_id,
-                    definition.id,
-                    &acct_req.account_code,
-                    acct_req.account_name.as_deref(),
-                    &acct_req.account_type,
-                    acct_req.is_included,
-                ).await?;
+                self.repository
+                    .add_account(
+                        org_id,
+                        definition.id,
+                        &acct_req.account_code,
+                        acct_req.account_name.as_deref(),
+                        &acct_req.account_type,
+                        acct_req.is_included,
+                    )
+                    .await?;
             }
         }
 
         // Reload with accounts
-        self.repository.get_definition_by_id(definition.id).await?
+        self.repository
+            .get_definition_by_id(definition.id)
+            .await?
             .ok_or_else(|| AtlasError::Internal("Created definition not found".to_string()))
     }
 
     /// Get a definition by code
-    pub async fn get_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CurrencyRevaluationDefinition>> {
+    pub async fn get_definition(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CurrencyRevaluationDefinition>> {
         self.repository.get_definition_by_code(org_id, code).await
     }
 
     /// Get a definition by ID
-    pub async fn get_definition_by_id(&self, id: Uuid) -> AtlasResult<Option<CurrencyRevaluationDefinition>> {
+    pub async fn get_definition_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<CurrencyRevaluationDefinition>> {
         self.repository.get_definition_by_id(id).await
     }
 
     /// List all definitions for an organization
-    pub async fn list_definitions(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<CurrencyRevaluationDefinition>> {
+    pub async fn list_definitions(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<CurrencyRevaluationDefinition>> {
         self.repository.list_definitions(org_id, active_only).await
     }
 
     /// Activate a definition
-    pub async fn activate_definition(&self, id: Uuid) -> AtlasResult<CurrencyRevaluationDefinition> {
-        let def = self.repository.get_definition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation definition {id} not found")))?;
+    pub async fn activate_definition(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<CurrencyRevaluationDefinition> {
+        let def = self
+            .repository
+            .get_definition_by_id(id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Revaluation definition {id} not found"))
+            })?;
 
         if def.is_active {
-            return Err(AtlasError::WorkflowError("Definition is already active".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Definition is already active".to_string(),
+            ));
         }
 
         info!("Activating revaluation definition {}", def.code);
@@ -153,12 +204,22 @@ impl CurrencyRevaluationEngine {
     }
 
     /// Deactivate a definition
-    pub async fn deactivate_definition(&self, id: Uuid) -> AtlasResult<CurrencyRevaluationDefinition> {
-        let def = self.repository.get_definition_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation definition {id} not found")))?;
+    pub async fn deactivate_definition(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<CurrencyRevaluationDefinition> {
+        let def = self
+            .repository
+            .get_definition_by_id(id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Revaluation definition {id} not found"))
+            })?;
 
         if !def.is_active {
-            return Err(AtlasError::WorkflowError("Definition is already inactive".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Definition is already inactive".to_string(),
+            ));
         }
 
         info!("Deactivating revaluation definition {}", def.code);
@@ -182,10 +243,15 @@ impl CurrencyRevaluationEngine {
         definition_code: &str,
         request: &CurrencyRevaluationAccountRequest,
     ) -> AtlasResult<CurrencyRevaluationAccount> {
-        let def = self.repository.get_definition_by_code(org_id, definition_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Revaluation definition '{definition_code}' not found"
-            )))?;
+        let def = self
+            .repository
+            .get_definition_by_code(org_id, definition_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Revaluation definition '{definition_code}' not found"
+                ))
+            })?;
 
         if !VALID_ACCOUNT_TYPES.contains(&request.account_type.as_str()) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -195,26 +261,43 @@ impl CurrencyRevaluationEngine {
             )));
         }
 
-        info!("Adding account {} to revaluation definition {}", request.account_code, definition_code);
+        info!(
+            "Adding account {} to revaluation definition {}",
+            request.account_code, definition_code
+        );
 
-        self.repository.add_account(
-            org_id,
-            def.id,
-            &request.account_code,
-            request.account_name.as_deref(),
-            &request.account_type,
-            request.is_included,
-        ).await
+        self.repository
+            .add_account(
+                org_id,
+                def.id,
+                &request.account_code,
+                request.account_name.as_deref(),
+                &request.account_type,
+                request.is_included,
+            )
+            .await
     }
 
     /// List accounts for a definition
-    pub async fn list_accounts(&self, org_id: Uuid, definition_code: &str) -> AtlasResult<Vec<CurrencyRevaluationAccount>> {
-        let def = self.repository.get_definition_by_code(org_id, definition_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Revaluation definition '{definition_code}' not found"
-            )))?;
+    pub async fn list_accounts(
+        &self,
+        org_id: Uuid,
+        definition_code: &str,
+    ) -> AtlasResult<Vec<CurrencyRevaluationAccount>> {
+        let def = self
+            .repository
+            .get_definition_by_code(org_id, definition_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Revaluation definition '{definition_code}' not found"
+                ))
+            })?;
 
-        let mut definition = self.repository.get_definition_by_id(def.id).await?
+        let mut definition = self
+            .repository
+            .get_definition_by_id(def.id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Definition not found".to_string()))?;
         Ok(std::mem::take(&mut definition.accounts))
     }
@@ -237,14 +320,21 @@ impl CurrencyRevaluationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CurrencyRevaluationRun> {
         // Validate definition exists and is active
-        let def = self.repository.get_definition_by_code(org_id, &request.definition_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Revaluation definition '{}' not found", request.definition_code
-            )))?;
+        let def = self
+            .repository
+            .get_definition_by_code(org_id, &request.definition_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Revaluation definition '{}' not found",
+                    request.definition_code
+                ))
+            })?;
 
         if !def.is_active {
             return Err(AtlasError::WorkflowError(format!(
-                "Revaluation definition '{}' is inactive", request.definition_code
+                "Revaluation definition '{}' is inactive",
+                request.definition_code
             )));
         }
 
@@ -259,29 +349,41 @@ impl CurrencyRevaluationEngine {
         let revaluation_date = request.revaluation_date.unwrap_or(request.period_end_date);
 
         // Determine rate type
-        let rate_type = request.rate_type_override.as_deref().unwrap_or(&def.rate_type);
+        let rate_type = request
+            .rate_type_override
+            .as_deref()
+            .unwrap_or(&def.rate_type);
 
         // Generate run number
-        let run_number = format!("REVAL-{}-{}", request.period_name, chrono::Utc::now().format("%Y%m%d%H%M%S"));
+        let run_number = format!(
+            "REVAL-{}-{}",
+            request.period_name,
+            chrono::Utc::now().format("%Y%m%d%H%M%S")
+        );
 
-        info!("Executing revaluation run {} for definition {} period {}",
-            run_number, request.definition_code, request.period_name);
+        info!(
+            "Executing revaluation run {} for definition {} period {}",
+            run_number, request.definition_code, request.period_name
+        );
 
         // Create the run
-        let run = self.repository.create_run(
-            org_id,
-            &run_number,
-            def.id,
-            &def.code,
-            &def.name,
-            &request.period_name,
-            request.period_start_date,
-            request.period_end_date,
-            revaluation_date,
-            &def.currency_code,
-            rate_type,
-            created_by,
-        ).await?;
+        let run = self
+            .repository
+            .create_run(
+                org_id,
+                &run_number,
+                def.id,
+                &def.code,
+                &def.name,
+                &request.period_name,
+                request.period_start_date,
+                request.period_end_date,
+                revaluation_date,
+                &def.currency_code,
+                rate_type,
+                created_by,
+            )
+            .await?;
 
         // Process each balance and create lines
         let mut total_revalued: f64 = 0.0;
@@ -293,18 +395,24 @@ impl CurrencyRevaluationEngine {
             line_number += 1;
 
             // Calculate gain/loss
-            let original_amount: f64 = balance.original_amount.parse()
-                .map_err(|_| AtlasError::ValidationFailed(
-                    format!("Invalid original_amount for account {}", balance.account_code)
-                ))?;
-            let original_rate: f64 = balance.original_exchange_rate.parse()
-                .map_err(|_| AtlasError::ValidationFailed(
-                    format!("Invalid original_exchange_rate for account {}", balance.account_code)
-                ))?;
-            let original_base: f64 = balance.original_base_amount.parse()
-                .map_err(|_| AtlasError::ValidationFailed(
-                    format!("Invalid original_base_amount for account {}", balance.account_code)
-                ))?;
+            let original_amount: f64 = balance.original_amount.parse().map_err(|_| {
+                AtlasError::ValidationFailed(format!(
+                    "Invalid original_amount for account {}",
+                    balance.account_code
+                ))
+            })?;
+            let original_rate: f64 = balance.original_exchange_rate.parse().map_err(|_| {
+                AtlasError::ValidationFailed(format!(
+                    "Invalid original_exchange_rate for account {}",
+                    balance.account_code
+                ))
+            })?;
+            let original_base: f64 = balance.original_base_amount.parse().map_err(|_| {
+                AtlasError::ValidationFailed(format!(
+                    "Invalid original_base_amount for account {}",
+                    balance.account_code
+                ))
+            })?;
 
             // Determine the revaluation rate from the provided data
             // In a real system, this would come from the exchange rate table
@@ -324,11 +432,15 @@ impl CurrencyRevaluationEngine {
 
             // Determine the offset account
             let gain_loss_account = match gain_loss_type {
-                "gain" => def.unrealized_gain_account_code.as_deref()
+                "gain" => def
+                    .unrealized_gain_account_code
+                    .as_deref()
                     .unwrap_or_else(|| &def.gain_account_code),
-                "loss" => def.unrealized_loss_account_code.as_deref()
+                "loss" => def
+                    .unrealized_loss_account_code
+                    .as_deref()
                     .unwrap_or_else(|| &def.loss_account_code),
-                _ => &def.gain_account_code,  // Doesn't matter for zero gain/loss
+                _ => &def.gain_account_code, // Doesn't matter for zero gain/loss
             };
 
             total_revalued += revalued_base;
@@ -338,36 +450,42 @@ impl CurrencyRevaluationEngine {
                 total_loss += gain_loss.abs();
             }
 
-            self.repository.create_run_line(
-                org_id,
-                run.id,
-                line_number,
-                &balance.account_code,
-                balance.account_name.as_deref(),
-                &balance.account_type,
-                &balance.original_amount,
-                &balance.original_currency,
-                &balance.original_exchange_rate,
-                &balance.original_base_amount,
-                &format!("{original_rate:.10}"),
-                &format!("{revalued_base:.2}"),
-                &format!("{:.2}", gain_loss.abs()),
-                gain_loss_type,
-                gain_loss_account,
-            ).await?;
+            self.repository
+                .create_run_line(
+                    org_id,
+                    run.id,
+                    line_number,
+                    &balance.account_code,
+                    balance.account_name.as_deref(),
+                    &balance.account_type,
+                    &balance.original_amount,
+                    &balance.original_currency,
+                    &balance.original_exchange_rate,
+                    &balance.original_base_amount,
+                    &format!("{original_rate:.10}"),
+                    &format!("{revalued_base:.2}"),
+                    &format!("{:.2}", gain_loss.abs()),
+                    gain_loss_type,
+                    gain_loss_account,
+                )
+                .await?;
         }
 
         // Update run totals
-        self.repository.update_run_totals(
-            run.id,
-            &format!("{total_revalued:.2}"),
-            &format!("{total_gain:.2}"),
-            &format!("{total_loss:.2}"),
-            line_number,
-        ).await?;
+        self.repository
+            .update_run_totals(
+                run.id,
+                &format!("{total_revalued:.2}"),
+                &format!("{total_gain:.2}"),
+                &format!("{total_loss:.2}"),
+                line_number,
+            )
+            .await?;
 
         // Reload with results
-        self.repository.get_run_by_id(run.id).await?
+        self.repository
+            .get_run_by_id(run.id)
+            .await?
             .ok_or_else(|| AtlasError::Internal("Created run not found".to_string()))
     }
 
@@ -377,61 +495,88 @@ impl CurrencyRevaluationEngine {
     }
 
     /// List runs for an organization
-    pub async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CurrencyRevaluationRun>> {
+    pub async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CurrencyRevaluationRun>> {
         self.repository.list_runs(org_id, status).await
     }
 
     /// Post a revaluation run
-    pub async fn post_run(&self, id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<CurrencyRevaluationRun> {
-        let run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation run {id} not found")))?;
+    pub async fn post_run(
+        &self,
+        id: Uuid,
+        posted_by: Option<Uuid>,
+    ) -> AtlasResult<CurrencyRevaluationRun> {
+        let run =
+            self.repository.get_run_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Revaluation run {id} not found"))
+            })?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot post run in '{}' status. Must be 'draft'.", run.status
+                "Cannot post run in '{}' status. Must be 'draft'.",
+                run.status
             )));
         }
 
         info!("Posting revaluation run {}", run.run_number);
-        self.repository.update_run_status(id, "posted", posted_by, None).await
+        self.repository
+            .update_run_status(id, "posted", posted_by, None)
+            .await
     }
 
     /// Reverse a revaluation run (creates a reversal run)
-    pub async fn reverse_run(&self, id: Uuid, reversed_by: Option<Uuid>) -> AtlasResult<CurrencyRevaluationRun> {
-        let original_run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation run {id} not found")))?;
+    pub async fn reverse_run(
+        &self,
+        id: Uuid,
+        reversed_by: Option<Uuid>,
+    ) -> AtlasResult<CurrencyRevaluationRun> {
+        let original_run =
+            self.repository.get_run_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Revaluation run {id} not found"))
+            })?;
 
         if original_run.status != "posted" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot reverse run in '{}' status. Must be 'posted'.", original_run.status
+                "Cannot reverse run in '{}' status. Must be 'posted'.",
+                original_run.status
             )));
         }
 
         // Check if already reversed
         if original_run.reversal_run_id.is_some() {
             return Err(AtlasError::WorkflowError(
-                "This run has already been reversed".to_string()
+                "This run has already been reversed".to_string(),
             ));
         }
 
         info!("Reversing revaluation run {}", original_run.run_number);
 
         // Create the reversal run
-        let reversal_number = format!("REV-{}-{}", original_run.run_number, chrono::Utc::now().format("%Y%m%d%H%M%S"));
-        let reversal_run = self.repository.create_run(
-            original_run.organization_id,
-            &reversal_number,
-            original_run.definition_id,
-            &original_run.definition_code,
-            &format!("Reversal: {}", original_run.definition_name),
-            &original_run.period_name,
-            original_run.period_start_date,
-            original_run.period_end_date,
-            original_run.revaluation_date,
-            &original_run.currency_code,
-            &original_run.rate_type,
-            reversed_by,
-        ).await?;
+        let reversal_number = format!(
+            "REV-{}-{}",
+            original_run.run_number,
+            chrono::Utc::now().format("%Y%m%d%H%M%S")
+        );
+        let reversal_run = self
+            .repository
+            .create_run(
+                original_run.organization_id,
+                &reversal_number,
+                original_run.definition_id,
+                &original_run.definition_code,
+                &format!("Reversal: {}", original_run.definition_name),
+                &original_run.period_name,
+                original_run.period_start_date,
+                original_run.period_end_date,
+                original_run.revaluation_date,
+                &original_run.currency_code,
+                &original_run.rate_type,
+                reversed_by,
+            )
+            .await?;
 
         // Create reversal lines (negated)
         let mut line_number = 0;
@@ -463,64 +608,78 @@ impl CurrencyRevaluationEngine {
                 0.0
             };
 
-            self.repository.create_run_line(
-                original_line.organization_id,
-                reversal_run.id,
-                line_number,
-                &original_line.account_code,
-                original_line.account_name.as_deref(),
-                &original_line.account_type,
-                &original_line.original_amount,
-                &original_line.original_currency,
-                &original_line.original_exchange_rate,
-                &original_line.original_base_amount,
-                &original_line.revalued_exchange_rate,
-                &original_line.revalued_base_amount,
-                &format!("{reversed_amount:.2}"),
-                reversed_type,
-                &original_line.gain_loss_account_code,
-            ).await?;
+            self.repository
+                .create_run_line(
+                    original_line.organization_id,
+                    reversal_run.id,
+                    line_number,
+                    &original_line.account_code,
+                    original_line.account_name.as_deref(),
+                    &original_line.account_type,
+                    &original_line.original_amount,
+                    &original_line.original_currency,
+                    &original_line.original_exchange_rate,
+                    &original_line.original_base_amount,
+                    &original_line.revalued_exchange_rate,
+                    &original_line.revalued_base_amount,
+                    &format!("{reversed_amount:.2}"),
+                    reversed_type,
+                    &original_line.gain_loss_account_code,
+                )
+                .await?;
 
             // Update original line with reversal link
-            self.repository.update_line_reversal(original_line.id, reversal_run.id).await?;
+            self.repository
+                .update_line_reversal(original_line.id, reversal_run.id)
+                .await?;
         }
 
         // Update reversal run totals
-        self.repository.update_run_totals(
-            reversal_run.id,
-            &format!("{total_revalued:.2}"),
-            &format!("{total_gain:.2}"),
-            &format!("{total_loss:.2}"),
-            line_number,
-        ).await?;
+        self.repository
+            .update_run_totals(
+                reversal_run.id,
+                &format!("{total_revalued:.2}"),
+                &format!("{total_gain:.2}"),
+                &format!("{total_loss:.2}"),
+                line_number,
+            )
+            .await?;
 
         // Mark reversal as posted and link it to original
-        let posted_reversal = self.repository.update_run_status(
-            reversal_run.id, "posted", reversed_by, None,
-        ).await?;
+        let posted_reversal = self
+            .repository
+            .update_run_status(reversal_run.id, "posted", reversed_by, None)
+            .await?;
 
         // Link original run to reversal
-        self.repository.update_run_reversal(id, posted_reversal.id).await?;
+        self.repository
+            .update_run_reversal(id, posted_reversal.id)
+            .await?;
 
         // Mark original as reversed
-        self.repository.update_run_status(
-            id, "reversed", None, Some(chrono::Utc::now()),
-        ).await
+        self.repository
+            .update_run_status(id, "reversed", None, Some(chrono::Utc::now()))
+            .await
     }
 
     /// Cancel a draft revaluation run
     pub async fn cancel_run(&self, id: Uuid) -> AtlasResult<CurrencyRevaluationRun> {
-        let run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Revaluation run {id} not found")))?;
+        let run =
+            self.repository.get_run_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Revaluation run {id} not found"))
+            })?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot cancel run in '{}' status. Must be 'draft'.", run.status
+                "Cannot cancel run in '{}' status. Must be 'draft'.",
+                run.status
             )));
         }
 
         info!("Cancelling revaluation run {}", run.run_number);
-        self.repository.update_run_status(id, "cancelled", None, None).await
+        self.repository
+            .update_run_status(id, "cancelled", None, None)
+            .await
     }
 
     // ========================================================================
@@ -528,7 +687,10 @@ impl CurrencyRevaluationEngine {
     // ========================================================================
 
     /// Get revaluation dashboard summary
-    pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CurrencyRevaluationDashboardSummary> {
+    pub async fn get_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<CurrencyRevaluationDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 }
@@ -581,7 +743,16 @@ mod tests {
         let gain_loss = revalued_base - original_base;
         assert!(gain_loss > 0.0);
         assert!((gain_loss - 500.0).abs() < 0.01);
-        assert_eq!(if gain_loss > 0.0 { "gain" } else if gain_loss < 0.0 { "loss" } else { "none" }, "gain");
+        assert_eq!(
+            if gain_loss > 0.0 {
+                "gain"
+            } else if gain_loss < 0.0 {
+                "loss"
+            } else {
+                "none"
+            },
+            "gain"
+        );
     }
 
     #[test]
@@ -594,14 +765,44 @@ mod tests {
         let gain_loss = revalued_base - original_base;
         assert!(gain_loss < 0.0);
         assert!((gain_loss.abs() - 250.0).abs() < 0.01);
-        assert_eq!(if gain_loss > 0.0 { "gain" } else if gain_loss < 0.0 { "loss" } else { "none" }, "loss");
+        assert_eq!(
+            if gain_loss > 0.0 {
+                "gain"
+            } else if gain_loss < 0.0 {
+                "loss"
+            } else {
+                "none"
+            },
+            "loss"
+        );
     }
 
     #[test]
     fn test_reversal_type_swapping() {
-        assert_eq!(match "gain" { "gain" => "loss", "loss" => "gain", _ => "none" }, "loss");
-        assert_eq!(match "loss" { "gain" => "loss", "loss" => "gain", _ => "none" }, "gain");
-        assert_eq!(match "none" { "gain" => "loss", "loss" => "gain", _ => "none" }, "none");
+        assert_eq!(
+            match "gain" {
+                "gain" => "loss",
+                "loss" => "gain",
+                _ => "none",
+            },
+            "loss"
+        );
+        assert_eq!(
+            match "loss" {
+                "gain" => "loss",
+                "loss" => "gain",
+                _ => "none",
+            },
+            "gain"
+        );
+        assert_eq!(
+            match "none" {
+                "gain" => "loss",
+                "loss" => "gain",
+                _ => "none",
+            },
+            "none"
+        );
     }
 
     #[test]

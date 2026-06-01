@@ -8,8 +8,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Lease Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::LeaseAccountingEngine;
 pub use repository::{LeaseAccountingRepository, PostgresLeaseAccountingRepository};

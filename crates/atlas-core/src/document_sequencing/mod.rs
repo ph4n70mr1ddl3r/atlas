@@ -14,8 +14,8 @@
 //!
 //! Oracle Fusion equivalent: General Ledger > Setup > Document Sequencing
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::DocumentSequencingEngine;
 pub use repository::{DocumentSequencingRepository, PostgresDocumentSequencingRepository};

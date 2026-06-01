@@ -2,12 +2,11 @@
 //!
 //! `PostgreSQL` storage for credit management data.
 
-use atlas_shared::{
-    CreditScoringModel, CreditProfile, CreditLimit, CreditCheckRule,
-    CreditExposure, CreditHold, CreditReview, CreditManagementDashboard,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, CreditCheckRule, CreditExposure, CreditHold, CreditLimit,
+    CreditManagementDashboard, CreditProfile, CreditReview, CreditScoringModel,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -28,7 +27,11 @@ pub trait CreditManagementRepository: Send + Sync {
     ) -> AtlasResult<CreditScoringModel>;
 
     async fn get_scoring_model(&self, id: Uuid) -> AtlasResult<Option<CreditScoringModel>>;
-    async fn get_scoring_model_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CreditScoringModel>>;
+    async fn get_scoring_model_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CreditScoringModel>>;
     async fn list_scoring_models(&self, org_id: Uuid) -> AtlasResult<Vec<CreditScoringModel>>;
     async fn delete_scoring_model(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -50,9 +53,21 @@ pub trait CreditManagementRepository: Send + Sync {
     ) -> AtlasResult<CreditProfile>;
 
     async fn get_profile(&self, id: Uuid) -> AtlasResult<Option<CreditProfile>>;
-    async fn get_profile_by_number(&self, org_id: Uuid, profile_number: &str) -> AtlasResult<Option<CreditProfile>>;
-    async fn get_profile_by_customer(&self, org_id: Uuid, customer_id: Uuid) -> AtlasResult<Option<CreditProfile>>;
-    async fn list_profiles(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CreditProfile>>;
+    async fn get_profile_by_number(
+        &self,
+        org_id: Uuid,
+        profile_number: &str,
+    ) -> AtlasResult<Option<CreditProfile>>;
+    async fn get_profile_by_customer(
+        &self,
+        org_id: Uuid,
+        customer_id: Uuid,
+    ) -> AtlasResult<Option<CreditProfile>>;
+    async fn list_profiles(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CreditProfile>>;
     async fn update_profile_status(&self, id: Uuid, status: &str) -> AtlasResult<CreditProfile>;
     async fn update_profile_score(
         &self,
@@ -84,9 +99,24 @@ pub trait CreditManagementRepository: Send + Sync {
 
     async fn get_credit_limit(&self, id: Uuid) -> AtlasResult<Option<CreditLimit>>;
     async fn list_credit_limits(&self, profile_id: Uuid) -> AtlasResult<Vec<CreditLimit>>;
-    async fn update_credit_limit_amount(&self, id: Uuid, credit_limit: &str) -> AtlasResult<CreditLimit>;
-    async fn update_credit_limit_usage(&self, id: Uuid, used_amount: &str, available_amount: &str, hold_amount: &str) -> AtlasResult<()>;
-    async fn set_temp_limit(&self, id: Uuid, temp_increase: &str, expiry: Option<chrono::NaiveDate>) -> AtlasResult<CreditLimit>;
+    async fn update_credit_limit_amount(
+        &self,
+        id: Uuid,
+        credit_limit: &str,
+    ) -> AtlasResult<CreditLimit>;
+    async fn update_credit_limit_usage(
+        &self,
+        id: Uuid,
+        used_amount: &str,
+        available_amount: &str,
+        hold_amount: &str,
+    ) -> AtlasResult<()>;
+    async fn set_temp_limit(
+        &self,
+        id: Uuid,
+        temp_increase: &str,
+        expiry: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<CreditLimit>;
     async fn delete_credit_limit(&self, id: Uuid) -> AtlasResult<()>;
 
     // Credit Check Rules
@@ -106,7 +136,11 @@ pub trait CreditManagementRepository: Send + Sync {
     ) -> AtlasResult<CreditCheckRule>;
 
     async fn get_check_rule(&self, id: Uuid) -> AtlasResult<Option<CreditCheckRule>>;
-    async fn get_check_rule_by_name(&self, org_id: Uuid, name: &str) -> AtlasResult<Option<CreditCheckRule>>;
+    async fn get_check_rule_by_name(
+        &self,
+        org_id: Uuid,
+        name: &str,
+    ) -> AtlasResult<Option<CreditCheckRule>>;
     async fn list_check_rules(&self, org_id: Uuid) -> AtlasResult<Vec<CreditCheckRule>>;
     async fn delete_check_rule(&self, id: Uuid) -> AtlasResult<()>;
 
@@ -130,7 +164,11 @@ pub trait CreditManagementRepository: Send + Sync {
     ) -> AtlasResult<CreditExposure>;
 
     async fn get_latest_exposure(&self, profile_id: Uuid) -> AtlasResult<Option<CreditExposure>>;
-    async fn list_exposure_history(&self, profile_id: Uuid, limit: Option<i32>) -> AtlasResult<Vec<CreditExposure>>;
+    async fn list_exposure_history(
+        &self,
+        profile_id: Uuid,
+        limit: Option<i32>,
+    ) -> AtlasResult<Vec<CreditExposure>>;
 
     // Credit Holds
     async fn create_hold(
@@ -148,9 +186,24 @@ pub trait CreditManagementRepository: Send + Sync {
     ) -> AtlasResult<CreditHold>;
 
     async fn get_hold(&self, id: Uuid) -> AtlasResult<Option<CreditHold>>;
-    async fn list_holds(&self, org_id: Uuid, status: Option<&str>, profile_id: Option<Uuid>) -> AtlasResult<Vec<CreditHold>>;
-    async fn release_hold(&self, id: Uuid, released_by: Option<Uuid>, release_reason: Option<&str>) -> AtlasResult<CreditHold>;
-    async fn override_hold(&self, id: Uuid, overridden_by: Option<Uuid>, override_reason: Option<&str>) -> AtlasResult<CreditHold>;
+    async fn list_holds(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        profile_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<CreditHold>>;
+    async fn release_hold(
+        &self,
+        id: Uuid,
+        released_by: Option<Uuid>,
+        release_reason: Option<&str>,
+    ) -> AtlasResult<CreditHold>;
+    async fn override_hold(
+        &self,
+        id: Uuid,
+        overridden_by: Option<Uuid>,
+        override_reason: Option<&str>,
+    ) -> AtlasResult<CreditHold>;
 
     // Credit Reviews
     async fn create_review(
@@ -168,7 +221,12 @@ pub trait CreditManagementRepository: Send + Sync {
     ) -> AtlasResult<CreditReview>;
 
     async fn get_review(&self, id: Uuid) -> AtlasResult<Option<CreditReview>>;
-    async fn list_reviews(&self, org_id: Uuid, status: Option<&str>, profile_id: Option<Uuid>) -> AtlasResult<Vec<CreditReview>>;
+    async fn list_reviews(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        profile_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<CreditReview>>;
     async fn update_review_status(&self, id: Uuid, status: &str) -> AtlasResult<CreditReview>;
     async fn complete_review(
         &self,
@@ -198,7 +256,7 @@ pub struct PostgresCreditManagementRepository {
 }
 
 impl PostgresCreditManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -225,12 +283,18 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                  scoring_criteria, score_ranges, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(model_type).bind(&scoring_criteria).bind(&score_ranges)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(model_type)
+        .bind(&scoring_criteria)
+        .bind(&score_ranges)
         .bind(created_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_scoring_model(&row))
@@ -238,16 +302,21 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
 
     async fn get_scoring_model(&self, id: Uuid) -> AtlasResult<Option<CreditScoringModel>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.credit_scoring_models WHERE id = $1 AND is_active = true"
+            "SELECT * FROM _atlas.credit_scoring_models WHERE id = $1 AND is_active = true",
         )
         .bind(id)
-        .fetch_optional(&self.pool).await
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_scoring_model(&r)))
     }
 
-    async fn get_scoring_model_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CreditScoringModel>> {
+    async fn get_scoring_model_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CreditScoringModel>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.credit_scoring_models WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -270,9 +339,14 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
     }
 
     async fn delete_scoring_model(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        sqlx::query("DELETE FROM _atlas.credit_scoring_models WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code).execute(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "DELETE FROM _atlas.credit_scoring_models WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -301,13 +375,22 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                  scoring_model_id, review_frequency_days, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(profile_number).bind(profile_name).bind(description)
-        .bind(profile_type).bind(customer_id).bind(customer_name)
-        .bind(customer_group_id).bind(customer_group_name)
-        .bind(scoring_model_id).bind(review_frequency_days).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(profile_number)
+        .bind(profile_name)
+        .bind(description)
+        .bind(profile_type)
+        .bind(customer_id)
+        .bind(customer_name)
+        .bind(customer_group_id)
+        .bind(customer_group_name)
+        .bind(scoring_model_id)
+        .bind(review_frequency_days)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_profile(&row))
@@ -316,13 +399,18 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
     async fn get_profile(&self, id: Uuid) -> AtlasResult<Option<CreditProfile>> {
         let row = sqlx::query("SELECT * FROM _atlas.credit_profiles WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_profile(&r)))
     }
 
-    async fn get_profile_by_number(&self, org_id: Uuid, profile_number: &str) -> AtlasResult<Option<CreditProfile>> {
+    async fn get_profile_by_number(
+        &self,
+        org_id: Uuid,
+        profile_number: &str,
+    ) -> AtlasResult<Option<CreditProfile>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.credit_profiles WHERE organization_id = $1 AND profile_number = $2"
         )
@@ -333,7 +421,11 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
         Ok(row.map(|r| row_to_profile(&r)))
     }
 
-    async fn get_profile_by_customer(&self, org_id: Uuid, customer_id: Uuid) -> AtlasResult<Option<CreditProfile>> {
+    async fn get_profile_by_customer(
+        &self,
+        org_id: Uuid,
+        customer_id: Uuid,
+    ) -> AtlasResult<Option<CreditProfile>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.credit_profiles WHERE organization_id = $1 AND customer_id = $2 AND status = 'active' ORDER BY created_at DESC LIMIT 1"
         )
@@ -344,7 +436,11 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
         Ok(row.map(|r| row_to_profile(&r)))
     }
 
-    async fn list_profiles(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CreditProfile>> {
+    async fn list_profiles(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CreditProfile>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.credit_profiles WHERE organization_id = $1 AND status = $2 ORDER BY profile_name"
@@ -388,13 +484,14 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
             SET credit_score = $2, credit_rating = $3, risk_level = $4, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "
+            ",
         )
         .bind(id)
         .bind(credit_score.parse::<f64>().ok())
         .bind(credit_rating)
         .bind(risk_level)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_profile(&row))
@@ -416,9 +513,14 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
     }
 
     async fn delete_profile(&self, org_id: Uuid, profile_number: &str) -> AtlasResult<()> {
-        sqlx::query("DELETE FROM _atlas.credit_profiles WHERE organization_id = $1 AND profile_number = $2")
-            .bind(org_id).bind(profile_number).execute(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "DELETE FROM _atlas.credit_profiles WHERE organization_id = $1 AND profile_number = $2",
+        )
+        .bind(org_id)
+        .bind(profile_number)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -441,12 +543,18 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                  credit_limit, available_amount, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $5, $6, $7, $8)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(profile_id).bind(limit_type).bind(currency_code)
+        .bind(org_id)
+        .bind(profile_id)
+        .bind(limit_type)
+        .bind(currency_code)
         .bind(credit_limit.parse::<f64>().unwrap_or(0.0))
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_credit_limit(&row))
@@ -455,7 +563,8 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
     async fn get_credit_limit(&self, id: Uuid) -> AtlasResult<Option<CreditLimit>> {
         let row = sqlx::query("SELECT * FROM _atlas.credit_limits WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_credit_limit(&r)))
@@ -472,7 +581,11 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
         Ok(rows.iter().map(row_to_credit_limit).collect())
     }
 
-    async fn update_credit_limit_amount(&self, id: Uuid, credit_limit: &str) -> AtlasResult<CreditLimit> {
+    async fn update_credit_limit_amount(
+        &self,
+        id: Uuid,
+        credit_limit: &str,
+    ) -> AtlasResult<CreditLimit> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.credit_limits
@@ -481,33 +594,47 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "
+            ",
         )
-        .bind(id).bind(credit_limit.parse::<f64>().unwrap_or(0.0))
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(credit_limit.parse::<f64>().unwrap_or(0.0))
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_credit_limit(&row))
     }
 
-    async fn update_credit_limit_usage(&self, id: Uuid, used_amount: &str, available_amount: &str, hold_amount: &str) -> AtlasResult<()> {
+    async fn update_credit_limit_usage(
+        &self,
+        id: Uuid,
+        used_amount: &str,
+        available_amount: &str,
+        hold_amount: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"
             UPDATE _atlas.credit_limits
             SET used_amount = $2, available_amount = $3, hold_amount = $4, updated_at = now()
             WHERE id = $1
-            "
+            ",
         )
         .bind(id)
         .bind(used_amount.parse::<f64>().unwrap_or(0.0))
         .bind(available_amount.parse::<f64>().unwrap_or(0.0))
         .bind(hold_amount.parse::<f64>().unwrap_or(0.0))
-        .execute(&self.pool).await
+        .execute(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
-    async fn set_temp_limit(&self, id: Uuid, temp_increase: &str, expiry: Option<chrono::NaiveDate>) -> AtlasResult<CreditLimit> {
+    async fn set_temp_limit(
+        &self,
+        id: Uuid,
+        temp_increase: &str,
+        expiry: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<CreditLimit> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.credit_limits
@@ -516,10 +643,13 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "
+            ",
         )
-        .bind(id).bind(temp_increase.parse::<f64>().unwrap_or(0.0)).bind(expiry)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(temp_increase.parse::<f64>().unwrap_or(0.0))
+        .bind(expiry)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_credit_limit(&row))
@@ -527,7 +657,9 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
 
     async fn delete_credit_limit(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.credit_limits WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -555,13 +687,21 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                  effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(name).bind(description)
-        .bind(check_point).bind(check_type)
-        .bind(&condition).bind(action_on_failure).bind(priority)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(name)
+        .bind(description)
+        .bind(check_point)
+        .bind(check_type)
+        .bind(&condition)
+        .bind(action_on_failure)
+        .bind(priority)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_check_rule(&row))
@@ -569,16 +709,21 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
 
     async fn get_check_rule(&self, id: Uuid) -> AtlasResult<Option<CreditCheckRule>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.credit_check_rules WHERE id = $1 AND is_active = true"
+            "SELECT * FROM _atlas.credit_check_rules WHERE id = $1 AND is_active = true",
         )
         .bind(id)
-        .fetch_optional(&self.pool).await
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_check_rule(&r)))
     }
 
-    async fn get_check_rule_by_name(&self, org_id: Uuid, name: &str) -> AtlasResult<Option<CreditCheckRule>> {
+    async fn get_check_rule_by_name(
+        &self,
+        org_id: Uuid,
+        name: &str,
+    ) -> AtlasResult<Option<CreditCheckRule>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.credit_check_rules WHERE organization_id = $1 AND name = $2 AND is_active = true"
         )
@@ -602,7 +747,9 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
 
     async fn delete_check_rule(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.credit_check_rules WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -647,9 +794,12 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                 utilization_percent = EXCLUDED.utilization_percent,
                 updated_at = now()
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(profile_id).bind(exposure_date).bind(currency_code)
+        .bind(org_id)
+        .bind(profile_id)
+        .bind(exposure_date)
+        .bind(currency_code)
         .bind(open_receivables.parse::<f64>().unwrap_or(0.0))
         .bind(open_orders.parse::<f64>().unwrap_or(0.0))
         .bind(open_shipments.parse::<f64>().unwrap_or(0.0))
@@ -660,7 +810,8 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
         .bind(credit_limit.parse::<f64>().unwrap_or(0.0))
         .bind(available_credit.parse::<f64>().unwrap_or(0.0))
         .bind(utilization_percent.parse::<f64>().unwrap_or(0.0))
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_exposure(&row))
@@ -677,7 +828,11 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
         Ok(row.map(|r| row_to_exposure(&r)))
     }
 
-    async fn list_exposure_history(&self, profile_id: Uuid, limit: Option<i32>) -> AtlasResult<Vec<CreditExposure>> {
+    async fn list_exposure_history(
+        &self,
+        profile_id: Uuid,
+        limit: Option<i32>,
+    ) -> AtlasResult<Vec<CreditExposure>> {
         let limit_val = limit.unwrap_or(30);
         let rows = sqlx::query(
             "SELECT * FROM _atlas.credit_exposure WHERE profile_id = $1 ORDER BY exposure_date DESC LIMIT $2"
@@ -711,13 +866,20 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                  reason, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(profile_id).bind(hold_number).bind(hold_type)
-        .bind(entity_type).bind(entity_id).bind(entity_number)
+        .bind(org_id)
+        .bind(profile_id)
+        .bind(hold_number)
+        .bind(hold_type)
+        .bind(entity_type)
+        .bind(entity_id)
+        .bind(entity_number)
         .bind(hold_amount.and_then(|v| v.parse::<f64>().ok()))
-        .bind(reason).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(reason)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_hold(&row))
@@ -726,13 +888,19 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
     async fn get_hold(&self, id: Uuid) -> AtlasResult<Option<CreditHold>> {
         let row = sqlx::query("SELECT * FROM _atlas.credit_holds WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_hold(&r)))
     }
 
-    async fn list_holds(&self, org_id: Uuid, status: Option<&str>, profile_id: Option<Uuid>) -> AtlasResult<Vec<CreditHold>> {
+    async fn list_holds(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        profile_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<CreditHold>> {
         let rows = match (status, profile_id) {
             (Some(s), Some(pid)) => {
                 sqlx::query(
@@ -771,7 +939,12 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
         Ok(rows.iter().map(row_to_hold).collect())
     }
 
-    async fn release_hold(&self, id: Uuid, released_by: Option<Uuid>, release_reason: Option<&str>) -> AtlasResult<CreditHold> {
+    async fn release_hold(
+        &self,
+        id: Uuid,
+        released_by: Option<Uuid>,
+        release_reason: Option<&str>,
+    ) -> AtlasResult<CreditHold> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.credit_holds
@@ -787,7 +960,12 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
         Ok(row_to_hold(&row))
     }
 
-    async fn override_hold(&self, id: Uuid, overridden_by: Option<Uuid>, override_reason: Option<&str>) -> AtlasResult<CreditHold> {
+    async fn override_hold(
+        &self,
+        id: Uuid,
+        overridden_by: Option<Uuid>,
+        override_reason: Option<&str>,
+    ) -> AtlasResult<CreditHold> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.credit_holds
@@ -825,15 +1003,20 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                  previous_score, previous_rating, due_date, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(profile_id).bind(review_number).bind(review_type)
+        .bind(org_id)
+        .bind(profile_id)
+        .bind(review_number)
+        .bind(review_type)
         .bind(previous_credit_limit.and_then(|v| v.parse::<f64>().ok()))
         .bind(recommended_credit_limit.and_then(|v| v.parse::<f64>().ok()))
         .bind(previous_score.and_then(|v| v.parse::<f64>().ok()))
         .bind(previous_rating)
-        .bind(due_date).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(due_date)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_review(&row))
@@ -842,13 +1025,19 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
     async fn get_review(&self, id: Uuid) -> AtlasResult<Option<CreditReview>> {
         let row = sqlx::query("SELECT * FROM _atlas.credit_reviews WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_review(&r)))
     }
 
-    async fn list_reviews(&self, org_id: Uuid, status: Option<&str>, profile_id: Option<Uuid>) -> AtlasResult<Vec<CreditReview>> {
+    async fn list_reviews(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        profile_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<CreditReview>> {
         let rows = match (status, profile_id) {
             (Some(s), Some(pid)) => {
                 sqlx::query(
@@ -920,15 +1109,18 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                 reviewed_at = now(), updated_at = now()
             WHERE id = $1
             RETURNING *
-            "
+            ",
         )
         .bind(id)
         .bind(new_score.and_then(|v| v.parse::<f64>().ok()))
         .bind(new_rating)
         .bind(approved_credit_limit.and_then(|v| v.parse::<f64>().ok()))
-        .bind(findings).bind(recommendations)
-        .bind(reviewer_id).bind(reviewer_name)
-        .fetch_one(&self.pool).await
+        .bind(findings)
+        .bind(recommendations)
+        .bind(reviewer_id)
+        .bind(reviewer_name)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_review(&row))
@@ -948,10 +1140,13 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
                 approved_at = now(), updated_at = now()
             WHERE id = $1
             RETURNING *
-            "
+            ",
         )
-        .bind(id).bind(approver_id).bind(approver_name)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(approver_id)
+        .bind(approver_name)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_review(&row))
@@ -1014,7 +1209,10 @@ impl CreditManagementRepository for PostgresCreditManagementRepository {
             blocked_profiles: row.get::<i64, _>("blocked_profiles") as i32,
             total_credit_limit: format!("{total_limit:.2}"),
             total_exposure: format!("{total_exposure:.2}"),
-            total_available: format!("{:.2}", row.try_get::<f64, _>("total_available").unwrap_or(0.0)),
+            total_available: format!(
+                "{:.2}",
+                row.try_get::<f64, _>("total_available").unwrap_or(0.0)
+            ),
             active_holds: hold_row.get::<i64, _>("cnt") as i32,
             pending_reviews: review_row.get::<i64, _>("pending") as i32,
             overdue_reviews: review_row.get::<i64, _>("overdue") as i32,
@@ -1059,7 +1257,10 @@ fn row_to_profile(row: &sqlx::postgres::PgRow) -> CreditProfile {
         customer_group_id: row.get("customer_group_id"),
         customer_group_name: row.get("customer_group_name"),
         scoring_model_id: row.get("scoring_model_id"),
-        credit_score: row.try_get("credit_score").ok().map(|v: f64| format!("{v:.2}")),
+        credit_score: row
+            .try_get("credit_score")
+            .ok()
+            .map(|v: f64| format!("{v:.2}")),
         credit_rating: row.get("credit_rating"),
         risk_level: row.get("risk_level"),
         status: row.get("status"),
@@ -1159,7 +1360,10 @@ fn row_to_hold(row: &sqlx::postgres::PgRow) -> CreditHold {
         entity_type: row.get("entity_type"),
         entity_id: row.get("entity_id"),
         entity_number: row.get("entity_number"),
-        hold_amount: row.try_get("hold_amount").ok().map(|v: f64| format!("{v:.2}")),
+        hold_amount: row
+            .try_get("hold_amount")
+            .ok()
+            .map(|v: f64| format!("{v:.2}")),
         reason: row.get("reason"),
         status: row.get("status"),
         released_by: row.get("released_by"),
@@ -1183,11 +1387,26 @@ fn row_to_review(row: &sqlx::postgres::PgRow) -> CreditReview {
         review_number: row.get("review_number"),
         review_type: row.get("review_type"),
         status: row.get("status"),
-        previous_credit_limit: row.try_get("previous_credit_limit").ok().map(|v: f64| format!("{v:.2}")),
-        recommended_credit_limit: row.try_get("recommended_credit_limit").ok().map(|v: f64| format!("{v:.2}")),
-        approved_credit_limit: row.try_get("approved_credit_limit").ok().map(|v: f64| format!("{v:.2}")),
-        previous_score: row.try_get("previous_score").ok().map(|v: f64| format!("{v:.2}")),
-        new_score: row.try_get("new_score").ok().map(|v: f64| format!("{v:.2}")),
+        previous_credit_limit: row
+            .try_get("previous_credit_limit")
+            .ok()
+            .map(|v: f64| format!("{v:.2}")),
+        recommended_credit_limit: row
+            .try_get("recommended_credit_limit")
+            .ok()
+            .map(|v: f64| format!("{v:.2}")),
+        approved_credit_limit: row
+            .try_get("approved_credit_limit")
+            .ok()
+            .map(|v: f64| format!("{v:.2}")),
+        previous_score: row
+            .try_get("previous_score")
+            .ok()
+            .map(|v: f64| format!("{v:.2}")),
+        new_score: row
+            .try_get("new_score")
+            .ok()
+            .map(|v: f64| format!("{v:.2}")),
         previous_rating: row.get("previous_rating"),
         new_rating: row.get("new_rating"),
         findings: row.get("findings"),

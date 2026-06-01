@@ -2,8 +2,8 @@
 //!
 //! `PostgreSQL` storage for approval chains, requests, and steps.
 
-use atlas_shared::{ApprovalChain, ApprovalRequest, ApprovalStep, AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{ApprovalChain, ApprovalRequest, ApprovalStep, AtlasError, AtlasResult};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -14,7 +14,11 @@ pub trait ApprovalRepository: Send + Sync {
     // Chain management
     async fn create_chain(&self, chain: ApprovalChain) -> AtlasResult<ApprovalChain>;
     async fn get_chain(&self, id: Uuid) -> AtlasResult<Option<ApprovalChain>>;
-    async fn get_chains_for_entity(&self, org_id: Uuid, entity_type: &str) -> AtlasResult<Vec<ApprovalChain>>;
+    async fn get_chains_for_entity(
+        &self,
+        org_id: Uuid,
+        entity_type: &str,
+    ) -> AtlasResult<Vec<ApprovalChain>>;
     async fn delete_chain(&self, id: Uuid) -> AtlasResult<()>;
 
     // Request management
@@ -31,8 +35,13 @@ pub trait ApprovalRepository: Send + Sync {
         description: Option<&str>,
     ) -> AtlasResult<ApprovalRequest>;
     async fn get_request(&self, id: Uuid) -> AtlasResult<Option<ApprovalRequest>>;
-    async fn get_requests_for_entity(&self, entity_type: &str, entity_id: Uuid) -> AtlasResult<Vec<ApprovalRequest>>;
-    async fn complete_request(&self, id: Uuid, completed_by: Uuid, status: &str) -> AtlasResult<()>;
+    async fn get_requests_for_entity(
+        &self,
+        entity_type: &str,
+        entity_id: Uuid,
+    ) -> AtlasResult<Vec<ApprovalRequest>>;
+    async fn complete_request(&self, id: Uuid, completed_by: Uuid, status: &str)
+        -> AtlasResult<()>;
     async fn cancel_request(&self, id: Uuid) -> AtlasResult<()>;
     async fn advance_request_level(&self, id: Uuid, new_level: i32) -> AtlasResult<()>;
 
@@ -49,11 +58,34 @@ pub trait ApprovalRepository: Send + Sync {
         auto_approve_after_hours: Option<i32>,
     ) -> AtlasResult<ApprovalStep>;
     async fn get_step(&self, id: Uuid) -> AtlasResult<Option<ApprovalStep>>;
-    async fn approve_step(&self, id: Uuid, approved_by: Uuid, comment: Option<&str>) -> AtlasResult<()>;
-    async fn reject_step(&self, id: Uuid, rejected_by: Uuid, comment: Option<&str>) -> AtlasResult<()>;
-    async fn delegate_step(&self, id: Uuid, delegated_by: Uuid, delegated_to: Uuid) -> AtlasResult<()>;
-    async fn get_pending_steps_for_user(&self, org_id: Uuid, user_id: Uuid) -> AtlasResult<Vec<ApprovalStep>>;
-    async fn get_pending_steps_for_role(&self, org_id: Uuid, role: &str) -> AtlasResult<Vec<ApprovalStep>>;
+    async fn approve_step(
+        &self,
+        id: Uuid,
+        approved_by: Uuid,
+        comment: Option<&str>,
+    ) -> AtlasResult<()>;
+    async fn reject_step(
+        &self,
+        id: Uuid,
+        rejected_by: Uuid,
+        comment: Option<&str>,
+    ) -> AtlasResult<()>;
+    async fn delegate_step(
+        &self,
+        id: Uuid,
+        delegated_by: Uuid,
+        delegated_to: Uuid,
+    ) -> AtlasResult<()>;
+    async fn get_pending_steps_for_user(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+    ) -> AtlasResult<Vec<ApprovalStep>>;
+    async fn get_pending_steps_for_role(
+        &self,
+        org_id: Uuid,
+        role: &str,
+    ) -> AtlasResult<Vec<ApprovalStep>>;
     async fn find_expired_steps(&self) -> AtlasResult<Vec<ApprovalStep>>;
     async fn auto_approve_step(&self, id: Uuid) -> AtlasResult<()>;
 }
@@ -64,7 +96,7 @@ pub struct PostgresApprovalRepository {
 }
 
 impl PostgresApprovalRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -121,7 +153,7 @@ impl ApprovalRepository for PostgresApprovalRepository {
                  allow_delegation, is_active)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-            "
+            ",
         )
         .bind(chain.organization_id)
         .bind(&chain.name)
@@ -142,18 +174,21 @@ impl ApprovalRepository for PostgresApprovalRepository {
     }
 
     async fn get_chain(&self, id: Uuid) -> AtlasResult<Option<ApprovalChain>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.approval_chains WHERE id = $1 AND is_active = true"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        
+        let row =
+            sqlx::query("SELECT * FROM _atlas.approval_chains WHERE id = $1 AND is_active = true")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+
         Ok(row.map(|r| self.row_to_chain(&r)))
     }
 
-    async fn get_chains_for_entity(&self, org_id: Uuid, entity_type: &str) -> AtlasResult<Vec<ApprovalChain>> {
+    async fn get_chains_for_entity(
+        &self,
+        org_id: Uuid,
+        entity_type: &str,
+    ) -> AtlasResult<Vec<ApprovalChain>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.approval_chains WHERE organization_id = $1 AND entity_type = $2 AND is_active = true"
         )
@@ -193,7 +228,7 @@ impl ApprovalRepository for PostgresApprovalRepository {
                  total_levels, status, requested_by, title, description, metadata)
             VALUES ($1, $2, $3, $4, 1, $5, 'pending', $6, $7, $8, '{}'::jsonb)
             RETURNING *
-            "
+            ",
         )
         .bind(org_id)
         .bind(chain_id)
@@ -209,7 +244,7 @@ impl ApprovalRepository for PostgresApprovalRepository {
 
         // Load steps separately
         let steps_rows = sqlx::query(
-            "SELECT * FROM _atlas.approval_steps WHERE approval_request_id = $1 ORDER BY level"
+            "SELECT * FROM _atlas.approval_steps WHERE approval_request_id = $1 ORDER BY level",
         )
         .bind(row.get::<Uuid, _>("id"))
         .fetch_all(&self.pool)
@@ -239,13 +274,11 @@ impl ApprovalRepository for PostgresApprovalRepository {
     }
 
     async fn get_request(&self, id: Uuid) -> AtlasResult<Option<ApprovalRequest>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.approval_requests WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.approval_requests WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         match row {
             Some(r) => {
@@ -282,7 +315,11 @@ impl ApprovalRepository for PostgresApprovalRepository {
         }
     }
 
-    async fn get_requests_for_entity(&self, entity_type: &str, entity_id: Uuid) -> AtlasResult<Vec<ApprovalRequest>> {
+    async fn get_requests_for_entity(
+        &self,
+        entity_type: &str,
+        entity_id: Uuid,
+    ) -> AtlasResult<Vec<ApprovalRequest>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.approval_requests WHERE entity_type = $1 AND entity_id = $2 ORDER BY created_at DESC"
         )
@@ -296,7 +333,7 @@ impl ApprovalRepository for PostgresApprovalRepository {
         for row in rows {
             let id: Uuid = row.get("id");
             let steps_rows = sqlx::query(
-                "SELECT * FROM _atlas.approval_steps WHERE approval_request_id = $1 ORDER BY level"
+                "SELECT * FROM _atlas.approval_steps WHERE approval_request_id = $1 ORDER BY level",
             )
             .bind(id)
             .fetch_all(&self.pool)
@@ -327,7 +364,12 @@ impl ApprovalRepository for PostgresApprovalRepository {
         Ok(results)
     }
 
-    async fn complete_request(&self, id: Uuid, completed_by: Uuid, status: &str) -> AtlasResult<()> {
+    async fn complete_request(
+        &self,
+        id: Uuid,
+        completed_by: Uuid,
+        status: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.approval_requests SET status = $2, completed_at = now(), completed_by = $3, updated_at = now() WHERE id = $1"
         )
@@ -374,11 +416,17 @@ impl ApprovalRepository for PostgresApprovalRepository {
                  approver_role, approver_user_id, auto_approve_after_hours, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(request_id).bind(level).bind(approver_type)
-        .bind(approver_role).bind(approver_user_id).bind(auto_approve_after_hours)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(request_id)
+        .bind(level)
+        .bind(approver_type)
+        .bind(approver_role)
+        .bind(approver_user_id)
+        .bind(auto_approve_after_hours)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_step(&row))
@@ -387,13 +435,19 @@ impl ApprovalRepository for PostgresApprovalRepository {
     async fn get_step(&self, id: Uuid) -> AtlasResult<Option<ApprovalStep>> {
         let row = sqlx::query("SELECT * FROM _atlas.approval_steps WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| self.row_to_step(&r)))
     }
 
-    async fn approve_step(&self, id: Uuid, approved_by: Uuid, comment: Option<&str>) -> AtlasResult<()> {
+    async fn approve_step(
+        &self,
+        id: Uuid,
+        approved_by: Uuid,
+        comment: Option<&str>,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.approval_steps SET status = 'approved', action_at = now(), action_by = $2, comment = $3, updated_at = now() WHERE id = $1"
         )
@@ -403,7 +457,12 @@ impl ApprovalRepository for PostgresApprovalRepository {
         Ok(())
     }
 
-    async fn reject_step(&self, id: Uuid, rejected_by: Uuid, comment: Option<&str>) -> AtlasResult<()> {
+    async fn reject_step(
+        &self,
+        id: Uuid,
+        rejected_by: Uuid,
+        comment: Option<&str>,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.approval_steps SET status = 'rejected', action_at = now(), action_by = $2, comment = $3, updated_at = now() WHERE id = $1"
         )
@@ -413,7 +472,12 @@ impl ApprovalRepository for PostgresApprovalRepository {
         Ok(())
     }
 
-    async fn delegate_step(&self, id: Uuid, delegated_by: Uuid, delegated_to: Uuid) -> AtlasResult<()> {
+    async fn delegate_step(
+        &self,
+        id: Uuid,
+        delegated_by: Uuid,
+        delegated_to: Uuid,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.approval_steps SET is_delegated = true, delegated_by = $2, delegated_to = $3, approver_user_id = $3, updated_at = now() WHERE id = $1"
         )
@@ -423,7 +487,11 @@ impl ApprovalRepository for PostgresApprovalRepository {
         Ok(())
     }
 
-    async fn get_pending_steps_for_user(&self, org_id: Uuid, user_id: Uuid) -> AtlasResult<Vec<ApprovalStep>> {
+    async fn get_pending_steps_for_user(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+    ) -> AtlasResult<Vec<ApprovalStep>> {
         let rows = sqlx::query(
             "SELECT s.* FROM _atlas.approval_steps s 
              JOIN _atlas.approval_requests r ON s.approval_request_id = r.id
@@ -437,7 +505,11 @@ impl ApprovalRepository for PostgresApprovalRepository {
         Ok(rows.iter().map(|r| self.row_to_step(r)).collect())
     }
 
-    async fn get_pending_steps_for_role(&self, org_id: Uuid, role: &str) -> AtlasResult<Vec<ApprovalStep>> {
+    async fn get_pending_steps_for_role(
+        &self,
+        org_id: Uuid,
+        role: &str,
+    ) -> AtlasResult<Vec<ApprovalStep>> {
         let rows = sqlx::query(
             "SELECT s.* FROM _atlas.approval_steps s 
              JOIN _atlas.approval_requests r ON s.approval_request_id = r.id
@@ -460,9 +532,10 @@ impl ApprovalRepository for PostgresApprovalRepository {
               AND s.auto_approve_after_hours IS NOT NULL
               AND s.created_at < now() - (s.auto_approve_after_hours || ' hours')::interval
               AND r.status = 'pending'
-            "
+            ",
         )
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(|r| self.row_to_step(r)).collect())

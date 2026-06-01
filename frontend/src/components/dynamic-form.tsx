@@ -72,7 +72,7 @@ export function DynamicForm({
           }
         } catch {
           // If not valid JSON, treat as comma-separated list
-          val = val.split(',').map(s => s.trim()).filter(s => s !== '')
+          val = (val as string).split(',').map((s: string) => s.trim()).filter((s: string) => s !== '')
         }
       }
 

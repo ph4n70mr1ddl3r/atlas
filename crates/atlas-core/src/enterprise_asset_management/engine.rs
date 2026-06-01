@@ -6,11 +6,11 @@
 //! Oracle Fusion Cloud equivalent: Maintenance Management > Work Orders,
 //! Preventive Maintenance, Asset Definition
 
-use atlas_shared::{
-    AssetDefinition, MaintenanceWorkOrder, PreventiveMaintenanceSchedule, MaintenanceDashboard,
-    AtlasError, AtlasResult,
-};
 use super::AssetManagementRepository;
+use atlas_shared::{
+    AssetDefinition, AtlasError, AtlasResult, MaintenanceDashboard, MaintenanceWorkOrder,
+    PreventiveMaintenanceSchedule,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -20,69 +20,109 @@ use uuid::Uuid;
 // ============================================================================
 
 const VALID_ASSET_GROUPS: &[&str] = &[
-    "pump", "motor", "vehicle", "hvac", "electrical", "plumbing",
-    "conveyor", "compressor", "generator", "it_equipment", "general",
+    "pump",
+    "motor",
+    "vehicle",
+    "hvac",
+    "electrical",
+    "plumbing",
+    "conveyor",
+    "compressor",
+    "generator",
+    "it_equipment",
+    "general",
 ];
 
-const VALID_ASSET_CRITICALITIES: &[&str] = &[
-    "low", "medium", "high", "critical",
-];
+const VALID_ASSET_CRITICALITIES: &[&str] = &["low", "medium", "high", "critical"];
 
-const VALID_ASSET_STATUSES: &[&str] = &[
-    "active", "inactive", "disposed", "in_repair",
-];
+const VALID_ASSET_STATUSES: &[&str] = &["active", "inactive", "disposed", "in_repair"];
 
 const VALID_WORK_ORDER_TYPES: &[&str] = &[
-    "corrective", "preventive", "emergency", "inspection", "project",
+    "corrective",
+    "preventive",
+    "emergency",
+    "inspection",
+    "project",
 ];
 
-const VALID_PRIORITIES: &[&str] = &[
-    "low", "normal", "high", "urgent",
-];
+const VALID_PRIORITIES: &[&str] = &["low", "normal", "high", "urgent"];
 
 const VALID_WORK_ORDER_STATUSES: &[&str] = &[
-    "draft", "approved", "in_progress", "completed", "closed", "cancelled",
+    "draft",
+    "approved",
+    "in_progress",
+    "completed",
+    "closed",
+    "cancelled",
 ];
 
 const VALID_FAILURE_CODES: &[&str] = &[
-    "mechanical_failure", "electrical_failure", "corrosion", "wear",
-    "overheating", "leak", "vibration", "contamination", "misalignment",
-    "fatigue", "overload", "software_fault", "operator_error", "other",
+    "mechanical_failure",
+    "electrical_failure",
+    "corrosion",
+    "wear",
+    "overheating",
+    "leak",
+    "vibration",
+    "contamination",
+    "misalignment",
+    "fatigue",
+    "overload",
+    "software_fault",
+    "operator_error",
+    "other",
 ];
 
 const VALID_CAUSE_CODES: &[&str] = &[
-    "normal_wear", "inadequate_maintenance", "improper_operation",
-    "design_defect", "material_defect", "environmental", "overuse", "other",
+    "normal_wear",
+    "inadequate_maintenance",
+    "improper_operation",
+    "design_defect",
+    "material_defect",
+    "environmental",
+    "overuse",
+    "other",
 ];
 
 const VALID_RESOLUTION_CODES: &[&str] = &[
-    "repaired", "replaced", "adjusted", "calibrated", "lubricated",
-    "cleaned", "refurbished", "no_action_needed", "other",
+    "repaired",
+    "replaced",
+    "adjusted",
+    "calibrated",
+    "lubricated",
+    "cleaned",
+    "refurbished",
+    "no_action_needed",
+    "other",
 ];
 
-const VALID_SCHEDULE_TYPES: &[&str] = &[
-    "time_based", "meter_based", "condition_based",
-];
+const VALID_SCHEDULE_TYPES: &[&str] = &["time_based", "meter_based", "condition_based"];
 
 const VALID_FREQUENCIES: &[&str] = &[
-    "daily", "weekly", "monthly", "quarterly", "semi_annual", "annual",
+    "daily",
+    "weekly",
+    "monthly",
+    "quarterly",
+    "semi_annual",
+    "annual",
 ];
 
-const VALID_INTERVAL_UNITS: &[&str] = &[
-    "days", "weeks", "months", "hours", "miles", "km", "cycles",
-];
+const VALID_INTERVAL_UNITS: &[&str] =
+    &["days", "weeks", "months", "hours", "miles", "km", "cycles"];
 
-const VALID_METER_TYPES: &[&str] = &[
-    "hours", "miles", "km", "cycles",
-];
+const VALID_METER_TYPES: &[&str] = &["hours", "miles", "km", "cycles"];
 
-const VALID_SCHEDULE_STATUSES: &[&str] = &[
-    "active", "inactive", "completed",
-];
+const VALID_SCHEDULE_STATUSES: &[&str] = &["active", "inactive", "completed"];
 
 const VALID_LOCATION_TYPES: &[&str] = &[
-    "building", "floor", "room", "area", "outdoor", "warehouse",
-    "production_line", "station",
+    "building",
+    "floor",
+    "room",
+    "area",
+    "outdoor",
+    "warehouse",
+    "production_line",
+    "station",
 ];
 
 /// Enterprise Asset Management Engine
@@ -125,20 +165,38 @@ impl EnterpriseAssetManagementEngine {
         let loc_type = location_type.unwrap_or("building");
         if !VALID_LOCATION_TYPES.contains(&loc_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid location_type '{}'. Must be one of: {}", loc_type, VALID_LOCATION_TYPES.join(", ")
+                "Invalid location_type '{}'. Must be one of: {}",
+                loc_type,
+                VALID_LOCATION_TYPES.join(", ")
             )));
         }
-        if self.repository.get_location_by_code(org_id, &code_upper).await?.is_some() {
+        if self
+            .repository
+            .get_location_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Location '{code_upper}' already exists"
             )));
         }
 
-        info!("Creating asset location '{}' ({}) for org {}", code_upper, name, org_id);
-        self.repository.create_location(
-            org_id, &code_upper, name, description,
-            parent_location_id, loc_type, address, created_by,
-        ).await
+        info!(
+            "Creating asset location '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
+        self.repository
+            .create_location(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                parent_location_id,
+                loc_type,
+                address,
+                created_by,
+            )
+            .await
     }
 
     /// Get a location by ID
@@ -183,44 +241,66 @@ impl EnterpriseAssetManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetDefinition> {
         if asset_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Asset number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Asset number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Asset name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Asset name is required".to_string(),
+            ));
         }
         if !VALID_ASSET_GROUPS.contains(&asset_group) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid asset_group '{}'. Must be one of: {}", asset_group, VALID_ASSET_GROUPS.join(", ")
+                "Invalid asset_group '{}'. Must be one of: {}",
+                asset_group,
+                VALID_ASSET_GROUPS.join(", ")
             )));
         }
         if !VALID_ASSET_CRITICALITIES.contains(&asset_criticality) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid asset_criticality '{}'. Must be one of: {}",
-                asset_criticality, VALID_ASSET_CRITICALITIES.join(", ")
+                asset_criticality,
+                VALID_ASSET_CRITICALITIES.join(", ")
             )));
         }
 
-        if self.repository.get_asset_by_number(org_id, asset_number).await?.is_some() {
+        if self
+            .repository
+            .get_asset_by_number(org_id, asset_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Asset '{asset_number}' already exists"
             )));
         }
 
-        info!("Creating asset '{}' ({}) for org {} [group={}, criticality={}]",
-              asset_number, name, org_id, asset_group, asset_criticality);
+        info!(
+            "Creating asset '{}' ({}) for org {} [group={}, criticality={}]",
+            asset_number, name, org_id, asset_group, asset_criticality
+        );
 
-        self.repository.create_asset(
-            org_id, asset_number, name, description,
-            asset_group, asset_criticality,
-            location_id, location_name,
-            parent_asset_id,
-            serial_number.unwrap_or(""),
-            manufacturer.unwrap_or(""),
-            model.unwrap_or(""),
-            install_date, warranty_expiry,
-            meter_reading.unwrap_or(serde_json::json!({})),
-            created_by,
-        ).await
+        self.repository
+            .create_asset(
+                org_id,
+                asset_number,
+                name,
+                description,
+                asset_group,
+                asset_criticality,
+                location_id,
+                location_name,
+                parent_asset_id,
+                serial_number.unwrap_or(""),
+                manufacturer.unwrap_or(""),
+                model.unwrap_or(""),
+                install_date,
+                warranty_expiry,
+                meter_reading.unwrap_or(serde_json::json!({})),
+                created_by,
+            )
+            .await
     }
 
     /// Get an asset by ID
@@ -229,8 +309,14 @@ impl EnterpriseAssetManagementEngine {
     }
 
     /// Get an asset by number
-    pub async fn get_asset_by_number(&self, org_id: Uuid, asset_number: &str) -> AtlasResult<Option<AssetDefinition>> {
-        self.repository.get_asset_by_number(org_id, asset_number).await
+    pub async fn get_asset_by_number(
+        &self,
+        org_id: Uuid,
+        asset_number: &str,
+    ) -> AtlasResult<Option<AssetDefinition>> {
+        self.repository
+            .get_asset_by_number(org_id, asset_number)
+            .await
     }
 
     /// List assets with optional filters
@@ -241,14 +327,22 @@ impl EnterpriseAssetManagementEngine {
         asset_group: Option<&str>,
         criticality: Option<&str>,
     ) -> AtlasResult<Vec<AssetDefinition>> {
-        self.repository.list_assets(org_id, status, asset_group, criticality).await
+        self.repository
+            .list_assets(org_id, status, asset_group, criticality)
+            .await
     }
 
     /// Update asset status
-    pub async fn update_asset_status(&self, id: Uuid, status: &str) -> AtlasResult<AssetDefinition> {
+    pub async fn update_asset_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<AssetDefinition> {
         if !VALID_ASSET_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid asset status '{}'. Must be one of: {}", status, VALID_ASSET_STATUSES.join(", ")
+                "Invalid asset status '{}'. Must be one of: {}",
+                status,
+                VALID_ASSET_STATUSES.join(", ")
             )));
         }
         info!("Updating asset {} status to {}", id, status);
@@ -297,33 +391,44 @@ impl EnterpriseAssetManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<MaintenanceWorkOrder> {
         if work_order_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Work order number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Work order number is required".to_string(),
+            ));
         }
         if title.is_empty() {
-            return Err(AtlasError::ValidationFailed("Work order title is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Work order title is required".to_string(),
+            ));
         }
         if !VALID_WORK_ORDER_TYPES.contains(&work_order_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid work_order_type '{}'. Must be one of: {}",
-                work_order_type, VALID_WORK_ORDER_TYPES.join(", ")
+                work_order_type,
+                VALID_WORK_ORDER_TYPES.join(", ")
             )));
         }
         if !VALID_PRIORITIES.contains(&priority) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid priority '{}'. Must be one of: {}", priority, VALID_PRIORITIES.join(", ")
+                "Invalid priority '{}'. Must be one of: {}",
+                priority,
+                VALID_PRIORITIES.join(", ")
             )));
         }
         if let Some(fc) = failure_code {
             if !VALID_FAILURE_CODES.contains(&fc) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid failure_code '{}'. Must be one of: {}", fc, VALID_FAILURE_CODES.join(", ")
+                    "Invalid failure_code '{}'. Must be one of: {}",
+                    fc,
+                    VALID_FAILURE_CODES.join(", ")
                 )));
             }
         }
         if let Some(cc) = cause_code {
             if !VALID_CAUSE_CODES.contains(&cc) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid cause_code '{}'. Must be one of: {}", cc, VALID_CAUSE_CODES.join(", ")
+                    "Invalid cause_code '{}'. Must be one of: {}",
+                    cc,
+                    VALID_CAUSE_CODES.join(", ")
                 )));
             }
         }
@@ -336,30 +441,51 @@ impl EnterpriseAssetManagementEngine {
         }
 
         // Verify asset exists and get its info
-        let asset = self.repository.get_asset(asset_id).await?
+        let asset = self
+            .repository
+            .get_asset(asset_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Asset {asset_id} not found")))?;
 
-        if self.repository.get_work_order_by_number(org_id, work_order_number).await?.is_some() {
+        if self
+            .repository
+            .get_work_order_by_number(org_id, work_order_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Work order '{work_order_number}' already exists"
             )));
         }
 
-        info!("Creating work order '{}' ({}) for org {} [type={}, priority={}, asset={}]",
-              work_order_number, title, org_id, work_order_type, priority, asset.asset_number);
+        info!(
+            "Creating work order '{}' ({}) for org {} [type={}, priority={}, asset={}]",
+            work_order_number, title, org_id, work_order_type, priority, asset.asset_number
+        );
 
-        self.repository.create_work_order(
-            org_id, work_order_number, title, description,
-            work_order_type, priority,
-            asset_id, &asset.asset_number, &asset.name, &asset.location_name,
-            assigned_to, assigned_to_name,
-            scheduled_start, scheduled_end,
-            estimated_hours.unwrap_or(serde_json::json!({})),
-            estimated_cost.unwrap_or("0.00"),
-            failure_code.unwrap_or(""),
-            cause_code.unwrap_or(""),
-            created_by,
-        ).await
+        self.repository
+            .create_work_order(
+                org_id,
+                work_order_number,
+                title,
+                description,
+                work_order_type,
+                priority,
+                asset_id,
+                &asset.asset_number,
+                &asset.name,
+                &asset.location_name,
+                assigned_to,
+                assigned_to_name,
+                scheduled_start,
+                scheduled_end,
+                estimated_hours.unwrap_or(serde_json::json!({})),
+                estimated_cost.unwrap_or("0.00"),
+                failure_code.unwrap_or(""),
+                cause_code.unwrap_or(""),
+                created_by,
+            )
+            .await
     }
 
     /// Get a work order by ID
@@ -368,8 +494,14 @@ impl EnterpriseAssetManagementEngine {
     }
 
     /// Get a work order by number
-    pub async fn get_work_order_by_number(&self, org_id: Uuid, wo_number: &str) -> AtlasResult<Option<MaintenanceWorkOrder>> {
-        self.repository.get_work_order_by_number(org_id, wo_number).await
+    pub async fn get_work_order_by_number(
+        &self,
+        org_id: Uuid,
+        wo_number: &str,
+    ) -> AtlasResult<Option<MaintenanceWorkOrder>> {
+        self.repository
+            .get_work_order_by_number(org_id, wo_number)
+            .await
     }
 
     /// List work orders with optional filters
@@ -381,14 +513,22 @@ impl EnterpriseAssetManagementEngine {
         priority: Option<&str>,
         asset_id: Option<Uuid>,
     ) -> AtlasResult<Vec<MaintenanceWorkOrder>> {
-        self.repository.list_work_orders(org_id, status, work_order_type, priority, asset_id).await
+        self.repository
+            .list_work_orders(org_id, status, work_order_type, priority, asset_id)
+            .await
     }
 
     /// Update work order status
-    pub async fn update_work_order_status(&self, id: Uuid, status: &str) -> AtlasResult<MaintenanceWorkOrder> {
+    pub async fn update_work_order_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<MaintenanceWorkOrder> {
         if !VALID_WORK_ORDER_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid work order status '{}'. Must be one of: {}", status, VALID_WORK_ORDER_STATUSES.join(", ")
+                "Invalid work order status '{}'. Must be one of: {}",
+                status,
+                VALID_WORK_ORDER_STATUSES.join(", ")
             )));
         }
         info!("Updating work order {} status to {}", id, status);
@@ -412,21 +552,24 @@ impl EnterpriseAssetManagementEngine {
             if !VALID_RESOLUTION_CODES.contains(&rc) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid resolution_code '{}'. Must be one of: {}",
-                    rc, VALID_RESOLUTION_CODES.join(", ")
+                    rc,
+                    VALID_RESOLUTION_CODES.join(", ")
                 )));
             }
         }
         info!("Completing work order {}", id);
-        self.repository.complete_work_order(
-            id,
-            actual_cost.unwrap_or("0.00"),
-            actual_hours.unwrap_or(serde_json::json!({})),
-            downtime_hours.unwrap_or(0.0),
-            resolution_code.unwrap_or(""),
-            completion_notes.unwrap_or(""),
-            materials.unwrap_or(serde_json::json!([])),
-            labor.unwrap_or(serde_json::json!([])),
-        ).await
+        self.repository
+            .complete_work_order(
+                id,
+                actual_cost.unwrap_or("0.00"),
+                actual_hours.unwrap_or(serde_json::json!({})),
+                downtime_hours.unwrap_or(0.0),
+                resolution_code.unwrap_or(""),
+                completion_notes.unwrap_or(""),
+                materials.unwrap_or(serde_json::json!([])),
+                labor.unwrap_or(serde_json::json!([])),
+            )
+            .await
     }
 
     /// Delete a work order by number
@@ -464,74 +607,115 @@ impl EnterpriseAssetManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PreventiveMaintenanceSchedule> {
         if schedule_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Schedule number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Schedule number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Schedule name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Schedule name is required".to_string(),
+            ));
         }
         if !VALID_SCHEDULE_TYPES.contains(&schedule_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid schedule_type '{}'. Must be one of: {}", schedule_type, VALID_SCHEDULE_TYPES.join(", ")
+                "Invalid schedule_type '{}'. Must be one of: {}",
+                schedule_type,
+                VALID_SCHEDULE_TYPES.join(", ")
             )));
         }
         let freq = frequency.unwrap_or("monthly");
         if !VALID_FREQUENCIES.contains(&freq) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid frequency '{}'. Must be one of: {}", freq, VALID_FREQUENCIES.join(", ")
+                "Invalid frequency '{}'. Must be one of: {}",
+                freq,
+                VALID_FREQUENCIES.join(", ")
             )));
         }
         let iu = interval_unit.unwrap_or("months");
         if !VALID_INTERVAL_UNITS.contains(&iu) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid interval_unit '{}'. Must be one of: {}", iu, VALID_INTERVAL_UNITS.join(", ")
+                "Invalid interval_unit '{}'. Must be one of: {}",
+                iu,
+                VALID_INTERVAL_UNITS.join(", ")
             )));
         }
         if let Some(mt) = meter_type {
             if !VALID_METER_TYPES.contains(&mt) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid meter_type '{}'. Must be one of: {}", mt, VALID_METER_TYPES.join(", ")
+                    "Invalid meter_type '{}'. Must be one of: {}",
+                    mt,
+                    VALID_METER_TYPES.join(", ")
                 )));
             }
         }
 
         // Verify asset exists
-        let asset = self.repository.get_asset(asset_id).await?
+        let asset = self
+            .repository
+            .get_asset(asset_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Asset {asset_id} not found")))?;
 
-        if self.repository.get_pm_schedule_by_number(org_id, schedule_number).await?.is_some() {
+        if self
+            .repository
+            .get_pm_schedule_by_number(org_id, schedule_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Schedule '{schedule_number}' already exists"
             )));
         }
 
-        info!("Creating PM schedule '{}' ({}) for org {} [type={}, asset={}]",
-              schedule_number, name, org_id, schedule_type, asset.asset_number);
+        info!(
+            "Creating PM schedule '{}' ({}) for org {} [type={}, asset={}]",
+            schedule_number, name, org_id, schedule_type, asset.asset_number
+        );
 
-        self.repository.create_pm_schedule(
-            org_id, schedule_number, name, description,
-            asset_id, &asset.asset_number, &asset.name,
-            schedule_type, freq,
-            interval_value.unwrap_or(1), iu,
-            meter_type.unwrap_or(""),
-            meter_threshold.unwrap_or(serde_json::json!({})),
-            work_order_template.unwrap_or(serde_json::json!({})),
-            estimated_duration_hours.unwrap_or(0.0),
-            estimated_cost.unwrap_or("0.00"),
-            auto_generate,
-            lead_time_days.unwrap_or(7),
-            effective_start, effective_end,
-            created_by,
-        ).await
+        self.repository
+            .create_pm_schedule(
+                org_id,
+                schedule_number,
+                name,
+                description,
+                asset_id,
+                &asset.asset_number,
+                &asset.name,
+                schedule_type,
+                freq,
+                interval_value.unwrap_or(1),
+                iu,
+                meter_type.unwrap_or(""),
+                meter_threshold.unwrap_or(serde_json::json!({})),
+                work_order_template.unwrap_or(serde_json::json!({})),
+                estimated_duration_hours.unwrap_or(0.0),
+                estimated_cost.unwrap_or("0.00"),
+                auto_generate,
+                lead_time_days.unwrap_or(7),
+                effective_start,
+                effective_end,
+                created_by,
+            )
+            .await
     }
 
     /// Get a PM schedule by ID
-    pub async fn get_pm_schedule(&self, id: Uuid) -> AtlasResult<Option<PreventiveMaintenanceSchedule>> {
+    pub async fn get_pm_schedule(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<PreventiveMaintenanceSchedule>> {
         self.repository.get_pm_schedule(id).await
     }
 
     /// Get a PM schedule by number
-    pub async fn get_pm_schedule_by_number(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<Option<PreventiveMaintenanceSchedule>> {
-        self.repository.get_pm_schedule_by_number(org_id, schedule_number).await
+    pub async fn get_pm_schedule_by_number(
+        &self,
+        org_id: Uuid,
+        schedule_number: &str,
+    ) -> AtlasResult<Option<PreventiveMaintenanceSchedule>> {
+        self.repository
+            .get_pm_schedule_by_number(org_id, schedule_number)
+            .await
     }
 
     /// List PM schedules with optional filters
@@ -541,14 +725,22 @@ impl EnterpriseAssetManagementEngine {
         status: Option<&str>,
         asset_id: Option<Uuid>,
     ) -> AtlasResult<Vec<PreventiveMaintenanceSchedule>> {
-        self.repository.list_pm_schedules(org_id, status, asset_id).await
+        self.repository
+            .list_pm_schedules(org_id, status, asset_id)
+            .await
     }
 
     /// Update PM schedule status
-    pub async fn update_pm_schedule_status(&self, id: Uuid, status: &str) -> AtlasResult<PreventiveMaintenanceSchedule> {
+    pub async fn update_pm_schedule_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<PreventiveMaintenanceSchedule> {
         if !VALID_SCHEDULE_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid schedule status '{}'. Must be one of: {}", status, VALID_SCHEDULE_STATUSES.join(", ")
+                "Invalid schedule status '{}'. Must be one of: {}",
+                status,
+                VALID_SCHEDULE_STATUSES.join(", ")
             )));
         }
         info!("Updating PM schedule {} status to {}", id, status);
@@ -557,8 +749,13 @@ impl EnterpriseAssetManagementEngine {
 
     /// Delete a PM schedule by number
     pub async fn delete_pm_schedule(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<()> {
-        info!("Deleting PM schedule '{}' for org {}", schedule_number, org_id);
-        self.repository.delete_pm_schedule(org_id, schedule_number).await
+        info!(
+            "Deleting PM schedule '{}' for org {}",
+            schedule_number, org_id
+        );
+        self.repository
+            .delete_pm_schedule(org_id, schedule_number)
+            .await
     }
 
     // ========================================================================

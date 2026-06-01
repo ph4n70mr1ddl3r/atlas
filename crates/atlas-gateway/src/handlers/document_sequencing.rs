@@ -9,18 +9,17 @@
 //! - Audit trail
 //! - Dashboard summary
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Sequence Management
@@ -54,35 +53,49 @@ pub async fn create_sequence(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.core.document_sequencing_engine.create_sequence(
-        org_id,
-        &payload.code,
-        &payload.name,
-        payload.description.as_deref(),
-        payload.sequence_type.as_deref().unwrap_or("gap_permitted"),
-        payload.document_type.as_deref().unwrap_or("custom"),
-        payload.initial_value.unwrap_or(1),
-        payload.increment_by.unwrap_or(1),
-        payload.max_value,
-        payload.cycle_flag.unwrap_or(false),
-        payload.prefix.as_deref(),
-        payload.suffix.as_deref(),
-        payload.pad_length.unwrap_or(0),
-        payload.pad_character.as_deref().unwrap_or("0"),
-        payload.reset_frequency.as_deref(),
-        payload.effective_from,
-        payload.effective_to,
-        Some(user_id),
-    ).await {
-        Ok(seq) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(seq)))),
+    match state
+        .core
+        .document_sequencing_engine
+        .create_sequence(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            payload.sequence_type.as_deref().unwrap_or("gap_permitted"),
+            payload.document_type.as_deref().unwrap_or("custom"),
+            payload.initial_value.unwrap_or(1),
+            payload.increment_by.unwrap_or(1),
+            payload.max_value,
+            payload.cycle_flag.unwrap_or(false),
+            payload.prefix.as_deref(),
+            payload.suffix.as_deref(),
+            payload.pad_length.unwrap_or(0),
+            payload.pad_character.as_deref().unwrap_or("0"),
+            payload.reset_frequency.as_deref(),
+            payload.effective_from,
+            payload.effective_to,
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(seq) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(seq)),
+        )),
         Err(e) => {
             error!("Failed to create document sequence: {}", e);
             Err(match e {
                 atlas_shared::AtlasError::ValidationFailed(msg) => {
-                    return Ok((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": msg}))));
+                    return Ok((
+                        StatusCode::BAD_REQUEST,
+                        Json(serde_json::json!({"error": msg})),
+                    ));
                 }
                 atlas_shared::AtlasError::Conflict(msg) => {
-                    return Ok((StatusCode::CONFLICT, Json(serde_json::json!({"error": msg}))));
+                    return Ok((
+                        StatusCode::CONFLICT,
+                        Json(serde_json::json!({"error": msg})),
+                    ));
                 }
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -102,11 +115,16 @@ pub async fn list_sequences(
     Query(query): Query<ListSequencesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.core.document_sequencing_engine.list_sequences(
-        org_id,
-        query.status.as_deref(),
-        query.document_type.as_deref(),
-    ).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .list_sequences(
+            org_id,
+            query.status.as_deref(),
+            query.document_type.as_deref(),
+        )
+        .await
+    {
         Ok(sequences) => Ok(Json(serde_json::json!({ "data": sequences }))),
         Err(e) => {
             error!("Failed to list document sequences: {}", e);
@@ -120,7 +138,12 @@ pub async fn get_sequence(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.core.document_sequencing_engine.get_sequence_by_id(id).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .get_sequence_by_id(id)
+        .await
+    {
         Ok(Some(seq)) => Ok(Json(crate::handlers::records::to_json_or_null(seq))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -136,7 +159,12 @@ pub async fn get_sequence_by_code(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.core.document_sequencing_engine.get_sequence(org_id, &code).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .get_sequence(org_id, &code)
+        .await
+    {
         Ok(Some(seq)) => Ok(Json(crate::handlers::records::to_json_or_null(seq))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -151,12 +179,18 @@ pub async fn activate_sequence(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.core.document_sequencing_engine.activate_sequence(id).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .activate_sequence(id)
+        .await
+    {
         Ok(seq) => Ok(Json(crate::handlers::records::to_json_or_null(seq))),
         Err(e) => {
             error!("Failed to activate document sequence: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -169,12 +203,18 @@ pub async fn deactivate_sequence(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.core.document_sequencing_engine.deactivate_sequence(id).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .deactivate_sequence(id)
+        .await
+    {
         Ok(seq) => Ok(Json(crate::handlers::records::to_json_or_null(seq))),
         Err(e) => {
             error!("Failed to deactivate document sequence: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -188,7 +228,12 @@ pub async fn delete_sequence(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.core.document_sequencing_engine.delete_sequence(org_id, &code).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .delete_sequence(org_id, &code)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete document sequence: {}", e);
@@ -222,20 +267,29 @@ pub async fn generate_number(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.core.document_sequencing_engine.generate_number(
-        org_id,
-        &payload.document_category,
-        payload.business_unit_id,
-        payload.ledger_id,
-        payload.document_id,
-        payload.document_number.as_deref(),
-        Some(user_id),
-    ).await {
-        Ok(audit) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(audit)))),
+    match state
+        .core
+        .document_sequencing_engine
+        .generate_number(
+            org_id,
+            &payload.document_category,
+            payload.business_unit_id,
+            payload.ledger_id,
+            payload.document_id,
+            payload.document_number.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(audit) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(audit)),
+        )),
         Err(e) => {
             error!("Failed to generate document number: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -260,20 +314,29 @@ pub async fn generate_number_direct(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.core.document_sequencing_engine.generate_number_direct(
-        org_id,
-        &payload.sequence_code,
-        &payload.document_category,
-        payload.document_id,
-        payload.document_number.as_deref(),
-        payload.business_unit_id,
-        Some(user_id),
-    ).await {
-        Ok(audit) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(audit)))),
+    match state
+        .core
+        .document_sequencing_engine
+        .generate_number_direct(
+            org_id,
+            &payload.sequence_code,
+            &payload.document_category,
+            payload.document_id,
+            payload.document_number.as_deref(),
+            payload.business_unit_id,
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(audit) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(audit)),
+        )),
         Err(e) => {
             error!("Failed to generate direct document number: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -305,19 +368,27 @@ pub async fn create_assignment(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.core.document_sequencing_engine.create_assignment(
-        org_id,
-        &payload.sequence_code,
-        &payload.document_category,
-        payload.business_unit_id,
-        payload.ledger_id,
-        payload.method.as_deref().unwrap_or("automatic"),
-        payload.effective_from,
-        payload.effective_to,
-        payload.priority.unwrap_or(0),
-        Some(user_id),
-    ).await {
-        Ok(assignment) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(assignment)))),
+    match state
+        .core
+        .document_sequencing_engine
+        .create_assignment(
+            org_id,
+            &payload.sequence_code,
+            &payload.document_category,
+            payload.business_unit_id,
+            payload.ledger_id,
+            payload.method.as_deref().unwrap_or("automatic"),
+            payload.effective_from,
+            payload.effective_to,
+            payload.priority.unwrap_or(0),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(assignment) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(assignment)),
+        )),
         Err(e) => {
             error!("Failed to create sequence assignment: {}", e);
             Err(match e {
@@ -335,7 +406,12 @@ pub async fn get_assignment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.core.document_sequencing_engine.get_assignment(id).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .get_assignment(id)
+        .await
+    {
         Ok(Some(assignment)) => Ok(Json(crate::handlers::records::to_json_or_null(assignment))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -356,7 +432,12 @@ pub async fn list_assignments(
     Query(query): Query<ListAssignmentsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.core.document_sequencing_engine.list_assignments(org_id, query.sequence_id).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .list_assignments(org_id, query.sequence_id)
+        .await
+    {
         Ok(assignments) => Ok(Json(serde_json::json!({ "data": assignments }))),
         Err(e) => {
             error!("Failed to list sequence assignments: {}", e);
@@ -370,7 +451,12 @@ pub async fn deactivate_assignment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.core.document_sequencing_engine.deactivate_assignment(id).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .deactivate_assignment(id)
+        .await
+    {
         Ok(assignment) => Ok(Json(crate::handlers::records::to_json_or_null(assignment))),
         Err(e) => {
             error!("Failed to deactivate sequence assignment: {}", e);
@@ -388,7 +474,12 @@ pub async fn delete_assignment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.core.document_sequencing_engine.delete_assignment(id).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .delete_assignment(id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete sequence assignment: {}", e);
@@ -413,11 +504,12 @@ pub async fn list_audit_entries(
     Query(query): Query<ListAuditEntriesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.core.document_sequencing_engine.list_audit_entries(
-        org_id,
-        query.sequence_id,
-        query.limit,
-    ).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .list_audit_entries(org_id, query.sequence_id, query.limit)
+        .await
+    {
         Ok(entries) => Ok(Json(serde_json::json!({ "data": entries }))),
         Err(e) => {
             error!("Failed to list audit entries: {}", e);
@@ -431,7 +523,12 @@ pub async fn get_audit_by_document(
     _claims: Extension<Claims>,
     Path(document_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.core.document_sequencing_engine.get_audit_by_document(document_id).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .get_audit_by_document(document_id)
+        .await
+    {
         Ok(Some(entry)) => Ok(Json(crate::handlers::records::to_json_or_null(entry))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -450,7 +547,12 @@ pub async fn get_document_sequencing_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.core.document_sequencing_engine.get_dashboard_summary(org_id).await {
+    match state
+        .core
+        .document_sequencing_engine
+        .get_dashboard_summary(org_id)
+        .await
+    {
         Ok(summary) => Ok(Json(crate::handlers::records::to_json_or_null(summary))),
         Err(e) => {
             error!("Failed to get document sequencing dashboard: {}", e);

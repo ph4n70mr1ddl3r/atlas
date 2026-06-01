@@ -10,8 +10,10 @@
 //!
 //! Oracle Fusion equivalent: Project Management > Resource Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ProjectResourceManagementEngine;
-pub use repository::{ProjectResourceManagementRepository, PostgresProjectResourceManagementRepository};
+pub use repository::{
+    PostgresProjectResourceManagementRepository, ProjectResourceManagementRepository,
+};

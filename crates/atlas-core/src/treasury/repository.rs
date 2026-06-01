@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for counterparties, treasury deals, and settlements.
 
-use atlas_shared::{
-    TreasuryCounterparty, TreasuryDeal, TreasurySettlement, TreasuryDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, TreasuryCounterparty, TreasuryDashboardSummary, TreasuryDeal,
+    TreasurySettlement,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -31,9 +31,17 @@ pub trait TreasuryRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TreasuryCounterparty>;
 
-    async fn get_counterparty(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<TreasuryCounterparty>>;
+    async fn get_counterparty(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TreasuryCounterparty>>;
     async fn get_counterparty_by_id(&self, id: Uuid) -> AtlasResult<Option<TreasuryCounterparty>>;
-    async fn list_counterparties(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<TreasuryCounterparty>>;
+    async fn list_counterparties(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<TreasuryCounterparty>>;
     async fn delete_counterparty(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Deals
@@ -62,8 +70,17 @@ pub trait TreasuryRepository: Send + Sync {
     ) -> AtlasResult<TreasuryDeal>;
 
     async fn get_deal(&self, id: Uuid) -> AtlasResult<Option<TreasuryDeal>>;
-    async fn get_deal_by_number(&self, org_id: Uuid, deal_number: &str) -> AtlasResult<Option<TreasuryDeal>>;
-    async fn list_deals(&self, org_id: Uuid, deal_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<TreasuryDeal>>;
+    async fn get_deal_by_number(
+        &self,
+        org_id: Uuid,
+        deal_number: &str,
+    ) -> AtlasResult<Option<TreasuryDeal>>;
+    async fn list_deals(
+        &self,
+        org_id: Uuid,
+        deal_type: Option<&str>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<TreasuryDeal>>;
     async fn update_deal_status(
         &self,
         id: Uuid,
@@ -72,7 +89,12 @@ pub trait TreasuryRepository: Send + Sync {
         settled_at: Option<chrono::DateTime<chrono::Utc>>,
         matured_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<TreasuryDeal>;
-    async fn update_deal_interest(&self, id: Uuid, accrued_interest: &str, settlement_amount: Option<&str>) -> AtlasResult<()>;
+    async fn update_deal_interest(
+        &self,
+        id: Uuid,
+        accrued_interest: &str,
+        settlement_amount: Option<&str>,
+    ) -> AtlasResult<()>;
 
     // Settlements
     async fn create_settlement(
@@ -90,7 +112,11 @@ pub trait TreasuryRepository: Send + Sync {
     ) -> AtlasResult<TreasurySettlement>;
 
     async fn list_settlements(&self, deal_id: Uuid) -> AtlasResult<Vec<TreasurySettlement>>;
-    async fn update_settlement_status(&self, id: Uuid, status: &str) -> AtlasResult<TreasurySettlement>;
+    async fn update_settlement_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<TreasurySettlement>;
 
     // Dashboard
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<TreasuryDashboardSummary>;
@@ -102,7 +128,7 @@ pub struct PostgresTreasuryRepository {
 }
 
 impl PostgresTreasuryRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -222,10 +248,17 @@ impl TreasuryRepository for PostgresTreasuryRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(counterparty_code).bind(name).bind(counterparty_type)
-        .bind(country_code).bind(credit_rating).bind(credit_limit)
+        .bind(org_id)
+        .bind(counterparty_code)
+        .bind(name)
+        .bind(counterparty_type)
+        .bind(country_code)
+        .bind(credit_rating)
+        .bind(credit_limit)
         .bind(settlement_currency)
-        .bind(contact_name).bind(contact_email).bind(contact_phone)
+        .bind(contact_name)
+        .bind(contact_email)
+        .bind(contact_phone)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -234,7 +267,11 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         Ok(self.row_to_counterparty(&row))
     }
 
-    async fn get_counterparty(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<TreasuryCounterparty>> {
+    async fn get_counterparty(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TreasuryCounterparty>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.treasury_counterparties WHERE organization_id = $1 AND counterparty_code = $2"
         )
@@ -254,7 +291,11 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         Ok(row.map(|r| self.row_to_counterparty(&r)))
     }
 
-    async fn list_counterparties(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<TreasuryCounterparty>> {
+    async fn list_counterparties(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<TreasuryCounterparty>> {
         let rows = if active_only {
             sqlx::query(
                 "SELECT * FROM _atlas.treasury_counterparties WHERE organization_id = $1 AND is_active = true ORDER BY counterparty_code"
@@ -331,14 +372,26 @@ impl TreasuryRepository for PostgresTreasuryRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(deal_number).bind(deal_type).bind(description)
-        .bind(counterparty_id).bind(counterparty_name)
-        .bind(currency_code).bind(principal_amount)
-        .bind(interest_rate).bind(interest_basis)
-        .bind(start_date).bind(maturity_date).bind(term_days)
-        .bind(fx_buy_currency).bind(fx_buy_amount)
-        .bind(fx_sell_currency).bind(fx_sell_amount).bind(fx_rate)
-        .bind(gl_account_code).bind(created_by)
+        .bind(org_id)
+        .bind(deal_number)
+        .bind(deal_type)
+        .bind(description)
+        .bind(counterparty_id)
+        .bind(counterparty_name)
+        .bind(currency_code)
+        .bind(principal_amount)
+        .bind(interest_rate)
+        .bind(interest_basis)
+        .bind(start_date)
+        .bind(maturity_date)
+        .bind(term_days)
+        .bind(fx_buy_currency)
+        .bind(fx_buy_amount)
+        .bind(fx_sell_currency)
+        .bind(fx_sell_amount)
+        .bind(fx_rate)
+        .bind(gl_account_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -355,18 +408,28 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         Ok(row.map(|r| self.row_to_deal(&r)))
     }
 
-    async fn get_deal_by_number(&self, org_id: Uuid, deal_number: &str) -> AtlasResult<Option<TreasuryDeal>> {
+    async fn get_deal_by_number(
+        &self,
+        org_id: Uuid,
+        deal_number: &str,
+    ) -> AtlasResult<Option<TreasuryDeal>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.treasury_deals WHERE organization_id = $1 AND deal_number = $2"
+            "SELECT * FROM _atlas.treasury_deals WHERE organization_id = $1 AND deal_number = $2",
         )
-        .bind(org_id).bind(deal_number)
+        .bind(org_id)
+        .bind(deal_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_deal(&r)))
     }
 
-    async fn list_deals(&self, org_id: Uuid, deal_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<TreasuryDeal>> {
+    async fn list_deals(
+        &self,
+        org_id: Uuid,
+        deal_type: Option<&str>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<TreasuryDeal>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.treasury_deals
@@ -376,7 +439,9 @@ impl TreasuryRepository for PostgresTreasuryRepository {
             ORDER BY deal_number
             ",
         )
-        .bind(org_id).bind(deal_type).bind(status)
+        .bind(org_id)
+        .bind(deal_type)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -411,7 +476,12 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         Ok(self.row_to_deal(&row))
     }
 
-    async fn update_deal_interest(&self, id: Uuid, accrued_interest: &str, settlement_amount: Option<&str>) -> AtlasResult<()> {
+    async fn update_deal_interest(
+        &self,
+        id: Uuid,
+        accrued_interest: &str,
+        settlement_amount: Option<&str>,
+    ) -> AtlasResult<()> {
         if let Some(sa) = settlement_amount {
             sqlx::query(
                 r"
@@ -422,7 +492,9 @@ impl TreasuryRepository for PostgresTreasuryRepository {
                 WHERE id = $1
                 ",
             )
-            .bind(id).bind(accrued_interest).bind(sa)
+            .bind(id)
+            .bind(accrued_interest)
+            .bind(sa)
             .execute(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -435,7 +507,8 @@ impl TreasuryRepository for PostgresTreasuryRepository {
                 WHERE id = $1
                 ",
             )
-            .bind(id).bind(accrued_interest)
+            .bind(id)
+            .bind(accrued_interest)
             .execute(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -468,10 +541,16 @@ impl TreasuryRepository for PostgresTreasuryRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(deal_id).bind(settlement_number).bind(settlement_type)
+        .bind(org_id)
+        .bind(deal_id)
+        .bind(settlement_number)
+        .bind(settlement_type)
         .bind(settlement_date)
-        .bind(principal_amount).bind(interest_amount).bind(total_amount)
-        .bind(payment_reference).bind(created_by)
+        .bind(principal_amount)
+        .bind(interest_amount)
+        .bind(total_amount)
+        .bind(payment_reference)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -481,7 +560,7 @@ impl TreasuryRepository for PostgresTreasuryRepository {
 
     async fn list_settlements(&self, deal_id: Uuid) -> AtlasResult<Vec<TreasurySettlement>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.treasury_settlements WHERE deal_id = $1 ORDER BY settlement_date"
+            "SELECT * FROM _atlas.treasury_settlements WHERE deal_id = $1 ORDER BY settlement_date",
         )
         .bind(deal_id)
         .fetch_all(&self.pool)
@@ -490,7 +569,11 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         Ok(rows.iter().map(|r| self.row_to_settlement(r)).collect())
     }
 
-    async fn update_settlement_status(&self, id: Uuid, status: &str) -> AtlasResult<TreasurySettlement> {
+    async fn update_settlement_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<TreasurySettlement> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.treasury_settlements
@@ -499,7 +582,8 @@ impl TreasuryRepository for PostgresTreasuryRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status)
+        .bind(id)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -539,7 +623,9 @@ impl TreasuryRepository for PostgresTreasuryRepository {
         let inv: serde_json::Value = rows.try_get("total_inv").unwrap_or(serde_json::json!(0));
         let bor: serde_json::Value = rows.try_get("total_bor").unwrap_or(serde_json::json!(0));
         let fx: serde_json::Value = rows.try_get("total_fx").unwrap_or(serde_json::json!(0));
-        let interest: serde_json::Value = rows.try_get("total_interest").unwrap_or(serde_json::json!(0));
+        let interest: serde_json::Value = rows
+            .try_get("total_interest")
+            .unwrap_or(serde_json::json!(0));
 
         // Count active counterparties
         let cp_count: i64 = sqlx::query(

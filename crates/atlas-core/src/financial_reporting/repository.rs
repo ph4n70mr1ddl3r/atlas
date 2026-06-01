@@ -3,13 +3,12 @@
 //! `PostgreSQL` storage for report templates, rows, columns, runs, results,
 //! and user favourites.
 
-use atlas_shared::{
-    FinancialReportTemplate, FinancialReportRow, FinancialReportColumn,
-    FinancialReportRun, FinancialReportResult, FinancialReportFavourite,
-    FinancialReportingSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, FinancialReportColumn, FinancialReportFavourite,
+    FinancialReportResult, FinancialReportRow, FinancialReportRun, FinancialReportTemplate,
+    FinancialReportingSummary,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -37,9 +36,17 @@ pub trait FinancialReportingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<FinancialReportTemplate>;
 
-    async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<FinancialReportTemplate>>;
+    async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<FinancialReportTemplate>>;
     async fn get_template_by_id(&self, id: Uuid) -> AtlasResult<Option<FinancialReportTemplate>>;
-    async fn list_templates(&self, org_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<FinancialReportTemplate>>;
+    async fn list_templates(
+        &self,
+        org_id: Uuid,
+        report_type: Option<&str>,
+    ) -> AtlasResult<Vec<FinancialReportTemplate>>;
     async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // ========================================================================
@@ -69,7 +76,10 @@ pub trait FinancialReportingRepository: Send + Sync {
     ) -> AtlasResult<FinancialReportRow>;
 
     async fn get_row(&self, id: Uuid) -> AtlasResult<Option<FinancialReportRow>>;
-    async fn list_rows_by_template(&self, template_id: Uuid) -> AtlasResult<Vec<FinancialReportRow>>;
+    async fn list_rows_by_template(
+        &self,
+        template_id: Uuid,
+    ) -> AtlasResult<Vec<FinancialReportRow>>;
     async fn delete_row(&self, id: Uuid) -> AtlasResult<()>;
 
     // ========================================================================
@@ -94,7 +104,10 @@ pub trait FinancialReportingRepository: Send + Sync {
     ) -> AtlasResult<FinancialReportColumn>;
 
     async fn get_column(&self, id: Uuid) -> AtlasResult<Option<FinancialReportColumn>>;
-    async fn list_columns_by_template(&self, template_id: Uuid) -> AtlasResult<Vec<FinancialReportColumn>>;
+    async fn list_columns_by_template(
+        &self,
+        template_id: Uuid,
+    ) -> AtlasResult<Vec<FinancialReportColumn>>;
     async fn delete_column(&self, id: Uuid) -> AtlasResult<()>;
 
     // ========================================================================
@@ -118,8 +131,17 @@ pub trait FinancialReportingRepository: Send + Sync {
     ) -> AtlasResult<FinancialReportRun>;
 
     async fn get_run(&self, id: Uuid) -> AtlasResult<Option<FinancialReportRun>>;
-    async fn get_run_by_number(&self, org_id: Uuid, run_number: &str) -> AtlasResult<Option<FinancialReportRun>>;
-    async fn list_runs(&self, org_id: Uuid, template_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<FinancialReportRun>>;
+    async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+    ) -> AtlasResult<Option<FinancialReportRun>>;
+    async fn list_runs(
+        &self,
+        org_id: Uuid,
+        template_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<FinancialReportRun>>;
     async fn update_run_status(
         &self,
         id: Uuid,
@@ -178,8 +200,17 @@ pub trait FinancialReportingRepository: Send + Sync {
         position: i32,
     ) -> AtlasResult<FinancialReportFavourite>;
 
-    async fn list_favourites(&self, org_id: Uuid, user_id: Uuid) -> AtlasResult<Vec<FinancialReportFavourite>>;
-    async fn delete_favourite(&self, org_id: Uuid, user_id: Uuid, template_id: Uuid) -> AtlasResult<()>;
+    async fn list_favourites(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+    ) -> AtlasResult<Vec<FinancialReportFavourite>>;
+    async fn delete_favourite(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+        template_id: Uuid,
+    ) -> AtlasResult<()>;
 
     // ========================================================================
     // Dashboard
@@ -194,7 +225,7 @@ pub struct PostgresFinancialReportingRepository {
 }
 
 impl PostgresFinancialReportingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -218,7 +249,9 @@ fn row_to_template(row: &sqlx::postgres::PgRow) -> FinancialReportTemplate {
         column_display_order: row.get("column_display_order"),
         rounding_option: row.get("rounding_option"),
         show_zero_amounts: row.get("show_zero_amounts"),
-        segment_filter: row.try_get("segment_filter").unwrap_or(serde_json::json!({})),
+        segment_filter: row
+            .try_get("segment_filter")
+            .unwrap_or(serde_json::json!({})),
         is_active: row.get("is_active"),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.get("created_by"),
@@ -238,9 +271,13 @@ fn row_to_report_row(row: &sqlx::postgres::PgRow) -> FinancialReportRow {
         indent_level: row.get("indent_level"),
         account_range_from: row.get("account_range_from"),
         account_range_to: row.get("account_range_to"),
-        account_filter: row.try_get("account_filter").unwrap_or(serde_json::json!({})),
+        account_filter: row
+            .try_get("account_filter")
+            .unwrap_or(serde_json::json!({})),
         compute_action: row.get("compute_action"),
-        compute_source_rows: row.try_get("compute_source_rows").unwrap_or(serde_json::json!([])),
+        compute_source_rows: row
+            .try_get("compute_source_rows")
+            .unwrap_or(serde_json::json!([])),
         show_line: row.get("show_line"),
         bold: row.get("bold"),
         underline: row.get("underline"),
@@ -266,7 +303,9 @@ fn row_to_column(row: &sqlx::postgres::PgRow) -> FinancialReportColumn {
         period_offset: row.get("period_offset"),
         period_type: row.get("period_type"),
         compute_action: row.get("compute_action"),
-        compute_source_columns: row.try_get("compute_source_columns").unwrap_or(serde_json::json!([])),
+        compute_source_columns: row
+            .try_get("compute_source_columns")
+            .unwrap_or(serde_json::json!([])),
         show_column: row.get("show_column"),
         column_width: row.get("column_width"),
         format_override: row.get("format_override"),
@@ -289,14 +328,18 @@ fn row_to_run(row: &sqlx::postgres::PgRow) -> FinancialReportRun {
         period_from: row.get("period_from"),
         period_to: row.get("period_to"),
         currency_code: row.get("currency_code"),
-        segment_filter: row.try_get("segment_filter").unwrap_or(serde_json::json!({})),
+        segment_filter: row
+            .try_get("segment_filter")
+            .unwrap_or(serde_json::json!({})),
         include_unposted: row.get("include_unposted"),
         total_debit: {
             let v: serde_json::Value = row.try_get("total_debit").unwrap_or(serde_json::json!("0"));
             v.to_string()
         },
         total_credit: {
-            let v: serde_json::Value = row.try_get("total_credit").unwrap_or(serde_json::json!("0"));
+            let v: serde_json::Value = row
+                .try_get("total_credit")
+                .unwrap_or(serde_json::json!("0"));
             v.to_string()
         },
         net_change: {
@@ -304,11 +347,15 @@ fn row_to_run(row: &sqlx::postgres::PgRow) -> FinancialReportRun {
             v.to_string()
         },
         beginning_balance: {
-            let v: serde_json::Value = row.try_get("beginning_balance").unwrap_or(serde_json::json!("0"));
+            let v: serde_json::Value = row
+                .try_get("beginning_balance")
+                .unwrap_or(serde_json::json!("0"));
             v.to_string()
         },
         ending_balance: {
-            let v: serde_json::Value = row.try_get("ending_balance").unwrap_or(serde_json::json!("0"));
+            let v: serde_json::Value = row
+                .try_get("ending_balance")
+                .unwrap_or(serde_json::json!("0"));
             v.to_string()
         },
         row_count: row.get("row_count"),
@@ -338,19 +385,27 @@ fn row_to_result(row: &sqlx::postgres::PgRow) -> FinancialReportResult {
             v.to_string()
         },
         debit_amount: {
-            let v: serde_json::Value = row.try_get("debit_amount").unwrap_or(serde_json::json!("0"));
+            let v: serde_json::Value = row
+                .try_get("debit_amount")
+                .unwrap_or(serde_json::json!("0"));
             v.to_string()
         },
         credit_amount: {
-            let v: serde_json::Value = row.try_get("credit_amount").unwrap_or(serde_json::json!("0"));
+            let v: serde_json::Value = row
+                .try_get("credit_amount")
+                .unwrap_or(serde_json::json!("0"));
             v.to_string()
         },
         beginning_balance: {
-            let v: serde_json::Value = row.try_get("beginning_balance").unwrap_or(serde_json::json!("0"));
+            let v: serde_json::Value = row
+                .try_get("beginning_balance")
+                .unwrap_or(serde_json::json!("0"));
             v.to_string()
         },
         ending_balance: {
-            let v: serde_json::Value = row.try_get("ending_balance").unwrap_or(serde_json::json!("0"));
+            let v: serde_json::Value = row
+                .try_get("ending_balance")
+                .unwrap_or(serde_json::json!("0"));
             v.to_string()
         },
         is_computed: row.get("is_computed"),
@@ -399,9 +454,18 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(report_type)
-        .bind(currency_code).bind(row_display_order).bind(column_display_order)
-        .bind(rounding_option).bind(show_zero_amounts).bind(segment_filter).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(report_type)
+        .bind(currency_code)
+        .bind(row_display_order)
+        .bind(column_display_order)
+        .bind(rounding_option)
+        .bind(show_zero_amounts)
+        .bind(segment_filter)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -409,7 +473,11 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         Ok(row_to_template(&row))
     }
 
-    async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<FinancialReportTemplate>> {
+    async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<FinancialReportTemplate>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.financial_report_templates WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -429,7 +497,11 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         Ok(row.map(|r| row_to_template(&r)))
     }
 
-    async fn list_templates(&self, org_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<FinancialReportTemplate>> {
+    async fn list_templates(
+        &self,
+        org_id: Uuid,
+        report_type: Option<&str>,
+    ) -> AtlasResult<Vec<FinancialReportTemplate>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.financial_report_templates
@@ -439,7 +511,8 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             ORDER BY name
             ",
         )
-        .bind(org_id).bind(report_type)
+        .bind(org_id)
+        .bind(report_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -494,11 +567,24 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(template_id).bind(row_number).bind(line_type).bind(label)
-        .bind(indent_level).bind(account_range_from).bind(account_range_to)
-        .bind(account_filter).bind(compute_action).bind(compute_source_rows)
-        .bind(show_line).bind(bold).bind(underline).bind(double_underline)
-        .bind(page_break_before).bind(scaling_factor).bind(parent_row_id)
+        .bind(org_id)
+        .bind(template_id)
+        .bind(row_number)
+        .bind(line_type)
+        .bind(label)
+        .bind(indent_level)
+        .bind(account_range_from)
+        .bind(account_range_to)
+        .bind(account_filter)
+        .bind(compute_action)
+        .bind(compute_source_rows)
+        .bind(show_line)
+        .bind(bold)
+        .bind(underline)
+        .bind(double_underline)
+        .bind(page_break_before)
+        .bind(scaling_factor)
+        .bind(parent_row_id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -515,9 +601,12 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         Ok(row.map(|r| row_to_report_row(&r)))
     }
 
-    async fn list_rows_by_template(&self, template_id: Uuid) -> AtlasResult<Vec<FinancialReportRow>> {
+    async fn list_rows_by_template(
+        &self,
+        template_id: Uuid,
+    ) -> AtlasResult<Vec<FinancialReportRow>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.financial_report_rows WHERE template_id = $1 ORDER BY row_number"
+            "SELECT * FROM _atlas.financial_report_rows WHERE template_id = $1 ORDER BY row_number",
         )
         .bind(template_id)
         .fetch_all(&self.pool)
@@ -566,10 +655,19 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(template_id).bind(column_number).bind(column_type)
-        .bind(header_label).bind(sub_header_label).bind(period_offset).bind(period_type)
-        .bind(compute_action).bind(compute_source_columns)
-        .bind(show_column).bind(column_width).bind(format_override)
+        .bind(org_id)
+        .bind(template_id)
+        .bind(column_number)
+        .bind(column_type)
+        .bind(header_label)
+        .bind(sub_header_label)
+        .bind(period_offset)
+        .bind(period_type)
+        .bind(compute_action)
+        .bind(compute_source_columns)
+        .bind(show_column)
+        .bind(column_width)
+        .bind(format_override)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -586,7 +684,10 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         Ok(row.map(|r| row_to_column(&r)))
     }
 
-    async fn list_columns_by_template(&self, template_id: Uuid) -> AtlasResult<Vec<FinancialReportColumn>> {
+    async fn list_columns_by_template(
+        &self,
+        template_id: Uuid,
+    ) -> AtlasResult<Vec<FinancialReportColumn>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.financial_report_columns WHERE template_id = $1 ORDER BY column_number"
         )
@@ -635,9 +736,18 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(template_id).bind(run_number).bind(name).bind(description)
-        .bind(as_of_date).bind(period_from).bind(period_to).bind(currency_code)
-        .bind(segment_filter).bind(include_unposted).bind(created_by)
+        .bind(org_id)
+        .bind(template_id)
+        .bind(run_number)
+        .bind(name)
+        .bind(description)
+        .bind(as_of_date)
+        .bind(period_from)
+        .bind(period_to)
+        .bind(currency_code)
+        .bind(segment_filter)
+        .bind(include_unposted)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -654,7 +764,11 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         Ok(row.map(|r| row_to_run(&r)))
     }
 
-    async fn get_run_by_number(&self, org_id: Uuid, run_number: &str) -> AtlasResult<Option<FinancialReportRun>> {
+    async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+    ) -> AtlasResult<Option<FinancialReportRun>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.financial_report_runs WHERE organization_id = $1 AND run_number = $2"
         )
@@ -665,7 +779,12 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         Ok(row.map(|r| row_to_run(&r)))
     }
 
-    async fn list_runs(&self, org_id: Uuid, template_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<FinancialReportRun>> {
+    async fn list_runs(
+        &self,
+        org_id: Uuid,
+        template_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<FinancialReportRun>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.financial_report_runs
@@ -675,7 +794,9 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(template_id).bind(status)
+        .bind(org_id)
+        .bind(template_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -705,7 +826,11 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(generated_by).bind(approved_by).bind(published_by)
+        .bind(id)
+        .bind(status)
+        .bind(generated_by)
+        .bind(approved_by)
+        .bind(published_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -731,8 +856,13 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(total_debit).bind(total_credit).bind(net_change)
-        .bind(beginning_balance).bind(ending_balance).bind(row_count)
+        .bind(id)
+        .bind(total_debit)
+        .bind(total_credit)
+        .bind(net_change)
+        .bind(beginning_balance)
+        .bind(ending_balance)
+        .bind(row_count)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -775,12 +905,21 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(run_id).bind(row_id).bind(column_id)
-        .bind(row_number).bind(column_number)
-        .bind(amount).bind(debit_amount).bind(credit_amount)
-        .bind(beginning_balance).bind(ending_balance)
-        .bind(is_computed).bind(compute_note)
-        .bind(display_amount).bind(display_format)
+        .bind(org_id)
+        .bind(run_id)
+        .bind(row_id)
+        .bind(column_id)
+        .bind(row_number)
+        .bind(column_number)
+        .bind(amount)
+        .bind(debit_amount)
+        .bind(credit_amount)
+        .bind(beginning_balance)
+        .bind(ending_balance)
+        .bind(is_computed)
+        .bind(compute_note)
+        .bind(display_amount)
+        .bind(display_format)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -830,7 +969,11 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(user_id).bind(template_id).bind(display_name).bind(position)
+        .bind(org_id)
+        .bind(user_id)
+        .bind(template_id)
+        .bind(display_name)
+        .bind(position)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -846,7 +989,11 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         })
     }
 
-    async fn list_favourites(&self, org_id: Uuid, user_id: Uuid) -> AtlasResult<Vec<FinancialReportFavourite>> {
+    async fn list_favourites(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+    ) -> AtlasResult<Vec<FinancialReportFavourite>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.financial_report_favourites WHERE organization_id = $1 AND user_id = $2 ORDER BY position"
         )
@@ -854,18 +1001,26 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| FinancialReportFavourite {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            user_id: r.get("user_id"),
-            template_id: r.get("template_id"),
-            display_name: r.get("display_name"),
-            position: r.get("position"),
-            created_at: r.get("created_at"),
-        }).collect())
+        Ok(rows
+            .iter()
+            .map(|r| FinancialReportFavourite {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                user_id: r.get("user_id"),
+                template_id: r.get("template_id"),
+                display_name: r.get("display_name"),
+                position: r.get("position"),
+                created_at: r.get("created_at"),
+            })
+            .collect())
     }
 
-    async fn delete_favourite(&self, org_id: Uuid, user_id: Uuid, template_id: Uuid) -> AtlasResult<()> {
+    async fn delete_favourite(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+        template_id: Uuid,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "DELETE FROM _atlas.financial_report_favourites WHERE organization_id = $1 AND user_id = $2 AND template_id = $3"
         )
@@ -882,7 +1037,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
 
     async fn get_reporting_summary(&self, org_id: Uuid) -> AtlasResult<FinancialReportingSummary> {
         let template_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.financial_report_templates WHERE organization_id = $1"
+            "SELECT COUNT(*) FROM _atlas.financial_report_templates WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -898,7 +1053,7 @@ impl FinancialReportingRepository for PostgresFinancialReportingRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let run_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.financial_report_runs WHERE organization_id = $1"
+            "SELECT COUNT(*) FROM _atlas.financial_report_runs WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)

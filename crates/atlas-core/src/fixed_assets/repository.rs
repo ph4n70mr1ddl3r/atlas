@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for asset categories, books, fixed assets,
 //! depreciation history, transfers, and retirements.
 
-use atlas_shared::{
-    AssetCategory, AssetBook, FixedAsset, AssetDepreciationHistory,
-    AssetTransfer, AssetRetirement,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AssetBook, AssetCategory, AssetDepreciationHistory, AssetRetirement, AssetTransfer, AtlasError,
+    AtlasResult, FixedAsset,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -97,11 +96,44 @@ pub trait FixedAssetRepository: Send + Sync {
     ) -> AtlasResult<FixedAsset>;
 
     async fn get_asset(&self, id: Uuid) -> AtlasResult<Option<FixedAsset>>;
-    async fn get_asset_by_number(&self, org_id: Uuid, asset_number: &str) -> AtlasResult<Option<FixedAsset>>;
-    async fn list_assets(&self, org_id: Uuid, status: Option<&str>, category_code: Option<&str>, book_code: Option<&str>) -> AtlasResult<Vec<FixedAsset>>;
-    async fn update_asset_status(&self, id: Uuid, status: &str, in_service_date: Option<chrono::NaiveDate>, disposal_date: Option<chrono::NaiveDate>, retirement_date: Option<chrono::NaiveDate>) -> AtlasResult<FixedAsset>;
-    async fn update_asset_depreciation(&self, id: Uuid, accumulated_depreciation: &str, net_book_value: &str, periods_depreciated: i32, last_depreciation_date: Option<chrono::NaiveDate>, last_depreciation_amount: &str) -> AtlasResult<FixedAsset>;
-    async fn update_asset_assignment(&self, id: Uuid, department_id: Option<Uuid>, department_name: Option<&str>, location: Option<&str>, custodian_id: Option<Uuid>, custodian_name: Option<&str>) -> AtlasResult<FixedAsset>;
+    async fn get_asset_by_number(
+        &self,
+        org_id: Uuid,
+        asset_number: &str,
+    ) -> AtlasResult<Option<FixedAsset>>;
+    async fn list_assets(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        category_code: Option<&str>,
+        book_code: Option<&str>,
+    ) -> AtlasResult<Vec<FixedAsset>>;
+    async fn update_asset_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        in_service_date: Option<chrono::NaiveDate>,
+        disposal_date: Option<chrono::NaiveDate>,
+        retirement_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<FixedAsset>;
+    async fn update_asset_depreciation(
+        &self,
+        id: Uuid,
+        accumulated_depreciation: &str,
+        net_book_value: &str,
+        periods_depreciated: i32,
+        last_depreciation_date: Option<chrono::NaiveDate>,
+        last_depreciation_amount: &str,
+    ) -> AtlasResult<FixedAsset>;
+    async fn update_asset_assignment(
+        &self,
+        id: Uuid,
+        department_id: Option<Uuid>,
+        department_name: Option<&str>,
+        location: Option<&str>,
+        custodian_id: Option<Uuid>,
+        custodian_name: Option<&str>,
+    ) -> AtlasResult<FixedAsset>;
     async fn delete_asset(&self, org_id: Uuid, asset_number: &str) -> AtlasResult<()>;
 
     // Depreciation History
@@ -120,8 +152,16 @@ pub trait FixedAssetRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetDepreciationHistory>;
 
-    async fn list_depreciation_history(&self, asset_id: Uuid) -> AtlasResult<Vec<AssetDepreciationHistory>>;
-    async fn get_depreciation_for_period(&self, asset_id: Uuid, fiscal_year: i32, period_number: i32) -> AtlasResult<Option<AssetDepreciationHistory>>;
+    async fn list_depreciation_history(
+        &self,
+        asset_id: Uuid,
+    ) -> AtlasResult<Vec<AssetDepreciationHistory>>;
+    async fn get_depreciation_for_period(
+        &self,
+        asset_id: Uuid,
+        fiscal_year: i32,
+        period_number: i32,
+    ) -> AtlasResult<Option<AssetDepreciationHistory>>;
 
     // Asset Transfers
     async fn create_transfer(
@@ -145,8 +185,18 @@ pub trait FixedAssetRepository: Send + Sync {
     ) -> AtlasResult<AssetTransfer>;
 
     async fn get_transfer(&self, id: Uuid) -> AtlasResult<Option<AssetTransfer>>;
-    async fn list_transfers(&self, org_id: Uuid, asset_id: Option<Uuid>) -> AtlasResult<Vec<AssetTransfer>>;
-    async fn update_transfer_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, rejected_reason: Option<&str>) -> AtlasResult<AssetTransfer>;
+    async fn list_transfers(
+        &self,
+        org_id: Uuid,
+        asset_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AssetTransfer>>;
+    async fn update_transfer_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        rejected_reason: Option<&str>,
+    ) -> AtlasResult<AssetTransfer>;
 
     // Asset Retirements
     async fn create_retirement(
@@ -174,8 +224,17 @@ pub trait FixedAssetRepository: Send + Sync {
     ) -> AtlasResult<AssetRetirement>;
 
     async fn get_retirement(&self, id: Uuid) -> AtlasResult<Option<AssetRetirement>>;
-    async fn list_retirements(&self, org_id: Uuid, asset_id: Option<Uuid>) -> AtlasResult<Vec<AssetRetirement>>;
-    async fn update_retirement_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<AssetRetirement>;
+    async fn list_retirements(
+        &self,
+        org_id: Uuid,
+        asset_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AssetRetirement>>;
+    async fn update_retirement_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<AssetRetirement>;
 }
 
 /// `PostgreSQL` implementation
@@ -184,13 +243,15 @@ pub struct PostgresFixedAssetRepository {
 }
 
 impl PostgresFixedAssetRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
     fn row_to_category(&self, row: &sqlx::postgres::PgRow) -> AssetCategory {
-        let salvage_pct: serde_json::Value = row.try_get("default_salvage_value_percent").unwrap_or(serde_json::json!("0"));
+        let salvage_pct: serde_json::Value = row
+            .try_get("default_salvage_value_percent")
+            .unwrap_or(serde_json::json!("0"));
         AssetCategory {
             id: row.get("id"),
             organization_id: row.get("organization_id"),
@@ -358,7 +419,10 @@ impl PostgresFixedAssetRepository {
             proceeds: get_num(row, "proceeds"),
             removal_cost: get_num(row, "removal_cost"),
             net_book_value_at_retirement: get_num(row, "net_book_value_at_retirement"),
-            accumulated_depreciation_at_retirement: get_num(row, "accumulated_depreciation_at_retirement"),
+            accumulated_depreciation_at_retirement: get_num(
+                row,
+                "accumulated_depreciation_at_retirement",
+            ),
             gain_loss_amount: get_num(row, "gain_loss_amount"),
             gain_loss_type: row.get("gain_loss_type"),
             gain_account_code: row.get("gain_account_code"),
@@ -422,11 +486,17 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(default_depreciation_method).bind(default_useful_life_months)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(default_depreciation_method)
+        .bind(default_useful_life_months)
         .bind(default_salvage_value_percent)
-        .bind(default_asset_account_code).bind(default_accum_depr_account_code)
-        .bind(default_depr_expense_account_code).bind(default_gain_loss_account_code)
+        .bind(default_asset_account_code)
+        .bind(default_accum_depr_account_code)
+        .bind(default_depr_expense_account_code)
+        .bind(default_gain_loss_account_code)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -447,13 +517,11 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
     }
 
     async fn get_category_by_id(&self, id: Uuid) -> AtlasResult<Option<AssetCategory>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.asset_categories WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.asset_categories WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_category(&r)))
     }
 
@@ -508,8 +576,14 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(book_type).bind(auto_depreciation).bind(depreciation_calendar).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(book_type)
+        .bind(auto_depreciation)
+        .bind(depreciation_calendar)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -637,19 +711,40 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(asset_number).bind(asset_name).bind(description)
-        .bind(category_id).bind(category_code).bind(book_id).bind(book_code)
+        .bind(org_id)
+        .bind(asset_number)
+        .bind(asset_name)
+        .bind(description)
+        .bind(category_id)
+        .bind(category_code)
+        .bind(book_id)
+        .bind(book_code)
         .bind(asset_type)
-        .bind(original_cost).bind(salvage_value).bind(salvage_value_percent)
-        .bind(depreciation_method).bind(useful_life_months).bind(declining_balance_rate)
+        .bind(original_cost)
+        .bind(salvage_value)
+        .bind(salvage_value_percent)
+        .bind(depreciation_method)
+        .bind(useful_life_months)
+        .bind(declining_balance_rate)
         .bind(acquisition_date)
-        .bind(location).bind(department_id).bind(department_name)
-        .bind(custodian_id).bind(custodian_name)
-        .bind(serial_number).bind(tag_number).bind(manufacturer).bind(model)
-        .bind(warranty_expiry).bind(insurance_policy_number).bind(insurance_expiry)
-        .bind(lease_number).bind(lease_expiry)
-        .bind(asset_account_code).bind(accum_depr_account_code)
-        .bind(depr_expense_account_code).bind(gain_loss_account_code)
+        .bind(location)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(custodian_id)
+        .bind(custodian_name)
+        .bind(serial_number)
+        .bind(tag_number)
+        .bind(manufacturer)
+        .bind(model)
+        .bind(warranty_expiry)
+        .bind(insurance_policy_number)
+        .bind(insurance_expiry)
+        .bind(lease_number)
+        .bind(lease_expiry)
+        .bind(asset_account_code)
+        .bind(accum_depr_account_code)
+        .bind(depr_expense_account_code)
+        .bind(gain_loss_account_code)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -667,18 +762,29 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         Ok(row.map(|r| self.row_to_asset(&r)))
     }
 
-    async fn get_asset_by_number(&self, org_id: Uuid, asset_number: &str) -> AtlasResult<Option<FixedAsset>> {
+    async fn get_asset_by_number(
+        &self,
+        org_id: Uuid,
+        asset_number: &str,
+    ) -> AtlasResult<Option<FixedAsset>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.fixed_assets WHERE organization_id = $1 AND asset_number = $2"
+            "SELECT * FROM _atlas.fixed_assets WHERE organization_id = $1 AND asset_number = $2",
         )
-        .bind(org_id).bind(asset_number)
+        .bind(org_id)
+        .bind(asset_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_asset(&r)))
     }
 
-    async fn list_assets(&self, org_id: Uuid, status: Option<&str>, category_code: Option<&str>, book_code: Option<&str>) -> AtlasResult<Vec<FixedAsset>> {
+    async fn list_assets(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        category_code: Option<&str>,
+        book_code: Option<&str>,
+    ) -> AtlasResult<Vec<FixedAsset>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.fixed_assets
@@ -689,7 +795,10 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             ORDER BY asset_number
             ",
         )
-        .bind(org_id).bind(status).bind(category_code).bind(book_code)
+        .bind(org_id)
+        .bind(status)
+        .bind(category_code)
+        .bind(book_code)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -716,7 +825,11 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(in_service_date).bind(disposal_date).bind(retirement_date)
+        .bind(id)
+        .bind(status)
+        .bind(in_service_date)
+        .bind(disposal_date)
+        .bind(retirement_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -745,8 +858,12 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(accumulated_depreciation).bind(net_book_value)
-        .bind(periods_depreciated).bind(last_depreciation_date).bind(last_depreciation_amount)
+        .bind(id)
+        .bind(accumulated_depreciation)
+        .bind(net_book_value)
+        .bind(periods_depreciated)
+        .bind(last_depreciation_date)
+        .bind(last_depreciation_amount)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -772,8 +889,12 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(department_id).bind(department_name).bind(location)
-        .bind(custodian_id).bind(custodian_name)
+        .bind(id)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(location)
+        .bind(custodian_id)
+        .bind(custodian_name)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -820,10 +941,17 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(asset_id).bind(fiscal_year).bind(period_number)
-        .bind(period_name).bind(depreciation_date).bind(depreciation_amount)
-        .bind(accumulated_depreciation).bind(net_book_value)
-        .bind(depreciation_method).bind(created_by)
+        .bind(org_id)
+        .bind(asset_id)
+        .bind(fiscal_year)
+        .bind(period_number)
+        .bind(period_name)
+        .bind(depreciation_date)
+        .bind(depreciation_amount)
+        .bind(accumulated_depreciation)
+        .bind(net_book_value)
+        .bind(depreciation_method)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -831,7 +959,10 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         Ok(self.row_to_depr_history(&row))
     }
 
-    async fn list_depreciation_history(&self, asset_id: Uuid) -> AtlasResult<Vec<AssetDepreciationHistory>> {
+    async fn list_depreciation_history(
+        &self,
+        asset_id: Uuid,
+    ) -> AtlasResult<Vec<AssetDepreciationHistory>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.asset_depreciation_history WHERE asset_id = $1 ORDER BY fiscal_year, period_number"
         )
@@ -842,7 +973,12 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         Ok(rows.iter().map(|r| self.row_to_depr_history(r)).collect())
     }
 
-    async fn get_depreciation_for_period(&self, asset_id: Uuid, fiscal_year: i32, period_number: i32) -> AtlasResult<Option<AssetDepreciationHistory>> {
+    async fn get_depreciation_for_period(
+        &self,
+        asset_id: Uuid,
+        fiscal_year: i32,
+        period_number: i32,
+    ) -> AtlasResult<Option<AssetDepreciationHistory>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.asset_depreciation_history WHERE asset_id = $1 AND fiscal_year = $2 AND period_number = $3"
         )
@@ -889,12 +1025,22 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(transfer_number).bind(asset_id)
-        .bind(from_department_id).bind(from_department_name).bind(from_location)
-        .bind(from_custodian_id).bind(from_custodian_name)
-        .bind(to_department_id).bind(to_department_name).bind(to_location)
-        .bind(to_custodian_id).bind(to_custodian_name)
-        .bind(transfer_date).bind(reason).bind(created_by)
+        .bind(org_id)
+        .bind(transfer_number)
+        .bind(asset_id)
+        .bind(from_department_id)
+        .bind(from_department_name)
+        .bind(from_location)
+        .bind(from_custodian_id)
+        .bind(from_custodian_name)
+        .bind(to_department_id)
+        .bind(to_department_name)
+        .bind(to_location)
+        .bind(to_custodian_id)
+        .bind(to_custodian_name)
+        .bind(transfer_date)
+        .bind(reason)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -911,7 +1057,11 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         Ok(row.map(|r| self.row_to_transfer(&r)))
     }
 
-    async fn list_transfers(&self, org_id: Uuid, asset_id: Option<Uuid>) -> AtlasResult<Vec<AssetTransfer>> {
+    async fn list_transfers(
+        &self,
+        org_id: Uuid,
+        asset_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AssetTransfer>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.asset_transfers
@@ -919,7 +1069,8 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(asset_id)
+        .bind(org_id)
+        .bind(asset_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -1000,14 +1151,25 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(retirement_number).bind(asset_id)
-        .bind(retirement_type).bind(retirement_date)
-        .bind(proceeds).bind(removal_cost)
-        .bind(net_book_value_at_retirement).bind(accumulated_depreciation_at_retirement)
-        .bind(gain_loss_amount).bind(gain_loss_type)
-        .bind(gain_account_code).bind(loss_account_code).bind(cash_account_code)
-        .bind(asset_account_code).bind(accum_depr_account_code)
-        .bind(reference_number).bind(buyer_name).bind(notes)
+        .bind(org_id)
+        .bind(retirement_number)
+        .bind(asset_id)
+        .bind(retirement_type)
+        .bind(retirement_date)
+        .bind(proceeds)
+        .bind(removal_cost)
+        .bind(net_book_value_at_retirement)
+        .bind(accumulated_depreciation_at_retirement)
+        .bind(gain_loss_amount)
+        .bind(gain_loss_type)
+        .bind(gain_account_code)
+        .bind(loss_account_code)
+        .bind(cash_account_code)
+        .bind(asset_account_code)
+        .bind(accum_depr_account_code)
+        .bind(reference_number)
+        .bind(buyer_name)
+        .bind(notes)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -1025,7 +1187,11 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
         Ok(row.map(|r| self.row_to_retirement(&r)))
     }
 
-    async fn list_retirements(&self, org_id: Uuid, asset_id: Option<Uuid>) -> AtlasResult<Vec<AssetRetirement>> {
+    async fn list_retirements(
+        &self,
+        org_id: Uuid,
+        asset_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AssetRetirement>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.asset_retirements
@@ -1033,7 +1199,8 @@ impl FixedAssetRepository for PostgresFixedAssetRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(asset_id)
+        .bind(org_id)
+        .bind(asset_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

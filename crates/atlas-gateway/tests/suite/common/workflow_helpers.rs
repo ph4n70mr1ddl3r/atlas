@@ -2,28 +2,26 @@
 
 use std::sync::Arc;
 
-use axum::Router;
 use axum::body::Body;
+use axum::Router;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
 use uuid::Uuid;
 
 use atlas_core::{
-    SchemaEngine, WorkflowEngine, ValidationEngine, FormulaEngine,
-    SecurityEngine, AuditEngine,
-    eventbus::NatsEventBus,
-    schema::{SchemaBuilder, PostgresSchemaRepository},
     audit::PostgresAuditRepository,
-};
-use atlas_shared::{
-    EntityDefinition, WorkflowDefinition,
-    StateDefinition, StateType, TransitionDefinition,
+    eventbus::NatsEventBus,
+    schema::{PostgresSchemaRepository, SchemaBuilder},
+    AuditEngine, FormulaEngine, SchemaEngine, SecurityEngine, ValidationEngine, WorkflowEngine,
 };
 use atlas_gateway::AppState;
+use atlas_shared::{
+    EntityDefinition, StateDefinition, StateType, TransitionDefinition, WorkflowDefinition,
+};
 
 pub use super::super::common::helpers::{
-    TEST_JWT_SECRET, Claims, admin_claims, user_claims, auth_header,
+    admin_claims, auth_header, user_claims, Claims, TEST_JWT_SECRET,
 };
 
 // ============================================================================
@@ -154,24 +152,160 @@ pub fn purchase_order_entity() -> EntityDefinition {
         name: "purchase_order_workflow".to_string(),
         initial_state: "draft".to_string(),
         states: vec![
-            StateDefinition { name: "draft".into(), label: "Draft".into(), state_type: StateType::Initial, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "submitted".into(), label: "Submitted".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "approved".into(), label: "Approved".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "received".into(), label: "Received".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "invoiced".into(), label: "Invoiced".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "closed".into(), label: "Closed".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "rejected".into(), label: "Rejected".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "cancelled".into(), label: "Cancelled".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
+            StateDefinition {
+                name: "draft".into(),
+                label: "Draft".into(),
+                state_type: StateType::Initial,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "submitted".into(),
+                label: "Submitted".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "approved".into(),
+                label: "Approved".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "received".into(),
+                label: "Received".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "invoiced".into(),
+                label: "Invoiced".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "closed".into(),
+                label: "Closed".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "rejected".into(),
+                label: "Rejected".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "cancelled".into(),
+                label: "Cancelled".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         transitions: vec![
-            TransitionDefinition { name: "submit".into(), from_state: "draft".into(), to_state: "submitted".into(), action: "submit".into(), action_label: Some("Submit for Approval".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "approve".into(), from_state: "submitted".into(), to_state: "approved".into(), action: "approve".into(), action_label: Some("Approve".into()), guards: vec![], required_roles: vec!["purchase_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "reject".into(), from_state: "submitted".into(), to_state: "rejected".into(), action: "reject".into(), action_label: Some("Reject".into()), guards: vec![], required_roles: vec!["purchase_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "receive".into(), from_state: "approved".into(), to_state: "received".into(), action: "receive".into(), action_label: Some("Mark Received".into()), guards: vec![], required_roles: vec!["warehouse_clerk".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "invoice".into(), from_state: "received".into(), to_state: "invoiced".into(), action: "invoice".into(), action_label: Some("Create Invoice".into()), guards: vec![], required_roles: vec!["finance_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "close".into(), from_state: "invoiced".into(), to_state: "closed".into(), action: "close".into(), action_label: Some("Close".into()), guards: vec![], required_roles: vec!["finance_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "cancel_draft".into(), from_state: "draft".into(), to_state: "cancelled".into(), action: "cancel".into(), action_label: Some("Cancel".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "resubmit".into(), from_state: "rejected".into(), to_state: "draft".into(), action: "resubmit".into(), action_label: Some("Resubmit".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
+            TransitionDefinition {
+                name: "submit".into(),
+                from_state: "draft".into(),
+                to_state: "submitted".into(),
+                action: "submit".into(),
+                action_label: Some("Submit for Approval".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "approve".into(),
+                from_state: "submitted".into(),
+                to_state: "approved".into(),
+                action: "approve".into(),
+                action_label: Some("Approve".into()),
+                guards: vec![],
+                required_roles: vec!["purchase_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "reject".into(),
+                from_state: "submitted".into(),
+                to_state: "rejected".into(),
+                action: "reject".into(),
+                action_label: Some("Reject".into()),
+                guards: vec![],
+                required_roles: vec!["purchase_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "receive".into(),
+                from_state: "approved".into(),
+                to_state: "received".into(),
+                action: "receive".into(),
+                action_label: Some("Mark Received".into()),
+                guards: vec![],
+                required_roles: vec!["warehouse_clerk".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "invoice".into(),
+                from_state: "received".into(),
+                to_state: "invoiced".into(),
+                action: "invoice".into(),
+                action_label: Some("Create Invoice".into()),
+                guards: vec![],
+                required_roles: vec!["finance_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "close".into(),
+                from_state: "invoiced".into(),
+                to_state: "closed".into(),
+                action: "close".into(),
+                action_label: Some("Close".into()),
+                guards: vec![],
+                required_roles: vec!["finance_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "cancel_draft".into(),
+                from_state: "draft".into(),
+                to_state: "cancelled".into(),
+                action: "cancel".into(),
+                action_label: Some("Cancel".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "resubmit".into(),
+                from_state: "rejected".into(),
+                to_state: "draft".into(),
+                action: "resubmit".into(),
+                action_label: Some("Resubmit".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         is_active: true,
     };
@@ -217,13 +351,54 @@ pub fn goods_receipt_entity() -> EntityDefinition {
         name: "goods_receipt_workflow".to_string(),
         initial_state: "draft".to_string(),
         states: vec![
-            StateDefinition { name: "draft".into(), label: "Draft".into(), state_type: StateType::Initial, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "confirmed".into(), label: "Confirmed".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "closed".into(), label: "Closed".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
+            StateDefinition {
+                name: "draft".into(),
+                label: "Draft".into(),
+                state_type: StateType::Initial,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "confirmed".into(),
+                label: "Confirmed".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "closed".into(),
+                label: "Closed".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         transitions: vec![
-            TransitionDefinition { name: "confirm".into(), from_state: "draft".into(), to_state: "confirmed".into(), action: "confirm".into(), action_label: Some("Confirm Receipt".into()), guards: vec![], required_roles: vec!["warehouse_clerk".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "close".into(), from_state: "confirmed".into(), to_state: "closed".into(), action: "close".into(), action_label: Some("Close".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
+            TransitionDefinition {
+                name: "confirm".into(),
+                from_state: "draft".into(),
+                to_state: "confirmed".into(),
+                action: "confirm".into(),
+                action_label: Some("Confirm Receipt".into()),
+                guards: vec![],
+                required_roles: vec!["warehouse_clerk".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "close".into(),
+                from_state: "confirmed".into(),
+                to_state: "closed".into(),
+                action: "close".into(),
+                action_label: Some("Close".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         is_active: true,
     };
@@ -248,7 +423,11 @@ pub fn goods_receipt_line_entity() -> EntityDefinition {
         .table_name("scm_goods_receipt_lines")
         .reference("goods_receipt_id", "Goods Receipt", "scm_goods_receipts")
         .integer("line_number", "Line Number")
-        .reference("purchase_order_line_id", "PO Line", "scm_purchase_order_lines")
+        .reference(
+            "purchase_order_line_id",
+            "PO Line",
+            "scm_purchase_order_lines",
+        )
         .reference("product_id", "Product", "scm_products")
         .reference("warehouse_id", "Warehouse", "scm_warehouses")
         .decimal("quantity_received", "Received Qty", 12, 2)
@@ -263,18 +442,103 @@ pub fn invoice_entity() -> EntityDefinition {
         name: "invoice_workflow".to_string(),
         initial_state: "draft".to_string(),
         states: vec![
-            StateDefinition { name: "draft".into(), label: "Draft".into(), state_type: StateType::Initial, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "submitted".into(), label: "Submitted".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "approved".into(), label: "Approved".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "paid".into(), label: "Paid".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "void".into(), label: "Void".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
+            StateDefinition {
+                name: "draft".into(),
+                label: "Draft".into(),
+                state_type: StateType::Initial,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "submitted".into(),
+                label: "Submitted".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "approved".into(),
+                label: "Approved".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "paid".into(),
+                label: "Paid".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "void".into(),
+                label: "Void".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         transitions: vec![
-            TransitionDefinition { name: "submit".into(), from_state: "draft".into(), to_state: "submitted".into(), action: "submit".into(), action_label: Some("Submit".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "approve".into(), from_state: "submitted".into(), to_state: "approved".into(), action: "approve".into(), action_label: Some("Approve".into()), guards: vec![], required_roles: vec!["finance_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "reject".into(), from_state: "submitted".into(), to_state: "draft".into(), action: "reject".into(), action_label: Some("Reject".into()), guards: vec![], required_roles: vec!["finance_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "mark_paid".into(), from_state: "approved".into(), to_state: "paid".into(), action: "mark_paid".into(), action_label: Some("Mark Paid".into()), guards: vec![], required_roles: vec!["finance_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "void".into(), from_state: "draft".into(), to_state: "void".into(), action: "void".into(), action_label: Some("Void".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
+            TransitionDefinition {
+                name: "submit".into(),
+                from_state: "draft".into(),
+                to_state: "submitted".into(),
+                action: "submit".into(),
+                action_label: Some("Submit".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "approve".into(),
+                from_state: "submitted".into(),
+                to_state: "approved".into(),
+                action: "approve".into(),
+                action_label: Some("Approve".into()),
+                guards: vec![],
+                required_roles: vec!["finance_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "reject".into(),
+                from_state: "submitted".into(),
+                to_state: "draft".into(),
+                action: "reject".into(),
+                action_label: Some("Reject".into()),
+                guards: vec![],
+                required_roles: vec!["finance_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "mark_paid".into(),
+                from_state: "approved".into(),
+                to_state: "paid".into(),
+                action: "mark_paid".into(),
+                action_label: Some("Mark Paid".into()),
+                guards: vec![],
+                required_roles: vec!["finance_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "void".into(),
+                from_state: "draft".into(),
+                to_state: "void".into(),
+                action: "void".into(),
+                action_label: Some("Void".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         is_active: true,
     };
@@ -321,13 +585,54 @@ pub fn payment_entity() -> EntityDefinition {
         name: "payment_workflow".to_string(),
         initial_state: "draft".to_string(),
         states: vec![
-            StateDefinition { name: "draft".into(), label: "Draft".into(), state_type: StateType::Initial, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "confirmed".into(), label: "Confirmed".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "reconciled".into(), label: "Reconciled".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
+            StateDefinition {
+                name: "draft".into(),
+                label: "Draft".into(),
+                state_type: StateType::Initial,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "confirmed".into(),
+                label: "Confirmed".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "reconciled".into(),
+                label: "Reconciled".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         transitions: vec![
-            TransitionDefinition { name: "confirm".into(), from_state: "draft".into(), to_state: "confirmed".into(), action: "confirm".into(), action_label: Some("Confirm".into()), guards: vec![], required_roles: vec!["finance_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "reconcile".into(), from_state: "confirmed".into(), to_state: "reconciled".into(), action: "reconcile".into(), action_label: Some("Reconcile".into()), guards: vec![], required_roles: vec!["finance_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
+            TransitionDefinition {
+                name: "confirm".into(),
+                from_state: "draft".into(),
+                to_state: "confirmed".into(),
+                action: "confirm".into(),
+                action_label: Some("Confirm".into()),
+                guards: vec![],
+                required_roles: vec!["finance_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "reconcile".into(),
+                from_state: "confirmed".into(),
+                to_state: "reconciled".into(),
+                action: "reconcile".into(),
+                action_label: Some("Reconcile".into()),
+                guards: vec![],
+                required_roles: vec!["finance_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         is_active: true,
     };
@@ -358,14 +663,65 @@ pub fn journal_entry_entity() -> EntityDefinition {
         name: "journal_entry_workflow".to_string(),
         initial_state: "draft".to_string(),
         states: vec![
-            StateDefinition { name: "draft".into(), label: "Draft".into(), state_type: StateType::Initial, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "submitted".into(), label: "Submitted".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "posted".into(), label: "Posted".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
+            StateDefinition {
+                name: "draft".into(),
+                label: "Draft".into(),
+                state_type: StateType::Initial,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "submitted".into(),
+                label: "Submitted".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "posted".into(),
+                label: "Posted".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         transitions: vec![
-            TransitionDefinition { name: "submit".into(), from_state: "draft".into(), to_state: "submitted".into(), action: "submit".into(), action_label: Some("Submit".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "post".into(), from_state: "submitted".into(), to_state: "posted".into(), action: "post".into(), action_label: Some("Post".into()), guards: vec![], required_roles: vec!["finance_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "reject".into(), from_state: "submitted".into(), to_state: "draft".into(), action: "reject".into(), action_label: Some("Reject".into()), guards: vec![], required_roles: vec!["finance_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
+            TransitionDefinition {
+                name: "submit".into(),
+                from_state: "draft".into(),
+                to_state: "submitted".into(),
+                action: "submit".into(),
+                action_label: Some("Submit".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "post".into(),
+                from_state: "submitted".into(),
+                to_state: "posted".into(),
+                action: "post".into(),
+                action_label: Some("Post".into()),
+                guards: vec![],
+                required_roles: vec!["finance_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "reject".into(),
+                from_state: "submitted".into(),
+                to_state: "draft".into(),
+                action: "reject".into(),
+                action_label: Some("Reject".into()),
+                guards: vec![],
+                required_roles: vec!["finance_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         is_active: true,
     };
@@ -431,18 +787,103 @@ pub fn lead_entity() -> EntityDefinition {
         name: "lead_workflow".to_string(),
         initial_state: "new".to_string(),
         states: vec![
-            StateDefinition { name: "new".into(), label: "New".into(), state_type: StateType::Initial, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "contacted".into(), label: "Contacted".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "qualified".into(), label: "Qualified".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "converted".into(), label: "Converted".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "disqualified".into(), label: "Disqualified".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
+            StateDefinition {
+                name: "new".into(),
+                label: "New".into(),
+                state_type: StateType::Initial,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "contacted".into(),
+                label: "Contacted".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "qualified".into(),
+                label: "Qualified".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "converted".into(),
+                label: "Converted".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "disqualified".into(),
+                label: "Disqualified".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         transitions: vec![
-            TransitionDefinition { name: "contact".into(), from_state: "new".into(), to_state: "contacted".into(), action: "contact".into(), action_label: Some("Contact".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "qualify".into(), from_state: "contacted".into(), to_state: "qualified".into(), action: "qualify".into(), action_label: Some("Qualify".into()), guards: vec![], required_roles: vec!["sales_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "convert".into(), from_state: "qualified".into(), to_state: "converted".into(), action: "convert".into(), action_label: Some("Convert to Customer".into()), guards: vec![], required_roles: vec!["sales_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "disqualify".into(), from_state: "new".into(), to_state: "disqualified".into(), action: "disqualify".into(), action_label: Some("Disqualify".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "disqualify2".into(), from_state: "contacted".into(), to_state: "disqualified".into(), action: "disqualify".into(), action_label: Some("Disqualify".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
+            TransitionDefinition {
+                name: "contact".into(),
+                from_state: "new".into(),
+                to_state: "contacted".into(),
+                action: "contact".into(),
+                action_label: Some("Contact".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "qualify".into(),
+                from_state: "contacted".into(),
+                to_state: "qualified".into(),
+                action: "qualify".into(),
+                action_label: Some("Qualify".into()),
+                guards: vec![],
+                required_roles: vec!["sales_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "convert".into(),
+                from_state: "qualified".into(),
+                to_state: "converted".into(),
+                action: "convert".into(),
+                action_label: Some("Convert to Customer".into()),
+                guards: vec![],
+                required_roles: vec!["sales_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "disqualify".into(),
+                from_state: "new".into(),
+                to_state: "disqualified".into(),
+                action: "disqualify".into(),
+                action_label: Some("Disqualify".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "disqualify2".into(),
+                from_state: "contacted".into(),
+                to_state: "disqualified".into(),
+                action: "disqualify".into(),
+                action_label: Some("Disqualify".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         is_active: true,
     };
@@ -485,22 +926,141 @@ pub fn sales_order_entity() -> EntityDefinition {
         name: "sales_order_workflow".to_string(),
         initial_state: "draft".to_string(),
         states: vec![
-            StateDefinition { name: "draft".into(), label: "Draft".into(), state_type: StateType::Initial, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "confirmed".into(), label: "Confirmed".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "processing".into(), label: "Processing".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "shipped".into(), label: "Shipped".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "invoiced".into(), label: "Invoiced".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "completed".into(), label: "Completed".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "cancelled".into(), label: "Cancelled".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
+            StateDefinition {
+                name: "draft".into(),
+                label: "Draft".into(),
+                state_type: StateType::Initial,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "confirmed".into(),
+                label: "Confirmed".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "processing".into(),
+                label: "Processing".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "shipped".into(),
+                label: "Shipped".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "invoiced".into(),
+                label: "Invoiced".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "completed".into(),
+                label: "Completed".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "cancelled".into(),
+                label: "Cancelled".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         transitions: vec![
-            TransitionDefinition { name: "confirm".into(), from_state: "draft".into(), to_state: "confirmed".into(), action: "confirm".into(), action_label: Some("Confirm".into()), guards: vec![], required_roles: vec!["sales_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "process".into(), from_state: "confirmed".into(), to_state: "processing".into(), action: "process".into(), action_label: Some("Process".into()), guards: vec![], required_roles: vec!["warehouse_clerk".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "ship".into(), from_state: "processing".into(), to_state: "shipped".into(), action: "ship".into(), action_label: Some("Ship".into()), guards: vec![], required_roles: vec!["warehouse_clerk".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "invoice".into(), from_state: "shipped".into(), to_state: "invoiced".into(), action: "invoice".into(), action_label: Some("Create Invoice".into()), guards: vec![], required_roles: vec!["finance_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "complete".into(), from_state: "invoiced".into(), to_state: "completed".into(), action: "complete".into(), action_label: Some("Complete".into()), guards: vec![], required_roles: vec!["sales_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "cancel".into(), from_state: "draft".into(), to_state: "cancelled".into(), action: "cancel".into(), action_label: Some("Cancel".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "cancel_confirmed".into(), from_state: "confirmed".into(), to_state: "cancelled".into(), action: "cancel".into(), action_label: Some("Cancel".into()), guards: vec![], required_roles: vec!["sales_manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
+            TransitionDefinition {
+                name: "confirm".into(),
+                from_state: "draft".into(),
+                to_state: "confirmed".into(),
+                action: "confirm".into(),
+                action_label: Some("Confirm".into()),
+                guards: vec![],
+                required_roles: vec!["sales_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "process".into(),
+                from_state: "confirmed".into(),
+                to_state: "processing".into(),
+                action: "process".into(),
+                action_label: Some("Process".into()),
+                guards: vec![],
+                required_roles: vec!["warehouse_clerk".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "ship".into(),
+                from_state: "processing".into(),
+                to_state: "shipped".into(),
+                action: "ship".into(),
+                action_label: Some("Ship".into()),
+                guards: vec![],
+                required_roles: vec!["warehouse_clerk".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "invoice".into(),
+                from_state: "shipped".into(),
+                to_state: "invoiced".into(),
+                action: "invoice".into(),
+                action_label: Some("Create Invoice".into()),
+                guards: vec![],
+                required_roles: vec!["finance_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "complete".into(),
+                from_state: "invoiced".into(),
+                to_state: "completed".into(),
+                action: "complete".into(),
+                action_label: Some("Complete".into()),
+                guards: vec![],
+                required_roles: vec!["sales_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "cancel".into(),
+                from_state: "draft".into(),
+                to_state: "cancelled".into(),
+                action: "cancel".into(),
+                action_label: Some("Cancel".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "cancel_confirmed".into(),
+                from_state: "confirmed".into(),
+                to_state: "cancelled".into(),
+                action: "cancel".into(),
+                action_label: Some("Cancel".into()),
+                guards: vec![],
+                required_roles: vec!["sales_manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         is_active: true,
     };
@@ -543,13 +1103,54 @@ pub fn shipment_entity() -> EntityDefinition {
         name: "shipment_workflow".to_string(),
         initial_state: "pending".to_string(),
         states: vec![
-            StateDefinition { name: "pending".into(), label: "Pending".into(), state_type: StateType::Initial, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "shipped".into(), label: "Shipped".into(), state_type: StateType::Working, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "delivered".into(), label: "Delivered".into(), state_type: StateType::Final, entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
+            StateDefinition {
+                name: "pending".into(),
+                label: "Pending".into(),
+                state_type: StateType::Initial,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "shipped".into(),
+                label: "Shipped".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "delivered".into(),
+                label: "Delivered".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         transitions: vec![
-            TransitionDefinition { name: "ship".into(), from_state: "pending".into(), to_state: "shipped".into(), action: "ship".into(), action_label: Some("Ship".into()), guards: vec![], required_roles: vec!["warehouse_clerk".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "deliver".into(), from_state: "shipped".into(), to_state: "delivered".into(), action: "deliver".into(), action_label: Some("Deliver".into()), guards: vec![], required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
+            TransitionDefinition {
+                name: "ship".into(),
+                from_state: "pending".into(),
+                to_state: "shipped".into(),
+                action: "ship".into(),
+                action_label: Some("Ship".into()),
+                guards: vec![],
+                required_roles: vec!["warehouse_clerk".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "deliver".into(),
+                from_state: "shipped".into(),
+                to_state: "delivered".into(),
+                action: "deliver".into(),
+                action_label: Some("Deliver".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         is_active: true,
     };
@@ -639,8 +1240,12 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         .await
         .expect("Failed to connect to test database");
 
-    let schema_engine = Arc::new(SchemaEngine::new(Arc::new(PostgresSchemaRepository::new(db_pool.clone()))));
-    let audit_engine = Arc::new(AuditEngine::new(Arc::new(PostgresAuditRepository::new(db_pool.clone()))));
+    let schema_engine = Arc::new(SchemaEngine::new(Arc::new(PostgresSchemaRepository::new(
+        db_pool.clone(),
+    ))));
+    let audit_engine = Arc::new(AuditEngine::new(Arc::new(PostgresAuditRepository::new(
+        db_pool.clone(),
+    ))));
     let workflow_engine = Arc::new(WorkflowEngine::new());
     let validation_engine = Arc::new(ValidationEngine::new());
     let formula_engine = Arc::new(FormulaEngine::new());
@@ -686,7 +1291,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
     )));
 
     let sla_engine = Arc::new(atlas_core::SubledgerAccountingEngine::new(Arc::new(
-        atlas_core::subledger_accounting::PostgresSubledgerAccountingRepository::new(db_pool.clone()),
+        atlas_core::subledger_accounting::PostgresSubledgerAccountingRepository::new(
+            db_pool.clone(),
+        ),
     )));
 
     let encumbrance_engine = Arc::new(atlas_core::EncumbranceEngine::new(Arc::new(
@@ -721,9 +1328,12 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::multi_book::PostgresMultiBookAccountingRepository::new(db_pool.clone()),
     )));
 
-    let procurement_contract_engine = Arc::new(atlas_core::ProcurementContractEngine::new(Arc::new(
-        atlas_core::procurement_contracts::PostgresProcurementContractRepository::new(db_pool.clone()),
-    )));
+    let procurement_contract_engine =
+        Arc::new(atlas_core::ProcurementContractEngine::new(Arc::new(
+            atlas_core::procurement_contracts::PostgresProcurementContractRepository::new(
+                db_pool.clone(),
+            ),
+        )));
 
     let inventory_engine = Arc::new(atlas_core::InventoryEngine::new(Arc::new(
         atlas_core::inventory::PostgresInventoryRepository::new(db_pool.clone()),
@@ -749,9 +1359,12 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         atlas_core::grant_management::PostgresGrantManagementRepository::new(db_pool.clone()),
     )));
 
-    let supplier_qualification_engine = Arc::new(atlas_core::SupplierQualificationEngine::new(Arc::new(
-        atlas_core::supplier_qualification::PostgresSupplierQualificationRepository::new(db_pool.clone()),
-    )));
+    let supplier_qualification_engine =
+        Arc::new(atlas_core::SupplierQualificationEngine::new(Arc::new(
+            atlas_core::supplier_qualification::PostgresSupplierQualificationRepository::new(
+                db_pool.clone(),
+            ),
+        )));
 
     let recurring_journal_engine = Arc::new(atlas_core::RecurringJournalEngine::new(Arc::new(
         atlas_core::recurring_journal::PostgresRecurringJournalRepository::new(db_pool.clone()),
@@ -762,7 +1375,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
     )));
 
     let dff_engine = Arc::new(atlas_core::DescriptiveFlexfieldEngine::new(Arc::new(
-        atlas_core::descriptive_flexfield::PostgresDescriptiveFlexfieldRepository::new(db_pool.clone()),
+        atlas_core::descriptive_flexfield::PostgresDescriptiveFlexfieldRepository::new(
+            db_pool.clone(),
+        ),
     )));
 
     let cvr_engine = Arc::new(atlas_core::CrossValidationEngine::new(Arc::new(
@@ -774,7 +1389,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
     )));
 
     let sod_engine = Arc::new(atlas_core::SegregationOfDutiesEngine::new(Arc::new(
-        atlas_core::segregation_of_duties::PostgresSegregationOfDutiesRepository::new(db_pool.clone()),
+        atlas_core::segregation_of_duties::PostgresSegregationOfDutiesRepository::new(
+            db_pool.clone(),
+        ),
     )));
 
     let allocation_engine = Arc::new(atlas_core::AllocationEngine::new(Arc::new(
@@ -791,11 +1408,17 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         notification_engine,
         approval_engine,
         document_sequencing_engine: Arc::new(atlas_core::DocumentSequencingEngine::new(Arc::new(
-            atlas_core::document_sequencing::PostgresDocumentSequencingRepository::new(db_pool.clone()),
+            atlas_core::document_sequencing::PostgresDocumentSequencingRepository::new(
+                db_pool.clone(),
+            ),
         ))),
-        transaction_calendar_engine: Arc::new(atlas_core::TransactionCalendarEngine::new(Arc::new(
-            atlas_core::transaction_calendar::PostgresTransactionCalendarRepository::new(db_pool.clone()),
-        ))),
+        transaction_calendar_engine: Arc::new(atlas_core::TransactionCalendarEngine::new(
+            Arc::new(
+                atlas_core::transaction_calendar::PostgresTransactionCalendarRepository::new(
+                    db_pool.clone(),
+                ),
+            ),
+        )),
     };
 
     let financials = atlas_gateway::state::FinancialsState {
@@ -1051,22 +1674,30 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
             atlas_core::recruiting::PostgresRecruitingRepository::new(db_pool.clone()),
         ))),
         learning_management_engine: Arc::new(atlas_core::LearningManagementEngine::new(Arc::new(
-            atlas_core::learning_management::PostgresLearningManagementRepository::new(db_pool.clone()),
+            atlas_core::learning_management::PostgresLearningManagementRepository::new(
+                db_pool.clone(),
+            ),
         ))),
         succession_planning_engine: Arc::new(atlas_core::SuccessionPlanningEngine::new(Arc::new(
-            atlas_core::succession_planning::PostgresSuccessionPlanningRepository::new(db_pool.clone()),
+            atlas_core::succession_planning::PostgresSuccessionPlanningRepository::new(
+                db_pool.clone(),
+            ),
         ))),
         goal_management_engine: Arc::new(atlas_core::GoalManagementEngine::new(Arc::new(
             atlas_core::goal_management::PostgresGoalManagementRepository::new(db_pool.clone()),
         ))),
         approval_authority_engine: Arc::new(atlas_core::ApprovalAuthorityEngine::new(Arc::new(
-            atlas_core::approval_authority::PostgresApprovalAuthorityRepository::new(db_pool.clone()),
+            atlas_core::approval_authority::PostgresApprovalAuthorityRepository::new(
+                db_pool.clone(),
+            ),
         ))),
         data_archiving_engine: Arc::new(atlas_core::DataArchivingEngine::new(Arc::new(
             atlas_core::data_archiving::PostgresDataArchivingRepository::new(db_pool.clone()),
         ))),
         approval_delegation_engine: Arc::new(atlas_core::ApprovalDelegationEngine::new(Arc::new(
-            atlas_core::approval_delegation::PostgresApprovalDelegationRepository::new(db_pool.clone()),
+            atlas_core::approval_delegation::PostgresApprovalDelegationRepository::new(
+                db_pool.clone(),
+            ),
         ))),
     };
 
@@ -1076,14 +1707,22 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         inventory_engine,
         customer_returns_engine,
         pricing_engine,
-        purchase_requisition_engine: Arc::new(atlas_core::PurchaseRequisitionEngine::new(Arc::new(
-            atlas_core::purchase_requisition::PostgresPurchaseRequisitionRepository::new(db_pool.clone()),
-        ))),
+        purchase_requisition_engine: Arc::new(atlas_core::PurchaseRequisitionEngine::new(
+            Arc::new(
+                atlas_core::purchase_requisition::PostgresPurchaseRequisitionRepository::new(
+                    db_pool.clone(),
+                ),
+            ),
+        )),
         product_information_engine: Arc::new(atlas_core::ProductInformationEngine::new(Arc::new(
-            atlas_core::product_information::PostgresProductInformationRepository::new(db_pool.clone()),
+            atlas_core::product_information::PostgresProductInformationRepository::new(
+                db_pool.clone(),
+            ),
         ))),
         quality_engine: Arc::new(atlas_core::QualityManagementEngine::new(Arc::new(
-            atlas_core::quality_management::PostgresQualityManagementRepository::new(db_pool.clone()),
+            atlas_core::quality_management::PostgresQualityManagementRepository::new(
+                db_pool.clone(),
+            ),
         ))),
         order_management_engine: Arc::new(atlas_core::OrderManagementEngine::new(Arc::new(
             atlas_core::order_management::PostgresOrderManagementRepository::new(db_pool.clone()),
@@ -1091,9 +1730,13 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
         manufacturing_engine: Arc::new(atlas_core::ManufacturingEngine::new(Arc::new(
             atlas_core::manufacturing::PostgresManufacturingRepository::new(db_pool.clone()),
         ))),
-        warehouse_management_engine: Arc::new(atlas_core::WarehouseManagementEngine::new(Arc::new(
-            atlas_core::warehouse_management::PostgresWarehouseManagementRepository::new(db_pool.clone()),
-        ))),
+        warehouse_management_engine: Arc::new(atlas_core::WarehouseManagementEngine::new(
+            Arc::new(
+                atlas_core::warehouse_management::PostgresWarehouseManagementRepository::new(
+                    db_pool.clone(),
+                ),
+            ),
+        )),
         shipping_engine: Arc::new(atlas_core::ShippingEngine::new(Arc::new(
             atlas_core::shipping::PostgresShippingRepository::new(db_pool.clone()),
         ))),
@@ -1108,7 +1751,9 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
             atlas_core::landed_cost::PostgresLandedCostRepository::new(db_pool.clone()),
         ))),
         clm_engine: Arc::new(atlas_core::ContractLifecycleEngine::new(Arc::new(
-            atlas_core::contract_lifecycle::PostgresContractLifecycleRepository::new(db_pool.clone()),
+            atlas_core::contract_lifecycle::PostgresContractLifecycleRepository::new(
+                db_pool.clone(),
+            ),
         ))),
         demand_planning_engine: Arc::new(atlas_core::DemandPlanningEngine::new(Arc::new(
             atlas_core::demand_planning::PostgresDemandPlanningRepository::new(db_pool.clone()),
@@ -1117,10 +1762,14 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
             atlas_core::supply_chain_planning::PostgresPlanningRepository::new(db_pool.clone()),
         ))),
         configurator_engine: Arc::new(atlas_core::ProductConfiguratorEngine::new(Arc::new(
-            atlas_core::product_configurator::PostgresProductConfiguratorRepository::new(db_pool.clone()),
+            atlas_core::product_configurator::PostgresProductConfiguratorRepository::new(
+                db_pool.clone(),
+            ),
         ))),
         transportation_engine: Arc::new(atlas_core::TransportationManagementEngine::new(Arc::new(
-            atlas_core::transportation_management::PostgresTransportationManagementRepository::new(db_pool.clone()),
+            atlas_core::transportation_management::PostgresTransportationManagementRepository::new(
+                db_pool.clone(),
+            ),
         ))),
         channel_revenue_engine: Arc::new(atlas_core::ChannelRevenueEngine::new(Arc::new(
             atlas_core::channel_revenue::PostgresChannelRevenueRepository::new(db_pool.clone()),
@@ -1145,10 +1794,14 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
             atlas_core::service_request::PostgresServiceRequestRepository::new(db_pool.clone()),
         ))),
         loyalty_engine: Arc::new(atlas_core::LoyaltyManagementEngine::new(Arc::new(
-            atlas_core::loyalty_management::PostgresLoyaltyManagementRepository::new(db_pool.clone()),
+            atlas_core::loyalty_management::PostgresLoyaltyManagementRepository::new(
+                db_pool.clone(),
+            ),
         ))),
         promotions_engine: Arc::new(atlas_core::PromotionsManagementEngine::new(Arc::new(
-            atlas_core::promotions_management::PostgresPromotionsManagementRepository::new(db_pool.clone()),
+            atlas_core::promotions_management::PostgresPromotionsManagementRepository::new(
+                db_pool.clone(),
+            ),
         ))),
     };
 
@@ -1225,12 +1878,22 @@ pub async fn build_workflow_test_state() -> Arc<AppState> {
 
 pub async fn setup_p2p_entities(state: &Arc<AppState>) {
     for entity in all_p2p_entities() {
-        state.core.schema_engine.upsert_entity(entity).await.unwrap();
+        state
+            .core
+            .schema_engine
+            .upsert_entity(entity)
+            .await
+            .unwrap();
     }
     for entity in all_p2p_entities() {
         if let Some(e) = state.core.schema_engine.get_entity(&entity.name) {
             if let Some(ref wf) = e.workflow {
-                state.core.workflow_engine.load_workflow(wf.clone()).await.unwrap();
+                state
+                    .core
+                    .workflow_engine
+                    .load_workflow(wf.clone())
+                    .await
+                    .unwrap();
             }
         }
     }
@@ -1238,25 +1901,44 @@ pub async fn setup_p2p_entities(state: &Arc<AppState>) {
 
 pub async fn setup_o2c_entities(state: &Arc<AppState>) {
     for entity in all_o2c_entities() {
-        state.core.schema_engine.upsert_entity(entity).await.unwrap();
+        state
+            .core
+            .schema_engine
+            .upsert_entity(entity)
+            .await
+            .unwrap();
     }
     for entity in all_o2c_entities() {
         if let Some(e) = state.core.schema_engine.get_entity(&entity.name) {
             if let Some(ref wf) = e.workflow {
-                state.core.workflow_engine.load_workflow(wf.clone()).await.unwrap();
+                state
+                    .core
+                    .workflow_engine
+                    .load_workflow(wf.clone())
+                    .await
+                    .unwrap();
             }
         }
     }
 }
 
 pub fn build_app(state: Arc<AppState>) -> Router {
-    use tower_http::cors::{CorsLayer, Any};
-    let cors = CorsLayer::new().allow_methods(Any).allow_headers(Any).allow_origin(Any);
+    use tower_http::cors::{Any, CorsLayer};
+    let cors = CorsLayer::new()
+        .allow_methods(Any)
+        .allow_headers(Any)
+        .allow_origin(Any);
     Router::new()
         .nest("/api/v1", atlas_gateway::handlers::api_routes())
         .nest("/api/admin", atlas_gateway::handlers::admin_routes())
-        .route("/health", axum::routing::get(atlas_gateway::handlers::health_check))
-        .route("/api/v1/auth/login", axum::routing::post(atlas_gateway::handlers::login))
+        .route(
+            "/health",
+            axum::routing::get(atlas_gateway::handlers::health_check),
+        )
+        .route(
+            "/api/v1/auth/login",
+            axum::routing::post(atlas_gateway::handlers::login),
+        )
         .layer(cors)
         .with_state(state)
 }
@@ -1266,21 +1948,34 @@ pub fn build_app(state: Arc<AppState>) -> Router {
 // ============================================================================
 
 pub async fn create_record(
-    app: &Router, entity: &str, values: serde_json::Value, claims: &Claims,
+    app: &Router,
+    entity: &str,
+    values: serde_json::Value,
+    claims: &Claims,
 ) -> serde_json::Value {
     let (k, v) = auth_header(claims);
-    let resp = app.clone().oneshot(
-        Request::builder().method("POST")
-            .uri(format!("/api/v1/{}", entity))
-            .header("Content-Type", "application/json")
-            .header(k, v)
-            .body(Body::from(serde_json::to_string(&json!({
-                "entity": entity, "values": values
-            })).unwrap()))
-            .unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/{}", entity))
+                .header("Content-Type", "application/json")
+                .header(k, v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "entity": entity, "values": values
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = resp.status();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
         let body_str = String::from_utf8_lossy(&body);
         panic!("Create {} failed with {}: {}", entity, status, body_str);
@@ -1289,140 +1984,223 @@ pub async fn create_record(
 }
 
 pub async fn get_record(
-    app: &Router, entity: &str, id: &str, claims: &Claims,
+    app: &Router,
+    entity: &str,
+    id: &str,
+    claims: &Claims,
 ) -> serde_json::Value {
     let (k, v) = auth_header(claims);
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri(format!("/api/v1/{}/{}", entity, id))
-            .header(k, v)
-            .body(Body::empty())
-            .unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/{}/{}", entity, id))
+                .header(k, v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&body).unwrap()
 }
 
 pub async fn update_record(
-    app: &Router, entity: &str, id: &str, values: serde_json::Value, claims: &Claims,
+    app: &Router,
+    entity: &str,
+    id: &str,
+    values: serde_json::Value,
+    claims: &Claims,
 ) -> serde_json::Value {
     let (k, v) = auth_header(claims);
-    let resp = app.clone().oneshot(
-        Request::builder().method("PUT")
-            .uri(format!("/api/v1/{}/{}", entity, id))
-            .header("Content-Type", "application/json")
-            .header(k, v)
-            .body(Body::from(serde_json::to_string(&json!({
-                "entity": entity, "id": id, "values": values
-            })).unwrap()))
-            .unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(format!("/api/v1/{}/{}", entity, id))
+                .header("Content-Type", "application/json")
+                .header(k, v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "entity": entity, "id": id, "values": values
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&body).unwrap()
 }
 
-pub async fn delete_record(
-    app: &Router, entity: &str, id: &str, claims: &Claims,
-) -> StatusCode {
+pub async fn delete_record(app: &Router, entity: &str, id: &str, claims: &Claims) -> StatusCode {
     let (k, v) = auth_header(claims);
-    let resp = app.clone().oneshot(
-        Request::builder().method("DELETE")
-            .uri(format!("/api/v1/{}/{}", entity, id))
-            .header(k, v)
-            .body(Body::empty())
-            .unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(format!("/api/v1/{}/{}", entity, id))
+                .header(k, v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     resp.status()
 }
 
 pub async fn execute_workflow_action(
-    app: &Router, entity: &str, id: &str, action: &str, claims: &Claims,
+    app: &Router,
+    entity: &str,
+    id: &str,
+    action: &str,
+    claims: &Claims,
 ) -> serde_json::Value {
     let (k, v) = auth_header(claims);
-    let resp = app.clone().oneshot(
-        Request::builder().method("POST")
-            .uri(format!("/api/v1/{}/{}/{}", entity, id, action))
-            .header("Content-Type", "application/json")
-            .header(k, v)
-            .body(Body::from(serde_json::to_string(&json!({
-                "action": action, "comment": format!("E2E test: {}", action)
-            })).unwrap()))
-            .unwrap()
-    ).await.unwrap();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/{}/{}/{}", entity, id, action))
+                .header("Content-Type", "application/json")
+                .header(k, v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "action": action, "comment": format!("E2E test: {}", action)
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&body).unwrap()
 }
 
 pub async fn execute_workflow_action_expect_status(
-    app: &Router, entity: &str, id: &str, action: &str, claims: &Claims, expected: StatusCode,
+    app: &Router,
+    entity: &str,
+    id: &str,
+    action: &str,
+    claims: &Claims,
+    expected: StatusCode,
 ) -> StatusCode {
     let (k, v) = auth_header(claims);
-    let resp = app.clone().oneshot(
-        Request::builder().method("POST")
-            .uri(format!("/api/v1/{}/{}/{}", entity, id, action))
-            .header("Content-Type", "application/json")
-            .header(k, v)
-            .body(Body::from(serde_json::to_string(&json!({
-                "action": action, "comment": "test"
-            })).unwrap()))
-            .unwrap()
-    ).await.unwrap();
-    assert_eq!(resp.status(), expected, "Workflow action '{}' expected {:?} but got {:?}", action, expected, resp.status());
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/{}/{}/{}", entity, id, action))
+                .header("Content-Type", "application/json")
+                .header(k, v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "action": action, "comment": "test"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        resp.status(),
+        expected,
+        "Workflow action '{}' expected {:?} but got {:?}",
+        action,
+        expected,
+        resp.status()
+    );
     resp.status()
 }
 
 pub async fn get_transitions(
-    app: &Router, entity: &str, id: &str, claims: &Claims,
+    app: &Router,
+    entity: &str,
+    id: &str,
+    claims: &Claims,
 ) -> serde_json::Value {
     let (k, v) = auth_header(claims);
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri(format!("/api/v1/{}/{}/transitions", entity, id))
-            .header(k, v)
-            .body(Body::empty())
-            .unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/{}/{}/transitions", entity, id))
+                .header(k, v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&body).unwrap()
 }
 
 pub async fn get_history(
-    app: &Router, entity: &str, id: &str, claims: &Claims,
+    app: &Router,
+    entity: &str,
+    id: &str,
+    claims: &Claims,
 ) -> serde_json::Value {
     let (k, v) = auth_header(claims);
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri(format!("/api/v1/{}/{}/history", entity, id))
-            .header(k, v)
-            .body(Body::empty())
-            .unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/{}/{}/history", entity, id))
+                .header(k, v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&body).unwrap()
 }
 
-pub async fn list_records(
-    app: &Router, entity: &str, claims: &Claims,
-) -> serde_json::Value {
+pub async fn list_records(app: &Router, entity: &str, claims: &Claims) -> serde_json::Value {
     let (k, v) = auth_header(claims);
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri(format!("/api/v1/{}", entity))
-            .header(k, v)
-            .body(Body::empty())
-            .unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/{}", entity))
+                .header(k, v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&body).unwrap()
 }
 
 pub fn extract_id(record: &serde_json::Value) -> String {
-    record.get("id")
+    record
+        .get("id")
         .and_then(|v| {
             v.as_str()
                 .map(|s| s.to_string())
@@ -1438,66 +2216,122 @@ pub fn extract_id(record: &serde_json::Value) -> String {
 pub async fn cleanup_p2p(pool: &sqlx::PgPool) {
     // Delete data in dependency order (child tables first) to respect FK constraints
     let tables = [
-        "fin_journal_entry_lines", "fin_journal_entries",
-        "fin_invoice_lines", "fin_invoices",
+        "fin_journal_entry_lines",
+        "fin_journal_entries",
+        "fin_invoice_lines",
+        "fin_invoices",
         "fin_payments",
-        "scm_goods_receipt_lines", "scm_goods_receipts",
-        "scm_purchase_order_lines", "scm_purchase_orders",
-        "scm_inventory", "scm_products", "scm_suppliers", "scm_warehouses",
+        "scm_goods_receipt_lines",
+        "scm_goods_receipts",
+        "scm_purchase_order_lines",
+        "scm_purchase_orders",
+        "scm_inventory",
+        "scm_products",
+        "scm_suppliers",
+        "scm_warehouses",
         "fin_chart_of_accounts",
     ];
     for t in &tables {
-        sqlx::query(&format!("DELETE FROM {}", t)).execute(pool).await.ok();
+        sqlx::query(&format!("DELETE FROM {}", t))
+            .execute(pool)
+            .await
+            .ok();
     }
     // Clean workflow states and audit log for test entities
-    sqlx::query("DELETE FROM _atlas.workflow_states").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.workflow_states")
+        .execute(pool)
+        .await
+        .ok();
     // Clean entity defs from schema
     let entities = [
-        "scm_suppliers", "scm_products", "scm_warehouses", "scm_inventory",
-        "scm_purchase_orders", "scm_purchase_order_lines",
-        "scm_goods_receipts", "scm_goods_receipt_lines",
-        "fin_invoices", "fin_invoice_lines", "fin_payments",
-        "fin_journal_entries", "fin_journal_entry_lines",
+        "scm_suppliers",
+        "scm_products",
+        "scm_warehouses",
+        "scm_inventory",
+        "scm_purchase_orders",
+        "scm_purchase_order_lines",
+        "scm_goods_receipts",
+        "scm_goods_receipt_lines",
+        "fin_invoices",
+        "fin_invoice_lines",
+        "fin_payments",
+        "fin_journal_entries",
+        "fin_journal_entry_lines",
         "fin_chart_of_accounts",
     ];
     for e in &entities {
         sqlx::query("DELETE FROM _atlas.entities WHERE name = $1")
-            .bind(e).execute(pool).await.ok();
+            .bind(e)
+            .execute(pool)
+            .await
+            .ok();
         sqlx::query("DELETE FROM _atlas.audit_log WHERE entity_type = $1")
-            .bind(e).execute(pool).await.ok();
+            .bind(e)
+            .execute(pool)
+            .await
+            .ok();
     }
 }
 
 pub async fn cleanup_o2c(pool: &sqlx::PgPool) {
     // Delete data in dependency order (child tables first) to respect FK constraints
     let tables = [
-        "fin_journal_entry_lines", "fin_journal_entries",
-        "fin_invoice_lines", "fin_invoices",
+        "fin_journal_entry_lines",
+        "fin_journal_entries",
+        "fin_invoice_lines",
+        "fin_invoices",
         "fin_payments",
-        "scm_shipment_lines", "scm_shipments",
-        "scm_sales_order_lines", "scm_sales_orders",
-        "scm_inventory", "scm_products", "scm_warehouses",
-        "crm_contacts", "crm_leads", "crm_customers",
+        "scm_shipment_lines",
+        "scm_shipments",
+        "scm_sales_order_lines",
+        "scm_sales_orders",
+        "scm_inventory",
+        "scm_products",
+        "scm_warehouses",
+        "crm_contacts",
+        "crm_leads",
+        "crm_customers",
         "fin_chart_of_accounts",
     ];
     for t in &tables {
-        sqlx::query(&format!("DELETE FROM {}", t)).execute(pool).await.ok();
+        sqlx::query(&format!("DELETE FROM {}", t))
+            .execute(pool)
+            .await
+            .ok();
     }
     // Clean workflow states for test entities
-    sqlx::query("DELETE FROM _atlas.workflow_states").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.workflow_states")
+        .execute(pool)
+        .await
+        .ok();
     let entities = [
-        "crm_customers", "crm_leads", "crm_contacts",
-        "scm_sales_orders", "scm_sales_order_lines",
-        "scm_shipments", "scm_shipment_lines",
-        "scm_products", "scm_warehouses", "scm_inventory",
-        "fin_invoices", "fin_invoice_lines", "fin_payments",
-        "fin_journal_entries", "fin_journal_entry_lines",
+        "crm_customers",
+        "crm_leads",
+        "crm_contacts",
+        "scm_sales_orders",
+        "scm_sales_order_lines",
+        "scm_shipments",
+        "scm_shipment_lines",
+        "scm_products",
+        "scm_warehouses",
+        "scm_inventory",
+        "fin_invoices",
+        "fin_invoice_lines",
+        "fin_payments",
+        "fin_journal_entries",
+        "fin_journal_entry_lines",
         "fin_chart_of_accounts",
     ];
     for e in &entities {
         sqlx::query("DELETE FROM _atlas.entities WHERE name = $1")
-            .bind(e).execute(pool).await.ok();
+            .bind(e)
+            .execute(pool)
+            .await
+            .ok();
         sqlx::query("DELETE FROM _atlas.audit_log WHERE entity_type = $1")
-            .bind(e).execute(pool).await.ok();
+            .bind(e)
+            .execute(pool)
+            .await
+            .ok();
     }
 }

@@ -9,11 +9,11 @@
 //! - Dashboard summary
 //! - Validation edge cases
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 use uuid::Uuid;
 
 async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
@@ -21,25 +21,29 @@ async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router)
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
     // Clean invoice batch test data
-    sqlx::query("DELETE FROM _atlas.ap_invoice_batch_activities").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ap_invoice_batches").execute(&state.db_pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoice_batch_activities")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoice_batches")
+        .execute(&state.db_pool)
+        .await
+        .ok();
     sqlx::query("CREATE SCHEMA IF NOT EXISTS _atlas")
         .execute(&state.db_pool)
         .await
         .ok();
-    sqlx::raw_sql(include_str!("../../../../migrations/133_ap_invoice_batch.sql"))
-        .execute(&state.db_pool)
-        .await
-        .expect("Failed to run invoice batch migration");
+    sqlx::raw_sql(include_str!(
+        "../../../../migrations/133_ap_invoice_batch.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .expect("Failed to run invoice batch migration");
     let app = build_router(state.clone());
     (state, app)
 }
 
-async fn create_batch(
-    app: &axum::Router,
-    batch_name: &str,
-    source: &str,
-) -> serde_json::Value {
+async fn create_batch(app: &axum::Router, batch_name: &str, source: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({
         "batchName": batch_name,
@@ -49,18 +53,31 @@ async fn create_batch(
         "accountingPeriod": "2024-07",
         "source": source,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/invoice-batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/invoice-batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("CREATE BATCH status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create batch: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create batch: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -75,18 +92,31 @@ async fn add_invoice(
         "invoiceAmount": invoice_amount,
         "taxAmount": tax_amount,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/invoices", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/invoices", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("ADD INVOICE status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::OK, "Failed to add invoice: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "Failed to add invoice: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -120,16 +150,24 @@ async fn test_create_batch_import_source() {
         "controlTotal": 50000.0,
         "controlCount": 10,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/invoice-batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/invoice-batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["source"], "edi");
     assert_eq!(body["currencyCode"], "EUR");
     assert_eq!(body["controlTotal"], 50000.0);
@@ -143,14 +181,22 @@ async fn test_get_batch() {
     let batch_id: Uuid = batch["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/invoice-batches/{}", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/invoice-batches/{}", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["id"], batch["id"]);
     assert_eq!(body["batchName"], "Test Batch");
 }
@@ -162,14 +208,22 @@ async fn test_get_batch_by_number() {
     let number = batch["batchNumber"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/invoice-batches/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/invoice-batches/number/{}", number))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["batchNumber"], number);
 }
 
@@ -180,14 +234,22 @@ async fn test_list_batches() {
     create_batch(&app, "Batch 2", "import").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/invoice-batches")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/invoice-batches")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -203,33 +265,54 @@ async fn test_list_batches_filter_by_status() {
     add_invoice(&app, batch_id, 5000.0, 500.0).await;
 
     // Submit the batch
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Filter by draft
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/invoice-batches?status=draft")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/invoice-batches?status=draft")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(data.iter().all(|b| b["status"] == "draft"));
 
     // Filter by submitted
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/invoice-batches?status=submitted")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/invoice-batches?status=submitted")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(data.iter().all(|b| b["status"] == "submitted"));
     assert!(data.len() >= 1);
@@ -242,11 +325,18 @@ async fn test_delete_draft_batch() {
     let number = batch["batchNumber"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/invoice-batches/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/invoice-batches/number/{}", number))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -267,42 +357,66 @@ async fn test_full_lifecycle_posted() {
     add_invoice(&app, batch_id, 3000.0, 300.0).await;
 
     // Submit
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "submitted");
 
     // Approve
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/approve", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/approve", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "approved");
 
     // Post
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/post", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/post", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "posted");
     assert!(body["postedAt"].is_string());
 }
@@ -314,18 +428,29 @@ async fn test_cancel_from_draft() {
     let batch_id: Uuid = batch["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/cancel", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "reason": "No longer needed"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/cancel", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "reason": "No longer needed"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "cancelled");
     assert_eq!(body["cancelReason"], "No longer needed");
 }
@@ -340,25 +465,40 @@ async fn test_cancel_from_submitted() {
     add_invoice(&app, batch_id, 1000.0, 100.0).await;
 
     // Submit first
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Cancel from submitted
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/cancel", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"reason": "Budget cut"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/cancel", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"reason": "Budget cut"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "cancelled");
 }
 
@@ -373,26 +513,44 @@ async fn test_cancel_from_approved() {
 
     // Submit and approve
     for endpoint in &["submit", "approve"] {
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/invoice-batches/{}/{}", batch_id, endpoint))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!(
+                        "/api/v1/invoice-batches/{}/{}",
+                        batch_id, endpoint
+                    ))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Cancel from approved
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/cancel", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"reason": "Error found"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/cancel", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"reason": "Error found"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "cancelled");
 }
 
@@ -403,13 +561,19 @@ async fn test_invalid_transition_post_from_draft() {
     let batch_id: Uuid = batch["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/post", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/post", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -420,13 +584,19 @@ async fn test_submit_without_invoices_fails() {
     let batch_id: Uuid = batch["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -438,22 +608,35 @@ async fn test_cannot_post_cancelled() {
 
     let (k, v) = auth_header(&admin_claims());
     // Cancel from draft
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/cancel", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"reason": "test"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/cancel", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"reason": "test"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to post cancelled
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/post", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/post", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -468,20 +651,32 @@ async fn test_delete_non_draft_fails() {
     add_invoice(&app, batch_id, 1000.0, 100.0).await;
 
     // Submit
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to delete submitted batch
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/invoice-batches/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/invoice-batches/number/{}", number))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -500,21 +695,41 @@ async fn test_add_invoices_and_totals() {
 
     // Verify batch totals
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/invoice-batches/{}", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/invoice-batches/{}", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert_eq!(body["totalInvoiceCount"], 2);
     let total_inv: f64 = body["totalInvoiceAmount"].as_f64().unwrap();
-    assert!((total_inv - 8000.0).abs() < 0.01, "Expected 8000, got {}", total_inv);
+    assert!(
+        (total_inv - 8000.0).abs() < 0.01,
+        "Expected 8000, got {}",
+        total_inv
+    );
     let total_tax: f64 = body["totalTaxAmount"].as_f64().unwrap();
-    assert!((total_tax - 800.0).abs() < 0.01, "Expected 800, got {}", total_tax);
+    assert!(
+        (total_tax - 800.0).abs() < 0.01,
+        "Expected 800, got {}",
+        total_tax
+    );
     let total: f64 = body["totalAmount"].as_f64().unwrap();
-    assert!((total - 8800.0).abs() < 0.01, "Expected 8800, got {}", total);
+    assert!(
+        (total - 8800.0).abs() < 0.01,
+        "Expected 8800, got {}",
+        total
+    );
 }
 
 #[tokio::test]
@@ -532,27 +747,45 @@ async fn test_remove_invoice_and_recalc() {
         "invoiceAmount": 5000.0,
         "taxAmount": 500.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/invoice-batches/{}/invoices", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/invoice-batches/{}/invoices", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Verify totals recalculated
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/invoice-batches/{}", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/invoice-batches/{}", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert_eq!(body["totalInvoiceCount"], 1);
     let total: f64 = body["totalAmount"].as_f64().unwrap();
-    assert!((total - 3300.0).abs() < 0.01, "Expected 3300 after removal, got {}", total);
+    assert!(
+        (total - 3300.0).abs() < 0.01,
+        "Expected 3300 after removal, got {}",
+        total
+    );
 }
 
 #[tokio::test]
@@ -566,13 +799,19 @@ async fn test_add_invoice_negative_amount_fails() {
         "invoiceAmount": -500.0,
         "taxAmount": 50.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/invoices", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/invoices", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -593,15 +832,23 @@ async fn test_control_total_mismatch_fails_submit() {
         "source": "manual",
         "controlTotal": 10000.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/invoice-batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
-    let batch: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/invoice-batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let batch: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let batch_id: Uuid = batch["id"].as_str().unwrap().parse().unwrap();
 
     // Add invoices totaling 8800 (not matching 10000)
@@ -609,16 +856,24 @@ async fn test_control_total_mismatch_fails_submit() {
     add_invoice(&app, batch_id, 3000.0, 300.0).await;
 
     // Submit should fail due to control total mismatch
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["error"].as_str().unwrap().contains("control total"));
 }
 
@@ -634,15 +889,23 @@ async fn test_control_count_mismatch_fails_submit() {
         "source": "manual",
         "controlCount": 5,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/invoice-batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
-    let batch: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/invoice-batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let batch: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let batch_id: Uuid = batch["id"].as_str().unwrap().parse().unwrap();
 
     // Add only 2 invoices (not matching 5)
@@ -650,13 +913,19 @@ async fn test_control_count_mismatch_fails_submit() {
     add_invoice(&app, batch_id, 2000.0, 200.0).await;
 
     // Submit should fail due to control count mismatch
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/submit", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -676,40 +945,69 @@ async fn test_activity_trail() {
     add_invoice(&app, batch_id, 5000.0, 500.0).await;
 
     for endpoint in &["submit", "approve", "post"] {
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/invoice-batches/{}/{}", batch_id, endpoint))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!(
+                        "/api/v1/invoice-batches/{}/{}",
+                        batch_id, endpoint
+                    ))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Check activities
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/invoice-batches/{}/activities", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/invoice-batches/{}/activities", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     let activities = body["data"].as_array().unwrap();
     // Should have: created + invoice_added + submitted + approved + posted = 5
-    assert!(activities.len() >= 4, "Expected at least 4 activities, got {}", activities.len());
+    assert!(
+        activities.len() >= 4,
+        "Expected at least 4 activities, got {}",
+        activities.len()
+    );
 
     // Verify created activity
-    let created = activities.iter().find(|a| a["activityType"] == "created").unwrap();
+    let created = activities
+        .iter()
+        .find(|a| a["activityType"] == "created")
+        .unwrap();
     assert_eq!(created["newStatus"], "draft");
 
     // Verify submitted activity
-    let submitted = activities.iter().find(|a| a["activityType"] == "submitted").unwrap();
+    let submitted = activities
+        .iter()
+        .find(|a| a["activityType"] == "submitted")
+        .unwrap();
     assert_eq!(submitted["oldStatus"], "draft");
     assert_eq!(submitted["newStatus"], "submitted");
 
     // Verify posted activity
-    let posted = activities.iter().find(|a| a["activityType"] == "posted").unwrap();
+    let posted = activities
+        .iter()
+        .find(|a| a["activityType"] == "posted")
+        .unwrap();
     assert_eq!(posted["oldStatus"], "approved");
     assert_eq!(posted["newStatus"], "posted");
 }
@@ -732,23 +1030,39 @@ async fn test_dashboard() {
     // Submit and approve batch3
     add_invoice(&app, batch3_id, 10000.0, 1000.0).await;
     for endpoint in &["submit", "approve"] {
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/invoice-batches/{}/{}", batch3_id, endpoint))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!(
+                        "/api/v1/invoice-batches/{}/{}",
+                        batch3_id, endpoint
+                    ))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/invoice-batches/dashboard")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/invoice-batches/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert!(body.get("totalBatches").is_some());
     assert!(body.get("draftCount").is_some());
@@ -777,13 +1091,19 @@ async fn test_create_batch_invalid_source() {
         "batchName": "Invalid Source",
         "source": "unknown",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/invoice-batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/invoice-batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -795,13 +1115,19 @@ async fn test_create_batch_empty_name_fails() {
         "batchName": "",
         "source": "manual",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/invoice-batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/invoice-batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -809,11 +1135,17 @@ async fn test_create_batch_empty_name_fails() {
 async fn test_get_batch_not_found() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/invoice-batches/{}", Uuid::new_v4()))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/invoice-batches/{}", Uuid::new_v4()))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -821,11 +1153,17 @@ async fn test_get_batch_not_found() {
 async fn test_invalid_status_filter() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/invoice-batches?status=nonexistent")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/invoice-batches?status=nonexistent")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -841,29 +1179,46 @@ async fn test_validate_batch() {
         "source": "manual",
         "controlTotal": 5500.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/invoice-batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
-    let batch: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/invoice-batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let batch: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let batch_id: Uuid = batch["id"].as_str().unwrap().parse().unwrap();
 
     // Add invoice that makes total = 5000 + 500 = 5500
     add_invoice(&app, batch_id, 5000.0, 500.0).await;
 
     // Validate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/invoice-batches/{}/validate", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/invoice-batches/{}/validate", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["validationStatus"], "valid");
 }
 
@@ -885,15 +1240,23 @@ async fn test_full_lifecycle_with_control_totals() {
         "controlTotal": 11000.0,
         "controlCount": 2,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/invoice-batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
-    let batch: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/invoice-batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let batch: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let batch_id: Uuid = batch["id"].as_str().unwrap().parse().unwrap();
 
     // Add 2 invoices totaling 11000 (5000+500 + 5000+500 = 11000)
@@ -902,28 +1265,47 @@ async fn test_full_lifecycle_with_control_totals() {
 
     // Full lifecycle should succeed since control totals match
     for endpoint in &["submit", "approve", "post"] {
-        let r = app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/invoice-batches/{}/{}", batch_id, endpoint))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        let r = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!(
+                        "/api/v1/invoice-batches/{}/{}",
+                        batch_id, endpoint
+                    ))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         let status = r.status();
-        let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-            .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+        let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .map(|b| serde_json::from_slice(&b).unwrap())
+            .unwrap();
         eprintln!("{} -> {}", endpoint, body["status"]);
         assert_eq!(status, StatusCode::OK, "Failed at {} step", endpoint);
     }
 
     // Verify final state
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/invoice-batches/{}", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/invoice-batches/{}", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "posted");
     assert_eq!(body["totalInvoiceCount"], 2);
     let total: f64 = body["totalAmount"].as_f64().unwrap();

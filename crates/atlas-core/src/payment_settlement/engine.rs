@@ -5,28 +5,21 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Payables > Settlement
 
-use atlas_shared::{AtlasError, AtlasResult};
 use super::repository::{
-    PaymentSettlementRepository,
-    SettlementBatch, SettlementLine, SettlementSummary,
-    SettlementBatchCreateParams, SettlementLineCreateParams,
+    PaymentSettlementRepository, SettlementBatch, SettlementBatchCreateParams, SettlementLine,
+    SettlementLineCreateParams, SettlementSummary,
 };
+use atlas_shared::{AtlasError, AtlasResult};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 // Valid statuses
-const VALID_BATCH_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "settled", "cancelled",
-];
+const VALID_BATCH_STATUSES: &[&str] = &["draft", "submitted", "approved", "settled", "cancelled"];
 
-const VALID_SETTLEMENT_METHODS: &[&str] = &[
-    "check", "electronic", "wire", "ach", "sepa", "manual",
-];
+const VALID_SETTLEMENT_METHODS: &[&str] = &["check", "electronic", "wire", "ach", "sepa", "manual"];
 
-const VALID_SETTLEMENT_TYPES: &[&str] = &[
-    "full", "partial", "prepayment", "write_off",
-];
+const VALID_SETTLEMENT_TYPES: &[&str] = &["full", "partial", "prepayment", "write_off"];
 
 /// Payment Settlement Engine
 pub struct PaymentSettlementEngine {
@@ -45,7 +38,9 @@ impl PaymentSettlementEngine {
     fn validate_settlement_method(method: &str) -> AtlasResult<()> {
         if !VALID_SETTLEMENT_METHODS.contains(&method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid settlement_method '{}'. Must be one of: {}", method, VALID_SETTLEMENT_METHODS.join(", ")
+                "Invalid settlement_method '{}'. Must be one of: {}",
+                method,
+                VALID_SETTLEMENT_METHODS.join(", ")
             )));
         }
         Ok(())
@@ -54,7 +49,9 @@ impl PaymentSettlementEngine {
     fn validate_settlement_type(s_type: &str) -> AtlasResult<()> {
         if !VALID_SETTLEMENT_TYPES.contains(&s_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid settlement_type '{}'. Must be one of: {}", s_type, VALID_SETTLEMENT_TYPES.join(", ")
+                "Invalid settlement_type '{}'. Must be one of: {}",
+                s_type,
+                VALID_SETTLEMENT_TYPES.join(", ")
             )));
         }
         Ok(())
@@ -63,7 +60,9 @@ impl PaymentSettlementEngine {
     fn validate_batch_status(status: &str) -> AtlasResult<()> {
         if !VALID_BATCH_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid status '{}'. Must be one of: {}", status, VALID_BATCH_STATUSES.join(", ")
+                "Invalid status '{}'. Must be one of: {}",
+                status,
+                VALID_BATCH_STATUSES.join(", ")
             )));
         }
         Ok(())
@@ -111,14 +110,17 @@ impl PaymentSettlementEngine {
         settlement_type: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<SettlementBatch> {
-        info!("Creating settlement batch '{}' for org {}", batch_name, org_id);
+        info!(
+            "Creating settlement batch '{}' for org {}",
+            batch_name, org_id
+        );
 
         Self::validate_settlement_method(settlement_method)?;
         Self::validate_settlement_type(settlement_type)?;
 
         if gl_date < settlement_date {
             return Err(AtlasError::ValidationFailed(
-                "GL date cannot be before settlement date".to_string()
+                "GL date cannot be before settlement date".to_string(),
             ));
         }
 
@@ -141,11 +143,21 @@ impl PaymentSettlementEngine {
         let batch = self.repo.create_batch(&params).await?;
 
         // Log activity
-        let _ = self.repo.create_activity(
-            org_id, batch.id, None,
-            "created", Some("Settlement batch created"),
-            None, Some("draft"), created_by, None, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                org_id,
+                batch.id,
+                None,
+                "created",
+                Some("Settlement batch created"),
+                None,
+                Some("draft"),
+                created_by,
+                None,
+                None,
+            )
+            .await;
 
         Ok(batch)
     }
@@ -156,12 +168,20 @@ impl PaymentSettlementEngine {
     }
 
     /// Get a batch by number
-    pub async fn get_batch_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<SettlementBatch>> {
+    pub async fn get_batch_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<SettlementBatch>> {
         self.repo.get_batch_by_number(org_id, number).await
     }
 
     /// List batches with optional status filter
-    pub async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SettlementBatch>> {
+    pub async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SettlementBatch>> {
         if let Some(s) = status {
             Self::validate_batch_status(s)?;
         }
@@ -172,12 +192,15 @@ impl PaymentSettlementEngine {
     pub async fn delete_batch(&self, org_id: Uuid, number: &str) -> AtlasResult<()> {
         info!("Deleting settlement batch '{}' for org {}", number, org_id);
 
-        let batch = self.repo.get_batch_by_number(org_id, number).await?
+        let batch = self
+            .repo
+            .get_batch_by_number(org_id, number)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Settlement batch not found".to_string()))?;
 
         if batch.status != "draft" {
             return Err(AtlasError::ValidationFailed(
-                "Only draft batches can be deleted".to_string()
+                "Only draft batches can be deleted".to_string(),
             ));
         }
 
@@ -196,12 +219,15 @@ impl PaymentSettlementEngine {
     ) -> AtlasResult<SettlementBatch> {
         info!("Submitting settlement batch {}", id);
 
-        let batch = self.repo.get_batch(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Settlement batch not found".to_string()))?;
+        let batch =
+            self.repo.get_batch(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Settlement batch not found".to_string())
+            })?;
 
         if batch.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot submit batch in '{}' status. Must be 'draft'.", batch.status
+                "Cannot submit batch in '{}' status. Must be 'draft'.",
+                batch.status
             )));
         }
 
@@ -210,18 +236,28 @@ impl PaymentSettlementEngine {
         let pending = lines.iter().filter(|l| l.status == "pending").count();
         if pending == 0 {
             return Err(AtlasError::ValidationFailed(
-                "Batch must have at least one pending line before submission".to_string()
+                "Batch must have at least one pending line before submission".to_string(),
             ));
         }
 
         let _ = self.repo.update_batch_submission(id, submitted_by).await?;
         let batch = self.repo.update_batch_status(id, "submitted").await?;
 
-        let _ = self.repo.create_activity(
-            batch.organization_id, id, None,
-            "submitted", Some("Batch submitted for approval"),
-            Some("draft"), Some("submitted"), submitted_by, None, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                batch.organization_id,
+                id,
+                None,
+                "submitted",
+                Some("Batch submitted for approval"),
+                Some("draft"),
+                Some("submitted"),
+                submitted_by,
+                None,
+                None,
+            )
+            .await;
 
         Ok(batch)
     }
@@ -234,19 +270,31 @@ impl PaymentSettlementEngine {
     ) -> AtlasResult<SettlementBatch> {
         info!("Approving settlement batch {}", id);
 
-        let batch = self.repo.get_batch(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Settlement batch not found".to_string()))?;
+        let batch =
+            self.repo.get_batch(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Settlement batch not found".to_string())
+            })?;
 
         Self::validate_status_transition(&batch.status, "approved")?;
 
         let _ = self.repo.update_batch_approval(id, approved_by).await?;
         let batch = self.repo.update_batch_status(id, "approved").await?;
 
-        let _ = self.repo.create_activity(
-            batch.organization_id, id, None,
-            "approved", Some("Batch approved"),
-            Some("submitted"), Some("approved"), approved_by, None, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                batch.organization_id,
+                id,
+                None,
+                "approved",
+                Some("Batch approved"),
+                Some("submitted"),
+                Some("approved"),
+                approved_by,
+                None,
+                None,
+            )
+            .await;
 
         Ok(batch)
     }
@@ -259,8 +307,10 @@ impl PaymentSettlementEngine {
     ) -> AtlasResult<SettlementBatch> {
         info!("Settling settlement batch {}", id);
 
-        let batch = self.repo.get_batch(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Settlement batch not found".to_string()))?;
+        let batch =
+            self.repo.get_batch(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Settlement batch not found".to_string())
+            })?;
 
         Self::validate_status_transition(&batch.status, "settled")?;
 
@@ -269,22 +319,45 @@ impl PaymentSettlementEngine {
         for line in lines.iter().filter(|l| l.status == "pending") {
             let _ = self.repo.update_line_status(line.id, "settled", None).await;
 
-            let _ = self.repo.create_activity(
-                batch.organization_id, id, Some(line.id),
-                "line_settled", Some(&format!("Invoice {} settled for {:.2}",
-                    line.invoice_number.as_deref().unwrap_or("?"), line.amount_paid)),
-                Some("pending"), Some("settled"), settled_by, None, None,
-            ).await;
+            let _ = self
+                .repo
+                .create_activity(
+                    batch.organization_id,
+                    id,
+                    Some(line.id),
+                    "line_settled",
+                    Some(&format!(
+                        "Invoice {} settled for {:.2}",
+                        line.invoice_number.as_deref().unwrap_or("?"),
+                        line.amount_paid
+                    )),
+                    Some("pending"),
+                    Some("settled"),
+                    settled_by,
+                    None,
+                    None,
+                )
+                .await;
         }
 
         let _ = self.repo.update_batch_settlement(id, settled_by).await?;
         let batch = self.repo.update_batch_status(id, "settled").await?;
 
-        let _ = self.repo.create_activity(
-            batch.organization_id, id, None,
-            "settled", Some("Batch settled"),
-            Some("approved"), Some("settled"), settled_by, None, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                batch.organization_id,
+                id,
+                None,
+                "settled",
+                Some("Batch settled"),
+                Some("approved"),
+                Some("settled"),
+                settled_by,
+                None,
+                None,
+            )
+            .await;
 
         Ok(batch)
     }
@@ -296,27 +369,52 @@ impl PaymentSettlementEngine {
         cancelled_by: Option<Uuid>,
         reason: Option<&str>,
     ) -> AtlasResult<SettlementBatch> {
-        info!("Cancelling settlement batch {}: {}", id, reason.unwrap_or("No reason"));
+        info!(
+            "Cancelling settlement batch {}: {}",
+            id,
+            reason.unwrap_or("No reason")
+        );
 
-        let batch = self.repo.get_batch(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Settlement batch not found".to_string()))?;
+        let batch =
+            self.repo.get_batch(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Settlement batch not found".to_string())
+            })?;
 
         Self::validate_status_transition(&batch.status, "cancelled")?;
 
         // Cancel all pending lines
         let lines = self.repo.list_lines(id).await?;
         for line in lines.iter().filter(|l| l.status == "pending") {
-            let _ = self.repo.update_line_status(line.id, "cancelled", None).await;
+            let _ = self
+                .repo
+                .update_line_status(line.id, "cancelled", None)
+                .await;
         }
 
-        let _ = self.repo.update_batch_cancellation(id, cancelled_by, reason).await?;
+        let _ = self
+            .repo
+            .update_batch_cancellation(id, cancelled_by, reason)
+            .await?;
         let batch = self.repo.update_batch_status(id, "cancelled").await?;
 
-        let _ = self.repo.create_activity(
-            batch.organization_id, id, None,
-            "cancelled", Some(&format!("Batch cancelled: {}", reason.unwrap_or("No reason"))),
-            None, Some("cancelled"), cancelled_by, None, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                batch.organization_id,
+                id,
+                None,
+                "cancelled",
+                Some(&format!(
+                    "Batch cancelled: {}",
+                    reason.unwrap_or("No reason")
+                )),
+                None,
+                Some("cancelled"),
+                cancelled_by,
+                None,
+                None,
+            )
+            .await;
 
         Ok(batch)
     }
@@ -352,48 +450,55 @@ impl PaymentSettlementEngine {
         discount_account: Option<&str>,
         charges_account: Option<&str>,
     ) -> AtlasResult<SettlementLine> {
-        info!("Adding settlement line for invoice {:?} to batch {}", invoice_number, batch_id);
+        info!(
+            "Adding settlement line for invoice {:?} to batch {}",
+            invoice_number, batch_id
+        );
 
         // Validate settlement type
         if !VALID_SETTLEMENT_TYPES.contains(&line_settlement_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid line settlement_type '{}'. Must be one of: {}",
-                line_settlement_type, VALID_SETTLEMENT_TYPES.join(", ")
+                line_settlement_type,
+                VALID_SETTLEMENT_TYPES.join(", ")
             )));
         }
 
         // Verify batch exists and is editable
-        let batch = self.repo.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Settlement batch not found".to_string()))?;
+        let batch =
+            self.repo.get_batch(batch_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Settlement batch not found".to_string())
+            })?;
 
         if batch.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot add lines to batch in '{}' status. Must be 'draft'.", batch.status
+                "Cannot add lines to batch in '{}' status. Must be 'draft'.",
+                batch.status
             )));
         }
 
         // Validate amounts
         if amount_paid <= 0.0 {
             return Err(AtlasError::ValidationFailed(
-                "Amount paid must be greater than zero".to_string()
+                "Amount paid must be greater than zero".to_string(),
             ));
         }
 
         if amount_paid > amount_due + 0.01 {
             return Err(AtlasError::ValidationFailed(
-                "Amount paid cannot exceed amount due".to_string()
+                "Amount paid cannot exceed amount due".to_string(),
             ));
         }
 
         if discount_taken > discount_available + 0.01 {
             return Err(AtlasError::ValidationFailed(
-                "Discount taken cannot exceed discount available".to_string()
+                "Discount taken cannot exceed discount available".to_string(),
             ));
         }
 
         if bank_charges < 0.0 {
             return Err(AtlasError::ValidationFailed(
-                "Bank charges cannot be negative".to_string()
+                "Bank charges cannot be negative".to_string(),
             ));
         }
 
@@ -429,12 +534,24 @@ impl PaymentSettlementEngine {
         self.recalculate_batch_totals(batch_id).await?;
 
         // Log activity
-        let _ = self.repo.create_activity(
-            org_id, batch_id, Some(line.id),
-            "line_added", Some(&format!("Settlement line added for invoice {}",
-                invoice_number.unwrap_or("?"))),
-            None, None, None, None, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                org_id,
+                batch_id,
+                Some(line.id),
+                "line_added",
+                Some(&format!(
+                    "Settlement line added for invoice {}",
+                    invoice_number.unwrap_or("?")
+                )),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
 
         Ok(line)
     }
@@ -453,12 +570,15 @@ impl PaymentSettlementEngine {
     pub async fn remove_line(&self, batch_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
         info!("Removing line {} from batch {}", line_id, batch_id);
 
-        let batch = self.repo.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Settlement batch not found".to_string()))?;
+        let batch =
+            self.repo.get_batch(batch_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Settlement batch not found".to_string())
+            })?;
 
         if batch.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot remove lines from batch in '{}' status", batch.status
+                "Cannot remove lines from batch in '{}' status",
+                batch.status
             )));
         }
 
@@ -495,7 +615,8 @@ impl PaymentSettlementEngine {
     /// Recalculate batch totals from lines
     async fn recalculate_batch_totals(&self, batch_id: Uuid) -> AtlasResult<()> {
         let lines = self.repo.list_lines(batch_id).await?;
-        let pending: Vec<&SettlementLine> = lines.iter().filter(|l| l.status == "pending").collect();
+        let pending: Vec<&SettlementLine> =
+            lines.iter().filter(|l| l.status == "pending").collect();
 
         let total_invoices = pending.len() as i32;
         let total_invoice_amount: f64 = pending.iter().map(|l| l.invoice_amount).sum();
@@ -504,15 +625,17 @@ impl PaymentSettlementEngine {
         let total_charges: f64 = pending.iter().map(|l| l.bank_charges).sum();
         let total_net_payment: f64 = pending.iter().map(|l| l.net_settlement).sum();
 
-        self.repo.update_batch_totals(
-            batch_id,
-            total_invoices,
-            total_invoice_amount,
-            total_discount_taken,
-            total_settled_amount,
-            total_charges,
-            total_net_payment,
-        ).await?;
+        self.repo
+            .update_batch_totals(
+                batch_id,
+                total_invoices,
+                total_invoice_amount,
+                total_discount_taken,
+                total_settled_amount,
+                total_charges,
+                total_net_payment,
+            )
+            .await?;
 
         Ok(())
     }
@@ -521,12 +644,18 @@ impl PaymentSettlementEngine {
     // Exported validation functions for handler use
     // ========================================================================
 
-    #[must_use] 
-    pub const fn valid_settlement_methods() -> &'static [&'static str] { VALID_SETTLEMENT_METHODS }
-    #[must_use] 
-    pub const fn valid_settlement_types() -> &'static [&'static str] { VALID_SETTLEMENT_TYPES }
-    #[must_use] 
-    pub const fn valid_batch_statuses() -> &'static [&'static str] { VALID_BATCH_STATUSES }
+    #[must_use]
+    pub const fn valid_settlement_methods() -> &'static [&'static str] {
+        VALID_SETTLEMENT_METHODS
+    }
+    #[must_use]
+    pub const fn valid_settlement_types() -> &'static [&'static str] {
+        VALID_SETTLEMENT_TYPES
+    }
+    #[must_use]
+    pub const fn valid_batch_statuses() -> &'static [&'static str] {
+        VALID_BATCH_STATUSES
+    }
 }
 
 // Re-export for convenience

@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion equivalent: General Ledger > Setup > Transaction Calendars
 
-use atlas_shared::{
-    TransactionCalendar, CalendarException, CalendarDateCalculation,
-    TransactionCalendarDashboard,
-    AtlasError, AtlasResult,
-};
 use super::TransactionCalendarRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CalendarDateCalculation, CalendarException, TransactionCalendar,
+    TransactionCalendarDashboard,
+};
 use chrono::{Datelike, Duration, NaiveDate};
 use std::sync::Arc;
 use tracing::info;
@@ -54,16 +53,23 @@ impl TransactionCalendarEngine {
     ) -> AtlasResult<TransactionCalendar> {
         // Validate inputs
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Calendar code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Calendar code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Calendar name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Calendar name is required".to_string(),
+            ));
         }
 
         // Validate and normalize working days
         let working_days = working_days.cloned().unwrap_or_else(|| {
             serde_json::Value::Array(
-                DEFAULT_WORKING_DAYS.iter().map(|d| serde_json::Value::from(*d)).collect()
+                DEFAULT_WORKING_DAYS
+                    .iter()
+                    .map(|d| serde_json::Value::from(*d))
+                    .collect(),
             )
         });
         Self::validate_working_days(&working_days)?;
@@ -83,16 +89,31 @@ impl TransactionCalendarEngine {
             )));
         }
 
-        info!("Creating transaction calendar {} ({}) for org {}", code, name, org_id);
+        info!(
+            "Creating transaction calendar {} ({}) for org {}",
+            code, name, org_id
+        );
 
-        self.repository.create_calendar(
-            org_id, code, name, description, &working_days,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_calendar(
+                org_id,
+                code,
+                name,
+                description,
+                &working_days,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a calendar by code
-    pub async fn get_calendar(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<TransactionCalendar>> {
+    pub async fn get_calendar(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TransactionCalendar>> {
         self.repository.get_calendar(org_id, code).await
     }
 
@@ -112,11 +133,15 @@ impl TransactionCalendarEngine {
 
     /// Activate a calendar
     pub async fn activate_calendar(&self, id: Uuid) -> AtlasResult<TransactionCalendar> {
-        let cal = self.get_calendar_by_id(id).await?
+        let cal = self
+            .get_calendar_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar {id} not found")))?;
 
         if cal.status == "active" {
-            return Err(AtlasError::WorkflowError("Calendar is already active".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Calendar is already active".to_string(),
+            ));
         }
 
         info!("Activated transaction calendar {}", cal.code);
@@ -125,11 +150,15 @@ impl TransactionCalendarEngine {
 
     /// Deactivate a calendar
     pub async fn deactivate_calendar(&self, id: Uuid) -> AtlasResult<TransactionCalendar> {
-        let cal = self.get_calendar_by_id(id).await?
+        let cal = self
+            .get_calendar_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar {id} not found")))?;
 
         if cal.status == "inactive" {
-            return Err(AtlasError::WorkflowError("Calendar is already inactive".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Calendar is already inactive".to_string(),
+            ));
         }
 
         info!("Deactivated transaction calendar {}", cal.code);
@@ -138,7 +167,10 @@ impl TransactionCalendarEngine {
 
     /// Delete a calendar (only if no exceptions exist)
     pub async fn delete_calendar(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        let cal = self.repository.get_calendar(org_id, code).await?
+        let cal = self
+            .repository
+            .get_calendar(org_id, code)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar '{code}' not found")))?;
 
         // Check for exceptions
@@ -146,7 +178,8 @@ impl TransactionCalendarEngine {
         if !exceptions.is_empty() {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot delete calendar '{}' - it has {} exception(s). Remove exceptions first.",
-                code, exceptions.len()
+                code,
+                exceptions.len()
             )));
         }
 
@@ -173,27 +206,39 @@ impl TransactionCalendarEngine {
         if !VALID_EXCEPTION_TYPES.contains(&exception_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid exception type '{}'. Must be one of: {}",
-                exception_type, VALID_EXCEPTION_TYPES.join(", ")
+                exception_type,
+                VALID_EXCEPTION_TYPES.join(", ")
             )));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Exception name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Exception name is required".to_string(),
+            ));
         }
 
         // Verify calendar exists and is active
-        let cal = self.repository.get_calendar_by_id(calendar_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Calendar {calendar_id} not found"
-            )))?;
+        let cal = self
+            .repository
+            .get_calendar_by_id(calendar_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Calendar {calendar_id} not found"))
+            })?;
 
         if cal.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot add exceptions to inactive calendar '{}'", cal.code
+                "Cannot add exceptions to inactive calendar '{}'",
+                cal.code
             )));
         }
 
         // Check for duplicate exception date
-        if self.repository.get_exception(calendar_id, exception_date).await?.is_some() {
+        if self
+            .repository
+            .get_exception(calendar_id, exception_date)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "An exception already exists for calendar '{}' on date {}",
                 cal.code, exception_date
@@ -205,10 +250,17 @@ impl TransactionCalendarEngine {
             exception_type, name, cal.code, exception_date
         );
 
-        self.repository.create_exception(
-            org_id, calendar_id, exception_date, exception_type,
-            name, description, created_by,
-        ).await
+        self.repository
+            .create_exception(
+                org_id,
+                calendar_id,
+                exception_date,
+                exception_type,
+                name,
+                description,
+                created_by,
+            )
+            .await
     }
 
     /// Get an exception by calendar and date
@@ -217,14 +269,13 @@ impl TransactionCalendarEngine {
         calendar_id: Uuid,
         exception_date: NaiveDate,
     ) -> AtlasResult<Option<CalendarException>> {
-        self.repository.get_exception(calendar_id, exception_date).await
+        self.repository
+            .get_exception(calendar_id, exception_date)
+            .await
     }
 
     /// List exceptions for a calendar
-    pub async fn list_exceptions(
-        &self,
-        calendar_id: Uuid,
-    ) -> AtlasResult<Vec<CalendarException>> {
+    pub async fn list_exceptions(&self, calendar_id: Uuid) -> AtlasResult<Vec<CalendarException>> {
         self.repository.list_exceptions(calendar_id).await
     }
 
@@ -235,7 +286,9 @@ impl TransactionCalendarEngine {
         from_date: NaiveDate,
         to_date: NaiveDate,
     ) -> AtlasResult<Vec<CalendarException>> {
-        self.repository.list_exceptions_range(calendar_id, from_date, to_date).await
+        self.repository
+            .list_exceptions_range(calendar_id, from_date, to_date)
+            .await
     }
 
     /// Delete an exception
@@ -261,19 +314,33 @@ impl TransactionCalendarEngine {
         reference_id: Option<Uuid>,
         calculated_by: Option<Uuid>,
     ) -> AtlasResult<bool> {
-        let cal = self.repository.get_calendar_by_id(calendar_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Calendar {calendar_id} not found"
-            )))?;
+        let cal = self
+            .repository
+            .get_calendar_by_id(calendar_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Calendar {calendar_id} not found"))
+            })?;
 
         let result = Self::calculate_is_business_day(&cal, date, &self.repository).await?;
 
         // Log the calculation
-        let _ = self.repository.create_calculation(
-            cal.organization_id, calendar_id, &cal.code,
-            "is_business_day", date, None, Some(result), None,
-            reference_type, reference_id, calculated_by,
-        ).await;
+        let _ = self
+            .repository
+            .create_calculation(
+                cal.organization_id,
+                calendar_id,
+                &cal.code,
+                "is_business_day",
+                date,
+                None,
+                Some(result),
+                None,
+                reference_type,
+                reference_id,
+                calculated_by,
+            )
+            .await;
 
         Ok(result)
     }
@@ -287,27 +354,41 @@ impl TransactionCalendarEngine {
         reference_id: Option<Uuid>,
         calculated_by: Option<Uuid>,
     ) -> AtlasResult<NaiveDate> {
-        let cal = self.repository.get_calendar_by_id(calendar_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Calendar {calendar_id} not found"
-            )))?;
+        let cal = self
+            .repository
+            .get_calendar_by_id(calendar_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Calendar {calendar_id} not found"))
+            })?;
 
         let mut current = date + Duration::days(1);
         // Safety limit to prevent infinite loops
         for _ in 0..366 {
             if Self::calculate_is_business_day(&cal, current, &self.repository).await? {
-                let _ = self.repository.create_calculation(
-                    cal.organization_id, calendar_id, &cal.code,
-                    "next_business_day", date, Some(current), None, None,
-                    reference_type, reference_id, calculated_by,
-                ).await;
+                let _ = self
+                    .repository
+                    .create_calculation(
+                        cal.organization_id,
+                        calendar_id,
+                        &cal.code,
+                        "next_business_day",
+                        date,
+                        Some(current),
+                        None,
+                        None,
+                        reference_type,
+                        reference_id,
+                        calculated_by,
+                    )
+                    .await;
                 return Ok(current);
             }
             current += Duration::days(1);
         }
 
         Err(AtlasError::WorkflowError(
-            "Could not find next business day within 366 days".to_string()
+            "Could not find next business day within 366 days".to_string(),
         ))
     }
 
@@ -320,26 +401,40 @@ impl TransactionCalendarEngine {
         reference_id: Option<Uuid>,
         calculated_by: Option<Uuid>,
     ) -> AtlasResult<NaiveDate> {
-        let cal = self.repository.get_calendar_by_id(calendar_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Calendar {calendar_id} not found"
-            )))?;
+        let cal = self
+            .repository
+            .get_calendar_by_id(calendar_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Calendar {calendar_id} not found"))
+            })?;
 
         let mut current = date - Duration::days(1);
         for _ in 0..366 {
             if Self::calculate_is_business_day(&cal, current, &self.repository).await? {
-                let _ = self.repository.create_calculation(
-                    cal.organization_id, calendar_id, &cal.code,
-                    "previous_business_day", date, Some(current), None, None,
-                    reference_type, reference_id, calculated_by,
-                ).await;
+                let _ = self
+                    .repository
+                    .create_calculation(
+                        cal.organization_id,
+                        calendar_id,
+                        &cal.code,
+                        "previous_business_day",
+                        date,
+                        Some(current),
+                        None,
+                        None,
+                        reference_type,
+                        reference_id,
+                        calculated_by,
+                    )
+                    .await;
                 return Ok(current);
             }
             current -= Duration::days(1);
         }
 
         Err(AtlasError::WorkflowError(
-            "Could not find previous business day within 366 days".to_string()
+            "Could not find previous business day within 366 days".to_string(),
         ))
     }
 
@@ -355,14 +450,18 @@ impl TransactionCalendarEngine {
     ) -> AtlasResult<NaiveDate> {
         if days < 0 {
             return Err(AtlasError::ValidationFailed(
-                "Days must be non-negative. Use subtract_business_days for negative offsets.".to_string()
+                "Days must be non-negative. Use subtract_business_days for negative offsets."
+                    .to_string(),
             ));
         }
 
-        let cal = self.repository.get_calendar_by_id(calendar_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Calendar {calendar_id} not found"
-            )))?;
+        let cal = self
+            .repository
+            .get_calendar_by_id(calendar_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Calendar {calendar_id} not found"))
+            })?;
 
         let mut current = start_date;
         let mut remaining = days;
@@ -377,11 +476,22 @@ impl TransactionCalendarEngine {
             }
         }
 
-        let _ = self.repository.create_calculation(
-            cal.organization_id, calendar_id, &cal.code,
-            "add_business_days", start_date, Some(current), None, Some(days),
-            reference_type, reference_id, calculated_by,
-        ).await;
+        let _ = self
+            .repository
+            .create_calculation(
+                cal.organization_id,
+                calendar_id,
+                &cal.code,
+                "add_business_days",
+                start_date,
+                Some(current),
+                None,
+                Some(days),
+                reference_type,
+                reference_id,
+                calculated_by,
+            )
+            .await;
 
         Ok(current)
     }
@@ -397,7 +507,9 @@ impl TransactionCalendarEngine {
         calendar_id: Option<Uuid>,
         limit: Option<i32>,
     ) -> AtlasResult<Vec<CalendarDateCalculation>> {
-        self.repository.list_calculations(org_id, calendar_id, limit).await
+        self.repository
+            .list_calculations(org_id, calendar_id, limit)
+            .await
     }
 
     // ========================================================================
@@ -422,7 +534,9 @@ impl TransactionCalendarEngine {
         let weekday = date.weekday().num_days_from_monday() as i32 + 1; // 1=Mon, 7=Sun
 
         // Check working_days pattern
-        let is_working_day = cal.working_days.as_array()
+        let is_working_day = cal
+            .working_days
+            .as_array()
             .is_some_and(|arr| arr.iter().any(|v| v.as_i64() == Some(i64::from(weekday))));
 
         // Check for exceptions on this date
@@ -449,9 +563,11 @@ impl TransactionCalendarEngine {
                 for v in arr {
                     match v.as_i64() {
                         Some(d) if (1..=7).contains(&d) => {}
-                        _ => return Err(AtlasError::ValidationFailed(format!(
-                            "Invalid working day value: {v}. Must be 1-7 (Mon-Sun)"
-                        ))),
+                        _ => {
+                            return Err(AtlasError::ValidationFailed(format!(
+                                "Invalid working day value: {v}. Must be 1-7 (Mon-Sun)"
+                            )))
+                        }
                     }
                 }
                 Ok(())
@@ -469,39 +585,41 @@ mod tests {
 
     #[test]
     fn test_validate_working_days_valid() {
-        assert!(TransactionCalendarEngine::validate_working_days(
-            &serde_json::json!([1, 2, 3, 4, 5])
-        ).is_ok());
-        assert!(TransactionCalendarEngine::validate_working_days(
-            &serde_json::json!([1, 2, 3, 4, 5, 6])
-        ).is_ok());
-        assert!(TransactionCalendarEngine::validate_working_days(
-            &serde_json::json!([1, 7])
-        ).is_ok());
+        assert!(
+            TransactionCalendarEngine::validate_working_days(&serde_json::json!([1, 2, 3, 4, 5]))
+                .is_ok()
+        );
+        assert!(
+            TransactionCalendarEngine::validate_working_days(&serde_json::json!([
+                1, 2, 3, 4, 5, 6
+            ]))
+            .is_ok()
+        );
+        assert!(
+            TransactionCalendarEngine::validate_working_days(&serde_json::json!([1, 7])).is_ok()
+        );
     }
 
     #[test]
     fn test_validate_working_days_empty() {
-        assert!(TransactionCalendarEngine::validate_working_days(
-            &serde_json::json!([])
-        ).is_err());
+        assert!(TransactionCalendarEngine::validate_working_days(&serde_json::json!([])).is_err());
     }
 
     #[test]
     fn test_validate_working_days_invalid_value() {
-        assert!(TransactionCalendarEngine::validate_working_days(
-            &serde_json::json!([0, 1, 2])
-        ).is_err());
-        assert!(TransactionCalendarEngine::validate_working_days(
-            &serde_json::json!([8])
-        ).is_err());
+        assert!(
+            TransactionCalendarEngine::validate_working_days(&serde_json::json!([0, 1, 2]))
+                .is_err()
+        );
+        assert!(TransactionCalendarEngine::validate_working_days(&serde_json::json!([8])).is_err());
     }
 
     #[test]
     fn test_validate_working_days_non_array() {
-        assert!(TransactionCalendarEngine::validate_working_days(
-            &serde_json::json!("Mon-Fri")
-        ).is_err());
+        assert!(
+            TransactionCalendarEngine::validate_working_days(&serde_json::json!("Mon-Fri"))
+                .is_err()
+        );
     }
 
     #[test]

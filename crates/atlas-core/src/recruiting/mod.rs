@@ -10,4 +10,4 @@ mod engine;
 mod repository;
 
 pub use engine::RecruitingEngine;
-pub use repository::{RecruitingRepository, PostgresRecruitingRepository};
+pub use repository::{PostgresRecruitingRepository, RecruitingRepository};

@@ -11,14 +11,12 @@
 //! 4. Create invoice headers and lines
 //! 5. Post completed invoices
 
-use atlas_shared::{
-    AutoInvoiceBatch, AutoInvoiceLine, AutoInvoiceGroupingRule,
-    AutoInvoiceValidationRule, AutoInvoiceResult, AutoInvoiceResultLine,
-    AutoInvoiceImportRequest,
-    AutoInvoiceValidationError,
-    AtlasError, AtlasResult,
-};
 use super::AutoInvoiceRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, AutoInvoiceBatch, AutoInvoiceGroupingRule, AutoInvoiceImportRequest,
+    AutoInvoiceLine, AutoInvoiceResult, AutoInvoiceResultLine, AutoInvoiceValidationError,
+    AutoInvoiceValidationRule,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::info;
@@ -26,25 +24,31 @@ use uuid::Uuid;
 
 /// Valid transaction types for `AutoInvoice`
 #[allow(dead_code)]
-const VALID_TRANSACTION_TYPES: &[&str] = &[
-    "invoice", "credit_memo", "debit_memo", "on_account_credit",
-];
+const VALID_TRANSACTION_TYPES: &[&str] =
+    &["invoice", "credit_memo", "debit_memo", "on_account_credit"];
 
 /// Valid validation types
 #[allow(dead_code)]
-const VALID_VALIDATION_TYPES: &[&str] = &[
-    "required", "format", "reference", "range", "custom",
-];
+const VALID_VALIDATION_TYPES: &[&str] = &["required", "format", "reference", "range", "custom"];
 
 /// Valid batch statuses
 #[allow(dead_code)]
 const VALID_BATCH_STATUSES: &[&str] = &[
-    "pending", "validating", "validated", "processing", "completed", "failed", "cancelled",
+    "pending",
+    "validating",
+    "validated",
+    "processing",
+    "completed",
+    "failed",
+    "cancelled",
 ];
 
 /// Required fields for any `AutoInvoice` line
 const REQUIRED_LINE_FIELDS: &[&str] = &[
-    "transaction_type", "currency_code", "transaction_date", "gl_date",
+    "transaction_type",
+    "currency_code",
+    "transaction_date",
+    "gl_date",
 ];
 
 /// `AutoInvoice` engine for processing AR invoice creation
@@ -75,16 +79,25 @@ impl AutoInvoiceEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutoInvoiceGroupingRule> {
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Grouping rule name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Grouping rule name is required".to_string(),
+            ));
         }
 
         // Validate group_by_fields is an array of strings
         if !group_by_fields.is_array() {
-            return Err(AtlasError::ValidationFailed("group_by_fields must be a JSON array".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "group_by_fields must be a JSON array".to_string(),
+            ));
         }
 
         // Check uniqueness
-        if self.repository.get_grouping_rule_by_name(org_id, name).await?.is_some() {
+        if self
+            .repository
+            .get_grouping_rule_by_name(org_id, name)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Grouping rule '{name}' already exists"
             )));
@@ -94,26 +107,45 @@ impl AutoInvoiceEngine {
         if is_default {
             if let Some(existing) = self.repository.get_default_grouping_rule(org_id).await? {
                 return Err(AtlasError::Conflict(format!(
-                    "A default grouping rule already exists: '{}'. Unset it first.", existing.name
+                    "A default grouping rule already exists: '{}'. Unset it first.",
+                    existing.name
                 )));
             }
         }
 
-        info!("Creating AutoInvoice grouping rule '{}' for org {}", name, org_id);
+        info!(
+            "Creating AutoInvoice grouping rule '{}' for org {}",
+            name, org_id
+        );
 
-        self.repository.create_grouping_rule(
-            org_id, name, description, transaction_types,
-            group_by_fields, line_order_by, is_default, priority, created_by,
-        ).await
+        self.repository
+            .create_grouping_rule(
+                org_id,
+                name,
+                description,
+                transaction_types,
+                group_by_fields,
+                line_order_by,
+                is_default,
+                priority,
+                created_by,
+            )
+            .await
     }
 
     /// Get a grouping rule by ID
-    pub async fn get_grouping_rule(&self, id: Uuid) -> AtlasResult<Option<AutoInvoiceGroupingRule>> {
+    pub async fn get_grouping_rule(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<AutoInvoiceGroupingRule>> {
         self.repository.get_grouping_rule(id).await
     }
 
     /// List all grouping rules
-    pub async fn list_grouping_rules(&self, org_id: Uuid) -> AtlasResult<Vec<AutoInvoiceGroupingRule>> {
+    pub async fn list_grouping_rules(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<AutoInvoiceGroupingRule>> {
         self.repository.list_grouping_rules(org_id).await
     }
 
@@ -145,33 +177,57 @@ impl AutoInvoiceEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutoInvoiceValidationRule> {
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Validation rule name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Validation rule name is required".to_string(),
+            ));
         }
         if field_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Field name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Field name is required".to_string(),
+            ));
         }
         if !VALID_VALIDATION_TYPES.contains(&validation_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid validation_type '{}'. Must be one of: {}",
-                validation_type, VALID_VALIDATION_TYPES.join(", ")
+                validation_type,
+                VALID_VALIDATION_TYPES.join(", ")
             )));
         }
         if error_message.is_empty() {
-            return Err(AtlasError::ValidationFailed("Error message is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Error message is required".to_string(),
+            ));
         }
 
-        info!("Creating AutoInvoice validation rule '{}' for org {}", name, org_id);
+        info!(
+            "Creating AutoInvoice validation rule '{}' for org {}",
+            name, org_id
+        );
 
-        self.repository.create_validation_rule(
-            org_id, name, description, field_name, validation_type,
-            validation_expression, error_message, is_fatal,
-            transaction_types, priority, effective_from, effective_to,
-            created_by,
-        ).await
+        self.repository
+            .create_validation_rule(
+                org_id,
+                name,
+                description,
+                field_name,
+                validation_type,
+                validation_expression,
+                error_message,
+                is_fatal,
+                transaction_types,
+                priority,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// List all validation rules
-    pub async fn list_validation_rules(&self, org_id: Uuid) -> AtlasResult<Vec<AutoInvoiceValidationRule>> {
+    pub async fn list_validation_rules(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<AutoInvoiceValidationRule>> {
         self.repository.list_validation_rules(org_id).await
     }
 
@@ -194,34 +250,49 @@ impl AutoInvoiceEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutoInvoiceBatch> {
         if request.lines.is_empty() {
-            return Err(AtlasError::ValidationFailed("Cannot import an empty batch".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Cannot import an empty batch".to_string(),
+            ));
         }
 
         // Resolve grouping rule
         let grouping_rule_id = if let Some(rule_id) = request.grouping_rule_id {
-            let rule = self.repository.get_grouping_rule(rule_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Grouping rule {rule_id} not found")
-                ))?;
+            let rule = self
+                .repository
+                .get_grouping_rule(rule_id)
+                .await?
+                .ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Grouping rule {rule_id} not found"))
+                })?;
             Some(rule.id)
         } else {
-            self.repository.get_default_grouping_rule(org_id).await?.map(|r| r.id)
+            self.repository
+                .get_default_grouping_rule(org_id)
+                .await?
+                .map(|r| r.id)
         };
 
         // Generate batch number
         let batch_number = format!("AI-{}", chrono::Utc::now().format("%Y%m%d%H%M%S%f"));
 
-        info!("Importing AutoInvoice batch {} with {} lines", batch_number, request.lines.len());
+        info!(
+            "Importing AutoInvoice batch {} with {} lines",
+            batch_number,
+            request.lines.len()
+        );
 
         // Create batch
-        let batch = self.repository.create_batch(
-            org_id,
-            &batch_number,
-            &request.batch_source,
-            request.description.as_deref(),
-            grouping_rule_id,
-            created_by,
-        ).await?;
+        let batch = self
+            .repository
+            .create_batch(
+                org_id,
+                &batch_number,
+                &request.batch_source,
+                request.description.as_deref(),
+                grouping_rule_id,
+                created_by,
+            )
+            .await?;
 
         // Insert lines
         let today = chrono::Utc::now().date_naive();
@@ -233,58 +304,64 @@ impl AutoInvoiceEngine {
             let unit_price = line_req.unit_price.as_deref().unwrap_or("0");
             let line_amount = line_req.line_amount.as_deref().unwrap_or("0");
 
-            self.repository.create_line(
-                org_id,
-                batch.id,
-                line_number,
-                line_req.source_line_id.as_deref(),
-                transaction_type,
-                line_req.customer_id,
-                line_req.customer_number.as_deref(),
-                line_req.customer_name.as_deref(),
-                line_req.bill_to_customer_id,
-                line_req.bill_to_site_id,
-                line_req.ship_to_customer_id,
-                line_req.ship_to_site_id,
-                line_req.item_code.as_deref(),
-                line_req.item_description.as_deref(),
-                line_req.quantity.as_deref(),
-                line_req.unit_of_measure.as_deref(),
-                unit_price,
-                line_amount,
-                &line_req.currency_code,
-                line_req.exchange_rate.as_deref(),
-                transaction_date,
-                gl_date,
-                line_req.due_date,
-                line_req.revenue_account_code.as_deref(),
-                line_req.receivable_account_code.as_deref(),
-                line_req.tax_code.as_deref(),
-                line_req.tax_amount.as_deref(),
-                line_req.sales_rep_id,
-                line_req.sales_rep_name.as_deref(),
-                line_req.memo_line.as_deref(),
-                line_req.reference_number.as_deref(),
-                line_req.sales_order_number.as_deref(),
-                line_req.sales_order_line.as_deref(),
-                created_by,
-            ).await?;
+            self.repository
+                .create_line(
+                    org_id,
+                    batch.id,
+                    line_number,
+                    line_req.source_line_id.as_deref(),
+                    transaction_type,
+                    line_req.customer_id,
+                    line_req.customer_number.as_deref(),
+                    line_req.customer_name.as_deref(),
+                    line_req.bill_to_customer_id,
+                    line_req.bill_to_site_id,
+                    line_req.ship_to_customer_id,
+                    line_req.ship_to_site_id,
+                    line_req.item_code.as_deref(),
+                    line_req.item_description.as_deref(),
+                    line_req.quantity.as_deref(),
+                    line_req.unit_of_measure.as_deref(),
+                    unit_price,
+                    line_amount,
+                    &line_req.currency_code,
+                    line_req.exchange_rate.as_deref(),
+                    transaction_date,
+                    gl_date,
+                    line_req.due_date,
+                    line_req.revenue_account_code.as_deref(),
+                    line_req.receivable_account_code.as_deref(),
+                    line_req.tax_code.as_deref(),
+                    line_req.tax_amount.as_deref(),
+                    line_req.sales_rep_id,
+                    line_req.sales_rep_name.as_deref(),
+                    line_req.memo_line.as_deref(),
+                    line_req.reference_number.as_deref(),
+                    line_req.sales_order_number.as_deref(),
+                    line_req.sales_order_line.as_deref(),
+                    created_by,
+                )
+                .await?;
         }
 
         // Update batch total count
         let lines = self.repository.list_lines_by_batch(batch.id).await?;
-        self.repository.update_batch_counts(
-            batch.id,
-            lines.len() as i32,
-            0,
-            0,
-            0,
-            "0",
-            serde_json::json!([]),
-        ).await?;
+        self.repository
+            .update_batch_counts(
+                batch.id,
+                lines.len() as i32,
+                0,
+                0,
+                0,
+                "0",
+                serde_json::json!([]),
+            )
+            .await?;
 
         // Reload batch
-        self.repository.get_batch(batch.id).await?
+        self.repository
+            .get_batch(batch.id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Created batch not found".to_string()))
     }
 
@@ -294,7 +371,11 @@ impl AutoInvoiceEngine {
     }
 
     /// List batches
-    pub async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<AutoInvoiceBatch>> {
+    pub async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<AutoInvoiceBatch>> {
         self.repository.list_batches(org_id, status).await
     }
 
@@ -305,25 +386,33 @@ impl AutoInvoiceEngine {
     /// Validate all lines in a batch against configured validation rules
     /// Updates each line's status to 'valid' or 'invalid'
     pub async fn validate_batch(&self, batch_id: Uuid) -> AtlasResult<AutoInvoiceBatch> {
-        let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Batch {batch_id} not found")
-            ))?;
+        let batch = self
+            .repository
+            .get_batch(batch_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot validate batch in '{}' status. Must be 'pending'.", batch.status
+                "Cannot validate batch in '{}' status. Must be 'pending'.",
+                batch.status
             )));
         }
 
         // Update status to validating
-        let mut batch = self.repository.update_batch_status(batch_id, "validating").await?;
+        let mut batch = self
+            .repository
+            .update_batch_status(batch_id, "validating")
+            .await?;
 
         // Load all lines
         let lines = self.repository.list_lines_by_batch(batch_id).await?;
 
         // Load validation rules for this org
-        let all_rules = self.repository.get_validation_rules(batch.organization_id, None).await?;
+        let all_rules = self
+            .repository
+            .get_validation_rules(batch.organization_id, None)
+            .await?;
 
         let mut valid_count = 0i32;
         let mut invalid_count = 0i32;
@@ -355,7 +444,8 @@ impl AutoInvoiceEngine {
                     validation_rule: "built_in_transaction_type".to_string(),
                     error_message: format!(
                         "Invalid transaction_type '{}'. Must be one of: {}",
-                        line.transaction_type, VALID_TRANSACTION_TYPES.join(", ")
+                        line.transaction_type,
+                        VALID_TRANSACTION_TYPES.join(", ")
                     ),
                     is_fatal: true,
                 });
@@ -380,8 +470,10 @@ impl AutoInvoiceEngine {
                 }
 
                 // Check if rule applies to this transaction type
-                let applies = rule.transaction_types.as_array()
-                    .is_none_or(|arr| arr.iter().any(|v| v.as_str() == Some(&line.transaction_type)));
+                let applies = rule.transaction_types.as_array().is_none_or(|arr| {
+                    arr.iter()
+                        .any(|v| v.as_str() == Some(&line.transaction_type))
+                });
 
                 if !applies {
                     continue;
@@ -410,18 +502,22 @@ impl AutoInvoiceEngine {
             // Update line status
             let has_fatal = line_errors.iter().any(|e| e.is_fatal);
             if has_fatal {
-                self.repository.update_line_status(
-                    line.id,
-                    "invalid",
-                    serde_json::to_value(&line_errors).unwrap_or_default(),
-                ).await?;
+                self.repository
+                    .update_line_status(
+                        line.id,
+                        "invalid",
+                        serde_json::to_value(&line_errors).unwrap_or_default(),
+                    )
+                    .await?;
                 invalid_count += 1;
             } else {
-                self.repository.update_line_status(
-                    line.id,
-                    "valid",
-                    serde_json::to_value(&line_errors).unwrap_or_default(),
-                ).await?;
+                self.repository
+                    .update_line_status(
+                        line.id,
+                        "valid",
+                        serde_json::to_value(&line_errors).unwrap_or_default(),
+                    )
+                    .await?;
                 valid_count += 1;
             }
 
@@ -429,15 +525,17 @@ impl AutoInvoiceEngine {
         }
 
         // Update batch counts and status
-        self.repository.update_batch_counts(
-            batch_id,
-            lines.len() as i32,
-            valid_count,
-            invalid_count,
-            0,
-            "0",
-            serde_json::to_value(&all_errors).unwrap_or_default(),
-        ).await?;
+        self.repository
+            .update_batch_counts(
+                batch_id,
+                lines.len() as i32,
+                valid_count,
+                invalid_count,
+                0,
+                "0",
+                serde_json::to_value(&all_errors).unwrap_or_default(),
+            )
+            .await?;
 
         let new_status = if invalid_count > 0 && valid_count == 0 {
             "failed"
@@ -445,8 +543,14 @@ impl AutoInvoiceEngine {
             "validated"
         };
 
-        batch = self.repository.update_batch_status(batch_id, new_status).await?;
-        info!("AutoInvoice batch {} validated: {} valid, {} invalid", batch_id, valid_count, invalid_count);
+        batch = self
+            .repository
+            .update_batch_status(batch_id, new_status)
+            .await?;
+        info!(
+            "AutoInvoice batch {} validated: {} valid, {} invalid",
+            batch_id, valid_count, invalid_count
+        );
 
         Ok(batch)
     }
@@ -457,25 +561,35 @@ impl AutoInvoiceEngine {
 
     /// Process a validated batch: group lines into invoices and create AR invoices
     pub async fn process_batch(&self, batch_id: Uuid) -> AtlasResult<AutoInvoiceBatch> {
-        let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Batch {batch_id} not found")
-            ))?;
+        let batch = self
+            .repository
+            .get_batch(batch_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Batch {batch_id} not found")))?;
 
         if batch.status != "validated" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot process batch in '{}' status. Must be 'validated'.", batch.status
+                "Cannot process batch in '{}' status. Must be 'validated'.",
+                batch.status
             )));
         }
 
         // Update status to processing
-        let mut batch = self.repository.update_batch_status(batch_id, "processing").await?;
+        let mut batch = self
+            .repository
+            .update_batch_status(batch_id, "processing")
+            .await?;
 
         // Get valid lines
-        let valid_lines = self.repository.list_lines_by_status(batch_id, "valid").await?;
+        let valid_lines = self
+            .repository
+            .list_lines_by_status(batch_id, "valid")
+            .await?;
 
         if valid_lines.is_empty() {
-            self.repository.update_batch_status(batch_id, "failed").await?;
+            self.repository
+                .update_batch_status(batch_id, "failed")
+                .await?;
             return Err(AtlasError::ValidationFailed(
                 "No valid lines to process".to_string(),
             ));
@@ -485,7 +599,9 @@ impl AutoInvoiceEngine {
         let grouping_rule = if let Some(rule_id) = batch.grouping_rule_id {
             self.repository.get_grouping_rule(rule_id).await?
         } else {
-            self.repository.get_default_grouping_rule(batch.organization_id).await?
+            self.repository
+                .get_default_grouping_rule(batch.organization_id)
+                .await?
         };
 
         // Group lines
@@ -504,31 +620,34 @@ impl AutoInvoiceEngine {
             let invoice_number = format!("INV-{}-{:04}", batch.batch_number, invoice_counter);
 
             // Determine common fields from first line
-            let due_date = first_line.due_date.or_else(|| {
-                Some(first_line.transaction_date + chrono::Duration::days(30))
-            });
+            let due_date = first_line
+                .due_date
+                .or_else(|| Some(first_line.transaction_date + chrono::Duration::days(30)));
 
-            let result = self.repository.create_result(
-                batch.organization_id,
-                batch_id,
-                &invoice_number,
-                &first_line.transaction_type,
-                first_line.customer_id,
-                first_line.bill_to_customer_id,
-                first_line.bill_to_site_id,
-                first_line.ship_to_customer_id,
-                first_line.ship_to_site_id,
-                &first_line.currency_code,
-                first_line.exchange_rate.as_deref(),
-                first_line.transaction_date,
-                first_line.gl_date,
-                due_date,
-                first_line.receivable_account_code.as_deref(),
-                first_line.sales_rep_id,
-                first_line.sales_order_number.as_deref(),
-                first_line.reference_number.as_deref(),
-                batch.created_by,
-            ).await?;
+            let result = self
+                .repository
+                .create_result(
+                    batch.organization_id,
+                    batch_id,
+                    &invoice_number,
+                    &first_line.transaction_type,
+                    first_line.customer_id,
+                    first_line.bill_to_customer_id,
+                    first_line.bill_to_site_id,
+                    first_line.ship_to_customer_id,
+                    first_line.ship_to_site_id,
+                    &first_line.currency_code,
+                    first_line.exchange_rate.as_deref(),
+                    first_line.transaction_date,
+                    first_line.gl_date,
+                    due_date,
+                    first_line.receivable_account_code.as_deref(),
+                    first_line.sales_rep_id,
+                    first_line.sales_order_number.as_deref(),
+                    first_line.reference_number.as_deref(),
+                    batch.created_by,
+                )
+                .await?;
 
             // Create result lines and link source lines
             let mut subtotal = 0.0f64;
@@ -537,62 +656,75 @@ impl AutoInvoiceEngine {
             for (idx, line) in group_lines.iter().enumerate() {
                 let line_num = (idx + 1) as i32;
 
-                self.repository.create_result_line(
-                    batch.organization_id,
-                    result.id,
-                    line_num,
-                    line.source_line_id.as_deref(),
-                    line.item_code.as_deref(),
-                    line.item_description.as_deref(),
-                    line.quantity.as_deref(),
-                    line.unit_of_measure.as_deref(),
-                    &line.unit_price,
-                    &line.line_amount,
-                    line.tax_code.as_deref(),
-                    line.tax_amount.as_deref(),
-                    line.revenue_account_code.as_deref(),
-                    line.sales_order_number.as_deref(),
-                    line.sales_order_line.as_deref(),
-                ).await?;
+                self.repository
+                    .create_result_line(
+                        batch.organization_id,
+                        result.id,
+                        line_num,
+                        line.source_line_id.as_deref(),
+                        line.item_code.as_deref(),
+                        line.item_description.as_deref(),
+                        line.quantity.as_deref(),
+                        line.unit_of_measure.as_deref(),
+                        &line.unit_price,
+                        &line.line_amount,
+                        line.tax_code.as_deref(),
+                        line.tax_amount.as_deref(),
+                        line.revenue_account_code.as_deref(),
+                        line.sales_order_number.as_deref(),
+                        line.sales_order_line.as_deref(),
+                    )
+                    .await?;
 
                 let amt: f64 = line.line_amount.parse().unwrap_or(0.0);
-                let tax: f64 = line.tax_amount.as_deref()
+                let tax: f64 = line
+                    .tax_amount
+                    .as_deref()
                     .and_then(|v| v.parse::<f64>().ok())
                     .unwrap_or(0.0);
                 subtotal += amt;
                 tax_total += tax;
 
                 // Link source line to result
-                self.repository.update_line_invoice(line.id, result.id, line_num).await?;
+                self.repository
+                    .update_line_invoice(line.id, result.id, line_num)
+                    .await?;
             }
 
             let total = subtotal + tax_total;
             total_invoice_amount += total;
 
             // Update result totals
-            self.repository.update_result_totals(
-                result.id,
-                &format!("{subtotal:.2}"),
-                &format!("{tax_total:.2}"),
-                &format!("{total:.2}"),
-                group_lines.len() as i32,
-            ).await?;
+            self.repository
+                .update_result_totals(
+                    result.id,
+                    &format!("{subtotal:.2}"),
+                    &format!("{tax_total:.2}"),
+                    &format!("{total:.2}"),
+                    group_lines.len() as i32,
+                )
+                .await?;
 
             invoices_created += 1;
         }
 
         // Update batch with final counts
-        self.repository.update_batch_counts(
-            batch_id,
-            batch.total_lines,
-            batch.valid_lines,
-            batch.invalid_lines,
-            invoices_created,
-            &format!("{total_invoice_amount:.2}"),
-            batch.validation_errors.clone(),
-        ).await?;
+        self.repository
+            .update_batch_counts(
+                batch_id,
+                batch.total_lines,
+                batch.valid_lines,
+                batch.invalid_lines,
+                invoices_created,
+                &format!("{total_invoice_amount:.2}"),
+                batch.validation_errors.clone(),
+            )
+            .await?;
 
-        batch = self.repository.update_batch_status(batch_id, "completed").await?;
+        batch = self
+            .repository
+            .update_batch_status(batch_id, "completed")
+            .await?;
 
         info!(
             "AutoInvoice batch {} processed: {} invoices created, total amount {:.2}",
@@ -634,41 +766,63 @@ impl AutoInvoiceEngine {
     }
 
     /// Get lines for an invoice
-    pub async fn get_invoice_lines(&self, invoice_id: Uuid) -> AtlasResult<Vec<AutoInvoiceResultLine>> {
+    pub async fn get_invoice_lines(
+        &self,
+        invoice_id: Uuid,
+    ) -> AtlasResult<Vec<AutoInvoiceResultLine>> {
         self.repository.list_result_lines(invoice_id).await
     }
 
     /// Get an invoice by invoice number
-    pub async fn get_invoice_by_number(&self, org_id: Uuid, invoice_number: &str) -> AtlasResult<Option<AutoInvoiceResult>> {
-        self.repository.get_result_by_invoice_number(org_id, invoice_number).await
+    pub async fn get_invoice_by_number(
+        &self,
+        org_id: Uuid,
+        invoice_number: &str,
+    ) -> AtlasResult<Option<AutoInvoiceResult>> {
+        self.repository
+            .get_result_by_invoice_number(org_id, invoice_number)
+            .await
     }
 
     /// Update invoice status (e.g., to 'posted')
-    pub async fn update_invoice_status(&self, invoice_id: Uuid, status: &str) -> AtlasResult<AutoInvoiceResult> {
+    pub async fn update_invoice_status(
+        &self,
+        invoice_id: Uuid,
+        status: &str,
+    ) -> AtlasResult<AutoInvoiceResult> {
         let valid_statuses = ["draft", "complete", "posted", "cancelled"];
         if !valid_statuses.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid invoice status '{}'. Must be one of: {}", status, valid_statuses.join(", ")
+                "Invalid invoice status '{}'. Must be one of: {}",
+                status,
+                valid_statuses.join(", ")
             )));
         }
 
-        let invoice = self.repository.get_result(invoice_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Invoice {invoice_id} not found")
-            ))?;
+        let invoice = self
+            .repository
+            .get_result(invoice_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {invoice_id} not found")))?;
 
         // Status transition validation
         match (invoice.status.as_str(), status) {
-            ("draft", "complete" | "cancelled") | ("complete", "posted" | "cancelled") => {},
+            ("draft", "complete" | "cancelled") | ("complete", "posted" | "cancelled") => {}
             _ => {
                 return Err(AtlasError::WorkflowError(format!(
-                    "Cannot transition invoice from '{}' to '{}'", invoice.status, status
+                    "Cannot transition invoice from '{}' to '{}'",
+                    invoice.status, status
                 )));
             }
         }
 
-        info!("Updating AutoInvoice {} status to {}", invoice.invoice_number, status);
-        self.repository.update_result_status(invoice_id, status).await
+        info!(
+            "Updating AutoInvoice {} status to {}",
+            invoice.invoice_number, status
+        );
+        self.repository
+            .update_result_status(invoice_id, status)
+            .await
     }
 
     /// Get `AutoInvoice` summary for dashboard
@@ -684,11 +838,20 @@ impl AutoInvoiceEngine {
     fn get_line_field_value(&self, line: &AutoInvoiceLine, field: &str) -> String {
         match field {
             "transaction_type" => line.transaction_type.clone(),
-            "customer_id" => line.customer_id.map(|id| id.to_string()).unwrap_or_default(),
+            "customer_id" => line
+                .customer_id
+                .map(|id| id.to_string())
+                .unwrap_or_default(),
             "customer_number" => line.customer_number.clone().unwrap_or_default(),
             "customer_name" => line.customer_name.clone().unwrap_or_default(),
-            "bill_to_customer_id" => line.bill_to_customer_id.map(|id| id.to_string()).unwrap_or_default(),
-            "bill_to_site_id" => line.bill_to_site_id.map(|id| id.to_string()).unwrap_or_default(),
+            "bill_to_customer_id" => line
+                .bill_to_customer_id
+                .map(|id| id.to_string())
+                .unwrap_or_default(),
+            "bill_to_site_id" => line
+                .bill_to_site_id
+                .map(|id| id.to_string())
+                .unwrap_or_default(),
             "currency_code" => line.currency_code.clone(),
             "transaction_date" => line.transaction_date.to_string(),
             "gl_date" => line.gl_date.to_string(),
@@ -775,27 +938,35 @@ impl AutoInvoiceEngine {
         rule: Option<&AutoInvoiceGroupingRule>,
     ) -> Vec<(String, Vec<&'a AutoInvoiceLine>)> {
         // Default grouping fields if no rule specified
-        let group_fields: Vec<String> = rule
-            .and_then(|r| r.group_by_fields.as_array()).map_or_else(|| {
-                vec![
-                    "bill_to_customer_id".to_string(),
-                    "currency_code".to_string(),
-                    "transaction_type".to_string(),
-                ]
-            }, |arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            });
+        let group_fields: Vec<String> =
+            rule.and_then(|r| r.group_by_fields.as_array()).map_or_else(
+                || {
+                    vec![
+                        "bill_to_customer_id".to_string(),
+                        "currency_code".to_string(),
+                        "transaction_type".to_string(),
+                    ]
+                },
+                |arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                },
+            );
 
         // Group by the specified fields
         let mut groups: HashMap<String, Vec<&AutoInvoiceLine>> = HashMap::new();
 
         for line in lines {
-            let key: String = group_fields.iter()
+            let key: String = group_fields
+                .iter()
                 .map(|f| {
                     let val = self.get_line_field_value(line, f);
-                    if val.is_empty() { "__empty__".to_string() } else { val }
+                    if val.is_empty() {
+                        "__empty__".to_string()
+                    } else {
+                        val
+                    }
                 })
                 .collect::<Vec<_>>()
                 .join("|");
@@ -910,11 +1081,17 @@ mod tests {
         };
 
         // Test field extraction
-        assert_eq!(engine.get_line_field_value(&line, "transaction_type"), "invoice");
+        assert_eq!(
+            engine.get_line_field_value(&line, "transaction_type"),
+            "invoice"
+        );
         assert_eq!(engine.get_line_field_value(&line, "currency_code"), "USD");
         assert_eq!(engine.get_line_field_value(&line, "item_code"), "ITEM001");
         assert_eq!(engine.get_line_field_value(&line, "line_amount"), "1000.00");
-        assert_eq!(engine.get_line_field_value(&line, "customer_number"), "CUST001");
+        assert_eq!(
+            engine.get_line_field_value(&line, "customer_number"),
+            "CUST001"
+        );
         assert_eq!(engine.get_line_field_value(&line, "nonexistent_field"), "");
     }
 
@@ -1134,12 +1311,13 @@ mod tests {
         assert_eq!(groups.len(), 4);
 
         // Find the cust1+USD+invoice group (should have 2 lines)
-        let main_group = groups.iter()
+        let main_group = groups
+            .iter()
             .find(|(key, _lines)| {
-                key.contains(&cust1.to_string()) &&
-                key.contains("USD") &&
-                key.contains("invoice") &&
-                !key.contains("credit_memo")
+                key.contains(&cust1.to_string())
+                    && key.contains("USD")
+                    && key.contains("invoice")
+                    && !key.contains("credit_memo")
             })
             .unwrap();
         assert_eq!(main_group.1.len(), 2);
@@ -1211,12 +1389,8 @@ mod tests {
         let line_amounts = vec!["100.00", "250.50", "75.25"];
         let tax_amounts = vec!["20.00", "50.10", "15.05"];
 
-        let subtotal: f64 = line_amounts.iter()
-            .map(|v| v.parse::<f64>().unwrap())
-            .sum();
-        let tax_total: f64 = tax_amounts.iter()
-            .map(|v| v.parse::<f64>().unwrap())
-            .sum();
+        let subtotal: f64 = line_amounts.iter().map(|v| v.parse::<f64>().unwrap()).sum();
+        let tax_total: f64 = tax_amounts.iter().map(|v| v.parse::<f64>().unwrap()).sum();
         let total = subtotal + tax_total;
 
         assert!((subtotal - 425.75).abs() < 0.01);
@@ -1235,24 +1409,30 @@ mod tests {
             ("complete", "cancelled"),
         ];
         let invalid = [
-            ("draft", "posted"),      // must go through complete first
-            ("posted", "complete"),    // can't go back
-            ("cancelled", "draft"),    // can't reopen
-            ("posted", "cancelled"),   // can't cancel posted
+            ("draft", "posted"),     // must go through complete first
+            ("posted", "complete"),  // can't go back
+            ("cancelled", "draft"),  // can't reopen
+            ("posted", "cancelled"), // can't cancel posted
         ];
 
         for (from, to) in valid {
-            let is_valid = matches!((from, to),
-                ("draft", "complete") | ("draft", "cancelled") |
-                ("complete", "posted") | ("complete", "cancelled")
+            let is_valid = matches!(
+                (from, to),
+                ("draft", "complete")
+                    | ("draft", "cancelled")
+                    | ("complete", "posted")
+                    | ("complete", "cancelled")
             );
             assert!(is_valid, "Expected ({}, {}) to be valid", from, to);
         }
 
         for (from, to) in invalid {
-            let is_valid = matches!((from, to),
-                ("draft", "complete") | ("draft", "cancelled") |
-                ("complete", "posted") | ("complete", "cancelled")
+            let is_valid = matches!(
+                (from, to),
+                ("draft", "complete")
+                    | ("draft", "cancelled")
+                    | ("complete", "posted")
+                    | ("complete", "cancelled")
             );
             assert!(!is_valid, "Expected ({}, {}) to be invalid", from, to);
         }

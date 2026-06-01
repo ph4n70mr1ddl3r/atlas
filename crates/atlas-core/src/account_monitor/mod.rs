@@ -10,8 +10,8 @@
 //!
 //! Oracle Fusion equivalent: General Ledger > Journals > Account Monitor
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::AccountMonitorEngine;
 pub use repository::{AccountMonitorRepository, PostgresAccountMonitorRepository};

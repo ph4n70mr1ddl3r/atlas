@@ -9,4 +9,4 @@ mod engine;
 mod repository;
 
 pub use engine::ReconciliationEngine;
-pub use repository::{ReconciliationRepository, PostgresReconciliationRepository};
+pub use repository::{PostgresReconciliationRepository, ReconciliationRepository};

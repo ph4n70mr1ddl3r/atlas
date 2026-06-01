@@ -6,17 +6,17 @@
 //! violation tracking, and compliance dashboard.
 
 use axum::{
-    extract::{Path, Query, State, Extension},
-    Json,
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::handlers::auth::{parse_uuid, Claims};
 use crate::AppState;
-use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Query Parameters
@@ -51,38 +51,77 @@ pub async fn create_rule(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
     let rule_code = body["rule_code"].as_str().unwrap_or("").to_string();
     let name = body["name"].as_str().unwrap_or("").to_string();
     let description = body["description"].as_str();
-    let rule_type = body["rule_type"].as_str().unwrap_or("amount_limit").to_string();
-    let expense_category = body["expense_category"].as_str().unwrap_or("all").to_string();
+    let rule_type = body["rule_type"]
+        .as_str()
+        .unwrap_or("amount_limit")
+        .to_string();
+    let expense_category = body["expense_category"]
+        .as_str()
+        .unwrap_or("all")
+        .to_string();
     let severity = body["severity"].as_str().unwrap_or("warning").to_string();
-    let evaluation_scope = body["evaluation_scope"].as_str().unwrap_or("per_line").to_string();
+    let evaluation_scope = body["evaluation_scope"]
+        .as_str()
+        .unwrap_or("per_line")
+        .to_string();
     let threshold_amount = body["threshold_amount"].as_str();
     let maximum_amount = body["maximum_amount"].as_str();
     let threshold_days = body["threshold_days"].as_i64().unwrap_or(0) as i32;
     let requires_receipt = body["requires_receipt"].as_bool().unwrap_or(false);
     let requires_justification = body["requires_justification"].as_bool().unwrap_or(false);
-    let effective_from = body["effective_from"].as_str()
+    let effective_from = body["effective_from"]
+        .as_str()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
-    let effective_to = body["effective_to"].as_str()
+    let effective_to = body["effective_to"]
+        .as_str()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
     let applies_to_department = body["applies_to_department"].as_str();
     let applies_to_cost_center = body["applies_to_cost_center"].as_str();
 
-    match state.financials.expense_policy_compliance_engine.create_rule(
-        org_id, &rule_code, &name, description, &rule_type, &expense_category,
-        &severity, &evaluation_scope, threshold_amount, maximum_amount,
-        threshold_days, requires_receipt, requires_justification,
-        effective_from, effective_to, applies_to_department,
-        applies_to_cost_center, parse_uuid(&claims.sub).ok(),
-    ).await {
-        Ok(rule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or(Value::Null)))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .create_rule(
+            org_id,
+            &rule_code,
+            &name,
+            description,
+            &rule_type,
+            &expense_category,
+            &severity,
+            &evaluation_scope,
+            threshold_amount,
+            maximum_amount,
+            threshold_days,
+            requires_receipt,
+            requires_justification,
+            effective_from,
+            effective_to,
+            applies_to_department,
+            applies_to_cost_center,
+            parse_uuid(&claims.sub).ok(),
+        )
+        .await
+    {
+        Ok(rule) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(rule).unwrap_or(Value::Null)),
+        )),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -94,14 +133,29 @@ pub async fn get_rule(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
-    match state.financials.expense_policy_compliance_engine.get_rule(org_id, &rule_code).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .get_rule(org_id, &rule_code)
+        .await
+    {
         Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or(Value::Null))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Rule not found"})))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "Rule not found"})),
+        )),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -113,15 +167,29 @@ pub async fn list_rules(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
-    match state.financials.expense_policy_compliance_engine.list_rules(
-        org_id, params.status.as_deref(), params.rule_type.as_deref()
-    ).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .list_rules(
+            org_id,
+            params.status.as_deref(),
+            params.rule_type.as_deref(),
+        )
+        .await
+    {
         Ok(rules) => Ok(Json(json!({"data": rules}))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -131,10 +199,17 @@ pub async fn activate_rule(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.financials.expense_policy_compliance_engine.activate_rule(id).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .activate_rule(id)
+        .await
+    {
         Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or(Value::Null))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -144,10 +219,17 @@ pub async fn deactivate_rule(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.financials.expense_policy_compliance_engine.deactivate_rule(id).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .deactivate_rule(id)
+        .await
+    {
         Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or(Value::Null))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -159,13 +241,25 @@ pub async fn delete_rule(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
-    match state.financials.expense_policy_compliance_engine.delete_rule(org_id, &rule_code).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .delete_rule(org_id, &rule_code)
+        .await
+    {
         Ok(()) => Ok(Json(json!({"message": "Rule deleted"}))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -181,28 +275,58 @@ pub async fn create_audit(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
-    let report_id = body["report_id"].as_str()
+    let report_id = body["report_id"]
+        .as_str()
         .and_then(|s| Uuid::parse_str(s).ok())
         .unwrap_or_else(Uuid::new_v4);
     let report_number = body["report_number"].as_str();
-    let employee_id = body["employee_id"].as_str().and_then(|s| Uuid::parse_str(s).ok());
+    let employee_id = body["employee_id"]
+        .as_str()
+        .and_then(|s| Uuid::parse_str(s).ok());
     let employee_name = body["employee_name"].as_str();
-    let department_id = body["department_id"].as_str().and_then(|s| Uuid::parse_str(s).ok());
-    let audit_trigger = body["audit_trigger"].as_str().unwrap_or("automatic").to_string();
-    let audit_date = body["audit_date"].as_str()
+    let department_id = body["department_id"]
+        .as_str()
+        .and_then(|s| Uuid::parse_str(s).ok());
+    let audit_trigger = body["audit_trigger"]
+        .as_str()
+        .unwrap_or("automatic")
+        .to_string();
+    let audit_date = body["audit_date"]
+        .as_str()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    match state.financials.expense_policy_compliance_engine.create_audit(
-        org_id, report_id, report_number, employee_id, employee_name,
-        department_id, &audit_trigger, audit_date,
-    ).await {
-        Ok(audit) => Ok((StatusCode::CREATED, Json(serde_json::to_value(audit).unwrap_or(Value::Null)))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .create_audit(
+            org_id,
+            report_id,
+            report_number,
+            employee_id,
+            employee_name,
+            department_id,
+            &audit_trigger,
+            audit_date,
+        )
+        .await
+    {
+        Ok(audit) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(audit).unwrap_or(Value::Null)),
+        )),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -212,11 +336,21 @@ pub async fn get_audit(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.financials.expense_policy_compliance_engine.get_audit(id).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .get_audit(id)
+        .await
+    {
         Ok(Some(audit)) => Ok(Json(serde_json::to_value(audit).unwrap_or(Value::Null))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Audit not found"})))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "Audit not found"})),
+        )),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -228,15 +362,29 @@ pub async fn list_audits(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
-    match state.financials.expense_policy_compliance_engine.list_audits(
-        org_id, params.status.as_deref(), params.risk_level.as_deref()
-    ).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .list_audits(
+            org_id,
+            params.status.as_deref(),
+            params.risk_level.as_deref(),
+        )
+        .await
+    {
         Ok(audits) => Ok(Json(json!({"data": audits}))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -246,10 +394,17 @@ pub async fn evaluate_compliance(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.financials.expense_policy_compliance_engine.evaluate_compliance(id).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .evaluate_compliance(id)
+        .await
+    {
         Ok(audit) => Ok(Json(serde_json::to_value(audit).unwrap_or(Value::Null))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -262,12 +417,17 @@ pub async fn complete_audit_review(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let review_notes = body["review_notes"].as_str();
 
-    match state.financials.expense_policy_compliance_engine.complete_audit_review(
-        id, parse_uuid(&claims.sub).ok(), review_notes,
-    ).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .complete_audit_review(id, parse_uuid(&claims.sub).ok(), review_notes)
+        .await
+    {
         Ok(audit) => Ok(Json(serde_json::to_value(audit).unwrap_or(Value::Null))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -280,12 +440,17 @@ pub async fn escalate_audit(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let review_notes = body["review_notes"].as_str();
 
-    match state.financials.expense_policy_compliance_engine.escalate_audit(
-        id, parse_uuid(&claims.sub).ok(), review_notes,
-    ).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .escalate_audit(id, parse_uuid(&claims.sub).ok(), review_notes)
+        .await
+    {
         Ok(audit) => Ok(Json(serde_json::to_value(audit).unwrap_or(Value::Null))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -299,10 +464,17 @@ pub async fn list_violations(
     Extension(_claims): Extension<Claims>,
     Path(audit_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.financials.expense_policy_compliance_engine.list_violations(audit_id).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .list_violations(audit_id)
+        .await
+    {
         Ok(violations) => Ok(Json(json!({"data": violations}))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -313,15 +485,28 @@ pub async fn resolve_violation(
     Path(id): Path<Uuid>,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let resolution_status = body["resolution_status"].as_str().unwrap_or("justified").to_string();
+    let resolution_status = body["resolution_status"]
+        .as_str()
+        .unwrap_or("justified")
+        .to_string();
     let justification = body["justification"].as_str();
 
-    match state.financials.expense_policy_compliance_engine.resolve_violation(
-        id, &resolution_status, justification, parse_uuid(&claims.sub).ok(),
-    ).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .resolve_violation(
+            id,
+            &resolution_status,
+            justification,
+            parse_uuid(&claims.sub).ok(),
+        )
+        .await
+    {
         Ok(violation) => Ok(Json(serde_json::to_value(violation).unwrap_or(Value::Null))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -332,13 +517,25 @@ pub async fn list_open_violations(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
-    match state.financials.expense_policy_compliance_engine.list_open_violations(org_id).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .list_open_violations(org_id)
+        .await
+    {
         Ok(violations) => Ok(Json(json!({"data": violations}))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -353,12 +550,24 @@ pub async fn get_dashboard(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
-    match state.financials.expense_policy_compliance_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .expense_policy_compliance_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or(Value::Null))),
-        Err(e) => Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }

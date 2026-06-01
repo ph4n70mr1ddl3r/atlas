@@ -1,7 +1,7 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaxRegistration {
@@ -40,13 +40,29 @@ impl TaxRegistrationService {
         country: String,
         effective_from: NaiveDate,
     ) -> Result<TaxRegistration, String> {
-        let valid_types = ["tin", "vat", "gst", "ein", "sst", "pan", "cst", "sales_tax", "withholding_tax", "excise", "customs", "other"];
+        let valid_types = [
+            "tin",
+            "vat",
+            "gst",
+            "ein",
+            "sst",
+            "pan",
+            "cst",
+            "sales_tax",
+            "withholding_tax",
+            "excise",
+            "customs",
+            "other",
+        ];
         if !valid_types.contains(&reg_type.as_str()) {
             return Err("Invalid registration type".to_string());
         }
 
         let mut registrations = self.registrations.write().unwrap();
-        if registrations.iter().any(|r| r.organization_id == organization_id && r.registration_number == number) {
+        if registrations
+            .iter()
+            .any(|r| r.organization_id == organization_id && r.registration_number == number)
+        {
             return Err("Tax registration with this number already exists".to_string());
         }
 
@@ -67,16 +83,21 @@ impl TaxRegistrationService {
 
     pub fn activate_registration(&self, id: Uuid) -> Result<(), String> {
         let mut registrations = self.registrations.write().unwrap();
-        let reg = registrations.iter_mut().find(|r| r.id == id)
+        let reg = registrations
+            .iter_mut()
+            .find(|r| r.id == id)
             .ok_or_else(|| "Tax registration not found".to_string())?;
-        
+
         reg.status = "active".to_string();
         Ok(())
     }
 
     pub fn is_active_on_date(&self, organization_id: Uuid, number: &str, date: NaiveDate) -> bool {
         let registrations = self.registrations.read().unwrap();
-        if let Some(reg) = registrations.iter().find(|r| r.organization_id == organization_id && r.registration_number == number) {
+        if let Some(reg) = registrations
+            .iter()
+            .find(|r| r.organization_id == organization_id && r.registration_number == number)
+        {
             if reg.status != "active" {
                 return false;
             }
@@ -103,15 +124,23 @@ mod tests {
         let service = TaxRegistrationService::new();
         let org_id = Uuid::new_v4();
         let from = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
-        
-        let reg = service.create_registration(org_id, "VAT-12345".to_string(), "vat".to_string(), "GB".to_string(), from).unwrap();
+
+        let reg = service
+            .create_registration(
+                org_id,
+                "VAT-12345".to_string(),
+                "vat".to_string(),
+                "GB".to_string(),
+                from,
+            )
+            .unwrap();
         assert_eq!(reg.status, "pending");
 
         assert!(!service.is_active_on_date(org_id, "VAT-12345", from));
 
         service.activate_registration(reg.id).unwrap();
         assert!(service.is_active_on_date(org_id, "VAT-12345", from));
-        
+
         let future = NaiveDate::from_ymd_opt(2027, 1, 1).unwrap();
         assert!(service.is_active_on_date(org_id, "VAT-12345", future));
 
@@ -122,7 +151,13 @@ mod tests {
     #[test]
     fn test_invalid_reg_type() {
         let service = TaxRegistrationService::new();
-        let res = service.create_registration(Uuid::new_v4(), "N".to_string(), "invalid".to_string(), "US".to_string(), NaiveDate::from_ymd_opt(2026, 1, 1).unwrap());
+        let res = service.create_registration(
+            Uuid::new_v4(),
+            "N".to_string(),
+            "invalid".to_string(),
+            "US".to_string(),
+            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        );
         assert!(res.is_err());
     }
 }

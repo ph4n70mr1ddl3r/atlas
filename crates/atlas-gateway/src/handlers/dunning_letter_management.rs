@@ -5,19 +5,19 @@
 //!
 //! Oracle Fusion: Financials > Receivables > Dunning Letters
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query, Extension},
-    Json,
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
-use std::sync::Arc;
-use uuid::Uuid;
-use tracing::error;
 use sqlx::Row;
+use std::sync::Arc;
+use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Letter Set CRUD Handlers
@@ -43,18 +43,23 @@ pub async fn create_letter_set(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.dunning_letter_management_engine.create_letter_set(
-        org_id,
-        &req.set_name,
-        req.description.as_deref(),
-        req.number_of_levels.unwrap_or(3),
-        req.minimum_overdue_days.unwrap_or(1),
-        req.currency_code.as_deref().unwrap_or("USD"),
-        req.include_finance_charges.unwrap_or(false),
-        req.include_unapplied_receipts.unwrap_or(false),
-        req.aging_basis.as_deref().unwrap_or("days_overdue"),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .create_letter_set(
+            org_id,
+            &req.set_name,
+            req.description.as_deref(),
+            req.number_of_levels.unwrap_or(3),
+            req.minimum_overdue_days.unwrap_or(1),
+            req.currency_code.as_deref().unwrap_or("USD"),
+            req.include_finance_charges.unwrap_or(false),
+            req.include_unapplied_receipts.unwrap_or(false),
+            req.aging_basis.as_deref().unwrap_or("days_overdue"),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(set) => Ok(created_json(set)),
         Err(e) => {
             error!("Failed to create dunning letter set: {}", e);
@@ -67,10 +72,18 @@ pub async fn get_letter_set(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.get_letter_set(id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .get_letter_set(id)
+        .await
+    {
         Ok(Some(s)) => Ok(to_json(s)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get letter set: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get letter set: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -85,7 +98,12 @@ pub async fn list_letter_sets(
     Query(query): Query<ListLetterSetsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.dunning_letter_management_engine.list_letter_sets(org_id, query.status.as_deref()).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .list_letter_sets(org_id, query.status.as_deref())
+        .await
+    {
         Ok(sets) => Ok(Json(serde_json::json!({ "data": sets }))),
         Err(e) => {
             error!("Failed to list letter sets: {}", e);
@@ -98,7 +116,12 @@ pub async fn activate_letter_set(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.activate_letter_set(id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .activate_letter_set(id)
+        .await
+    {
         Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to activate letter set: {}", e);
@@ -111,7 +134,12 @@ pub async fn deactivate_letter_set(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.deactivate_letter_set(id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .deactivate_letter_set(id)
+        .await
+    {
         Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to deactivate letter set: {}", e);
@@ -144,20 +172,25 @@ pub async fn add_letter_set_line(
     Path(set_id): Path<Uuid>,
     Json(req): Json<AddLetterSetLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    match state.financials.dunning_letter_management_engine.add_letter_set_line(
-        set_id,
-        req.level_number,
-        &req.level_name,
-        req.min_days_overdue.unwrap_or(0),
-        req.max_days_overdue,
-        req.minimum_amount.as_deref().unwrap_or("0"),
-        req.letter_template.as_deref(),
-        req.delivery_method.as_deref().unwrap_or("print"),
-        req.apply_credit_hold.unwrap_or(false),
-        req.assess_finance_charges.unwrap_or(false),
-        req.letter_text.as_deref(),
-        req.escalation_days,
-    ).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .add_letter_set_line(
+            set_id,
+            req.level_number,
+            &req.level_name,
+            req.min_days_overdue.unwrap_or(0),
+            req.max_days_overdue,
+            req.minimum_amount.as_deref().unwrap_or("0"),
+            req.letter_template.as_deref(),
+            req.delivery_method.as_deref().unwrap_or("print"),
+            req.apply_credit_hold.unwrap_or(false),
+            req.assess_finance_charges.unwrap_or(false),
+            req.letter_text.as_deref(),
+            req.escalation_days,
+        )
+        .await
+    {
         Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add letter set line: {}", e);
@@ -170,7 +203,12 @@ pub async fn list_letter_set_lines(
     State(state): State<Arc<AppState>>,
     Path(set_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.list_letter_set_lines(set_id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .list_letter_set_lines(set_id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => {
             error!("Failed to list letter set lines: {}", e);
@@ -203,18 +241,23 @@ pub async fn create_profile(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.dunning_letter_management_engine.create_profile(
-        org_id,
-        req.customer_id,
-        req.customer_name.as_deref(),
-        req.letter_set_id,
-        req.minimum_overdue_amount.as_deref().unwrap_or("0"),
-        req.contact_name.as_deref(),
-        req.contact_email.as_deref(),
-        req.preferred_delivery_method.as_deref(),
-        req.notes.as_deref(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .create_profile(
+            org_id,
+            req.customer_id,
+            req.customer_name.as_deref(),
+            req.letter_set_id,
+            req.minimum_overdue_amount.as_deref().unwrap_or("0"),
+            req.contact_name.as_deref(),
+            req.contact_email.as_deref(),
+            req.preferred_delivery_method.as_deref(),
+            req.notes.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(profile) => Ok(created_json(profile)),
         Err(e) => {
             error!("Failed to create dunning profile: {}", e);
@@ -227,10 +270,18 @@ pub async fn get_profile(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.get_profile(id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .get_profile(id)
+        .await
+    {
         Ok(Some(p)) => Ok(to_json(p)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get profile: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get profile: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -245,7 +296,12 @@ pub async fn list_profiles(
     Query(query): Query<ListProfilesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.dunning_letter_management_engine.list_profiles(org_id, query.status.as_deref()).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .list_profiles(org_id, query.status.as_deref())
+        .await
+    {
         Ok(profiles) => Ok(Json(serde_json::json!({ "data": profiles }))),
         Err(e) => {
             error!("Failed to list profiles: {}", e);
@@ -258,9 +314,17 @@ pub async fn enable_profile(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.enable_profile(id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .enable_profile(id)
+        .await
+    {
         Ok(p) => Ok(to_json(p)),
-        Err(e) => { error!("Failed to enable profile: {}", e); Err(map_error(e)) }
+        Err(e) => {
+            error!("Failed to enable profile: {}", e);
+            Err(map_error(e))
+        }
     }
 }
 
@@ -274,9 +338,17 @@ pub async fn disable_profile(
     Path(id): Path<Uuid>,
     Json(req): Json<DisableProfileRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.disable_profile(id, req.reason.as_deref()).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .disable_profile(id, req.reason.as_deref())
+        .await
+    {
         Ok(p) => Ok(to_json(p)),
-        Err(e) => { error!("Failed to disable profile: {}", e); Err(map_error(e)) }
+        Err(e) => {
+            error!("Failed to disable profile: {}", e);
+            Err(map_error(e))
+        }
     }
 }
 
@@ -290,9 +362,17 @@ pub async fn hold_profile(
     Path(id): Path<Uuid>,
     Json(req): Json<HoldProfileRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.hold_profile(id, &req.reason).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .hold_profile(id, &req.reason)
+        .await
+    {
         Ok(p) => Ok(to_json(p)),
-        Err(e) => { error!("Failed to hold profile: {}", e); Err(map_error(e)) }
+        Err(e) => {
+            error!("Failed to hold profile: {}", e);
+            Err(map_error(e))
+        }
     }
 }
 
@@ -323,27 +403,36 @@ pub async fn create_run(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let today = chrono::Utc::now().date_naive();
-    let run_date = req.run_date.as_deref()
+    let run_date = req
+        .run_date
+        .as_deref()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .unwrap_or(today);
-    let aging_date = req.aging_as_of_date.as_deref()
+    let aging_date = req
+        .aging_as_of_date
+        .as_deref()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .unwrap_or(run_date);
 
-    match state.financials.dunning_letter_management_engine.create_run(
-        org_id,
-        &req.run_number,
-        req.description.as_deref(),
-        req.letter_set_id,
-        run_date,
-        aging_date,
-        req.currency_code.as_deref().unwrap_or("USD"),
-        req.minimum_amount_filter.as_deref(),
-        req.specific_level,
-        req.customer_id_filter,
-        req.notes.as_deref(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .create_run(
+            org_id,
+            &req.run_number,
+            req.description.as_deref(),
+            req.letter_set_id,
+            run_date,
+            aging_date,
+            req.currency_code.as_deref().unwrap_or("USD"),
+            req.minimum_amount_filter.as_deref(),
+            req.specific_level,
+            req.customer_id_filter,
+            req.notes.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(run) => Ok(created_json(run)),
         Err(e) => {
             error!("Failed to create dunning run: {}", e);
@@ -357,10 +446,18 @@ pub async fn get_run(
     Extension(_claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.get_run(id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .get_run(id)
+        .await
+    {
         Ok(Some(r)) => Ok(to_json(r)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get run: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get run: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -375,7 +472,12 @@ pub async fn list_runs(
     Query(query): Query<ListRunsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.dunning_letter_management_engine.list_runs(org_id, query.status.as_deref()).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .list_runs(org_id, query.status.as_deref())
+        .await
+    {
         Ok(runs) => Ok(Json(serde_json::json!({ "data": runs }))),
         Err(e) => {
             error!("Failed to list runs: {}", e);
@@ -388,9 +490,17 @@ pub async fn submit_run(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.submit_run(id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .submit_run(id)
+        .await
+    {
         Ok(r) => Ok(to_json(r)),
-        Err(e) => { error!("Failed to submit run: {}", e); Err(map_error(e)) }
+        Err(e) => {
+            error!("Failed to submit run: {}", e);
+            Err(map_error(e))
+        }
     }
 }
 
@@ -398,9 +508,17 @@ pub async fn complete_run(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.complete_run(id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .complete_run(id)
+        .await
+    {
         Ok(r) => Ok(to_json(r)),
-        Err(e) => { error!("Failed to complete run: {}", e); Err(map_error(e)) }
+        Err(e) => {
+            error!("Failed to complete run: {}", e);
+            Err(map_error(e))
+        }
     }
 }
 
@@ -408,9 +526,17 @@ pub async fn cancel_run(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.cancel_run(id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .cancel_run(id)
+        .await
+    {
         Ok(r) => Ok(to_json(r)),
-        Err(e) => { error!("Failed to cancel run: {}", e); Err(map_error(e)) }
+        Err(e) => {
+            error!("Failed to cancel run: {}", e);
+            Err(map_error(e))
+        }
     }
 }
 
@@ -445,28 +571,35 @@ pub async fn add_run_result(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let oldest_date = req.oldest_overdue_date.as_deref()
+    let oldest_date = req
+        .oldest_overdue_date
+        .as_deref()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    match state.financials.dunning_letter_management_engine.add_run_result(
-        org_id,
-        run_id,
-        req.customer_id,
-        req.customer_name.as_deref(),
-        req.customer_number.as_deref(),
-        req.profile_id,
-        req.dunning_level,
-        req.level_name.as_deref(),
-        req.number_of_overdue_items.unwrap_or(0),
-        req.total_overdue_amount.as_deref().unwrap_or("0"),
-        oldest_date,
-        req.days_overdue.unwrap_or(0),
-        req.finance_charge_amount.as_deref().unwrap_or("0"),
-        req.letter_template.as_deref(),
-        req.delivery_method.as_deref(),
-        req.status.as_deref().unwrap_or("pending"),
-        req.reason.as_deref(),
-    ).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .add_run_result(
+            org_id,
+            run_id,
+            req.customer_id,
+            req.customer_name.as_deref(),
+            req.customer_number.as_deref(),
+            req.profile_id,
+            req.dunning_level,
+            req.level_name.as_deref(),
+            req.number_of_overdue_items.unwrap_or(0),
+            req.total_overdue_amount.as_deref().unwrap_or("0"),
+            oldest_date,
+            req.days_overdue.unwrap_or(0),
+            req.finance_charge_amount.as_deref().unwrap_or("0"),
+            req.letter_template.as_deref(),
+            req.delivery_method.as_deref(),
+            req.status.as_deref().unwrap_or("pending"),
+            req.reason.as_deref(),
+        )
+        .await
+    {
         Ok(result) => Ok(created_json(result)),
         Err(e) => {
             error!("Failed to add run result: {}", e);
@@ -479,9 +612,17 @@ pub async fn list_run_results(
     State(state): State<Arc<AppState>>,
     Path(run_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.list_run_results(run_id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .list_run_results(run_id)
+        .await
+    {
         Ok(results) => Ok(Json(serde_json::json!({ "data": results }))),
-        Err(e) => { error!("Failed to list run results: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list run results: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -489,10 +630,18 @@ pub async fn get_run_result(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.get_run_result(id).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .get_run_result(id)
+        .await
+    {
         Ok(Some(r)) => Ok(to_json(r)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get run result: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get run result: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -506,11 +655,17 @@ pub async fn mark_result_sent(
     Path(id): Path<Uuid>,
     Json(req): Json<MarkResultSentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.mark_result_sent(
-        id, req.delivery_confirmation.as_deref(),
-    ).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .mark_result_sent(id, req.delivery_confirmation.as_deref())
+        .await
+    {
         Ok(r) => Ok(to_json(r)),
-        Err(e) => { error!("Failed to mark result sent: {}", e); Err(map_error(e)) }
+        Err(e) => {
+            error!("Failed to mark result sent: {}", e);
+            Err(map_error(e))
+        }
     }
 }
 
@@ -524,9 +679,17 @@ pub async fn mark_result_failed(
     Path(id): Path<Uuid>,
     Json(req): Json<MarkResultFailedRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.dunning_letter_management_engine.mark_result_failed(id, &req.reason).await {
+    match state
+        .financials
+        .dunning_letter_management_engine
+        .mark_result_failed(id, &req.reason)
+        .await
+    {
         Ok(r) => Ok(to_json(r)),
-        Err(e) => { error!("Failed to mark result failed: {}", e); Err(map_error(e)) }
+        Err(e) => {
+            error!("Failed to mark result failed: {}", e);
+            Err(map_error(e))
+        }
     }
 }
 
@@ -540,12 +703,10 @@ pub async fn get_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let row = sqlx::query(
-        "SELECT * FROM financials.dunning_dashboard WHERE organization_id = $1"
-    )
-    .bind(org_id)
-    .fetch_optional(&state.db_pool)
-    .await;
+    let row = sqlx::query("SELECT * FROM financials.dunning_dashboard WHERE organization_id = $1")
+        .bind(org_id)
+        .fetch_optional(&state.db_pool)
+        .await;
 
     match row {
         Ok(Some(r)) => {

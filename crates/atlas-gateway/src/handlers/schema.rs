@@ -1,13 +1,13 @@
 //! Schema handlers
 
+use crate::AppState;
+use atlas_shared::EntityDefinition;
 use axum::{
-    extract::{State, Path},
-    Json,
+    extract::{Path, State},
     http::StatusCode,
+    Json,
 };
 use serde::{Deserialize, Serialize};
-use atlas_shared::EntityDefinition;
-use crate::AppState;
 use std::sync::Arc;
 use tracing::debug;
 
@@ -17,7 +17,7 @@ pub async fn get_entity_schema(
     Path(entity): Path<String>,
 ) -> Result<Json<EntityDefinition>, StatusCode> {
     debug!("Getting schema for entity: {}", entity);
-    
+
     match state.core.schema_engine.get_entity(&entity) {
         Some(schema) => Ok(Json(schema)),
         None => Err(StatusCode::NOT_FOUND),
@@ -49,41 +49,44 @@ pub async fn get_entity_form(
     Path(entity): Path<String>,
 ) -> Result<Json<FormConfig>, StatusCode> {
     debug!("Getting form config for entity: {}", entity);
-    
+
     let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
-    
-    let fields: Vec<FieldConfig> = entity_def.fields.iter().map(|f| {
-        let ft = match &f.field_type {
-            atlas_shared::FieldType::Enum { values } => ("select".to_string(), Some(values.clone())),
-            atlas_shared::FieldType::String { .. } => ("text".to_string(), None),
-            atlas_shared::FieldType::Integer { .. } => ("number".to_string(), None),
-            atlas_shared::FieldType::Decimal { .. } => ("decimal".to_string(), None),
-            atlas_shared::FieldType::Boolean => ("checkbox".to_string(), None),
-            atlas_shared::FieldType::Date => ("date".to_string(), None),
-            atlas_shared::FieldType::DateTime => ("datetime".to_string(), None),
-            _ => ("text".to_string(), None),
-        };
-        
-        FieldConfig {
-            name: f.name.clone(),
-            label: f.label.clone(),
-            field_type: ft.0,
-            required: f.is_required,
-            visible: true,
-            editable: !f.is_read_only,
-            placeholder: f.placeholder.clone(),
-            help_text: f.help_text.clone(),
-            options: ft.1,
-        }
-    }).collect();
-    
-    Ok(Json(FormConfig {
-        entity,
-        fields,
-    }))
+
+    let fields: Vec<FieldConfig> = entity_def
+        .fields
+        .iter()
+        .map(|f| {
+            let ft = match &f.field_type {
+                atlas_shared::FieldType::Enum { values } => {
+                    ("select".to_string(), Some(values.clone()))
+                }
+                atlas_shared::FieldType::String { .. } => ("text".to_string(), None),
+                atlas_shared::FieldType::Integer { .. } => ("number".to_string(), None),
+                atlas_shared::FieldType::Decimal { .. } => ("decimal".to_string(), None),
+                atlas_shared::FieldType::Boolean => ("checkbox".to_string(), None),
+                atlas_shared::FieldType::Date => ("date".to_string(), None),
+                atlas_shared::FieldType::DateTime => ("datetime".to_string(), None),
+                _ => ("text".to_string(), None),
+            };
+
+            FieldConfig {
+                name: f.name.clone(),
+                label: f.label.clone(),
+                field_type: ft.0,
+                required: f.is_required,
+                visible: true,
+                editable: !f.is_read_only,
+                placeholder: f.placeholder.clone(),
+                help_text: f.help_text.clone(),
+                options: ft.1,
+            }
+        })
+        .collect();
+
+    Ok(Json(FormConfig { entity, fields }))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -107,13 +110,15 @@ pub async fn get_entity_list_view(
     Path(entity): Path<String>,
 ) -> Result<Json<ListViewConfig>, StatusCode> {
     debug!("Getting list view config for entity: {}", entity);
-    
+
     let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
-    
-    let columns: Vec<ColumnConfig> = entity_def.fields.iter()
+
+    let columns: Vec<ColumnConfig> = entity_def
+        .fields
+        .iter()
         .filter(|f| f.is_searchable)
         .map(|f| ColumnConfig {
             field: f.name.clone(),
@@ -122,7 +127,7 @@ pub async fn get_entity_list_view(
             sortable: true,
         })
         .collect();
-    
+
     Ok(Json(ListViewConfig {
         entity,
         columns,

@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Benefits > Benefits Plans, Enrollments, Coverage
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::BenefitsEngine;
 pub use repository::{BenefitsRepository, PostgresBenefitsRepository};

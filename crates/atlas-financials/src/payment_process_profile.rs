@@ -36,7 +36,8 @@ impl PaymentProcessProfileService {
         profile: &PaymentProcessProfile,
         invoices: &[InvoicePayment],
     ) -> Vec<PaymentBatch> {
-        let mut grouped: std::collections::HashMap<String, Vec<InvoicePayment>> = std::collections::HashMap::new();
+        let mut grouped: std::collections::HashMap<String, Vec<InvoicePayment>> =
+            std::collections::HashMap::new();
 
         for inv in invoices {
             // Build a dynamic group key based on the profile's flags
@@ -60,7 +61,8 @@ impl PaymentProcessProfileService {
         let mut batches = Vec::new();
         for (key, group_invoices) in grouped {
             let total: f64 = group_invoices.iter().map(|i| i.amount).sum();
-            let invoice_ids: Vec<String> = group_invoices.into_iter().map(|i| i.invoice_id).collect();
+            let invoice_ids: Vec<String> =
+                group_invoices.into_iter().map(|i| i.invoice_id).collect();
 
             batches.push(PaymentBatch {
                 profile_used: profile.profile_code.clone(),
@@ -91,22 +93,43 @@ mod tests {
         };
 
         let invoices = vec![
-            InvoicePayment { invoice_id: "INV1".to_string(), payee_id: "SUPP-A".to_string(), due_date: "2025-01-01".to_string(), amount: 100.0 },
-            InvoicePayment { invoice_id: "INV2".to_string(), payee_id: "SUPP-A".to_string(), due_date: "2025-01-15".to_string(), amount: 200.0 },
-            InvoicePayment { invoice_id: "INV3".to_string(), payee_id: "SUPP-B".to_string(), due_date: "2025-01-01".to_string(), amount: 500.0 },
+            InvoicePayment {
+                invoice_id: "INV1".to_string(),
+                payee_id: "SUPP-A".to_string(),
+                due_date: "2025-01-01".to_string(),
+                amount: 100.0,
+            },
+            InvoicePayment {
+                invoice_id: "INV2".to_string(),
+                payee_id: "SUPP-A".to_string(),
+                due_date: "2025-01-15".to_string(),
+                amount: 200.0,
+            },
+            InvoicePayment {
+                invoice_id: "INV3".to_string(),
+                payee_id: "SUPP-B".to_string(),
+                due_date: "2025-01-01".to_string(),
+                amount: 500.0,
+            },
         ];
 
         let batches = PaymentProcessProfileService::apply_grouping_rules(&profile, &invoices);
 
         assert_eq!(batches.len(), 2);
-        
-        let batch_a = batches.iter().find(|b| b.group_key == "PAYEE:SUPP-A").unwrap();
+
+        let batch_a = batches
+            .iter()
+            .find(|b| b.group_key == "PAYEE:SUPP-A")
+            .unwrap();
         assert_eq!(batch_a.total_amount, 300.0);
         assert_eq!(batch_a.invoices.len(), 2);
         assert!(batch_a.invoices.contains(&"INV1".to_string()));
         assert!(batch_a.invoices.contains(&"INV2".to_string()));
 
-        let batch_b = batches.iter().find(|b| b.group_key == "PAYEE:SUPP-B").unwrap();
+        let batch_b = batches
+            .iter()
+            .find(|b| b.group_key == "PAYEE:SUPP-B")
+            .unwrap();
         assert_eq!(batch_b.total_amount, 500.0);
         assert_eq!(batch_b.invoices.len(), 1);
     }
@@ -117,12 +140,22 @@ mod tests {
             profile_code: "PPP_STRICT".to_string(),
             payment_format: "SEPA".to_string(),
             group_by_due_date: true,
-            group_by_payee: true, 
+            group_by_payee: true,
         };
 
         let invoices = vec![
-            InvoicePayment { invoice_id: "INV1".to_string(), payee_id: "SUPP-A".to_string(), due_date: "2025-01-01".to_string(), amount: 100.0 },
-            InvoicePayment { invoice_id: "INV2".to_string(), payee_id: "SUPP-A".to_string(), due_date: "2025-01-15".to_string(), amount: 200.0 },
+            InvoicePayment {
+                invoice_id: "INV1".to_string(),
+                payee_id: "SUPP-A".to_string(),
+                due_date: "2025-01-01".to_string(),
+                amount: 100.0,
+            },
+            InvoicePayment {
+                invoice_id: "INV2".to_string(),
+                payee_id: "SUPP-A".to_string(),
+                due_date: "2025-01-15".to_string(),
+                amount: 200.0,
+            },
         ];
 
         let batches = PaymentProcessProfileService::apply_grouping_rules(&profile, &invoices);
@@ -144,12 +177,22 @@ mod tests {
             profile_code: "PPP_SINGLE".to_string(),
             payment_format: "SWIFT".to_string(),
             group_by_due_date: false,
-            group_by_payee: false, 
+            group_by_payee: false,
         };
 
         let invoices = vec![
-            InvoicePayment { invoice_id: "INV1".to_string(), payee_id: "SUPP-A".to_string(), due_date: "2025-01-01".to_string(), amount: 100.0 },
-            InvoicePayment { invoice_id: "INV2".to_string(), payee_id: "SUPP-B".to_string(), due_date: "2025-01-15".to_string(), amount: 200.0 },
+            InvoicePayment {
+                invoice_id: "INV1".to_string(),
+                payee_id: "SUPP-A".to_string(),
+                due_date: "2025-01-01".to_string(),
+                amount: 100.0,
+            },
+            InvoicePayment {
+                invoice_id: "INV2".to_string(),
+                payee_id: "SUPP-B".to_string(),
+                due_date: "2025-01-15".to_string(),
+                amount: 200.0,
+            },
         ];
 
         let batches = PaymentProcessProfileService::apply_grouping_rules(&profile, &invoices);

@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: SCM > Inventory Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::InventoryEngine;
 pub use repository::{InventoryRepository, PostgresInventoryRepository};

@@ -32,16 +32,16 @@ impl IntercompanyBalancingService {
     /// If an imbalance is found between segments, it looks up the appropriate balancing rule
     /// and generates Due To / Due From lines to bring the segments into balance.
     #[must_use]
-    pub fn balance_journal(
-        lines: &[JournalLine],
-        rules: &[BalancingRule],
-    ) -> BalancingResult {
-        let mut segment_balances: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+    pub fn balance_journal(lines: &[JournalLine], rules: &[BalancingRule]) -> BalancingResult {
+        let mut segment_balances: std::collections::HashMap<String, f64> =
+            std::collections::HashMap::new();
 
         // Calculate net balance per segment (DR - CR)
         for line in lines {
             let net_amount = line.accounted_dr - line.accounted_cr;
-            *segment_balances.entry(line.balancing_segment.clone()).or_insert(0.0) += net_amount;
+            *segment_balances
+                .entry(line.balancing_segment.clone())
+                .or_insert(0.0) += net_amount;
         }
 
         // Clean up tiny floating point errors
@@ -65,12 +65,15 @@ impl IntercompanyBalancingService {
         // Total Journal must balance first
         let total_dr: f64 = surplus_segments.iter().map(|(_, amt)| *amt).sum();
         let total_cr: f64 = deficit_segments.iter().map(|(_, amt)| *amt).sum();
-        
+
         if (total_dr - total_cr).abs() > 0.001 {
             return BalancingResult {
                 is_balanced: false,
                 generated_lines: vec![],
-                errors: vec!["Overall journal is not balanced. Cannot perform intercompany balancing.".to_string()],
+                errors: vec![
+                    "Overall journal is not balanced. Cannot perform intercompany balancing."
+                        .to_string(),
+                ],
             };
         }
 
@@ -93,14 +96,15 @@ impl IntercompanyBalancingService {
             while surplus_amt > 0.001 {
                 if let Some((deficit_seg, mut deficit_amt)) = deficit_segments.pop() {
                     let clearing_amt = surplus_amt.min(deficit_amt);
-                    
+
                     // Attempt to find a rule from surplus_seg (needs CR -> gives Due To) to deficit_seg (needs DR -> gets Due From)
                     // Surplus segment is "paying" (it has net DR, so we credit it via Due To payable)
                     // Deficit segment is "receiving" (it has net CR, so we debit it via Due From receivable)
-                    
+
                     let rule = rules.iter().find(|r| {
-                        (r.from_segment_value == surplus_seg && r.to_segment_value == deficit_seg) ||
-                        (r.from_segment_value == deficit_seg && r.to_segment_value == surplus_seg)
+                        (r.from_segment_value == surplus_seg && r.to_segment_value == deficit_seg)
+                            || (r.from_segment_value == deficit_seg
+                                && r.to_segment_value == surplus_seg)
                     });
 
                     if let Some(r) = rule {
@@ -124,7 +128,10 @@ impl IntercompanyBalancingService {
                         });
                         line_counter += 1;
                     } else {
-                        errors.push(format!("No intercompany balancing rule found between {} and {}", surplus_seg, deficit_seg));
+                        errors.push(format!(
+                            "No intercompany balancing rule found between {} and {}",
+                            surplus_seg, deficit_seg
+                        ));
                     }
 
                     surplus_amt -= clearing_amt;
@@ -154,10 +161,22 @@ mod tests {
     #[test]
     fn test_already_balanced() {
         let lines = vec![
-            JournalLine { line_id: "1".to_string(), balancing_segment: "10".to_string(), account_ccid: "10-1000".to_string(), accounted_dr: 500.0, accounted_cr: 0.0 },
-            JournalLine { line_id: "2".to_string(), balancing_segment: "10".to_string(), account_ccid: "10-2000".to_string(), accounted_dr: 0.0, accounted_cr: 500.0 },
+            JournalLine {
+                line_id: "1".to_string(),
+                balancing_segment: "10".to_string(),
+                account_ccid: "10-1000".to_string(),
+                accounted_dr: 500.0,
+                accounted_cr: 0.0,
+            },
+            JournalLine {
+                line_id: "2".to_string(),
+                balancing_segment: "10".to_string(),
+                account_ccid: "10-2000".to_string(),
+                accounted_dr: 0.0,
+                accounted_cr: 500.0,
+            },
         ];
-        
+
         let result = IntercompanyBalancingService::balance_journal(&lines, &[]);
         assert!(result.is_balanced);
         assert_eq!(result.generated_lines.len(), 0);
@@ -166,13 +185,28 @@ mod tests {
     #[test]
     fn test_overall_imbalance() {
         let lines = vec![
-            JournalLine { line_id: "1".to_string(), balancing_segment: "10".to_string(), account_ccid: "10-1000".to_string(), accounted_dr: 500.0, accounted_cr: 0.0 },
-            JournalLine { line_id: "2".to_string(), balancing_segment: "20".to_string(), account_ccid: "20-2000".to_string(), accounted_dr: 0.0, accounted_cr: 400.0 }, // Imbalanced overall
+            JournalLine {
+                line_id: "1".to_string(),
+                balancing_segment: "10".to_string(),
+                account_ccid: "10-1000".to_string(),
+                accounted_dr: 500.0,
+                accounted_cr: 0.0,
+            },
+            JournalLine {
+                line_id: "2".to_string(),
+                balancing_segment: "20".to_string(),
+                account_ccid: "20-2000".to_string(),
+                accounted_dr: 0.0,
+                accounted_cr: 400.0,
+            }, // Imbalanced overall
         ];
-        
+
         let result = IntercompanyBalancingService::balance_journal(&lines, &[]);
         assert!(!result.is_balanced);
-        assert_eq!(result.errors[0], "Overall journal is not balanced. Cannot perform intercompany balancing.");
+        assert_eq!(
+            result.errors[0],
+            "Overall journal is not balanced. Cannot perform intercompany balancing."
+        );
     }
 
     #[test]
@@ -180,31 +214,49 @@ mod tests {
         // Seg 10 has DR 500
         // Seg 20 has CR 500
         let lines = vec![
-            JournalLine { line_id: "1".to_string(), balancing_segment: "10".to_string(), account_ccid: "10-1000".to_string(), accounted_dr: 500.0, accounted_cr: 0.0 },
-            JournalLine { line_id: "2".to_string(), balancing_segment: "20".to_string(), account_ccid: "20-2000".to_string(), accounted_dr: 0.0, accounted_cr: 500.0 },
+            JournalLine {
+                line_id: "1".to_string(),
+                balancing_segment: "10".to_string(),
+                account_ccid: "10-1000".to_string(),
+                accounted_dr: 500.0,
+                accounted_cr: 0.0,
+            },
+            JournalLine {
+                line_id: "2".to_string(),
+                balancing_segment: "20".to_string(),
+                account_ccid: "20-2000".to_string(),
+                accounted_dr: 0.0,
+                accounted_cr: 500.0,
+            },
         ];
-        
-        let rules = vec![
-            BalancingRule {
-                from_segment_value: "10".to_string(),
-                to_segment_value: "20".to_string(),
-                receivable_account_ccid: "10-DUEFROM-20".to_string(), // Due From
-                payable_account_ccid: "20-DUETO-10".to_string(),      // Due To
-            }
-        ];
+
+        let rules = vec![BalancingRule {
+            from_segment_value: "10".to_string(),
+            to_segment_value: "20".to_string(),
+            receivable_account_ccid: "10-DUEFROM-20".to_string(), // Due From
+            payable_account_ccid: "20-DUETO-10".to_string(),      // Due To
+        }];
 
         let result = IntercompanyBalancingService::balance_journal(&lines, &rules);
         assert!(result.is_balanced, "Errors: {:?}", result.errors);
         assert_eq!(result.generated_lines.len(), 2);
 
         // Seg 10 had DR surplus, so it needs a CR (Due To)
-        let cr_line = result.generated_lines.iter().find(|l| l.accounted_cr > 0.0).unwrap();
+        let cr_line = result
+            .generated_lines
+            .iter()
+            .find(|l| l.accounted_cr > 0.0)
+            .unwrap();
         assert_eq!(cr_line.balancing_segment, "10");
         assert_eq!(cr_line.accounted_cr, 500.0);
         assert_eq!(cr_line.account_ccid, "20-DUETO-10"); // Wait, per my logic, it grabs payable.
 
         // Seg 20 had CR surplus (deficit in our code), so it needs a DR (Due From)
-        let dr_line = result.generated_lines.iter().find(|l| l.accounted_dr > 0.0).unwrap();
+        let dr_line = result
+            .generated_lines
+            .iter()
+            .find(|l| l.accounted_dr > 0.0)
+            .unwrap();
         assert_eq!(dr_line.balancing_segment, "20");
         assert_eq!(dr_line.accounted_dr, 500.0);
         assert_eq!(dr_line.account_ccid, "10-DUEFROM-20");
@@ -213,19 +265,29 @@ mod tests {
     #[test]
     fn test_missing_balancing_rule() {
         let lines = vec![
-            JournalLine { line_id: "1".to_string(), balancing_segment: "10".to_string(), account_ccid: "10-1000".to_string(), accounted_dr: 500.0, accounted_cr: 0.0 },
-            JournalLine { line_id: "2".to_string(), balancing_segment: "30".to_string(), account_ccid: "30-2000".to_string(), accounted_dr: 0.0, accounted_cr: 500.0 },
+            JournalLine {
+                line_id: "1".to_string(),
+                balancing_segment: "10".to_string(),
+                account_ccid: "10-1000".to_string(),
+                accounted_dr: 500.0,
+                accounted_cr: 0.0,
+            },
+            JournalLine {
+                line_id: "2".to_string(),
+                balancing_segment: "30".to_string(),
+                account_ccid: "30-2000".to_string(),
+                accounted_dr: 0.0,
+                accounted_cr: 500.0,
+            },
         ];
-        
+
         // Only rules for 10-20 exist
-        let rules = vec![
-            BalancingRule {
-                from_segment_value: "10".to_string(),
-                to_segment_value: "20".to_string(),
-                receivable_account_ccid: "10-DUEFROM-20".to_string(),
-                payable_account_ccid: "20-DUETO-10".to_string(),
-            }
-        ];
+        let rules = vec![BalancingRule {
+            from_segment_value: "10".to_string(),
+            to_segment_value: "20".to_string(),
+            receivable_account_ccid: "10-DUEFROM-20".to_string(),
+            payable_account_ccid: "20-DUETO-10".to_string(),
+        }];
 
         let result = IntercompanyBalancingService::balance_journal(&lines, &rules);
         assert!(!result.is_balanced);

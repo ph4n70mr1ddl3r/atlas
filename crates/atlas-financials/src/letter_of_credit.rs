@@ -10,7 +10,7 @@ pub struct LetterOfCreditResult {
 
 impl LetterOfCreditService {
     /// Issues a new Letter of Credit (LC).
-    /// This is an Oracle Fusion Financials trade finance feature providing a guarantee 
+    /// This is an Oracle Fusion Financials trade finance feature providing a guarantee
     /// from a bank that a buyer's payment to a seller will be received on time and for the correct amount.
     #[must_use]
     pub fn issue_lc(
@@ -24,13 +24,13 @@ impl LetterOfCreditService {
         } else {
             "REJECTED".to_string()
         };
-        
+
         let lc_number = if status == "ISSUED" {
             format!("LC-{}-{}", applicant_id, beneficiary_id)
         } else {
             "".to_string()
         };
-        
+
         LetterOfCreditResult {
             lc_number,
             applicant_id: applicant_id.to_string(),
@@ -61,7 +61,7 @@ impl LetterOfCreditService {
             }
         }
     }
-    
+
     /// Cancels an existing Letter of Credit.
     #[must_use]
     pub fn cancel_lc(lc_number: &str) -> String {

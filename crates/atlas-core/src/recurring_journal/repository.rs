@@ -3,13 +3,11 @@
 //! `PostgreSQL` storage for recurring journal schedules, template lines,
 //! generations, and generated lines.
 
-use atlas_shared::{
-    RecurringJournalSchedule, RecurringJournalScheduleLine,
-    RecurringJournalGeneration, RecurringJournalGenerationLine,
-    RecurringJournalDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, RecurringJournalDashboardSummary, RecurringJournalGeneration,
+    RecurringJournalGenerationLine, RecurringJournalSchedule, RecurringJournalScheduleLine,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -18,56 +16,130 @@ use uuid::Uuid;
 pub trait RecurringJournalRepository: Send + Sync {
     // Schedules
     async fn create_schedule(
-        &self, org_id: Uuid, schedule_number: &str, name: &str, description: Option<&str>,
-        recurrence_type: &str, journal_type: &str, currency_code: &str,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        schedule_number: &str,
+        name: &str,
+        description: Option<&str>,
+        recurrence_type: &str,
+        journal_type: &str,
+        currency_code: &str,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         next_generation_date: Option<chrono::NaiveDate>,
-        incremental_percent: Option<&str>, auto_post: bool,
-        reversal_method: Option<&str>, ledger_id: Option<Uuid>,
-        journal_category: Option<&str>, reference_template: Option<&str>,
+        incremental_percent: Option<&str>,
+        auto_post: bool,
+        reversal_method: Option<&str>,
+        ledger_id: Option<Uuid>,
+        journal_category: Option<&str>,
+        reference_template: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalSchedule>;
-    async fn get_schedule(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<Option<RecurringJournalSchedule>>;
+    async fn get_schedule(
+        &self,
+        org_id: Uuid,
+        schedule_number: &str,
+    ) -> AtlasResult<Option<RecurringJournalSchedule>>;
     async fn get_schedule_by_id(&self, id: Uuid) -> AtlasResult<Option<RecurringJournalSchedule>>;
-    async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<RecurringJournalSchedule>>;
-    async fn update_schedule_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<RecurringJournalSchedule>;
-    async fn update_schedule_generation_info(&self, id: Uuid, last_gen: chrono::NaiveDate, next_gen: Option<chrono::NaiveDate>, total: i32) -> AtlasResult<RecurringJournalSchedule>;
+    async fn list_schedules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<RecurringJournalSchedule>>;
+    async fn update_schedule_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<RecurringJournalSchedule>;
+    async fn update_schedule_generation_info(
+        &self,
+        id: Uuid,
+        last_gen: chrono::NaiveDate,
+        next_gen: Option<chrono::NaiveDate>,
+        total: i32,
+    ) -> AtlasResult<RecurringJournalSchedule>;
     async fn delete_schedule(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<()>;
 
     // Schedule Lines
     async fn create_schedule_line(
-        &self, org_id: Uuid, schedule_id: Uuid, line_number: i32, line_type: &str,
-        account_code: &str, account_name: Option<&str>, description: Option<&str>,
-        amount: &str, currency_code: &str, tax_code: Option<&str>,
-        cost_center: Option<&str>, department_id: Option<Uuid>, project_id: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        schedule_id: Uuid,
+        line_number: i32,
+        line_type: &str,
+        account_code: &str,
+        account_name: Option<&str>,
+        description: Option<&str>,
+        amount: &str,
+        currency_code: &str,
+        tax_code: Option<&str>,
+        cost_center: Option<&str>,
+        department_id: Option<Uuid>,
+        project_id: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalScheduleLine>;
-    async fn list_schedule_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<RecurringJournalScheduleLine>>;
+    async fn list_schedule_lines(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<RecurringJournalScheduleLine>>;
     async fn delete_schedule_line(&self, id: Uuid) -> AtlasResult<()>;
 
     // Generations
     async fn create_generation(
-        &self, org_id: Uuid, schedule_id: Uuid, generation_number: i32,
-        generation_date: chrono::NaiveDate, period_name: Option<&str>,
-        total_debit: &str, total_credit: &str, line_count: i32,
+        &self,
+        org_id: Uuid,
+        schedule_id: Uuid,
+        generation_number: i32,
+        generation_date: chrono::NaiveDate,
+        period_name: Option<&str>,
+        total_debit: &str,
+        total_credit: &str,
+        line_count: i32,
         generated_by: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalGeneration>;
     async fn get_generation(&self, id: Uuid) -> AtlasResult<Option<RecurringJournalGeneration>>;
-    async fn list_generations(&self, schedule_id: Uuid) -> AtlasResult<Vec<RecurringJournalGeneration>>;
-    async fn update_generation_status(&self, id: Uuid, status: &str, posted_at: Option<chrono::DateTime<chrono::Utc>>, reversed_at: Option<chrono::DateTime<chrono::Utc>>, reversal_entry_id: Option<Uuid>) -> AtlasResult<RecurringJournalGeneration>;
+    async fn list_generations(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<RecurringJournalGeneration>>;
+    async fn update_generation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        posted_at: Option<chrono::DateTime<chrono::Utc>>,
+        reversed_at: Option<chrono::DateTime<chrono::Utc>>,
+        reversal_entry_id: Option<Uuid>,
+    ) -> AtlasResult<RecurringJournalGeneration>;
     async fn get_latest_generation_number(&self, schedule_id: Uuid) -> AtlasResult<i32>;
 
     // Generation Lines
     async fn create_generation_line(
-        &self, org_id: Uuid, generation_id: Uuid, schedule_line_id: Option<Uuid>,
-        line_number: i32, line_type: &str, account_code: &str, account_name: Option<&str>,
-        description: Option<&str>, amount: &str, currency_code: &str,
-        tax_code: Option<&str>, cost_center: Option<&str>,
-        department_id: Option<Uuid>, project_id: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        generation_id: Uuid,
+        schedule_line_id: Option<Uuid>,
+        line_number: i32,
+        line_type: &str,
+        account_code: &str,
+        account_name: Option<&str>,
+        description: Option<&str>,
+        amount: &str,
+        currency_code: &str,
+        tax_code: Option<&str>,
+        cost_center: Option<&str>,
+        department_id: Option<Uuid>,
+        project_id: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalGenerationLine>;
-    async fn list_generation_lines(&self, generation_id: Uuid) -> AtlasResult<Vec<RecurringJournalGenerationLine>>;
+    async fn list_generation_lines(
+        &self,
+        generation_id: Uuid,
+    ) -> AtlasResult<Vec<RecurringJournalGenerationLine>>;
 
     // Dashboard
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<RecurringJournalDashboardSummary>;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<RecurringJournalDashboardSummary>;
 }
 
 /// `PostgreSQL` implementation
@@ -76,14 +148,13 @@ pub struct PostgresRecurringJournalRepository {
 }
 
 impl PostgresRecurringJournalRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 fn row_to_schedule(row: &sqlx::postgres::PgRow) -> RecurringJournalSchedule {
-    
     use serde_json::Value;
     RecurringJournalSchedule {
         id: row.get("id"),
@@ -149,8 +220,14 @@ fn row_to_generation(row: &sqlx::postgres::PgRow) -> RecurringJournalGeneration 
         journal_entry_number: row.get("journal_entry_number"),
         generation_date: row.get("generation_date"),
         period_name: row.get("period_name"),
-        total_debit: row.try_get("total_debit").unwrap_or(Value::Null).to_string(),
-        total_credit: row.try_get("total_credit").unwrap_or(Value::Null).to_string(),
+        total_debit: row
+            .try_get("total_debit")
+            .unwrap_or(Value::Null)
+            .to_string(),
+        total_credit: row
+            .try_get("total_credit")
+            .unwrap_or(Value::Null)
+            .to_string(),
         line_count: row.get("line_count"),
         status: row.get("status"),
         reversal_entry_id: row.get("reversal_entry_id"),
@@ -190,13 +267,23 @@ fn row_to_generation_line(row: &sqlx::postgres::PgRow) -> RecurringJournalGenera
 #[async_trait]
 impl RecurringJournalRepository for PostgresRecurringJournalRepository {
     async fn create_schedule(
-        &self, org_id: Uuid, schedule_number: &str, name: &str, description: Option<&str>,
-        recurrence_type: &str, journal_type: &str, currency_code: &str,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        schedule_number: &str,
+        name: &str,
+        description: Option<&str>,
+        recurrence_type: &str,
+        journal_type: &str,
+        currency_code: &str,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         next_generation_date: Option<chrono::NaiveDate>,
-        incremental_percent: Option<&str>, auto_post: bool,
-        reversal_method: Option<&str>, ledger_id: Option<Uuid>,
-        journal_category: Option<&str>, reference_template: Option<&str>,
+        incremental_percent: Option<&str>,
+        auto_post: bool,
+        reversal_method: Option<&str>,
+        ledger_id: Option<Uuid>,
+        journal_category: Option<&str>,
+        reference_template: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalSchedule> {
         let row = sqlx::query(
@@ -208,19 +295,34 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,'draft',$8,$9,$10,$11::numeric,$12,$13,$14,$15,$16,$17)
             RETURNING *",
         )
-        .bind(org_id).bind(schedule_number).bind(name).bind(description)
-        .bind(recurrence_type).bind(journal_type).bind(currency_code)
-        .bind(effective_from).bind(effective_to)
+        .bind(org_id)
+        .bind(schedule_number)
+        .bind(name)
+        .bind(description)
+        .bind(recurrence_type)
+        .bind(journal_type)
+        .bind(currency_code)
+        .bind(effective_from)
+        .bind(effective_to)
         .bind(next_generation_date)
-        .bind(incremental_percent).bind(auto_post).bind(reversal_method)
-        .bind(ledger_id).bind(journal_category).bind(reference_template)
+        .bind(incremental_percent)
+        .bind(auto_post)
+        .bind(reversal_method)
+        .bind(ledger_id)
+        .bind(journal_category)
+        .bind(reference_template)
         .bind(created_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_schedule(&row))
     }
 
-    async fn get_schedule(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<Option<RecurringJournalSchedule>> {
+    async fn get_schedule(
+        &self,
+        org_id: Uuid,
+        schedule_number: &str,
+    ) -> AtlasResult<Option<RecurringJournalSchedule>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.recurring_journal_schedules WHERE organization_id=$1 AND schedule_number=$2"
         )
@@ -231,28 +333,38 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
     }
 
     async fn get_schedule_by_id(&self, id: Uuid) -> AtlasResult<Option<RecurringJournalSchedule>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.recurring_journal_schedules WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.recurring_journal_schedules WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_schedule(&r)))
     }
 
-    async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<RecurringJournalSchedule>> {
+    async fn list_schedules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<RecurringJournalSchedule>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.recurring_journal_schedules
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             ORDER BY schedule_number",
         )
-        .bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_schedule).collect())
     }
 
-    async fn update_schedule_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<RecurringJournalSchedule> {
+    async fn update_schedule_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<RecurringJournalSchedule> {
         let row = sqlx::query(
             r"UPDATE _atlas.recurring_journal_schedules SET status=$2,
                 approved_by=COALESCE($3, approved_by),
@@ -265,15 +377,25 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         Ok(row_to_schedule(&row))
     }
 
-    async fn update_schedule_generation_info(&self, id: Uuid, last_gen: chrono::NaiveDate, next_gen: Option<chrono::NaiveDate>, total: i32) -> AtlasResult<RecurringJournalSchedule> {
+    async fn update_schedule_generation_info(
+        &self,
+        id: Uuid,
+        last_gen: chrono::NaiveDate,
+        next_gen: Option<chrono::NaiveDate>,
+        total: i32,
+    ) -> AtlasResult<RecurringJournalSchedule> {
         let row = sqlx::query(
             r"UPDATE _atlas.recurring_journal_schedules
             SET last_generation_date=$2, next_generation_date=$3,
                 total_generations=$4, updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(last_gen).bind(next_gen).bind(total)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(last_gen)
+        .bind(next_gen)
+        .bind(total)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_schedule(&row))
     }
@@ -289,10 +411,20 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
     }
 
     async fn create_schedule_line(
-        &self, org_id: Uuid, schedule_id: Uuid, line_number: i32, line_type: &str,
-        account_code: &str, account_name: Option<&str>, description: Option<&str>,
-        amount: &str, currency_code: &str, tax_code: Option<&str>,
-        cost_center: Option<&str>, department_id: Option<Uuid>, project_id: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        schedule_id: Uuid,
+        line_number: i32,
+        line_type: &str,
+        account_code: &str,
+        account_name: Option<&str>,
+        description: Option<&str>,
+        amount: &str,
+        currency_code: &str,
+        tax_code: Option<&str>,
+        cost_center: Option<&str>,
+        department_id: Option<Uuid>,
+        project_id: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalScheduleLine> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.recurring_journal_schedule_lines
@@ -301,16 +433,29 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
                  department_id, project_id)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9,$10,$11,$12,$13) RETURNING *",
         )
-        .bind(org_id).bind(schedule_id).bind(line_number).bind(line_type)
-        .bind(account_code).bind(account_name).bind(description)
-        .bind(amount).bind(currency_code).bind(tax_code).bind(cost_center)
-        .bind(department_id).bind(project_id)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(schedule_id)
+        .bind(line_number)
+        .bind(line_type)
+        .bind(account_code)
+        .bind(account_name)
+        .bind(description)
+        .bind(amount)
+        .bind(currency_code)
+        .bind(tax_code)
+        .bind(cost_center)
+        .bind(department_id)
+        .bind(project_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_schedule_line(&row))
     }
 
-    async fn list_schedule_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<RecurringJournalScheduleLine>> {
+    async fn list_schedule_lines(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<RecurringJournalScheduleLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.recurring_journal_schedule_lines WHERE schedule_id=$1 ORDER BY line_number"
         )
@@ -322,15 +467,23 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
 
     async fn delete_schedule_line(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.recurring_journal_schedule_lines WHERE id=$1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn create_generation(
-        &self, org_id: Uuid, schedule_id: Uuid, generation_number: i32,
-        generation_date: chrono::NaiveDate, period_name: Option<&str>,
-        total_debit: &str, total_credit: &str, line_count: i32,
+        &self,
+        org_id: Uuid,
+        schedule_id: Uuid,
+        generation_number: i32,
+        generation_date: chrono::NaiveDate,
+        period_name: Option<&str>,
+        total_debit: &str,
+        total_credit: &str,
+        line_count: i32,
         generated_by: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalGeneration> {
         let row = sqlx::query(
@@ -339,25 +492,34 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
                  period_name, total_debit, total_credit, line_count, generated_by)
             VALUES ($1,$2,$3,$4,$5,$6::numeric,$7::numeric,$8,$9) RETURNING *",
         )
-        .bind(org_id).bind(schedule_id).bind(generation_number)
-        .bind(generation_date).bind(period_name)
-        .bind(total_debit).bind(total_credit).bind(line_count)
+        .bind(org_id)
+        .bind(schedule_id)
+        .bind(generation_number)
+        .bind(generation_date)
+        .bind(period_name)
+        .bind(total_debit)
+        .bind(total_credit)
+        .bind(line_count)
         .bind(generated_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_generation(&row))
     }
 
     async fn get_generation(&self, id: Uuid) -> AtlasResult<Option<RecurringJournalGeneration>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.recurring_journal_generations WHERE id=$1"
-        )
-        .bind(id).fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.recurring_journal_generations WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_generation(&r)))
     }
 
-    async fn list_generations(&self, schedule_id: Uuid) -> AtlasResult<Vec<RecurringJournalGeneration>> {
+    async fn list_generations(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<RecurringJournalGeneration>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.recurring_journal_generations WHERE schedule_id=$1 ORDER BY generation_number DESC"
         )
@@ -366,7 +528,14 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         Ok(rows.iter().map(row_to_generation).collect())
     }
 
-    async fn update_generation_status(&self, id: Uuid, status: &str, posted_at: Option<chrono::DateTime<chrono::Utc>>, reversed_at: Option<chrono::DateTime<chrono::Utc>>, reversal_entry_id: Option<Uuid>) -> AtlasResult<RecurringJournalGeneration> {
+    async fn update_generation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        posted_at: Option<chrono::DateTime<chrono::Utc>>,
+        reversed_at: Option<chrono::DateTime<chrono::Utc>>,
+        reversal_entry_id: Option<Uuid>,
+    ) -> AtlasResult<RecurringJournalGeneration> {
         let row = sqlx::query(
             r"UPDATE _atlas.recurring_journal_generations SET status=$2,
                 posted_at=COALESCE($3, posted_at),
@@ -374,8 +543,13 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
                 reversal_entry_id=COALESCE($5, reversal_entry_id),
                 updated_at=now() WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(status).bind(posted_at).bind(reversed_at).bind(reversal_entry_id)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .bind(posted_at)
+        .bind(reversed_at)
+        .bind(reversal_entry_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_generation(&row))
     }
@@ -391,11 +565,21 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
     }
 
     async fn create_generation_line(
-        &self, org_id: Uuid, generation_id: Uuid, schedule_line_id: Option<Uuid>,
-        line_number: i32, line_type: &str, account_code: &str, account_name: Option<&str>,
-        description: Option<&str>, amount: &str, currency_code: &str,
-        tax_code: Option<&str>, cost_center: Option<&str>,
-        department_id: Option<Uuid>, project_id: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        generation_id: Uuid,
+        schedule_line_id: Option<Uuid>,
+        line_number: i32,
+        line_type: &str,
+        account_code: &str,
+        account_name: Option<&str>,
+        description: Option<&str>,
+        amount: &str,
+        currency_code: &str,
+        tax_code: Option<&str>,
+        cost_center: Option<&str>,
+        department_id: Option<Uuid>,
+        project_id: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalGenerationLine> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.recurring_journal_generation_lines
@@ -404,17 +588,30 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
                  currency_code, tax_code, cost_center, department_id, project_id)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10,$11,$12,$13,$14) RETURNING *",
         )
-        .bind(org_id).bind(generation_id).bind(schedule_line_id)
-        .bind(line_number).bind(line_type).bind(account_code)
-        .bind(account_name).bind(description).bind(amount)
-        .bind(currency_code).bind(tax_code).bind(cost_center)
-        .bind(department_id).bind(project_id)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(generation_id)
+        .bind(schedule_line_id)
+        .bind(line_number)
+        .bind(line_type)
+        .bind(account_code)
+        .bind(account_name)
+        .bind(description)
+        .bind(amount)
+        .bind(currency_code)
+        .bind(tax_code)
+        .bind(cost_center)
+        .bind(department_id)
+        .bind(project_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_generation_line(&row))
     }
 
-    async fn list_generation_lines(&self, generation_id: Uuid) -> AtlasResult<Vec<RecurringJournalGenerationLine>> {
+    async fn list_generation_lines(
+        &self,
+        generation_id: Uuid,
+    ) -> AtlasResult<Vec<RecurringJournalGenerationLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.recurring_journal_generation_lines WHERE generation_id=$1 ORDER BY line_number"
         )
@@ -423,7 +620,10 @@ impl RecurringJournalRepository for PostgresRecurringJournalRepository {
         Ok(rows.iter().map(row_to_generation_line).collect())
     }
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<RecurringJournalDashboardSummary> {
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<RecurringJournalDashboardSummary> {
         let row = sqlx::query(
             r"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_count,

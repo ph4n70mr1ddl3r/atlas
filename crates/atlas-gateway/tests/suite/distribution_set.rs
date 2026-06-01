@@ -9,28 +9,39 @@
 //! - Dashboard summary
 //! - Edge cases and validation
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 use uuid::Uuid;
 
 async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
-    sqlx::query("DELETE FROM financials.distribution_set_usage_log").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM financials.distribution_set_lines").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM financials.distribution_sets").execute(&state.db_pool).await.ok();
+    sqlx::query("DELETE FROM financials.distribution_set_usage_log")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.distribution_set_lines")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.distribution_sets")
+        .execute(&state.db_pool)
+        .await
+        .ok();
     sqlx::query("CREATE SCHEMA IF NOT EXISTS financials")
         .execute(&state.db_pool)
         .await
         .ok();
-    sqlx::query(include_str!("../../../../migrations/137_distribution_set.sql"))
-        .execute(&state.db_pool)
-        .await
-        .ok();
+    sqlx::query(include_str!(
+        "../../../../migrations/137_distribution_set.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .ok();
     let app = build_router(state.clone());
     (state, app)
 }
@@ -49,17 +60,30 @@ async fn create_set(
         "currencyCode": "USD",
         "description": "Test distribution set",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/distribution-sets")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/distribution-sets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create set: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create set: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -77,17 +101,30 @@ async fn add_line(
         "costCenter": "CC-001",
         "department": "Finance",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
-    assert_eq!(status, StatusCode::CREATED, "Failed to add line: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to add line: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -120,16 +157,24 @@ async fn test_create_amount_type_set() {
         "distributionType": "amount",
         "currencyCode": "EUR",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/distribution-sets")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/distribution-sets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let set: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let set: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(set["distributionType"], "amount");
     assert_eq!(set["currencyCode"], "EUR");
 }
@@ -145,13 +190,19 @@ async fn test_create_set_duplicate_code_fails() {
         "setName": "Second Set",
         "distributionType": "percentage",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/distribution-sets")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/distribution-sets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -164,13 +215,19 @@ async fn test_create_set_invalid_type_fails() {
         "setName": "Bad Type",
         "distributionType": "ratio",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/distribution-sets")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/distribution-sets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -185,13 +242,19 @@ async fn test_create_set_inverted_dates_fails() {
         "effectiveFrom": "2025-12-31",
         "effectiveTo": "2025-01-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/distribution-sets")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/distribution-sets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -202,15 +265,23 @@ async fn test_get_distribution_set() {
     let set_id: Uuid = set["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/{}", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/distribution-sets/{}", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["id"], set["id"]);
     assert_eq!(body["setCode"], "GET-01");
 }
@@ -220,11 +291,17 @@ async fn test_get_nonexistent_set_fails() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
     let fake_id = Uuid::new_v4();
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/{}", fake_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/distribution-sets/{}", fake_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -235,15 +312,23 @@ async fn test_list_distribution_sets() {
     create_set(&app, "LIST-B", "Set B", "amount").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/distribution-sets")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/distribution-sets")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(data.len() >= 2);
 }
@@ -255,15 +340,23 @@ async fn test_list_sets_filter_by_type() {
     create_set(&app, "TYPE-AMT", "Amt Set", "amount").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/distribution-sets?distribution_type=amount")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/distribution-sets?distribution_type=amount")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert_eq!(data.len(), 1);
     assert_eq!(data[0]["distributionType"], "amount");
@@ -283,11 +376,18 @@ async fn test_activate_set_with_valid_lines() {
     let (k, v) = auth_header(&admin_claims());
 
     // Deactivate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Add lines totaling 100%
@@ -295,14 +395,23 @@ async fn test_activate_set_with_valid_lines() {
     add_line(&app, &set_id, "1000.100.100.100.200", "40.0000").await;
 
     // Activate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/activate", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/activate", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "active");
 }
 
@@ -315,18 +424,31 @@ async fn test_activate_set_without_lines_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Deactivate first
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to activate without lines
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/activate", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/activate", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -339,22 +461,35 @@ async fn test_activate_set_with_wrong_total_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Deactivate first
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Add lines totaling only 80%
     add_line(&app, &set_id, "1000.100.100.100.100", "50.0000").await;
     add_line(&app, &set_id, "1000.100.100.100.200", "30.0000").await;
 
     // Try to activate - should fail
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/activate", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/activate", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -365,14 +500,23 @@ async fn test_deactivate_set() {
     let set_id: Uuid = set["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "inactive");
 }
 
@@ -385,18 +529,31 @@ async fn test_delete_inactive_set() {
     let (k, v) = auth_header(&admin_claims());
 
     // Deactivate first
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Delete
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/distribution-sets/{}", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/distribution-sets/{}", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -407,11 +564,18 @@ async fn test_delete_active_set_fails() {
     let set_id: Uuid = set["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/distribution-sets/{}", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/distribution-sets/{}", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -435,13 +599,21 @@ async fn test_add_distribution_lines() {
 
     // Verify total percentage updated on set
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/{}", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/distribution-sets/{}", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let total_pct: f64 = body["totalPercentage"].as_str().unwrap().parse().unwrap();
     assert!((total_pct - 100.0).abs() < 0.01);
 }
@@ -460,13 +632,19 @@ async fn test_add_line_exceeds_100_percent_fails() {
         "accountCombination": "1000.100.100.100.200",
         "percentage": "30.0000",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -480,15 +658,23 @@ async fn test_list_distribution_lines() {
     add_line(&app, &set_id, "1000.100.100.100.200", "50.0000").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["data"].as_array().unwrap().len(), 2);
 }
 
@@ -506,32 +692,59 @@ async fn test_remove_distribution_line() {
     let (k, v) = auth_header(&admin_claims());
 
     // Remove line1
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/distribution-sets/lines/{}", line1_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/distribution-sets/lines/{}", line1_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 
     // Verify only one line remains
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["data"].as_array().unwrap().len(), 1);
 
     // Verify total percentage updated
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/{}", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let set_body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
-    let total_pct: f64 = set_body["totalPercentage"].as_str().unwrap().parse().unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/distribution-sets/{}", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let set_body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
+    let total_pct: f64 = set_body["totalPercentage"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
     assert!((total_pct - 70.0).abs() < 0.01);
 }
 
@@ -546,13 +759,19 @@ async fn test_add_line_invalid_percentage() {
         "accountCombination": "1000.100.100.100.100",
         "percentage": "150.0000",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -567,13 +786,19 @@ async fn test_add_line_empty_account_fails() {
         "accountCombination": "",
         "percentage": "50.0000",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -598,17 +823,25 @@ async fn test_apply_distribution_set_to_invoice() {
         "invoiceNumber": "INV-TEST-001",
         "invoiceAmount": "10000.00",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["applied"], true);
     assert_eq!(body["lineCount"], 2);
     assert!(body["lines"].is_array());
@@ -624,11 +857,17 @@ async fn test_apply_inactive_set_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Deactivate
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to apply
     let invoice_id = Uuid::new_v4();
@@ -636,13 +875,19 @@ async fn test_apply_inactive_set_fails() {
         "invoiceId": invoice_id,
         "invoiceAmount": "5000.00",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -663,23 +908,36 @@ async fn test_apply_updates_usage_count() {
             "invoiceId": invoice_id,
             "invoiceAmount": "1000.00",
         });
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&payload).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Check usage count
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/{}", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/distribution-sets/{}", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["usageCount"], 2);
 }
 
@@ -704,24 +962,37 @@ async fn test_list_usage_history() {
         "invoiceNumber": "INV-HIST-001",
         "invoiceAmount": "5000.00",
     });
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // List usage
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/distribution-sets/usage")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/distribution-sets/usage")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(!data.is_empty());
     assert_eq!(data[0]["setCode"], "HIST-01");
@@ -748,24 +1019,40 @@ async fn test_list_usage_filter_by_set() {
             "invoiceId": Uuid::new_v4(),
             "invoiceAmount": "1000.00",
         });
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&payload).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Filter by set1
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/usage?distribution_set_id={}", set_id1))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/distribution-sets/usage?distribution_set_id={}",
+                    set_id1
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert_eq!(data.len(), 1);
     assert_eq!(data[0]["setCode"], "FILTER-01");
@@ -782,15 +1069,23 @@ async fn test_distribution_set_dashboard() {
     create_set(&app, "DASH-02", "Dashboard Set 2", "amount").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/distribution-sets/dashboard")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/distribution-sets/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert!(body.get("totalSets").is_some());
     assert!(body.get("activeSets").is_some());
@@ -822,16 +1117,24 @@ async fn test_amount_based_distribution_set() {
         "amount": "5000.00",
         "description": "Fixed amount line",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let line: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let line: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(line["amount"], "5000.00");
 }
 
@@ -855,31 +1158,53 @@ async fn test_full_distribution_set_lifecycle() {
 
     // 3. Verify lines
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let lines: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let lines: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(lines["data"].as_array().unwrap().len(), 3);
 
     // 4. Remove one line
     let line2_id: Uuid = line2["id"].as_str().unwrap().parse().unwrap();
-    app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/distribution-sets/lines/{}", line2_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/distribution-sets/lines/{}", line2_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // 5. Verify remaining lines
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let lines: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/distribution-sets/{}/lines", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let lines: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(lines["data"].as_array().unwrap().len(), 2);
 
     // 6. Apply to invoice
@@ -889,38 +1214,69 @@ async fn test_full_distribution_set_lifecycle() {
         "invoiceNumber": "INV-LC-001",
         "invoiceAmount": "10000.00",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/apply", set_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // 7. Check usage history
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/distribution-sets/usage?distribution_set_id={}", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let usage: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/distribution-sets/usage?distribution_set_id={}",
+                    set_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let usage: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(usage["data"].as_array().unwrap().len(), 1);
 
     // 8. Deactivate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/distribution-sets/{}/deactivate", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // 9. Delete
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/distribution-sets/{}", set_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/distribution-sets/{}", set_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }

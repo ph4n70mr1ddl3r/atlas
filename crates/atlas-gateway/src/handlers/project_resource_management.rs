@@ -8,7 +8,7 @@
 //! - Utilization entry recording and approval workflow
 //! - Resource management dashboard
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::{created_json, to_json};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -18,8 +18,8 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::auth::Claims;
+use crate::AppState;
 
 // ============================================================================
 // Profiles
@@ -57,7 +57,9 @@ pub async fn create_profile(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let profile = state.projects.project_resource_engine
+    let profile = state
+        .projects
+        .project_resource_engine
         .create_profile(
             org_id,
             &payload.resource_number,
@@ -99,7 +101,9 @@ pub async fn get_profile(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let profile = state.projects.project_resource_engine
+    let profile = state
+        .projects
+        .project_resource_engine
         .get_profile(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -123,7 +127,9 @@ pub async fn list_profiles(
     Query(query): Query<ListProfilesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let profiles = state.projects.project_resource_engine
+    let profiles = state
+        .projects
+        .project_resource_engine
         .list_profiles(
             org_id,
             query.availability_status.as_deref(),
@@ -148,7 +154,9 @@ pub async fn update_availability(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateAvailabilityRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let profile = state.projects.project_resource_engine
+    let profile = state
+        .projects
+        .project_resource_engine
         .update_availability(id, &payload.availability_status)
         .await
         .map_err(|e| {
@@ -168,14 +176,14 @@ pub async fn delete_profile(
     Path(number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.projects.project_resource_engine
+    state
+        .projects
+        .project_resource_engine
         .delete_profile(org_id, &number)
         .await
-        .map_err(|e| {
-            match e {
-                atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            }
+        .map_err(|e| match e {
+            atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
         })?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -213,7 +221,9 @@ pub async fn create_request(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let request = state.projects.project_resource_engine
+    let request = state
+        .projects
+        .project_resource_engine
         .create_request(
             org_id,
             &payload.request_number,
@@ -252,7 +262,9 @@ pub async fn get_request(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let request = state.projects.project_resource_engine
+    let request = state
+        .projects
+        .project_resource_engine
         .get_request(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -276,7 +288,9 @@ pub async fn list_requests(
     Query(query): Query<ListRequestsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let requests = state.projects.project_resource_engine
+    let requests = state
+        .projects
+        .project_resource_engine
         .list_requests(
             org_id,
             query.status.as_deref(),
@@ -294,7 +308,9 @@ pub async fn submit_request(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let request = state.projects.project_resource_engine
+    let request = state
+        .projects
+        .project_resource_engine
         .submit_request(id)
         .await
         .map_err(|e| {
@@ -310,7 +326,9 @@ pub async fn fulfill_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let request = state.projects.project_resource_engine
+    let request = state
+        .projects
+        .project_resource_engine
         .fulfill_request(id, user_id)
         .await
         .map_err(|e| {
@@ -325,7 +343,9 @@ pub async fn cancel_request(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let request = state.projects.project_resource_engine
+    let request = state
+        .projects
+        .project_resource_engine
         .cancel_request(id)
         .await
         .map_err(|e| {
@@ -341,7 +361,9 @@ pub async fn delete_request(
     Path(number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.projects.project_resource_engine
+    state
+        .projects
+        .project_resource_engine
         .delete_request(org_id, &number)
         .await
         .map_err(|e| match e {
@@ -384,7 +406,9 @@ pub async fn create_assignment(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let assignment = state.projects.project_resource_engine
+    let assignment = state
+        .projects
+        .project_resource_engine
         .create_assignment(
             org_id,
             &payload.assignment_number,
@@ -424,7 +448,9 @@ pub async fn get_assignment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let assignment = state.projects.project_resource_engine
+    let assignment = state
+        .projects
+        .project_resource_engine
         .get_assignment(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -448,7 +474,9 @@ pub async fn list_assignments(
     Query(query): Query<ListAssignmentsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let assignments = state.projects.project_resource_engine
+    let assignments = state
+        .projects
+        .project_resource_engine
         .list_assignments(
             org_id,
             query.status.as_deref(),
@@ -466,7 +494,9 @@ pub async fn activate_assignment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let assignment = state.projects.project_resource_engine
+    let assignment = state
+        .projects
+        .project_resource_engine
         .activate_assignment(id)
         .await
         .map_err(|e| {
@@ -481,7 +511,9 @@ pub async fn complete_assignment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let assignment = state.projects.project_resource_engine
+    let assignment = state
+        .projects
+        .project_resource_engine
         .complete_assignment(id)
         .await
         .map_err(|e| {
@@ -496,7 +528,9 @@ pub async fn cancel_assignment(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let assignment = state.projects.project_resource_engine
+    let assignment = state
+        .projects
+        .project_resource_engine
         .cancel_assignment(id)
         .await
         .map_err(|e| {
@@ -512,7 +546,9 @@ pub async fn delete_assignment(
     Path(number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.projects.project_resource_engine
+    state
+        .projects
+        .project_resource_engine
         .delete_assignment(org_id, &number)
         .await
         .map_err(|e| match e {
@@ -546,7 +582,9 @@ pub async fn create_utilization_entry(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let entry = state.projects.project_resource_engine
+    let entry = state
+        .projects
+        .project_resource_engine
         .create_utilization_entry(
             org_id,
             payload.assignment_id,
@@ -584,7 +622,9 @@ pub async fn list_utilization_entries(
     Query(query): Query<ListUtilizationQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let entries = state.projects.project_resource_engine
+    let entries = state
+        .projects
+        .project_resource_engine
         .list_utilization_entries(
             org_id,
             query.assignment_id,
@@ -603,7 +643,9 @@ pub async fn approve_utilization_entry(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let entry = state.projects.project_resource_engine
+    let entry = state
+        .projects
+        .project_resource_engine
         .approve_utilization_entry(id, user_id)
         .await
         .map_err(|e| match e {
@@ -618,7 +660,9 @@ pub async fn reject_utilization_entry(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let entry = state.projects.project_resource_engine
+    let entry = state
+        .projects
+        .project_resource_engine
         .reject_utilization_entry(id)
         .await
         .map_err(|e| match e {
@@ -633,7 +677,9 @@ pub async fn delete_utilization_entry(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.projects.project_resource_engine
+    state
+        .projects
+        .project_resource_engine
         .delete_utilization_entry(id)
         .await
         .map_err(|e| match e {
@@ -652,7 +698,9 @@ pub async fn get_resource_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let dashboard = state.projects.project_resource_engine
+    let dashboard = state
+        .projects
+        .project_resource_engine
         .get_dashboard(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

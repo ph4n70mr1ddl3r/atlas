@@ -10,30 +10,28 @@
 //! - Dashboard summary
 //! - Validation edge cases
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 use uuid::Uuid;
 
 async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
-    sqlx::query(include_str!("../../../../migrations/041_manual_journal_entries.sql"))
-        .execute(&state.db_pool)
-        .await
-        .ok();
+    sqlx::query(include_str!(
+        "../../../../migrations/041_manual_journal_entries.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .ok();
     let app = build_router(state.clone());
     (state, app)
 }
 
-async fn create_batch(
-    app: &axum::Router,
-    batch_number: &str,
-    name: &str,
-) -> serde_json::Value {
+async fn create_batch(app: &axum::Router, batch_number: &str, name: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({
         "batch_number": batch_number,
@@ -42,15 +40,23 @@ async fn create_batch(
         "currency_code": "USD",
         "accounting_date": "2024-03-15",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/journals/batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/journals/batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to create batch");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -68,15 +74,23 @@ async fn create_entry_in_batch(
         "accounting_date": "2024-03-15",
         "journal_category": "manual",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/entries", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/entries", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to create entry");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -94,15 +108,23 @@ async fn add_entry_line(
         "account_name": format!("Account {}", account_code),
         "amount": amount,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/entries/{}/lines", entry_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/entries/{}/lines", entry_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to add line");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -119,12 +141,20 @@ async fn create_balanced_entry(
     add_entry_line(app, entry_id, "credit", "2000.200", amount).await;
     // Re-fetch to get updated totals
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/journals/entries/{}", entry_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/journals/entries/{}", entry_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -150,13 +180,21 @@ async fn test_get_batch() {
     create_batch(&app, "JB-002", "Test Batch").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/journals/batches/JB-002")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/journals/batches/JB-002")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let batch: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(batch["batch_number"], "JB-002");
 }
@@ -168,13 +206,21 @@ async fn test_list_batches() {
     create_batch(&app, "JB-011", "Batch B").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/journals/batches")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/journals/batches")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(result["data"].as_array().unwrap().len(), 2);
 }
@@ -185,13 +231,21 @@ async fn test_list_batches_by_status() {
     create_batch(&app, "JB-020", "Draft Batch").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/journals/batches?status=draft")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/journals/batches?status=draft")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let batches = result["data"].as_array().unwrap();
     assert!(batches.len() >= 1);
@@ -204,19 +258,32 @@ async fn test_delete_batch() {
     create_batch(&app, "JB-DEL", "Delete Me").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/journals/batches/JB-DEL")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/journals/batches/JB-DEL")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Verify it's gone
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/journals/batches/JB-DEL")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/journals/batches/JB-DEL")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -230,18 +297,31 @@ async fn test_delete_non_draft_batch_fails() {
     let (k, v) = auth_header(&admin_claims());
     // First add an entry so submission succeeds
     create_balanced_entry(&app, batch_id, "JE-001", "100.00").await;
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to delete
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/journals/batches/JB-NDL")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/journals/batches/JB-NDL")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -259,7 +339,7 @@ async fn test_create_entry() {
     assert_eq!(entry["entry_number"], "JE-001");
     assert_eq!(entry["status"], "draft");
     assert_eq!(entry["is_balanced"], false);
-    assert_eq!(entry["total_debit"], "0");  // No lines yet
+    assert_eq!(entry["total_debit"], "0"); // No lines yet
     assert_eq!(entry["total_credit"], "0");
 }
 
@@ -273,13 +353,21 @@ async fn test_list_entries_by_batch() {
     create_entry_in_batch(&app, batch_id, "JE-B").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/journals/batches/{}/entries", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/journals/batches/{}/entries", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(result["data"].as_array().unwrap().len(), 2);
 }
@@ -293,19 +381,32 @@ async fn test_delete_entry() {
     let entry_id = entry["id"].as_str().unwrap().parse::<Uuid>().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/journals/entries/{}", entry_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/journals/entries/{}", entry_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Verify it's gone
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/journals/entries/{}", entry_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/journals/entries/{}", entry_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -319,21 +420,33 @@ async fn test_cannot_add_entry_to_submitted_batch() {
     create_balanced_entry(&app, batch_id, "JE-LOCK", "50.00").await;
 
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to add another entry
     let payload = json!({"entry_number": "JE-FAIL", "currency_code": "USD"});
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/entries", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/entries", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -368,12 +481,20 @@ async fn test_unbalanced_entry_not_balanced() {
 
     // Re-fetch to get updated totals
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/journals/entries/{}", entry_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/journals/entries/{}", entry_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(updated["is_balanced"], false);
 }
@@ -391,13 +512,21 @@ async fn test_list_lines() {
     add_entry_line(&app, entry_id, "credit", "2000.200", "100.00").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/journals/entries/{}/lines", entry_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/journals/entries/{}/lines", entry_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(result["data"].as_array().unwrap().len(), 2);
 }
@@ -416,13 +545,19 @@ async fn test_invalid_line_type_rejected() {
         "account_code": "1000",
         "amount": "100.00",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/entries/{}/lines", entry_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/entries/{}/lines", entry_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -440,13 +575,19 @@ async fn test_negative_amount_rejected() {
         "account_code": "1000",
         "amount": "-50.00",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/entries/{}/lines", entry_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/entries/{}/lines", entry_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -465,35 +606,62 @@ async fn test_full_batch_lifecycle() {
     create_balanced_entry(&app, batch_id, "JE-LC01", "1000.00").await;
 
     // Submit
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let submitted: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(submitted["status"], "submitted");
 
     // Approve
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/approve", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/approve", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let approved: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(approved["status"], "approved");
 
     // Post
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/post", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/post", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let posted: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(posted["status"], "posted");
 }
@@ -511,11 +679,18 @@ async fn test_submit_unbalanced_batch_fails() {
     // No credit line - unbalanced
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -526,11 +701,18 @@ async fn test_submit_empty_batch_fails() {
     let batch_id = batch["id"].as_str().unwrap().parse::<Uuid>().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -544,33 +726,54 @@ async fn test_reject_batch() {
     create_balanced_entry(&app, batch_id, "JE-REJ01", "200.00").await;
 
     // Submit
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Reject
     let payload = json!({"reason": "Incorrect period"});
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/reject", batch_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/reject", batch_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let rejected: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(rejected["status"], "draft");
     assert_eq!(rejected["rejection_reason"], "Incorrect period");
 
     // Can resubmit after rejection (it went back to draft)
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 }
 
@@ -588,50 +791,90 @@ async fn test_reverse_posted_batch() {
     create_balanced_entry(&app, batch_id, "JE-REV01", "500.00").await;
 
     // Submit, Approve, Post
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/approve", batch_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/post", batch_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/submit", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/approve", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/post", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Reverse
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/reverse", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/reverse", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let reversed: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(reversed["status"], "reversed");
 
     // Check that reversal entries were created with swapped lines
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/journals/batches/{}/entries", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/journals/batches/{}/entries", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let entries: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let entries_arr = entries["data"].as_array().unwrap();
     // Original + reversal = 2 entries
     assert_eq!(entries_arr.len(), 2);
 
     // Find the reversal entry
-    let reversal = entries_arr.iter()
+    let reversal = entries_arr
+        .iter()
         .find(|e| e["entry_number"].as_str().unwrap().starts_with("REV-"))
         .expect("Should have reversal entry");
     assert_eq!(reversal["is_reversal"].as_bool(), Some(false)); // reversal_of is not set on the reversal itself
 
     // Check the original entry is marked as reversed
-    let original = entries_arr.iter()
+    let original = entries_arr
+        .iter()
         .find(|e| !e["entry_number"].as_str().unwrap().starts_with("REV-"))
         .expect("Should have original entry");
     assert_eq!(original["status"], "reversed");
@@ -644,11 +887,18 @@ async fn test_cannot_reverse_non_posted_batch() {
     let batch_id = batch["id"].as_str().unwrap().parse::<Uuid>().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/reverse", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/reverse", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -659,11 +909,18 @@ async fn test_cannot_post_non_approved_batch() {
     let batch_id = batch["id"].as_str().unwrap().parse::<Uuid>().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/journals/batches/{}/post", batch_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/journals/batches/{}/post", batch_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -683,12 +940,20 @@ async fn test_batch_totals_updated() {
 
     // Re-fetch batch
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/journals/batches/JB-TOT01")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/journals/batches/JB-TOT01")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(updated["entry_count"], 2);
     // Total should be sum of both entries
@@ -709,13 +974,21 @@ async fn test_dashboard_summary() {
     create_batch(&app, "JB-DASH2", "Dashboard Batch 2").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/journals/dashboard")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/journals/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let summary: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(summary["total_batches"].as_i64().unwrap() >= 2);
     assert!(summary["total_draft_batches"].as_i64().unwrap() >= 2);
@@ -734,13 +1007,19 @@ async fn test_create_batch_empty_number_fails() {
         "name": "No Number",
         "currency_code": "USD",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/journals/batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/journals/batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -753,13 +1032,19 @@ async fn test_create_batch_empty_name_fails() {
         "name": "",
         "currency_code": "USD",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/journals/batches")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/journals/batches")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -767,11 +1052,17 @@ async fn test_create_batch_empty_name_fails() {
 async fn test_get_nonexistent_batch() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/journals/batches/DOESNOTEXIST")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/journals/batches/DOESNOTEXIST")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -791,12 +1082,20 @@ async fn test_multi_line_balanced_entry() {
 
     // Re-fetch to check balance
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/journals/entries/{}", entry_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/journals/entries/{}", entry_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(updated["is_balanced"], true);
     assert_eq!(updated["line_count"], 4);
@@ -816,13 +1115,21 @@ async fn test_list_all_entries() {
     create_entry_in_batch(&app, batch_id, "JE-ALL2").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/journals/entries")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/journals/entries")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(result["data"].as_array().unwrap().len() >= 2);
 }

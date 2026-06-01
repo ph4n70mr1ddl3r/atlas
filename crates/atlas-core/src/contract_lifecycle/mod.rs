@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: Enterprise Contracts > Contract Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ContractLifecycleEngine;
 pub use repository::{ContractLifecycleRepository, PostgresContractLifecycleRepository};

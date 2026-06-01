@@ -1,5 +1,5 @@
 //! Workflow Guards
-//! 
+//!
 //! Guard conditions that control when transitions can execute.
 
 use atlas_shared::GuardDefinition;
@@ -15,14 +15,20 @@ pub struct GuardResult {
 }
 
 impl GuardResult {
-    #[must_use] 
+    #[must_use]
     pub const fn pass() -> Self {
-        Self { passed: true, message: None }
+        Self {
+            passed: true,
+            message: None,
+        }
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn fail(message: &str) -> Self {
-        Self { passed: false, message: Some(message.to_string()) }
+        Self {
+            passed: false,
+            message: Some(message.to_string()),
+        }
     }
 }
 
@@ -30,18 +36,20 @@ impl GuardResult {
 pub struct GuardEvaluator;
 
 impl GuardEvaluator {
-    #[must_use] 
+    #[must_use]
     pub const fn new() -> Self {
         Self
     }
-    
+
     /// Evaluate a guard condition against record data
-    #[must_use] 
-    pub fn evaluate(&self, guard: &GuardDefinition, record_data: &serde_json::Value) -> GuardResult {
+    #[must_use]
+    pub fn evaluate(
+        &self,
+        guard: &GuardDefinition,
+        record_data: &serde_json::Value,
+    ) -> GuardResult {
         match guard {
-            GuardDefinition::Validate { rule } => {
-                self.evaluate_validation_rule(rule, record_data)
-            }
+            GuardDefinition::Validate { rule } => self.evaluate_validation_rule(rule, record_data),
             GuardDefinition::Expression { expression } => {
                 self.evaluate_expression(expression, record_data)
             }
@@ -56,11 +64,11 @@ impl GuardEvaluator {
             }
         }
     }
-    
+
     fn evaluate_validation_rule(&self, rule: &str, data: &serde_json::Value) -> GuardResult {
         // Parse validation rules like "required(field_name)" or "not_empty(field_name)"
         let rule = rule.trim();
-        
+
         if rule.starts_with("validate.required(") && rule.ends_with(')') {
             let field = extract_field_name(rule, "validate.required(");
             if let Some(value) = data.get(field) {
@@ -70,7 +78,7 @@ impl GuardEvaluator {
             }
             return GuardResult::pass();
         }
-        
+
         if rule.starts_with("validate.not_empty(") && rule.ends_with(')') {
             let field = extract_field_name(rule, "validate.not_empty(");
             if let Some(value) = data.get(field) {
@@ -80,34 +88,36 @@ impl GuardEvaluator {
             }
             return GuardResult::pass();
         }
-        
+
         if rule.starts_with("validate.greater_than(") && rule.ends_with(')') {
             // Format: validate.greater_than(field, value)
-            let content = &rule["validate.greater_than(".len()..rule.len()-1];
+            let content = &rule["validate.greater_than(".len()..rule.len() - 1];
             let parts: Vec<&str> = content.split(',').map(str::trim).collect();
             if parts.len() == 2 {
                 let field = parts[0];
                 let threshold: f64 = parts[1].parse().unwrap_or(0.0);
-                
+
                 if let Some(value) = data.get(field) {
                     if let Some(num) = value.as_f64() {
                         if num <= threshold {
-                            return GuardResult::fail(&format!("{field} must be greater than {threshold}"));
+                            return GuardResult::fail(&format!(
+                                "{field} must be greater than {threshold}"
+                            ));
                         }
                     }
                 }
             }
             return GuardResult::pass();
         }
-        
+
         if rule.starts_with("validate.equals(") && rule.ends_with(')') {
             // Format: validate.equals(field, value)
-            let content = &rule["validate.equals(".len()..rule.len()-1];
+            let content = &rule["validate.equals(".len()..rule.len() - 1];
             let parts: Vec<&str> = content.split(',').map(str::trim).collect();
             if parts.len() == 2 {
                 let field = parts[0];
                 let expected = parts[1].trim_matches('"');
-                
+
                 if let Some(value) = data.get(field) {
                     if let Some(actual) = value.as_str() {
                         if actual != expected {
@@ -118,23 +128,23 @@ impl GuardEvaluator {
             }
             return GuardResult::pass();
         }
-        
+
         // Unrecognized rule — log a warning instead of silently passing
         tracing::warn!("Unrecognized guard rule: '{}'", rule);
         GuardResult::pass()
     }
-    
+
     fn evaluate_expression(&self, expression: &str, data: &serde_json::Value) -> GuardResult {
         // Simple expression evaluator
         // Supports: field == value, field > value, field < value, etc.
-        
+
         let expression = expression.trim();
-        
+
         // Check for field existence
         if let Some(paren_idx) = expression.find('(') {
             let func_name = &expression[..paren_idx];
-            let args = &expression[paren_idx+1..expression.len()-1];
-            
+            let args = &expression[paren_idx + 1..expression.len() - 1];
+
             match func_name {
                 "hasValue" => {
                     let field = args.trim();
@@ -157,10 +167,10 @@ impl GuardEvaluator {
                 }
             }
         }
-        
+
         GuardResult::pass()
     }
-    
+
     fn evaluate_custom_handler(&self, handler: &str, _data: &serde_json::Value) -> GuardResult {
         // Custom handlers would be registered and called dynamically
         // For now, we just log and pass
@@ -170,7 +180,7 @@ impl GuardEvaluator {
 }
 
 fn extract_field_name<'a>(rule: &'a str, prefix: &str) -> &'a str {
-    rule[prefix.len()..rule.len()-1].trim()
+    rule[prefix.len()..rule.len() - 1].trim()
 }
 
 impl Default for GuardEvaluator {
@@ -183,64 +193,64 @@ impl Default for GuardEvaluator {
 mod tests {
     use super::*;
     use atlas_shared::GuardDefinition;
-    
+
     #[test]
     fn test_required_validation() {
         let evaluator = GuardEvaluator::new();
-        
+
         let data = serde_json::json!({
             "name": "Test",
             "description": null
         });
-        
-        let guard = GuardDefinition::Validate { 
-            rule: "validate.required(name)".to_string() 
+
+        let guard = GuardDefinition::Validate {
+            rule: "validate.required(name)".to_string(),
         };
         assert!(evaluator.evaluate(&guard, &data).passed);
-        
-        let guard2 = GuardDefinition::Validate { 
-            rule: "validate.required(description)".to_string() 
+
+        let guard2 = GuardDefinition::Validate {
+            rule: "validate.required(description)".to_string(),
         };
         assert!(!evaluator.evaluate(&guard2, &data).passed);
     }
-    
+
     #[test]
     fn test_greater_than_validation() {
         let evaluator = GuardEvaluator::new();
-        
+
         let data = serde_json::json!({
             "amount": 100.0,
             "quantity": 0
         });
-        
-        let guard = GuardDefinition::Validate { 
-            rule: "validate.greater_than(amount, 0)".to_string() 
+
+        let guard = GuardDefinition::Validate {
+            rule: "validate.greater_than(amount, 0)".to_string(),
         };
         assert!(evaluator.evaluate(&guard, &data).passed);
-        
-        let guard2 = GuardDefinition::Validate { 
-            rule: "validate.greater_than(quantity, 0)".to_string() 
+
+        let guard2 = GuardDefinition::Validate {
+            rule: "validate.greater_than(quantity, 0)".to_string(),
         };
         assert!(!evaluator.evaluate(&guard2, &data).passed);
     }
-    
+
     #[test]
     fn test_not_empty_validation() {
         let evaluator = GuardEvaluator::new();
-        
+
         let data = serde_json::json!({
             "notes": "   ",
             "comment": ""
         });
-        
-        let guard = GuardDefinition::Validate { 
-            rule: "validate.not_empty(notes)".to_string() 
+
+        let guard = GuardDefinition::Validate {
+            rule: "validate.not_empty(notes)".to_string(),
         };
         // After fix: whitespace-only strings are treated as empty
         assert!(!evaluator.evaluate(&guard, &data).passed);
-        
-        let guard2 = GuardDefinition::Validate { 
-            rule: "validate.not_empty(comment)".to_string() 
+
+        let guard2 = GuardDefinition::Validate {
+            rule: "validate.not_empty(comment)".to_string(),
         };
         assert!(!evaluator.evaluate(&guard2, &data).passed);
     }

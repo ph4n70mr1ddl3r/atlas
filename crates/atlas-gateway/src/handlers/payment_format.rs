@@ -2,19 +2,18 @@
 //!
 //! Oracle Fusion: Payables > Payment Formats
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct CreatePaymentFormatRequest {
@@ -38,17 +37,26 @@ pub async fn create_payment_format(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.payment_format_engine.create(
-        org_id, &payload.code, &payload.name,
-        payload.description.as_deref(), &payload.format_type,
-        &payload.payment_method, payload.file_template.as_deref(),
-        payload.requires_bank_details.unwrap_or(false),
-        payload.supports_remittance.unwrap_or(true),
-        payload.supports_void.unwrap_or(true),
-        payload.max_payments_per_file,
-        payload.currency_code.as_deref().unwrap_or("USD"),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .payment_format_engine
+        .create(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.format_type,
+            &payload.payment_method,
+            payload.file_template.as_deref(),
+            payload.requires_bank_details.unwrap_or(false),
+            payload.supports_remittance.unwrap_or(true),
+            payload.supports_void.unwrap_or(true),
+            payload.max_payments_per_file,
+            payload.currency_code.as_deref().unwrap_or("USD"),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(f) => Ok(created_json(f)),
         Err(e) => {
             error!("Failed to create payment format: {}", e);
@@ -68,7 +76,10 @@ pub async fn get_payment_format(
     match state.financials.payment_format_engine.get(id).await {
         Ok(Some(f)) => Ok(to_json(f)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get payment format: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get payment format: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -85,12 +96,22 @@ pub async fn list_payment_formats(
     Query(query): Query<ListPaymentFormatsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.payment_format_engine.list(
-        org_id, query.format_type.as_deref(),
-        query.payment_method.as_deref(), query.is_active,
-    ).await {
+    match state
+        .financials
+        .payment_format_engine
+        .list(
+            org_id,
+            query.format_type.as_deref(),
+            query.payment_method.as_deref(),
+            query.is_active,
+        )
+        .await
+    {
         Ok(items) => Ok(Json(serde_json::json!({ "data": items }))),
-        Err(e) => { error!("Failed to list payment formats: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list payment formats: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -131,8 +152,16 @@ pub async fn get_payment_format_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.payment_format_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .payment_format_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dash) => Ok(to_json(dash)),
-        Err(e) => { error!("Failed to get payment format dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get payment format dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

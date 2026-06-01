@@ -9,11 +9,11 @@
 //! - Validation edge cases
 //! - Dashboard summary
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 use uuid::Uuid;
 
 async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
@@ -21,15 +21,32 @@ async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router)
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
     // Clean doubtful account test data
-    sqlx::query("DELETE FROM _atlas.doubtful_account_provision_activities").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.doubtful_account_provision_details").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.doubtful_account_provision_runs").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.doubtful_account_aging_buckets").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.doubtful_account_policies").execute(&state.db_pool).await.ok();
-    sqlx::raw_sql(include_str!("../../../../migrations/135_doubtful_account_allowance.sql"))
+    sqlx::query("DELETE FROM _atlas.doubtful_account_provision_activities")
         .execute(&state.db_pool)
         .await
-        .expect("Failed to run doubtful account allowance migration");
+        .ok();
+    sqlx::query("DELETE FROM _atlas.doubtful_account_provision_details")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.doubtful_account_provision_runs")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.doubtful_account_aging_buckets")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.doubtful_account_policies")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::raw_sql(include_str!(
+        "../../../../migrations/135_doubtful_account_allowance.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .expect("Failed to run doubtful account allowance migration");
     let app = build_router(state.clone());
     (state, app)
 }
@@ -50,18 +67,31 @@ async fn create_aging_based_policy(
         "defaultProvisionAccount": "1200-Allowance-Doubtful",
         "defaultExpenseAccount": "6100-Bad-Debt-Expense",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/doubtful-account-policies")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/doubtful-account-policies")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("CREATE POLICY status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create policy: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create policy: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -80,18 +110,31 @@ async fn create_percentage_policy(
         "currencyCode": "USD",
         "effectiveFrom": "2025-01-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/doubtful-account-policies")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/doubtful-account-policies")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("CREATE PCT POLICY status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create percentage policy: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create percentage policy: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -112,18 +155,34 @@ async fn add_aging_bucket(
         "provisionPercentage": percentage,
         "displayOrder": order,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/aging-buckets", policy_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/aging-buckets",
+                    policy_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("CREATE BUCKET status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create aging bucket: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create aging bucket: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -138,18 +197,31 @@ async fn create_full_provision_run(
         "asOfDate": as_of_date,
         "description": "Monthly provision run",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/doubtful-account-provision-runs")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/doubtful-account-provision-runs")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("CREATE RUN status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create provision run: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create provision run: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -180,7 +252,15 @@ async fn test_create_percentage_based_policy() {
 
     assert_eq!(policy["policyCode"], "FLAT-3");
     assert_eq!(policy["calculationMethod"], "percentage_based");
-    assert!(policy["flatPercentage"].as_str().unwrap().parse::<f64>().unwrap() - 3.5 < 0.001);
+    assert!(
+        policy["flatPercentage"]
+            .as_str()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap()
+            - 3.5
+            < 0.001
+    );
 }
 
 #[tokio::test]
@@ -190,14 +270,22 @@ async fn test_get_policy() {
     let policy_id: Uuid = policy["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/doubtful-account-policies/{}", policy_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/doubtful-account-policies/{}", policy_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["id"], policy["id"]);
     assert_eq!(body["policyCode"], "STD-AGING");
 }
@@ -208,14 +296,22 @@ async fn test_get_policy_by_code() {
     create_aging_based_policy(&app, "STD-AGING", "Standard").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/doubtful-account-policies/code/STD-AGING")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/doubtful-account-policies/code/STD-AGING")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["policyCode"], "STD-AGING");
 }
 
@@ -226,14 +322,22 @@ async fn test_list_policies() {
     create_percentage_policy(&app, "POLICY-2", "Flat Policy", "5").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/doubtful-account-policies")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/doubtful-account-policies")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -243,14 +347,22 @@ async fn test_list_policies_filter_by_status() {
     create_aging_based_policy(&app, "POLICY-1", "Aging Policy").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/doubtful-account-policies?status=active")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/doubtful-account-policies?status=active")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(data.iter().all(|p| p["status"] == "active"));
 }
@@ -259,11 +371,20 @@ async fn test_list_policies_filter_by_status() {
 async fn test_get_policy_not_found() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/doubtful-account-policies/{}", Uuid::new_v4()))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}",
+                    Uuid::new_v4()
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -280,26 +401,50 @@ async fn test_policy_lifecycle_active_to_inactive_to_active() {
     let (k, v) = auth_header(&admin_claims());
 
     // Deactivate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/deactivate", policy_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/deactivate",
+                    policy_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "inactive");
     assert_eq!(body["isActive"], false);
 
     // Reactivate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/reactivate", policy_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/reactivate",
+                    policy_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "active");
     assert_eq!(body["isActive"], true);
 }
@@ -313,18 +458,37 @@ async fn test_deactivate_inactive_policy_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Deactivate once
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/deactivate", policy_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/deactivate",
+                    policy_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to deactivate again
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/deactivate", policy_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/deactivate",
+                    policy_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -337,11 +501,21 @@ async fn test_reactivate_active_policy_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Reactivate from active should fail
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/reactivate", policy_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/reactivate",
+                    policy_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -359,11 +533,27 @@ async fn test_create_aging_buckets() {
     assert_eq!(b1["bucketName"], "Current");
     assert_eq!(b1["fromDays"], 0);
     assert_eq!(b1["toDays"], 30);
-    assert!(b1["provisionPercentage"].as_str().unwrap().parse::<f64>().unwrap() - 1.0 < 0.001);
+    assert!(
+        b1["provisionPercentage"]
+            .as_str()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap()
+            - 1.0
+            < 0.001
+    );
 
     let b2 = add_aging_bucket(&app, &policy_id, "31-60 Days", 31, Some(60), "3.0", 2).await;
     assert_eq!(b2["bucketName"], "31-60 Days");
-    assert!(b2["provisionPercentage"].as_str().unwrap().parse::<f64>().unwrap() - 3.0 < 0.001);
+    assert!(
+        b2["provisionPercentage"]
+            .as_str()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap()
+            - 3.0
+            < 0.001
+    );
 
     let b3 = add_aging_bucket(&app, &policy_id, "61-90 Days", 61, Some(90), "5.0", 3).await;
     assert_eq!(b3["bucketName"], "61-90 Days");
@@ -384,14 +574,25 @@ async fn test_list_aging_buckets() {
     add_aging_bucket(&app, &policy_id, "91+ Days", 91, None, "10.0", 3).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/aging-buckets", policy_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/aging-buckets",
+                    policy_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["data"].as_array().unwrap().len(), 3);
 }
 
@@ -409,13 +610,22 @@ async fn test_bucket_on_non_aging_policy_fails() {
         "provisionPercentage": "1.0",
         "displayOrder": 1,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/aging-buckets", policy_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/aging-buckets",
+                    policy_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -445,44 +655,106 @@ async fn test_provision_run_full_lifecycle() {
     assert!(run["runNumber"].as_str().unwrap().starts_with("PROV-"));
 
     // Calculate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/calculate", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/calculate",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "calculated");
-    assert!(body["totalOutstandingAmount"].as_str().unwrap().parse::<f64>().unwrap().abs() < 0.01);
-    assert!(body["totalProvisionAmount"].as_str().unwrap().parse::<f64>().unwrap().abs() < 0.01);
-    assert!(body["incrementalProvision"].as_str().unwrap().parse::<f64>().unwrap().abs() < 0.01);
+    assert!(
+        body["totalOutstandingAmount"]
+            .as_str()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap()
+            .abs()
+            < 0.01
+    );
+    assert!(
+        body["totalProvisionAmount"]
+            .as_str()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap()
+            .abs()
+            < 0.01
+    );
+    assert!(
+        body["incrementalProvision"]
+            .as_str()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap()
+            .abs()
+            < 0.01
+    );
 
     // Post
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/post", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "journalEntryNumber": "JE-PROV-001"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/post",
+                    run_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "journalEntryNumber": "JE-PROV-001"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "posted");
     assert_eq!(body["journalEntryNumber"], "JE-PROV-001");
 
     // Reverse
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/reverse", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/reverse",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "reversed");
 }
 
@@ -497,14 +769,26 @@ async fn test_cancel_draft_provision_run() {
 
     let (k, v) = auth_header(&admin_claims());
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/cancel", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/cancel",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "cancelled");
 }
 
@@ -520,18 +804,37 @@ async fn test_cancel_calculated_run_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Calculate first
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/calculate", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/calculate",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to cancel calculated run - should fail
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/cancel", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/cancel",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -547,13 +850,22 @@ async fn test_post_draft_run_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Try to post a draft run
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/post", run_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/post",
+                    run_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&json!({})).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -568,11 +880,21 @@ async fn test_reverse_draft_run_fails() {
 
     let (k, v) = auth_header(&admin_claims());
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/reverse", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/reverse",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -590,14 +912,25 @@ async fn test_get_provision_run_by_number() {
     let run_number = run["runNumber"].as_str().unwrap().to_string();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/number/{}", run_number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/number/{}",
+                    run_number
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["runNumber"], run_number);
 }
 
@@ -611,14 +944,22 @@ async fn test_list_provision_runs() {
     create_full_provision_run(&app, &policy_id, "2025-07-31").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/doubtful-account-provision-runs")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/doubtful-account-provision-runs")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -631,14 +972,22 @@ async fn test_list_provision_runs_filter_by_status() {
     create_full_provision_run(&app, &policy_id, "2025-06-30").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/doubtful-account-provision-runs?status=draft")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/doubtful-account-provision-runs?status=draft")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(data.iter().all(|r| r["status"] == "draft"));
 }
@@ -658,21 +1007,41 @@ async fn test_list_provision_details() {
     let (k, v) = auth_header(&admin_claims());
 
     // Calculate to generate details
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/calculate", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/calculate",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // List details
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/details", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/details",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let details = body["data"].as_array().unwrap();
     assert_eq!(details.len(), 2); // 2 aging buckets = 2 detail lines
     assert_eq!(details[0]["bucketName"], "Current");
@@ -690,14 +1059,25 @@ async fn test_list_run_activities() {
 
     let (k, v) = auth_header(&admin_claims());
 
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/activities", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/activities",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let activities = body["data"].as_array().unwrap();
     assert!(!activities.is_empty());
     assert_eq!(activities[0]["action"], "created");
@@ -718,13 +1098,19 @@ async fn test_create_policy_empty_code_fails() {
         "currencyCode": "USD",
         "effectiveFrom": "2025-01-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/doubtful-account-policies")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/doubtful-account-policies")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -739,13 +1125,19 @@ async fn test_create_policy_invalid_method_fails() {
         "currencyCode": "USD",
         "effectiveFrom": "2025-01-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/doubtful-account-policies")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/doubtful-account-policies")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -762,13 +1154,19 @@ async fn test_create_policy_duplicate_code_fails() {
         "currencyCode": "USD",
         "effectiveFrom": "2025-01-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/doubtful-account-policies")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/doubtful-account-policies")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -784,13 +1182,19 @@ async fn test_create_policy_invalid_date_range_fails() {
         "effectiveFrom": "2025-12-31",
         "effectiveTo": "2025-01-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/doubtful-account-policies")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/doubtful-account-policies")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -805,13 +1209,19 @@ async fn test_create_policy_invalid_currency_fails() {
         "currencyCode": "US",
         "effectiveFrom": "2025-01-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/doubtful-account-policies")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/doubtful-account-policies")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -829,13 +1239,22 @@ async fn test_create_bucket_negative_from_days_fails() {
         "provisionPercentage": "1.0",
         "displayOrder": 1,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/aging-buckets", policy_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/aging-buckets",
+                    policy_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -853,13 +1272,22 @@ async fn test_create_bucket_to_before_from_fails() {
         "provisionPercentage": "1.0",
         "displayOrder": 1,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/aging-buckets", policy_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/aging-buckets",
+                    policy_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -872,24 +1300,39 @@ async fn test_provision_run_inactive_policy_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Deactivate the policy
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-policies/{}/deactivate", policy_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-policies/{}/deactivate",
+                    policy_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to create a run on inactive policy
     let payload = json!({
         "policyId": policy_id.to_string(),
         "asOfDate": "2025-06-30",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/doubtful-account-provision-runs")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/doubtful-account-provision-runs")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -905,18 +1348,37 @@ async fn test_calculate_twice_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Calculate once
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/calculate", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/calculate",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to calculate again (status is now 'calculated')
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/calculate", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/calculate",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -931,14 +1393,22 @@ async fn test_dashboard() {
     create_percentage_policy(&app, "FLAT-3", "Flat 3%", "3.5").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/doubtful-account/dashboard")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/doubtful-account/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert!(body.get("totalPolicies").is_some());
     assert!(body.get("activePolicies").is_some());
@@ -967,26 +1437,49 @@ async fn test_percentage_based_provision_run() {
     let (k, v) = auth_header(&admin_claims());
 
     // Calculate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/calculate", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/calculate",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "calculated");
     assert_eq!(body["calculationMethod"], "percentage_based");
 
     // Verify one detail line was created
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/doubtful-account-provision-runs/{}/details", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/doubtful-account-provision-runs/{}/details",
+                    run_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let details = body["data"].as_array().unwrap();
     assert_eq!(details.len(), 1);
     assert_eq!(details[0]["bucketName"], "All Outstanding");

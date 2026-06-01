@@ -1,7 +1,7 @@
+use chrono::{Datelike, Duration, NaiveDate};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::{NaiveDate, Datelike, Duration};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JournalReversalCriteriaSet {
@@ -77,7 +77,10 @@ impl JournalReversalCriteriaService {
         };
 
         let mut sets = self.sets.write().unwrap();
-        if sets.iter().any(|s| s.organization_id == organization_id && s.name == name) {
+        if sets
+            .iter()
+            .any(|s| s.organization_id == organization_id && s.name == name)
+        {
             return Err("Criteria set with this name already exists".to_string());
         }
 
@@ -94,9 +97,14 @@ impl JournalReversalCriteriaService {
         is_automatic_reversal: bool,
     ) -> Result<JournalReversalCriteriaRule, String> {
         let mut rules = self.rules.write().unwrap();
-        
-        if rules.iter().any(|r| r.criteria_set_id == criteria_set_id && r.journal_category == journal_category) {
-            return Err("Rule for this journal category already exists in the criteria set".to_string());
+
+        if rules
+            .iter()
+            .any(|r| r.criteria_set_id == criteria_set_id && r.journal_category == journal_category)
+        {
+            return Err(
+                "Rule for this journal category already exists in the criteria set".to_string(),
+            );
         }
 
         let rule = JournalReversalCriteriaRule {
@@ -119,7 +127,9 @@ impl JournalReversalCriteriaService {
         accounting_date: NaiveDate,
     ) -> Option<ReversalAction> {
         let rules = self.rules.read().unwrap();
-        if let Some(rule) = rules.iter().find(|r| r.criteria_set_id == criteria_set_id && r.journal_category == journal_category) {
+        if let Some(rule) = rules.iter().find(|r| {
+            r.criteria_set_id == criteria_set_id && r.journal_category == journal_category
+        }) {
             let reversal_date = match rule.reversal_period {
                 ReversalPeriod::SameDay | ReversalPeriod::SamePeriod => accounting_date,
                 ReversalPeriod::NextDay => accounting_date + Duration::days(1),
@@ -153,12 +163,8 @@ mod tests {
     fn test_create_criteria_set() {
         let service = JournalReversalCriteriaService::new();
         let org_id = Uuid::new_v4();
-        
-        let result = service.create_criteria_set(
-            org_id,
-            "Standard Reversals".to_string(),
-            None,
-        );
+
+        let result = service.create_criteria_set(org_id, "Standard Reversals".to_string(), None);
 
         assert!(result.is_ok());
     }
@@ -167,9 +173,11 @@ mod tests {
     fn test_add_rule() {
         let service = JournalReversalCriteriaService::new();
         let org_id = Uuid::new_v4();
-        
-        let set = service.create_criteria_set(org_id, "Set A".to_string(), None).unwrap();
-        
+
+        let set = service
+            .create_criteria_set(org_id, "Set A".to_string(), None)
+            .unwrap();
+
         let result = service.add_rule(
             set.id,
             "Accrual".to_string(),
@@ -187,16 +195,20 @@ mod tests {
     fn test_duplicate_rule() {
         let service = JournalReversalCriteriaService::new();
         let org_id = Uuid::new_v4();
-        
-        let set = service.create_criteria_set(org_id, "Set A".to_string(), None).unwrap();
-        
-        service.add_rule(
-            set.id,
-            "Accrual".to_string(),
-            ReversalPeriod::NextPeriod,
-            ReversalMethod::SwitchDrCr,
-            true,
-        ).unwrap();
+
+        let set = service
+            .create_criteria_set(org_id, "Set A".to_string(), None)
+            .unwrap();
+
+        service
+            .add_rule(
+                set.id,
+                "Accrual".to_string(),
+                ReversalPeriod::NextPeriod,
+                ReversalMethod::SwitchDrCr,
+                true,
+            )
+            .unwrap();
 
         let result = service.add_rule(
             set.id,
@@ -213,24 +225,31 @@ mod tests {
     fn test_get_reversal_action_next_period() {
         let service = JournalReversalCriteriaService::new();
         let org_id = Uuid::new_v4();
-        
-        let set = service.create_criteria_set(org_id, "Set A".to_string(), None).unwrap();
-        
-        service.add_rule(
-            set.id,
-            "Accrual".to_string(),
-            ReversalPeriod::NextPeriod,
-            ReversalMethod::SwitchDrCr,
-            true,
-        ).unwrap();
+
+        let set = service
+            .create_criteria_set(org_id, "Set A".to_string(), None)
+            .unwrap();
+
+        service
+            .add_rule(
+                set.id,
+                "Accrual".to_string(),
+                ReversalPeriod::NextPeriod,
+                ReversalMethod::SwitchDrCr,
+                true,
+            )
+            .unwrap();
 
         let accounting_date = NaiveDate::from_ymd_opt(2026, 5, 15).unwrap();
-        
+
         let action = service.get_reversal_action(set.id, "Accrual", accounting_date);
         assert!(action.is_some());
-        
+
         let action = action.unwrap();
-        assert_eq!(action.reversal_date, NaiveDate::from_ymd_opt(2026, 6, 1).unwrap());
+        assert_eq!(
+            action.reversal_date,
+            NaiveDate::from_ymd_opt(2026, 6, 1).unwrap()
+        );
         assert_eq!(action.method, ReversalMethod::SwitchDrCr);
         assert!(action.is_automatic);
     }
@@ -239,24 +258,31 @@ mod tests {
     fn test_get_reversal_action_next_day() {
         let service = JournalReversalCriteriaService::new();
         let org_id = Uuid::new_v4();
-        
-        let set = service.create_criteria_set(org_id, "Set A".to_string(), None).unwrap();
-        
-        service.add_rule(
-            set.id,
-            "Daily Accrual".to_string(),
-            ReversalPeriod::NextDay,
-            ReversalMethod::SignReverse,
-            false,
-        ).unwrap();
+
+        let set = service
+            .create_criteria_set(org_id, "Set A".to_string(), None)
+            .unwrap();
+
+        service
+            .add_rule(
+                set.id,
+                "Daily Accrual".to_string(),
+                ReversalPeriod::NextDay,
+                ReversalMethod::SignReverse,
+                false,
+            )
+            .unwrap();
 
         let accounting_date = NaiveDate::from_ymd_opt(2026, 5, 31).unwrap();
-        
+
         let action = service.get_reversal_action(set.id, "Daily Accrual", accounting_date);
         assert!(action.is_some());
-        
+
         let action = action.unwrap();
-        assert_eq!(action.reversal_date, NaiveDate::from_ymd_opt(2026, 6, 1).unwrap());
+        assert_eq!(
+            action.reversal_date,
+            NaiveDate::from_ymd_opt(2026, 6, 1).unwrap()
+        );
         assert_eq!(action.method, ReversalMethod::SignReverse);
         assert!(!action.is_automatic);
     }

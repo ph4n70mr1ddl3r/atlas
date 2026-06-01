@@ -1,7 +1,7 @@
+use crate::types::*;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::types::*;
 // ============================================================================
 // Period Close Management (Oracle Fusion General Ledger)
 // ============================================================================
@@ -44,9 +44,15 @@ pub struct AccountingCalendarRequest {
     pub current_fiscal_year: Option<i32>,
 }
 
-pub fn default_monthly() -> String { "monthly".to_string() }
-pub const fn default_one() -> i32 { 1 }
-pub const fn default_twelve() -> i32 { 12 }
+pub fn default_monthly() -> String {
+    "monthly".to_string()
+}
+pub const fn default_one() -> i32 {
+    1
+}
+pub const fn default_twelve() -> i32 {
+    12
+}
 
 /// Period status within the financial close cycle
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -63,13 +69,13 @@ pub enum PeriodStatus {
 
 impl PeriodStatus {
     /// Whether posting is allowed in this period status
-    #[must_use] 
+    #[must_use]
     pub const fn allows_posting(&self) -> bool {
         matches!(self, Self::Open | Self::PendingClose)
     }
 
     /// Whether the status can be changed
-    #[must_use] 
+    #[must_use]
     pub const fn is_changeable(&self) -> bool {
         !matches!(self, Self::PermanentlyClosed)
     }
@@ -214,7 +220,9 @@ pub struct CurrencyRequest {
     pub is_base_currency: bool,
 }
 
-pub const fn default_precision() -> i32 { 2 }
+pub const fn default_precision() -> i32 {
+    2
+}
 
 /// Exchange rate record
 /// Oracle Fusion: Daily Rates table with from/to currency and effective date
@@ -323,9 +331,15 @@ pub struct TaxRegimeRequest {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-pub fn default_tax_type() -> String { "vat".to_string() }
-pub fn default_rounding_rule() -> String { "nearest".to_string() }
-pub const fn default_rounding_precision() -> i32 { 2 }
+pub fn default_tax_type() -> String {
+    "vat".to_string()
+}
+pub fn default_rounding_rule() -> String {
+    "nearest".to_string()
+}
+pub const fn default_rounding_precision() -> i32 {
+    2
+}
 
 /// Tax jurisdiction
 /// Oracle Fusion: Tax Configuration > Tax Jurisdictions
@@ -365,7 +379,9 @@ pub struct TaxJurisdictionRequest {
     pub postal_code_pattern: Option<String>,
 }
 
-pub fn default_geographic_level() -> String { "country".to_string() }
+pub fn default_geographic_level() -> String {
+    "country".to_string()
+}
 
 /// Tax rate definition
 /// Oracle Fusion: Tax Configuration > Tax Rates
@@ -410,7 +426,9 @@ pub struct TaxRateRequest {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-pub fn default_rate_type_tax() -> String { "standard".to_string() }
+pub fn default_rate_type_tax() -> String {
+    "standard".to_string()
+}
 
 /// Tax determination rule
 /// Oracle Fusion: Tax Rules > Determination Rules
@@ -582,7 +600,9 @@ pub struct IntercompanyBatchRequest {
     pub accounting_date: Option<chrono::NaiveDate>,
 }
 
-pub fn default_currency_usd() -> String { "USD".to_string() }
+pub fn default_currency_usd() -> String {
+    "USD".to_string()
+}
 
 /// Intercompany transaction (individual line within a batch)
 /// Oracle Fusion: Intercompany > Intercompany Transactions
@@ -650,7 +670,9 @@ pub struct IntercompanyTransactionRequest {
     pub source_entity_id: Option<Uuid>,
 }
 
-pub fn default_ic_transaction_type() -> String { "invoice".to_string() }
+pub fn default_ic_transaction_type() -> String {
+    "invoice".to_string()
+}
 
 /// Intercompany settlement
 /// Oracle Fusion: Intercompany > Settlements
@@ -693,7 +715,9 @@ pub struct IntercompanySettlementRequest {
     pub transaction_ids: Option<Vec<Uuid>>,
 }
 
-pub fn default_settlement_method() -> String { "cash".to_string() }
+pub fn default_settlement_method() -> String {
+    "cash".to_string()
+}
 
 /// Intercompany balance (outstanding due-to/due-from between entities)
 /// Oracle Fusion: Intercompany > Balances Dashboard
@@ -795,7 +819,9 @@ pub struct BankAccountRequest {
     pub account_type: String,
 }
 
-pub fn default_checking() -> String { "checking".to_string() }
+pub fn default_checking() -> String {
+    "checking".to_string()
+}
 
 /// Bank statement header
 /// Oracle Fusion: Cash Management > Bank Statements
@@ -972,8 +998,12 @@ pub struct MatchingRuleRequest {
     pub stop_on_match: bool,
 }
 
-pub const fn default_priority() -> i32 { 100 }
-pub const fn default_true_val() -> bool { true }
+pub const fn default_priority() -> i32 {
+    100
+}
+pub const fn default_true_val() -> bool {
+    true
+}
 
 /// Auto-match result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1245,8 +1275,12 @@ pub struct BudgetDefinitionRequest {
     pub currency_code: String,
 }
 
-pub fn default_budget_type() -> String { "operating".to_string() }
-pub fn default_control_level() -> String { "none".to_string() }
+pub fn default_budget_type() -> String {
+    "operating".to_string()
+}
+pub fn default_control_level() -> String {
+    "none".to_string()
+}
 
 /// Budget version (snapshot with workflow)
 /// Oracle Fusion: General Ledger > Budgets > Budget Versions
@@ -1526,8 +1560,12 @@ pub struct CreditProfileRequest {
     pub next_review_date: Option<chrono::NaiveDate>,
 }
 
-pub fn default_risk_medium() -> String { "medium".to_string() }
-pub fn default_net_30() -> String { "net_30".to_string() }
+pub fn default_risk_medium() -> String {
+    "medium".to_string()
+}
+pub fn default_net_30() -> String {
+    "net_30".to_string()
+}
 
 /// Collection strategy definition
 /// Oracle Fusion: Collections > Collection Strategies
@@ -2097,8 +2135,12 @@ pub struct WithholdingTaxCodeRequest {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-pub fn default_wht_tax_type() -> String { "income_tax".to_string() }
-pub fn default_zero_str() -> String { "0".to_string() }
+pub fn default_wht_tax_type() -> String {
+    "income_tax".to_string()
+}
+pub fn default_zero_str() -> String {
+    "0".to_string()
+}
 
 /// Withholding Tax Group
 /// Groups multiple withholding tax codes into a reusable set assignable to suppliers.
@@ -2839,10 +2881,10 @@ pub struct RecurringJournalSchedule {
     pub schedule_number: String,
     pub name: String,
     pub description: Option<String>,
-    pub recurrence_type: String,       // daily, weekly, monthly, quarterly, semi_annual, annual
-    pub journal_type: String,          // standard, skeleton, incremental
+    pub recurrence_type: String, // daily, weekly, monthly, quarterly, semi_annual, annual
+    pub journal_type: String,    // standard, skeleton, incremental
     pub currency_code: String,
-    pub status: String,                // draft, active, inactive
+    pub status: String, // draft, active, inactive
     pub effective_from: Option<chrono::NaiveDate>,
     pub effective_to: Option<chrono::NaiveDate>,
     pub last_generation_date: Option<chrono::NaiveDate>,
@@ -2870,7 +2912,7 @@ pub struct RecurringJournalScheduleLine {
     pub organization_id: Uuid,
     pub schedule_id: Uuid,
     pub line_number: i32,
-    pub line_type: String,             // debit, credit
+    pub line_type: String, // debit, credit
     pub account_code: String,
     pub account_name: Option<String>,
     pub description: Option<String>,
@@ -2900,7 +2942,7 @@ pub struct RecurringJournalGeneration {
     pub total_debit: String,
     pub total_credit: String,
     pub line_count: i32,
-    pub status: String,               // generated, posted, reversed, cancelled
+    pub status: String, // generated, posted, reversed, cancelled
     pub reversal_entry_id: Option<Uuid>,
     pub reversed_at: Option<DateTime<Utc>>,
     pub posted_at: Option<DateTime<Utc>>,
@@ -3216,9 +3258,15 @@ pub struct CurrencyRevaluationDefinitionRequest {
     pub accounts: Option<Vec<CurrencyRevaluationAccountRequest>>,
 }
 
-pub fn default_revaluation_type() -> String { "period_end".to_string() }
-pub fn default_rate_type_period_end() -> String { "period_end".to_string() }
-pub fn default_account_type_asset() -> String { "asset".to_string() }
+pub fn default_revaluation_type() -> String {
+    "period_end".to_string()
+}
+pub fn default_rate_type_period_end() -> String {
+    "period_end".to_string()
+}
+pub fn default_account_type_asset() -> String {
+    "asset".to_string()
+}
 
 /// Create revaluation account request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -3799,14 +3847,14 @@ pub struct JointVenture {
     pub venture_number: String,
     pub name: String,
     pub description: Option<String>,
-    pub status: String,               // draft, active, on_hold, closed
+    pub status: String, // draft, active, on_hold, closed
     pub operator_id: Option<Uuid>,
     pub operator_name: Option<String>,
     pub currency_code: String,
     pub start_date: Option<chrono::NaiveDate>,
     pub end_date: Option<chrono::NaiveDate>,
-    pub accounting_method: String,    // proportional, equity, cost_method
-    pub billing_cycle: String,        // monthly, quarterly, semi_annual, annual
+    pub accounting_method: String, // proportional, equity, cost_method
+    pub billing_cycle: String,     // monthly, quarterly, semi_annual, annual
     pub cost_cap_amount: Option<String>,
     pub cost_cap_currency: Option<String>,
     pub gl_revenue_account: Option<String>,
@@ -3828,17 +3876,17 @@ pub struct JointVenturePartner {
     pub venture_id: Uuid,
     pub partner_id: Uuid,
     pub partner_name: String,
-    pub partner_type: String,         // operator, non_operator, carried_interest
+    pub partner_type: String, // operator, non_operator, carried_interest
     pub ownership_percentage: String,
     pub revenue_interest_pct: Option<String>,
     pub cost_bearing_pct: Option<String>,
-    pub role: String,                 // operator, partner, carried
+    pub role: String, // operator, partner, carried
     pub billing_contact: Option<String>,
     pub billing_email: Option<String>,
     pub billing_address: Option<String>,
     pub effective_from: chrono::NaiveDate,
     pub effective_to: Option<chrono::NaiveDate>,
-    pub status: String,               // active, withdrawn, suspended
+    pub status: String, // active, withdrawn, suspended
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -3856,7 +3904,7 @@ pub struct JointVentureAfe {
     pub afe_number: String,
     pub title: String,
     pub description: Option<String>,
-    pub status: String,               // draft, submitted, approved, rejected, closed
+    pub status: String, // draft, submitted, approved, rejected, closed
     pub estimated_cost: String,
     pub actual_cost: String,
     pub committed_cost: String,
@@ -3889,10 +3937,10 @@ pub struct JvCostDistribution {
     pub distribution_number: String,
     pub afe_id: Option<Uuid>,
     pub description: Option<String>,
-    pub status: String,               // draft, posted, reversed
+    pub status: String, // draft, posted, reversed
     pub total_amount: String,
     pub currency_code: String,
-    pub cost_type: String,            // operating, capital, aba, overhead
+    pub cost_type: String, // operating, capital, aba, overhead
     pub distribution_date: chrono::NaiveDate,
     pub gl_posting_date: Option<chrono::NaiveDate>,
     pub gl_posted_at: Option<DateTime<Utc>>,
@@ -3934,10 +3982,10 @@ pub struct JvRevenueDistribution {
     pub venture_id: Uuid,
     pub distribution_number: String,
     pub description: Option<String>,
-    pub status: String,               // draft, posted, reversed
+    pub status: String, // draft, posted, reversed
     pub total_amount: String,
     pub currency_code: String,
-    pub revenue_type: String,         // sales, royalty, bonus, other
+    pub revenue_type: String, // sales, royalty, bonus, other
     pub distribution_date: chrono::NaiveDate,
     pub gl_posting_date: Option<chrono::NaiveDate>,
     pub gl_posted_at: Option<DateTime<Utc>>,
@@ -3979,8 +4027,8 @@ pub struct JvBilling {
     pub billing_number: String,
     pub partner_id: Uuid,
     pub partner_name: Option<String>,
-    pub billing_type: String,         // jib (cost), revenue, adjustment
-    pub status: String,               // draft, submitted, approved, paid, disputed, cancelled
+    pub billing_type: String, // jib (cost), revenue, adjustment
+    pub status: String,       // draft, submitted, approved, paid, disputed, cancelled
     pub total_amount: String,
     pub tax_amount: String,
     pub total_with_tax: String,

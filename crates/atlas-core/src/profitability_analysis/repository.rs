@@ -2,8 +2,8 @@
 //!
 //! `PostgreSQL` storage for profitability segments, runs, lines, and templates.
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -196,17 +196,37 @@ pub struct TemplateCreateParams {
 #[async_trait]
 pub trait ProfitabilityAnalysisRepository: Send + Sync {
     // Segments
-    async fn create_segment(&self, params: &SegmentCreateParams) -> AtlasResult<ProfitabilitySegment>;
+    async fn create_segment(
+        &self,
+        params: &SegmentCreateParams,
+    ) -> AtlasResult<ProfitabilitySegment>;
     async fn get_segment(&self, id: Uuid) -> AtlasResult<Option<ProfitabilitySegment>>;
-    async fn get_segment_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ProfitabilitySegment>>;
-    async fn list_segments(&self, org_id: Uuid, segment_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<ProfitabilitySegment>>;
+    async fn get_segment_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ProfitabilitySegment>>;
+    async fn list_segments(
+        &self,
+        org_id: Uuid,
+        segment_type: Option<&str>,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<ProfitabilitySegment>>;
     async fn delete_segment(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Runs
     async fn create_run(&self, params: &RunCreateParams) -> AtlasResult<ProfitabilityRun>;
     async fn get_run(&self, id: Uuid) -> AtlasResult<Option<ProfitabilityRun>>;
-    async fn get_run_by_number(&self, org_id: Uuid, run_number: &str) -> AtlasResult<Option<ProfitabilityRun>>;
-    async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ProfitabilityRun>>;
+    async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+    ) -> AtlasResult<Option<ProfitabilityRun>>;
+    async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ProfitabilityRun>>;
     async fn update_run_status(&self, id: Uuid, status: &str) -> AtlasResult<ProfitabilityRun>;
     async fn update_run_totals(
         &self,
@@ -225,7 +245,10 @@ pub trait ProfitabilityAnalysisRepository: Send + Sync {
     async fn delete_run(&self, org_id: Uuid, run_number: &str) -> AtlasResult<()>;
 
     // Run Lines
-    async fn create_run_line(&self, params: &RunLineCreateParams) -> AtlasResult<ProfitabilityRunLine>;
+    async fn create_run_line(
+        &self,
+        params: &RunLineCreateParams,
+    ) -> AtlasResult<ProfitabilityRunLine>;
     async fn get_run_line(&self, id: Uuid) -> AtlasResult<Option<ProfitabilityRunLine>>;
     async fn list_run_lines(&self, run_id: Uuid) -> AtlasResult<Vec<ProfitabilityRunLine>>;
     async fn update_run_line_margins(
@@ -243,10 +266,21 @@ pub trait ProfitabilityAnalysisRepository: Send + Sync {
     async fn delete_run_line(&self, run_id: Uuid, line_id: Uuid) -> AtlasResult<()>;
 
     // Templates
-    async fn create_template(&self, params: &TemplateCreateParams) -> AtlasResult<ProfitabilityTemplate>;
+    async fn create_template(
+        &self,
+        params: &TemplateCreateParams,
+    ) -> AtlasResult<ProfitabilityTemplate>;
     async fn get_template(&self, id: Uuid) -> AtlasResult<Option<ProfitabilityTemplate>>;
-    async fn get_template_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ProfitabilityTemplate>>;
-    async fn list_templates(&self, org_id: Uuid, is_active: Option<bool>) -> AtlasResult<Vec<ProfitabilityTemplate>>;
+    async fn get_template_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ProfitabilityTemplate>>;
+    async fn list_templates(
+        &self,
+        org_id: Uuid,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<ProfitabilityTemplate>>;
     async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Dashboard
@@ -262,7 +296,7 @@ pub struct PostgresProfitabilityAnalysisRepository {
 }
 
 impl PostgresProfitabilityAnalysisRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -271,41 +305,48 @@ impl PostgresProfitabilityAnalysisRepository {
 #[async_trait]
 impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository {
     // Segments
-    async fn create_segment(&self, params: &SegmentCreateParams) -> AtlasResult<ProfitabilitySegment> {
+    async fn create_segment(
+        &self,
+        params: &SegmentCreateParams,
+    ) -> AtlasResult<ProfitabilitySegment> {
         let row = sqlx::query_as::<_, ProfitabilitySegment>(
             r"INSERT INTO _atlas.profitability_segments
                (organization_id, segment_code, segment_name, segment_type, description,
                 parent_segment_id, sort_order, metadata, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-               RETURNING *"
+               RETURNING *",
         )
-            .bind(params.org_id)
-            .bind(&params.segment_code)
-            .bind(&params.segment_name)
-            .bind(&params.segment_type)
-            .bind(&params.description)
-            .bind(params.parent_segment_id)
-            .bind(params.sort_order.unwrap_or(0))
-            .bind(params.metadata.clone().unwrap_or(serde_json::json!({})))
-            .bind(params.created_by)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(params.org_id)
+        .bind(&params.segment_code)
+        .bind(&params.segment_name)
+        .bind(&params.segment_type)
+        .bind(&params.description)
+        .bind(params.parent_segment_id)
+        .bind(params.sort_order.unwrap_or(0))
+        .bind(params.metadata.clone().unwrap_or(serde_json::json!({})))
+        .bind(params.created_by)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row)
     }
 
     async fn get_segment(&self, id: Uuid) -> AtlasResult<Option<ProfitabilitySegment>> {
         let row = sqlx::query_as::<_, ProfitabilitySegment>(
-            "SELECT * FROM _atlas.profitability_segments WHERE id = $1"
+            "SELECT * FROM _atlas.profitability_segments WHERE id = $1",
         )
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row)
     }
 
-    async fn get_segment_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ProfitabilitySegment>> {
+    async fn get_segment_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ProfitabilitySegment>> {
         let row = sqlx::query_as::<_, ProfitabilitySegment>(
             "SELECT * FROM _atlas.profitability_segments WHERE organization_id = $1 AND segment_code = $2"
         )
@@ -317,7 +358,12 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
         Ok(row)
     }
 
-    async fn list_segments(&self, org_id: Uuid, segment_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<ProfitabilitySegment>> {
+    async fn list_segments(
+        &self,
+        org_id: Uuid,
+        segment_type: Option<&str>,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<ProfitabilitySegment>> {
         let rows = if let Some(st) = segment_type {
             if let Some(active) = is_active {
                 sqlx::query_as::<_, ProfitabilitySegment>(
@@ -363,36 +409,40 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
                (organization_id, run_number, run_name, analysis_type, period_from, period_to,
                 currency_code, comparison_run_id, notes, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-               RETURNING *"
+               RETURNING *",
         )
-            .bind(params.org_id)
-            .bind(&params.run_number)
-            .bind(&params.run_name)
-            .bind(&params.analysis_type)
-            .bind(params.period_from)
-            .bind(params.period_to)
-            .bind(&params.currency_code)
-            .bind(params.comparison_run_id)
-            .bind(&params.notes)
-            .bind(params.created_by)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(params.org_id)
+        .bind(&params.run_number)
+        .bind(&params.run_name)
+        .bind(&params.analysis_type)
+        .bind(params.period_from)
+        .bind(params.period_to)
+        .bind(&params.currency_code)
+        .bind(params.comparison_run_id)
+        .bind(&params.notes)
+        .bind(params.created_by)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row)
     }
 
     async fn get_run(&self, id: Uuid) -> AtlasResult<Option<ProfitabilityRun>> {
         let row = sqlx::query_as::<_, ProfitabilityRun>(
-            "SELECT * FROM _atlas.profitability_runs WHERE id = $1"
+            "SELECT * FROM _atlas.profitability_runs WHERE id = $1",
         )
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row)
     }
 
-    async fn get_run_by_number(&self, org_id: Uuid, run_number: &str) -> AtlasResult<Option<ProfitabilityRun>> {
+    async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+    ) -> AtlasResult<Option<ProfitabilityRun>> {
         let row = sqlx::query_as::<_, ProfitabilityRun>(
             "SELECT * FROM _atlas.profitability_runs WHERE organization_id = $1 AND run_number = $2"
         )
@@ -403,7 +453,11 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
         Ok(row)
     }
 
-    async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ProfitabilityRun>> {
+    async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ProfitabilityRun>> {
         let rows = if let Some(s) = status {
             sqlx::query_as::<_, ProfitabilityRun>(
                 "SELECT * FROM _atlas.profitability_runs WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC"
@@ -451,16 +505,22 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
                total_operating_expenses = $5, total_operating_margin = $6, total_net_margin = $7,
                gross_margin_pct = $8, operating_margin_pct = $9, net_margin_pct = $10,
                segment_count = $11, updated_at = now()
-               WHERE id = $1"
+               WHERE id = $1",
         )
-            .bind(id)
-            .bind(total_revenue).bind(total_cogs).bind(total_gross_margin)
-            .bind(total_operating_expenses).bind(total_operating_margin).bind(total_net_margin)
-            .bind(gross_margin_pct).bind(operating_margin_pct).bind(net_margin_pct)
-            .bind(segment_count)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(id)
+        .bind(total_revenue)
+        .bind(total_cogs)
+        .bind(total_gross_margin)
+        .bind(total_operating_expenses)
+        .bind(total_operating_margin)
+        .bind(total_net_margin)
+        .bind(gross_margin_pct)
+        .bind(operating_margin_pct)
+        .bind(net_margin_pct)
+        .bind(segment_count)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -473,7 +533,10 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
     }
 
     // Run Lines
-    async fn create_run_line(&self, params: &RunLineCreateParams) -> AtlasResult<ProfitabilityRunLine> {
+    async fn create_run_line(
+        &self,
+        params: &RunLineCreateParams,
+    ) -> AtlasResult<ProfitabilityRunLine> {
         let row = sqlx::query_as::<_, ProfitabilityRunLine>(
             r"INSERT INTO _atlas.profitability_run_lines
                (organization_id, run_id, segment_id, segment_code, segment_name, segment_type,
@@ -501,23 +564,23 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
 
     async fn get_run_line(&self, id: Uuid) -> AtlasResult<Option<ProfitabilityRunLine>> {
         let row = sqlx::query_as::<_, ProfitabilityRunLine>(
-            "SELECT * FROM _atlas.profitability_run_lines WHERE id = $1"
+            "SELECT * FROM _atlas.profitability_run_lines WHERE id = $1",
         )
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row)
     }
 
     async fn list_run_lines(&self, run_id: Uuid) -> AtlasResult<Vec<ProfitabilityRunLine>> {
         let rows = sqlx::query_as::<_, ProfitabilityRunLine>(
-            "SELECT * FROM _atlas.profitability_run_lines WHERE run_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.profitability_run_lines WHERE run_id = $1 ORDER BY line_number",
         )
-            .bind(run_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(run_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows)
     }
 
@@ -540,22 +603,27 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
                net_margin = $6, net_margin_pct = $7,
                revenue_contribution_pct = $8, margin_contribution_pct = $9,
                updated_at = now()
-               WHERE id = $1"
+               WHERE id = $1",
         )
-            .bind(id)
-            .bind(gross_margin).bind(gross_margin_pct)
-            .bind(operating_margin).bind(operating_margin_pct)
-            .bind(net_margin).bind(net_margin_pct)
-            .bind(revenue_contribution_pct).bind(margin_contribution_pct)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(id)
+        .bind(gross_margin)
+        .bind(gross_margin_pct)
+        .bind(operating_margin)
+        .bind(operating_margin_pct)
+        .bind(net_margin)
+        .bind(net_margin_pct)
+        .bind(revenue_contribution_pct)
+        .bind(margin_contribution_pct)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn delete_run_line(&self, run_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.profitability_run_lines WHERE run_id = $1 AND id = $2")
-            .bind(run_id).bind(line_id)
+            .bind(run_id)
+            .bind(line_id)
             .execute(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -563,42 +631,49 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
     }
 
     // Templates
-    async fn create_template(&self, params: &TemplateCreateParams) -> AtlasResult<ProfitabilityTemplate> {
+    async fn create_template(
+        &self,
+        params: &TemplateCreateParams,
+    ) -> AtlasResult<ProfitabilityTemplate> {
         let row = sqlx::query_as::<_, ProfitabilityTemplate>(
             r"INSERT INTO _atlas.profitability_templates
                (organization_id, template_code, template_name, description, segment_type,
                 includes_cogs, includes_operating, includes_other, auto_calculate, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-               RETURNING *"
+               RETURNING *",
         )
-            .bind(params.org_id)
-            .bind(&params.template_code)
-            .bind(&params.template_name)
-            .bind(&params.description)
-            .bind(&params.segment_type)
-            .bind(params.includes_cogs.unwrap_or(true))
-            .bind(params.includes_operating.unwrap_or(true))
-            .bind(params.includes_other.unwrap_or(true))
-            .bind(params.auto_calculate.unwrap_or(true))
-            .bind(params.created_by)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(params.org_id)
+        .bind(&params.template_code)
+        .bind(&params.template_name)
+        .bind(&params.description)
+        .bind(&params.segment_type)
+        .bind(params.includes_cogs.unwrap_or(true))
+        .bind(params.includes_operating.unwrap_or(true))
+        .bind(params.includes_other.unwrap_or(true))
+        .bind(params.auto_calculate.unwrap_or(true))
+        .bind(params.created_by)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row)
     }
 
     async fn get_template(&self, id: Uuid) -> AtlasResult<Option<ProfitabilityTemplate>> {
         let row = sqlx::query_as::<_, ProfitabilityTemplate>(
-            "SELECT * FROM _atlas.profitability_templates WHERE id = $1"
+            "SELECT * FROM _atlas.profitability_templates WHERE id = $1",
         )
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row)
     }
 
-    async fn get_template_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ProfitabilityTemplate>> {
+    async fn get_template_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ProfitabilityTemplate>> {
         let row = sqlx::query_as::<_, ProfitabilityTemplate>(
             "SELECT * FROM _atlas.profitability_templates WHERE organization_id = $1 AND template_code = $2"
         )
@@ -609,7 +684,11 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
         Ok(row)
     }
 
-    async fn list_templates(&self, org_id: Uuid, is_active: Option<bool>) -> AtlasResult<Vec<ProfitabilityTemplate>> {
+    async fn list_templates(
+        &self,
+        org_id: Uuid,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<ProfitabilityTemplate>> {
         let rows = if let Some(active) = is_active {
             sqlx::query_as::<_, ProfitabilityTemplate>(
                 "SELECT * FROM _atlas.profitability_templates WHERE organization_id = $1 AND is_active = $2 ORDER BY template_name"
@@ -637,12 +716,12 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ProfitabilityDashboard> {
         let total_segments: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.profitability_segments WHERE organization_id = $1"
+            "SELECT COUNT(*) FROM _atlas.profitability_segments WHERE organization_id = $1",
         )
-            .bind(org_id)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap_or(0);
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(0);
 
         let active_segments: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM _atlas.profitability_segments WHERE organization_id = $1 AND is_active = true"
@@ -653,12 +732,12 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
             .unwrap_or(0);
 
         let total_runs: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.profitability_runs WHERE organization_id = $1"
+            "SELECT COUNT(*) FROM _atlas.profitability_runs WHERE organization_id = $1",
         )
-            .bind(org_id)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap_or(0);
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(0);
 
         let completed_runs: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM _atlas.profitability_runs WHERE organization_id = $1 AND status = 'completed'"
@@ -669,12 +748,12 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
             .unwrap_or(0);
 
         let total_templates: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.profitability_templates WHERE organization_id = $1"
+            "SELECT COUNT(*) FROM _atlas.profitability_templates WHERE organization_id = $1",
         )
-            .bind(org_id)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap_or(0);
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(0);
 
         let latest_run = sqlx::query_as::<_, ProfitabilityRun>(
             "SELECT * FROM _atlas.profitability_runs WHERE organization_id = $1 ORDER BY created_at DESC LIMIT 1"
@@ -721,7 +800,10 @@ impl ProfitabilityAnalysisRepository for PostgresProfitabilityAnalysisRepository
 
         let mut by_type = serde_json::Map::new();
         for row in type_rows {
-            if let (Ok(st), Ok(cnt)) = (row.try_get::<String, _>("segment_type"), row.try_get::<i64, _>("cnt")) {
+            if let (Ok(st), Ok(cnt)) = (
+                row.try_get::<String, _>("segment_type"),
+                row.try_get::<i64, _>("cnt"),
+            ) {
                 by_type.insert(st, serde_json::Value::Number(cnt.into()));
             }
         }

@@ -5,13 +5,12 @@
 //!
 //! Oracle Fusion Cloud HCM equivalent: My Client Groups > Performance
 
-use atlas_shared::{
-    PerformanceRatingModel, PerformanceReviewCycle, PerformanceCompetency,
-    PerformanceDocument, PerformanceGoal, CompetencyAssessment,
-    PerformanceFeedback, PerformanceDashboard,
-    AtlasError, AtlasResult,
-};
 use super::PerformanceRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CompetencyAssessment, PerformanceCompetency, PerformanceDashboard,
+    PerformanceDocument, PerformanceFeedback, PerformanceGoal, PerformanceRatingModel,
+    PerformanceReviewCycle,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -19,58 +18,66 @@ use uuid::Uuid;
 /// Valid cycle types
 #[allow(dead_code)]
 const VALID_CYCLE_TYPES: &[&str] = &[
-    "annual", "mid_year", "quarterly", "project_end", "probation",
+    "annual",
+    "mid_year",
+    "quarterly",
+    "project_end",
+    "probation",
 ];
 
 /// Valid cycle statuses
 #[allow(dead_code)]
 const VALID_CYCLE_STATUSES: &[&str] = &[
-    "draft", "planning", "goal_setting", "self_evaluation",
-    "manager_evaluation", "calibration", "completed", "cancelled",
+    "draft",
+    "planning",
+    "goal_setting",
+    "self_evaluation",
+    "manager_evaluation",
+    "calibration",
+    "completed",
+    "cancelled",
 ];
 
 /// Valid document statuses
 #[allow(dead_code)]
 const VALID_DOCUMENT_STATUSES: &[&str] = &[
-    "not_started", "goal_setting", "self_evaluation",
-    "manager_evaluation", "calibration", "completed", "cancelled",
+    "not_started",
+    "goal_setting",
+    "self_evaluation",
+    "manager_evaluation",
+    "calibration",
+    "completed",
+    "cancelled",
 ];
 
 /// Valid goal statuses
 #[allow(dead_code)]
-const VALID_GOAL_STATUSES: &[&str] = &[
-    "draft", "active", "completed", "cancelled",
-];
+const VALID_GOAL_STATUSES: &[&str] = &["draft", "active", "completed", "cancelled"];
 
 /// Valid goal categories
 #[allow(dead_code)]
-const VALID_GOAL_CATEGORIES: &[&str] = &[
-    "performance", "development", "project", "behavioral",
-];
+const VALID_GOAL_CATEGORIES: &[&str] = &["performance", "development", "project", "behavioral"];
 
 /// Valid competency categories
 #[allow(dead_code)]
-const VALID_COMPETENCY_CATEGORIES: &[&str] = &[
-    "core", "leadership", "technical", "functional",
-];
+const VALID_COMPETENCY_CATEGORIES: &[&str] = &["core", "leadership", "technical", "functional"];
 
 /// Valid feedback types
 #[allow(dead_code)]
-const VALID_FEEDBACK_TYPES: &[&str] = &[
-    "peer", "manager", "direct_report", "external", "self",
-];
+const VALID_FEEDBACK_TYPES: &[&str] = &["peer", "manager", "direct_report", "external", "self"];
 
 /// Valid feedback visibilities
 #[allow(dead_code)]
 const VALID_FEEDBACK_VISIBILITIES: &[&str] = &[
-    "private", "manager_only", "manager_and_employee", "everyone",
+    "private",
+    "manager_only",
+    "manager_and_employee",
+    "everyone",
 ];
 
 /// Valid feedback statuses
 #[allow(dead_code)]
-const VALID_FEEDBACK_STATUSES: &[&str] = &[
-    "draft", "submitted", "acknowledged", "withdrawn",
-];
+const VALID_FEEDBACK_STATUSES: &[&str] = &["draft", "submitted", "acknowledged", "withdrawn"];
 
 /// Performance Management engine
 pub struct PerformanceEngine {
@@ -114,25 +121,36 @@ impl PerformanceEngine {
         }
 
         info!("Creating rating model '{}' for org {}", code, org_id);
-        self.repository.create_rating_model(
-            org_id, &code, name, description, rating_scale, created_by,
-        ).await
+        self.repository
+            .create_rating_model(org_id, &code, name, description, rating_scale, created_by)
+            .await
     }
 
     /// Get a rating model by code
-    pub async fn get_rating_model(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PerformanceRatingModel>> {
-        self.repository.get_rating_model(org_id, &code.to_uppercase()).await
+    pub async fn get_rating_model(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PerformanceRatingModel>> {
+        self.repository
+            .get_rating_model(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List rating models
-    pub async fn list_rating_models(&self, org_id: Uuid) -> AtlasResult<Vec<PerformanceRatingModel>> {
+    pub async fn list_rating_models(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<PerformanceRatingModel>> {
         self.repository.list_rating_models(org_id).await
     }
 
     /// Deactivate a rating model
     pub async fn delete_rating_model(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deactivating rating model '{}' for org {}", code, org_id);
-        self.repository.delete_rating_model(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_rating_model(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -164,11 +182,15 @@ impl PerformanceEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PerformanceReviewCycle> {
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Cycle name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Cycle name is required".to_string(),
+            ));
         }
         if !VALID_CYCLE_TYPES.contains(&cycle_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid cycle_type '{}'. Must be one of: {}", cycle_type, VALID_CYCLE_TYPES.join(", ")
+                "Invalid cycle_type '{}'. Must be one of: {}",
+                cycle_type,
+                VALID_CYCLE_TYPES.join(", ")
             )));
         }
         if start_date >= end_date {
@@ -181,9 +203,9 @@ impl PerformanceEngine {
                 "Invalid goal count range".to_string(),
             ));
         }
-        let weight: f64 = goal_weight_total.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Goal weight total must be a valid number".to_string(),
-        ))?;
+        let weight: f64 = goal_weight_total.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Goal weight total must be a valid number".to_string())
+        })?;
         if weight <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Goal weight total must be positive".to_string(),
@@ -198,17 +220,34 @@ impl PerformanceEngine {
             None
         };
 
-        info!("Creating review cycle '{}' ({}) for org {}", name, cycle_type, org_id);
-        self.repository.create_review_cycle(
-            org_id, name, description, cycle_type,
-            rating_model_id, start_date, end_date,
-            goal_setting_start, goal_setting_end,
-            self_evaluation_start, self_evaluation_end,
-            manager_evaluation_start, manager_evaluation_end,
-            calibration_date,
-            require_goals, require_competencies, min_goals, max_goals,
-            goal_weight_total, created_by,
-        ).await
+        info!(
+            "Creating review cycle '{}' ({}) for org {}",
+            name, cycle_type, org_id
+        );
+        self.repository
+            .create_review_cycle(
+                org_id,
+                name,
+                description,
+                cycle_type,
+                rating_model_id,
+                start_date,
+                end_date,
+                goal_setting_start,
+                goal_setting_end,
+                self_evaluation_start,
+                self_evaluation_end,
+                manager_evaluation_start,
+                manager_evaluation_end,
+                calibration_date,
+                require_goals,
+                require_competencies,
+                min_goals,
+                max_goals,
+                goal_weight_total,
+                created_by,
+            )
+            .await
     }
 
     /// Get a review cycle
@@ -225,7 +264,9 @@ impl PerformanceEngine {
         if let Some(s) = status {
             if !VALID_CYCLE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_CYCLE_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_CYCLE_STATUSES.join(", ")
                 )));
             }
         }
@@ -238,10 +279,13 @@ impl PerformanceEngine {
         cycle_id: Uuid,
         new_status: &str,
     ) -> AtlasResult<PerformanceReviewCycle> {
-        let cycle = self.repository.get_review_cycle(cycle_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Review cycle {cycle_id} not found")
-            ))?;
+        let cycle = self
+            .repository
+            .get_review_cycle(cycle_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Review cycle {cycle_id} not found"))
+            })?;
 
         // Validate transition
         let valid_next = match cycle.status.as_str() {
@@ -255,12 +299,18 @@ impl PerformanceEngine {
         };
         if cycle.status == "cancelled" || !valid_next.contains(&new_status) {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot transition cycle from '{}' to '{}'", cycle.status, new_status
+                "Cannot transition cycle from '{}' to '{}'",
+                cycle.status, new_status
             )));
         }
 
-        info!("Transitioning review cycle {} from {} to {}", cycle_id, cycle.status, new_status);
-        self.repository.update_cycle_status(cycle_id, new_status).await
+        info!(
+            "Transitioning review cycle {} from {} to {}",
+            cycle_id, cycle.status, new_status
+        );
+        self.repository
+            .update_cycle_status(cycle_id, new_status)
+            .await
     }
 
     // ========================================================================
@@ -281,15 +331,21 @@ impl PerformanceEngine {
     ) -> AtlasResult<PerformanceCompetency> {
         let code = code.to_uppercase();
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Competency code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Competency code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Competency name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Competency name is required".to_string(),
+            ));
         }
         if let Some(cat) = category {
             if !VALID_COMPETENCY_CATEGORIES.contains(&cat) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid category '{}'. Must be one of: {}", cat, VALID_COMPETENCY_CATEGORIES.join(", ")
+                    "Invalid category '{}'. Must be one of: {}",
+                    cat,
+                    VALID_COMPETENCY_CATEGORIES.join(", ")
                 )));
             }
         }
@@ -301,15 +357,29 @@ impl PerformanceEngine {
         };
 
         info!("Creating competency '{}' for org {}", code, org_id);
-        self.repository.create_competency(
-            org_id, &code, name, description, category,
-            rating_model_id, behavioral_indicators, created_by,
-        ).await
+        self.repository
+            .create_competency(
+                org_id,
+                &code,
+                name,
+                description,
+                category,
+                rating_model_id,
+                behavioral_indicators,
+                created_by,
+            )
+            .await
     }
 
     /// Get a competency by code
-    pub async fn get_competency(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PerformanceCompetency>> {
-        self.repository.get_competency(org_id, &code.to_uppercase()).await
+    pub async fn get_competency(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PerformanceCompetency>> {
+        self.repository
+            .get_competency(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List competencies
@@ -324,7 +394,9 @@ impl PerformanceEngine {
     /// Deactivate a competency
     pub async fn delete_competency(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deactivating competency '{}' for org {}", code, org_id);
-        self.repository.delete_competency(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_competency(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -343,32 +415,50 @@ impl PerformanceEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PerformanceDocument> {
         // Check cycle exists
-        let cycle = self.repository.get_review_cycle(review_cycle_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Review cycle {review_cycle_id} not found")
-            ))?;
+        let cycle = self
+            .repository
+            .get_review_cycle(review_cycle_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Review cycle {review_cycle_id} not found"))
+            })?;
 
         if cycle.status == "draft" || cycle.status == "cancelled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot create documents in '{}' cycle status", cycle.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot create documents in '{}' cycle status",
+                cycle.status
+            )));
         }
 
         // Check for duplicate
-        let existing = self.repository.get_document_by_cycle_employee(org_id, review_cycle_id, employee_id).await?;
+        let existing = self
+            .repository
+            .get_document_by_cycle_employee(org_id, review_cycle_id, employee_id)
+            .await?;
         if existing.is_some() {
-            return Err(AtlasError::Conflict(
-                format!("Employee {employee_id} already has a document in this cycle")
-            ));
+            return Err(AtlasError::Conflict(format!(
+                "Employee {employee_id} already has a document in this cycle"
+            )));
         }
 
         let doc_number = format!("PD-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating performance document {} for employee {} in cycle {}", doc_number, employee_id, review_cycle_id);
-        self.repository.create_document(
-            org_id, review_cycle_id, employee_id, employee_name,
-            manager_id, manager_name, &doc_number, created_by,
-        ).await
+        info!(
+            "Creating performance document {} for employee {} in cycle {}",
+            doc_number, employee_id, review_cycle_id
+        );
+        self.repository
+            .create_document(
+                org_id,
+                review_cycle_id,
+                employee_id,
+                employee_name,
+                manager_id,
+                manager_name,
+                &doc_number,
+                created_by,
+            )
+            .await
     }
 
     /// Get a performance document
@@ -387,11 +477,15 @@ impl PerformanceEngine {
         if let Some(s) = status {
             if !VALID_DOCUMENT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid document status '{}'. Must be one of: {}", s, VALID_DOCUMENT_STATUSES.join(", ")
+                    "Invalid document status '{}'. Must be one of: {}",
+                    s,
+                    VALID_DOCUMENT_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_documents(org_id, review_cycle_id, employee_id, status).await
+        self.repository
+            .list_documents(org_id, review_cycle_id, employee_id, status)
+            .await
     }
 
     /// Transition a document to the next status
@@ -400,10 +494,13 @@ impl PerformanceEngine {
         document_id: Uuid,
         new_status: &str,
     ) -> AtlasResult<PerformanceDocument> {
-        let doc = self.repository.get_document(document_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Document {document_id} not found")
-            ))?;
+        let doc = self
+            .repository
+            .get_document(document_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Document {document_id} not found"))
+            })?;
 
         let valid_next = match doc.status.as_str() {
             "not_started" => vec!["goal_setting"],
@@ -415,12 +512,18 @@ impl PerformanceEngine {
         };
         if doc.status == "cancelled" || !valid_next.contains(&new_status) {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot transition document from '{}' to '{}'", doc.status, new_status
+                "Cannot transition document from '{}' to '{}'",
+                doc.status, new_status
             )));
         }
 
-        info!("Transitioning document {} from {} to {}", document_id, doc.status, new_status);
-        self.repository.update_document_status(document_id, new_status).await
+        info!(
+            "Transitioning document {} from {} to {}",
+            document_id, doc.status, new_status
+        );
+        self.repository
+            .update_document_status(document_id, new_status)
+            .await
     }
 
     /// Submit self-evaluation for a document
@@ -430,18 +533,24 @@ impl PerformanceEngine {
         overall_rating: Option<&str>,
         comments: Option<&str>,
     ) -> AtlasResult<PerformanceDocument> {
-        let doc = self.repository.get_document(document_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Document {document_id} not found")
-            ))?;
+        let doc = self
+            .repository
+            .get_document(document_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Document {document_id} not found"))
+            })?;
 
         if doc.status != "self_evaluation" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit self-evaluation in '{}' status", doc.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit self-evaluation in '{}' status",
+                doc.status
+            )));
         }
 
-        self.repository.update_self_evaluation(document_id, overall_rating, comments).await
+        self.repository
+            .update_self_evaluation(document_id, overall_rating, comments)
+            .await
     }
 
     /// Submit manager evaluation for a document
@@ -451,18 +560,24 @@ impl PerformanceEngine {
         overall_rating: Option<&str>,
         comments: Option<&str>,
     ) -> AtlasResult<PerformanceDocument> {
-        let doc = self.repository.get_document(document_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Document {document_id} not found")
-            ))?;
+        let doc = self
+            .repository
+            .get_document(document_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Document {document_id} not found"))
+            })?;
 
         if doc.status != "manager_evaluation" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit manager evaluation in '{}' status", doc.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit manager evaluation in '{}' status",
+                doc.status
+            )));
         }
 
-        self.repository.update_manager_evaluation(document_id, overall_rating, comments).await
+        self.repository
+            .update_manager_evaluation(document_id, overall_rating, comments)
+            .await
     }
 
     /// Finalize a document with a final rating
@@ -472,19 +587,28 @@ impl PerformanceEngine {
         final_rating: Option<&str>,
         final_comments: Option<&str>,
     ) -> AtlasResult<PerformanceDocument> {
-        let doc = self.repository.get_document(document_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Document {document_id} not found")
-            ))?;
+        let doc = self
+            .repository
+            .get_document(document_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Document {document_id} not found"))
+            })?;
 
         if doc.status != "calibration" && doc.status != "manager_evaluation" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot finalize document in '{}' status", doc.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot finalize document in '{}' status",
+                doc.status
+            )));
         }
 
-        info!("Finalizing document {} with rating {:?}", document_id, final_rating);
-        self.repository.finalize_document(document_id, final_rating, final_comments).await
+        info!(
+            "Finalizing document {} with rating {:?}",
+            document_id, final_rating
+        );
+        self.repository
+            .finalize_document(document_id, final_rating, final_comments)
+            .await
     }
 
     // ========================================================================
@@ -507,30 +631,38 @@ impl PerformanceEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PerformanceGoal> {
         // Validate document exists and is in the right state
-        let doc = self.repository.get_document(document_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Document {document_id} not found")
-            ))?;
+        let doc = self
+            .repository
+            .get_document(document_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Document {document_id} not found"))
+            })?;
 
         if doc.status != "goal_setting" && doc.status != "not_started" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot add goals to document in '{}' status", doc.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot add goals to document in '{}' status",
+                doc.status
+            )));
         }
 
         if goal_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Goal name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Goal name is required".to_string(),
+            ));
         }
         if let Some(cat) = goal_category {
             if !VALID_GOAL_CATEGORIES.contains(&cat) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid goal category '{}'. Must be one of: {}", cat, VALID_GOAL_CATEGORIES.join(", ")
+                    "Invalid goal category '{}'. Must be one of: {}",
+                    cat,
+                    VALID_GOAL_CATEGORIES.join(", ")
                 )));
             }
         }
-        let weight_val: f64 = weight.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Weight must be a valid number".to_string(),
-        ))?;
+        let weight_val: f64 = weight.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Weight must be a valid number".to_string())
+        })?;
         if weight_val <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Goal weight must be positive".to_string(),
@@ -538,10 +670,21 @@ impl PerformanceEngine {
         }
 
         info!("Creating goal '{}' for document {}", goal_name, document_id);
-        self.repository.create_goal(
-            org_id, document_id, employee_id, goal_name, description,
-            goal_category, weight, target_metric, start_date, due_date, created_by,
-        ).await
+        self.repository
+            .create_goal(
+                org_id,
+                document_id,
+                employee_id,
+                goal_name,
+                description,
+                goal_category,
+                weight,
+                target_metric,
+                start_date,
+                due_date,
+                created_by,
+            )
+            .await
     }
 
     /// Get a goal
@@ -560,19 +703,28 @@ impl PerformanceEngine {
         goal_id: Uuid,
         actual_result: Option<&str>,
     ) -> AtlasResult<PerformanceGoal> {
-        let goal = self.repository.get_goal(goal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Goal {goal_id} not found")
-            ))?;
+        let goal = self
+            .repository
+            .get_goal(goal_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal {goal_id} not found")))?;
 
         if goal.status != "active" && goal.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot complete goal in '{}' status", goal.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot complete goal in '{}' status",
+                goal.status
+            )));
         }
 
         info!("Completing goal {}", goal_id);
-        self.repository.update_goal_status(goal_id, "completed", actual_result, Some(chrono::Utc::now().date_naive())).await
+        self.repository
+            .update_goal_status(
+                goal_id,
+                "completed",
+                actual_result,
+                Some(chrono::Utc::now().date_naive()),
+            )
+            .await
     }
 
     /// Rate a goal (self or manager)
@@ -583,22 +735,33 @@ impl PerformanceEngine {
         rating: &str,
         comments: Option<&str>,
     ) -> AtlasResult<PerformanceGoal> {
-        let _goal = self.repository.get_goal(goal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Goal {goal_id} not found")
-            ))?;
+        let _goal = self
+            .repository
+            .get_goal(goal_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal {goal_id} not found")))?;
 
-        let rating_val: f64 = rating.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Rating must be a valid number".to_string(),
-        ))?;
+        let rating_val: f64 = rating.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Rating must be a valid number".to_string())
+        })?;
         if rating_val < 0.0 {
-            return Err(AtlasError::ValidationFailed("Rating must be non-negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Rating must be non-negative".to_string(),
+            ));
         }
 
         info!("Rating goal {} ({}) with {}", goal_id, rating_type, rating);
         match rating_type {
-            "self" => self.repository.update_goal_self_rating(goal_id, rating, comments).await,
-            "manager" => self.repository.update_goal_manager_rating(goal_id, rating, comments).await,
+            "self" => {
+                self.repository
+                    .update_goal_self_rating(goal_id, rating, comments)
+                    .await
+            }
+            "manager" => {
+                self.repository
+                    .update_goal_manager_rating(goal_id, rating, comments)
+                    .await
+            }
             _ => Err(AtlasError::ValidationFailed(
                 "Rating type must be 'self' or 'manager'".to_string(),
             )),
@@ -607,12 +770,15 @@ impl PerformanceEngine {
 
     /// Delete a goal
     pub async fn delete_goal(&self, goal_id: Uuid) -> AtlasResult<()> {
-        let goal = self.repository.get_goal(goal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Goal {goal_id} not found")
-            ))?;
+        let goal = self
+            .repository
+            .get_goal(goal_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal {goal_id} not found")))?;
         if goal.status == "completed" {
-            return Err(AtlasError::WorkflowError("Cannot delete completed goal".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Cannot delete completed goal".to_string(),
+            ));
         }
         self.repository.delete_goal(goal_id).await
     }
@@ -633,11 +799,13 @@ impl PerformanceEngine {
         comments: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CompetencyAssessment> {
-        let rating_val: f64 = rating.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Rating must be a valid number".to_string(),
-        ))?;
+        let rating_val: f64 = rating.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Rating must be a valid number".to_string())
+        })?;
         if rating_val < 0.0 {
-            return Err(AtlasError::ValidationFailed("Rating must be non-negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Rating must be non-negative".to_string(),
+            ));
         }
         if !["self", "manager", "calibration"].contains(&rating_type) {
             return Err(AtlasError::ValidationFailed(
@@ -645,11 +813,22 @@ impl PerformanceEngine {
             ));
         }
 
-        info!("Upserting competency assessment for doc {} comp {} ({})", document_id, competency_id, rating_type);
-        self.repository.upsert_competency_assessment(
-            org_id, document_id, employee_id, competency_id,
-            rating_type, rating, comments, created_by,
-        ).await
+        info!(
+            "Upserting competency assessment for doc {} comp {} ({})",
+            document_id, competency_id, rating_type
+        );
+        self.repository
+            .upsert_competency_assessment(
+                org_id,
+                document_id,
+                employee_id,
+                competency_id,
+                rating_type,
+                rating,
+                comments,
+                created_by,
+            )
+            .await
     }
 
     /// List competency assessments for a document
@@ -657,7 +836,9 @@ impl PerformanceEngine {
         &self,
         document_id: Uuid,
     ) -> AtlasResult<Vec<CompetencyAssessment>> {
-        self.repository.list_competency_assessments(document_id).await
+        self.repository
+            .list_competency_assessments(document_id)
+            .await
     }
 
     // ========================================================================
@@ -680,23 +861,42 @@ impl PerformanceEngine {
     ) -> AtlasResult<PerformanceFeedback> {
         if !VALID_FEEDBACK_TYPES.contains(&feedback_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid feedback_type '{}'. Must be one of: {}", feedback_type, VALID_FEEDBACK_TYPES.join(", ")
+                "Invalid feedback_type '{}'. Must be one of: {}",
+                feedback_type,
+                VALID_FEEDBACK_TYPES.join(", ")
             )));
         }
         if !VALID_FEEDBACK_VISIBILITIES.contains(&visibility) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid visibility '{}'. Must be one of: {}", visibility, VALID_FEEDBACK_VISIBILITIES.join(", ")
+                "Invalid visibility '{}'. Must be one of: {}",
+                visibility,
+                VALID_FEEDBACK_VISIBILITIES.join(", ")
             )));
         }
         if content.is_empty() {
-            return Err(AtlasError::ValidationFailed("Feedback content is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Feedback content is required".to_string(),
+            ));
         }
 
-        info!("Creating {} feedback for employee {}", feedback_type, employee_id);
-        self.repository.create_feedback(
-            org_id, document_id, employee_id, from_user_id, from_user_name,
-            feedback_type, subject, content, visibility, created_by,
-        ).await
+        info!(
+            "Creating {} feedback for employee {}",
+            feedback_type, employee_id
+        );
+        self.repository
+            .create_feedback(
+                org_id,
+                document_id,
+                employee_id,
+                from_user_id,
+                from_user_name,
+                feedback_type,
+                subject,
+                content,
+                visibility,
+                created_by,
+            )
+            .await
     }
 
     /// List feedback for an employee or document
@@ -706,24 +906,32 @@ impl PerformanceEngine {
         employee_id: Option<Uuid>,
         document_id: Option<Uuid>,
     ) -> AtlasResult<Vec<PerformanceFeedback>> {
-        self.repository.list_feedback(org_id, employee_id, document_id).await
+        self.repository
+            .list_feedback(org_id, employee_id, document_id)
+            .await
     }
 
     /// Submit feedback (change from draft to submitted)
     pub async fn submit_feedback(&self, feedback_id: Uuid) -> AtlasResult<PerformanceFeedback> {
-        let fb = self.repository.get_feedback(feedback_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Feedback {feedback_id} not found")
-            ))?;
+        let fb = self
+            .repository
+            .get_feedback(feedback_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Feedback {feedback_id} not found"))
+            })?;
 
         if fb.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit feedback in '{}' status", fb.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit feedback in '{}' status",
+                fb.status
+            )));
         }
 
         info!("Submitting feedback {}", feedback_id);
-        self.repository.update_feedback_status(feedback_id, "submitted").await
+        self.repository
+            .update_feedback_status(feedback_id, "submitted")
+            .await
     }
 
     // ========================================================================
@@ -736,21 +944,34 @@ impl PerformanceEngine {
         org_id: Uuid,
         review_cycle_id: Uuid,
     ) -> AtlasResult<PerformanceDashboard> {
-        let docs = self.repository.list_documents(org_id, Some(review_cycle_id), None, None).await?;
-        let goals = self.repository.list_goals_by_cycle(org_id, review_cycle_id).await?;
+        let docs = self
+            .repository
+            .list_documents(org_id, Some(review_cycle_id), None, None)
+            .await?;
+        let goals = self
+            .repository
+            .list_goals_by_cycle(org_id, review_cycle_id)
+            .await?;
         let feedback = self.repository.list_feedback(org_id, None, None).await?;
 
         let total = docs.len() as i32;
         let not_started = docs.iter().filter(|d| d.status == "not_started").count() as i32;
         let goal_setting = docs.iter().filter(|d| d.status == "goal_setting").count() as i32;
-        let self_eval = docs.iter().filter(|d| d.status == "self_evaluation").count() as i32;
-        let mgr_eval = docs.iter().filter(|d| d.status == "manager_evaluation").count() as i32;
+        let self_eval = docs
+            .iter()
+            .filter(|d| d.status == "self_evaluation")
+            .count() as i32;
+        let mgr_eval = docs
+            .iter()
+            .filter(|d| d.status == "manager_evaluation")
+            .count() as i32;
         let calibration = docs.iter().filter(|d| d.status == "calibration").count() as i32;
         let completed = docs.iter().filter(|d| d.status == "completed").count() as i32;
         let cancelled = docs.iter().filter(|d| d.status == "cancelled").count() as i32;
 
         let avg_rating = if completed > 0 {
-            let sum: f64 = docs.iter()
+            let sum: f64 = docs
+                .iter()
                 .filter(|d| d.status == "completed")
                 .filter_map(|d| d.final_rating.as_ref().and_then(|r| r.parse::<f64>().ok()))
                 .sum();

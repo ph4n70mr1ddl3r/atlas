@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: General Ledger > Multi-Book Accounting
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::MultiBookAccountingEngine;
 pub use repository::{MultiBookAccountingRepository, PostgresMultiBookAccountingRepository};

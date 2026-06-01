@@ -16,11 +16,11 @@ mod engine;
 
 pub use engine::AdvancePaymentEngine;
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 
 /// Advance payment header
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,41 +99,188 @@ pub struct AdvancePaymentDashboard {
 /// Repository trait
 #[async_trait]
 pub trait AdvancePaymentRepository: Send + Sync {
-    async fn create_advance(&self, org_id: Uuid, advance_number: &str, supplier_id: Uuid, supplier_name: &str, supplier_site_id: Option<Uuid>, description: Option<&str>, currency_code: &str, advance_amount: &str, exchange_rate: Option<&str>, payment_method: Option<&str>, prepayment_account_code: Option<&str>, liability_account_code: Option<&str>, advance_date: chrono::NaiveDate, due_date: Option<chrono::NaiveDate>, expiration_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>) -> AtlasResult<AdvancePayment>;
+    async fn create_advance(
+        &self,
+        org_id: Uuid,
+        advance_number: &str,
+        supplier_id: Uuid,
+        supplier_name: &str,
+        supplier_site_id: Option<Uuid>,
+        description: Option<&str>,
+        currency_code: &str,
+        advance_amount: &str,
+        exchange_rate: Option<&str>,
+        payment_method: Option<&str>,
+        prepayment_account_code: Option<&str>,
+        liability_account_code: Option<&str>,
+        advance_date: chrono::NaiveDate,
+        due_date: Option<chrono::NaiveDate>,
+        expiration_date: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<AdvancePayment>;
     async fn get_advance(&self, id: Uuid) -> AtlasResult<Option<AdvancePayment>>;
-    async fn get_advance_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<AdvancePayment>>;
-    async fn list_advances(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<AdvancePayment>>;
+    async fn get_advance_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<AdvancePayment>>;
+    async fn list_advances(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        supplier_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AdvancePayment>>;
     async fn update_advance_status(&self, id: Uuid, status: &str) -> AtlasResult<AdvancePayment>;
-    async fn update_advance_amounts(&self, id: Uuid, applied: &str, unapplied: &str, status: &str) -> AtlasResult<()>;
-    async fn update_payment_info(&self, id: Uuid, payment_ref: Option<&str>, paid_by: Option<Uuid>) -> AtlasResult<AdvancePayment>;
-    async fn create_application(&self, org_id: Uuid, advance_id: Uuid, advance_number: Option<&str>, invoice_id: Uuid, invoice_number: Option<&str>, applied_amount: &str, application_date: chrono::NaiveDate, gl_account_code: Option<&str>, applied_by: Option<Uuid>) -> AtlasResult<AdvanceApplication>;
+    async fn update_advance_amounts(
+        &self,
+        id: Uuid,
+        applied: &str,
+        unapplied: &str,
+        status: &str,
+    ) -> AtlasResult<()>;
+    async fn update_payment_info(
+        &self,
+        id: Uuid,
+        payment_ref: Option<&str>,
+        paid_by: Option<Uuid>,
+    ) -> AtlasResult<AdvancePayment>;
+    async fn create_application(
+        &self,
+        org_id: Uuid,
+        advance_id: Uuid,
+        advance_number: Option<&str>,
+        invoice_id: Uuid,
+        invoice_number: Option<&str>,
+        applied_amount: &str,
+        application_date: chrono::NaiveDate,
+        gl_account_code: Option<&str>,
+        applied_by: Option<Uuid>,
+    ) -> AtlasResult<AdvanceApplication>;
     async fn get_application(&self, id: Uuid) -> AtlasResult<Option<AdvanceApplication>>;
-    async fn list_applications_by_advance(&self, advance_id: Uuid) -> AtlasResult<Vec<AdvanceApplication>>;
-    async fn list_applications_by_invoice(&self, invoice_id: Uuid) -> AtlasResult<Vec<AdvanceApplication>>;
-    async fn update_application_status(&self, id: Uuid, status: &str, reversed_by: Option<Uuid>, reversal_reason: Option<&str>) -> AtlasResult<AdvanceApplication>;
+    async fn list_applications_by_advance(
+        &self,
+        advance_id: Uuid,
+    ) -> AtlasResult<Vec<AdvanceApplication>>;
+    async fn list_applications_by_invoice(
+        &self,
+        invoice_id: Uuid,
+    ) -> AtlasResult<Vec<AdvanceApplication>>;
+    async fn update_application_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        reversed_by: Option<Uuid>,
+        reversal_reason: Option<&str>,
+    ) -> AtlasResult<AdvanceApplication>;
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<AdvancePaymentDashboard>;
 }
 
 /// `PostgreSQL` implementation (stub)
 #[allow(dead_code)]
-pub struct PostgresAdvancePaymentRepository { #[allow(dead_code)]
-    pool: PgPool }
-impl PostgresAdvancePaymentRepository { #[must_use] 
-pub const fn new(pool: PgPool) -> Self { Self { pool } } }
+pub struct PostgresAdvancePaymentRepository {
+    #[allow(dead_code)]
+    pool: PgPool,
+}
+impl PostgresAdvancePaymentRepository {
+    #[must_use]
+    pub const fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
 
 #[async_trait]
 impl AdvancePaymentRepository for PostgresAdvancePaymentRepository {
-    async fn create_advance(&self, _: Uuid, _: &str, _: Uuid, _: &str, _: Option<Uuid>, _: Option<&str>, _: &str, _: &str, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: chrono::NaiveDate, _: Option<chrono::NaiveDate>, _: Option<chrono::NaiveDate>, _: Option<Uuid>) -> AtlasResult<AdvancePayment> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_advance(&self, _: Uuid) -> AtlasResult<Option<AdvancePayment>> { Ok(None) }
-    async fn get_advance_by_number(&self, _: Uuid, _: &str) -> AtlasResult<Option<AdvancePayment>> { Ok(None) }
-    async fn list_advances(&self, _: Uuid, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<Vec<AdvancePayment>> { Ok(vec![]) }
-    async fn update_advance_status(&self, _: Uuid, _: &str) -> AtlasResult<AdvancePayment> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn update_advance_amounts(&self, _: Uuid, _: &str, _: &str, _: &str) -> AtlasResult<()> { Ok(()) }
-    async fn update_payment_info(&self, _: Uuid, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<AdvancePayment> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn create_application(&self, _: Uuid, _: Uuid, _: Option<&str>, _: Uuid, _: Option<&str>, _: &str, _: chrono::NaiveDate, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<AdvanceApplication> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_application(&self, _: Uuid) -> AtlasResult<Option<AdvanceApplication>> { Ok(None) }
-    async fn list_applications_by_advance(&self, _: Uuid) -> AtlasResult<Vec<AdvanceApplication>> { Ok(vec![]) }
-    async fn list_applications_by_invoice(&self, _: Uuid) -> AtlasResult<Vec<AdvanceApplication>> { Ok(vec![]) }
-    async fn update_application_status(&self, _: Uuid, _: &str, _: Option<Uuid>, _: Option<&str>) -> AtlasResult<AdvanceApplication> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn get_dashboard(&self, _: Uuid) -> AtlasResult<AdvancePaymentDashboard> { Ok(AdvancePaymentDashboard { total_advances: 0, draft_advances: 0, open_advances: 0, total_advance_amount: "0".into(), total_applied_amount: "0".into(), total_unapplied_amount: "0".into(), advances_by_supplier: serde_json::json!([]), aging_buckets: serde_json::json!([]) }) }
+    async fn create_advance(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: Uuid,
+        _: &str,
+        _: Option<Uuid>,
+        _: Option<&str>,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: chrono::NaiveDate,
+        _: Option<chrono::NaiveDate>,
+        _: Option<chrono::NaiveDate>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<AdvancePayment> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_advance(&self, _: Uuid) -> AtlasResult<Option<AdvancePayment>> {
+        Ok(None)
+    }
+    async fn get_advance_by_number(&self, _: Uuid, _: &str) -> AtlasResult<Option<AdvancePayment>> {
+        Ok(None)
+    }
+    async fn list_advances(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<Vec<AdvancePayment>> {
+        Ok(vec![])
+    }
+    async fn update_advance_status(&self, _: Uuid, _: &str) -> AtlasResult<AdvancePayment> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn update_advance_amounts(&self, _: Uuid, _: &str, _: &str, _: &str) -> AtlasResult<()> {
+        Ok(())
+    }
+    async fn update_payment_info(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<AdvancePayment> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn create_application(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: Option<&str>,
+        _: Uuid,
+        _: Option<&str>,
+        _: &str,
+        _: chrono::NaiveDate,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<AdvanceApplication> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_application(&self, _: Uuid) -> AtlasResult<Option<AdvanceApplication>> {
+        Ok(None)
+    }
+    async fn list_applications_by_advance(&self, _: Uuid) -> AtlasResult<Vec<AdvanceApplication>> {
+        Ok(vec![])
+    }
+    async fn list_applications_by_invoice(&self, _: Uuid) -> AtlasResult<Vec<AdvanceApplication>> {
+        Ok(vec![])
+    }
+    async fn update_application_status(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: Option<Uuid>,
+        _: Option<&str>,
+    ) -> AtlasResult<AdvanceApplication> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn get_dashboard(&self, _: Uuid) -> AtlasResult<AdvancePaymentDashboard> {
+        Ok(AdvancePaymentDashboard {
+            total_advances: 0,
+            draft_advances: 0,
+            open_advances: 0,
+            total_advance_amount: "0".into(),
+            total_applied_amount: "0".into(),
+            total_unapplied_amount: "0".into(),
+            advances_by_supplier: serde_json::json!([]),
+            aging_buckets: serde_json::json!([]),
+        })
+    }
 }

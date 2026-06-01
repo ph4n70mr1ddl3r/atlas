@@ -8,11 +8,11 @@
 //! - Configurator dashboard summary
 //! - Full end-to-end lifecycle test
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_configurator_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -23,70 +23,133 @@ async fn setup_configurator_test() -> (std::sync::Arc<atlas_gateway::AppState>, 
 }
 
 async fn create_test_model(
-    app: &axum::Router, model_number: &str, name: &str,
+    app: &axum::Router,
+    model_number: &str,
+    name: &str,
 ) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/configurator/models")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "modelNumber": model_number,
-            "name": name,
-            "modelType": "standard",
-            "validationMode": "strict"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/configurator/models")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "modelNumber": model_number,
+                        "name": name,
+                        "modelType": "standard",
+                        "validationMode": "strict"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for model but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for model but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     serde_json::from_slice(&b).unwrap()
 }
 
 async fn create_test_feature(
-    app: &axum::Router, model_id: &str, feature_code: &str, name: &str,
-    feature_type: &str, is_required: bool,
+    app: &axum::Router,
+    model_id: &str,
+    feature_code: &str,
+    name: &str,
+    feature_type: &str,
+    is_required: bool,
 ) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let uri = format!("/api/v1/configurator/models/{}/features", model_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "featureCode": feature_code,
-            "name": name,
-            "featureType": feature_type,
-            "isRequired": is_required,
-            "displayOrder": 1
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "featureCode": feature_code,
+                        "name": name,
+                        "featureType": feature_type,
+                        "isRequired": is_required,
+                        "displayOrder": 1
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for feature but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for feature but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     serde_json::from_slice(&b).unwrap()
 }
 
 async fn create_test_option(
-    app: &axum::Router, feature_id: &str, option_code: &str, name: &str,
+    app: &axum::Router,
+    feature_id: &str,
+    option_code: &str,
+    name: &str,
     price_adjustment: f64,
 ) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let uri = format!("/api/v1/configurator/features/{}/options", feature_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "optionCode": option_code,
-            "name": name,
-            "optionType": "standard",
-            "priceAdjustment": price_adjustment,
-            "isAvailable": true
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "optionCode": option_code,
+                        "name": name,
+                        "optionType": "standard",
+                        "priceAdjustment": price_adjustment,
+                        "isAvailable": true
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for option but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for option but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     serde_json::from_slice(&b).unwrap()
 }
@@ -112,12 +175,24 @@ async fn test_create_model_duplicate_conflict() {
     create_test_model(&app, "DUP-001", "First").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/configurator/models")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "modelNumber": "DUP-001", "name": "Duplicate", "modelType": "standard"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/configurator/models")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "modelNumber": "DUP-001", "name": "Duplicate", "modelType": "standard"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -128,13 +203,25 @@ async fn test_list_models() {
     create_test_model(&app, "M-002", "Model 2").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET").uri("/api/v1/configurator/models")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/configurator/models")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let b: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(b["data"].as_array().unwrap().len(), 2);
 }
 
@@ -146,9 +233,18 @@ async fn test_get_model() {
 
     let (k, v) = auth_header(&admin_claims());
     let uri = format!("/api/v1/configurator/models/{}", id);
-    let r = app.clone().oneshot(Request::builder().method("GET").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 }
 
@@ -160,13 +256,25 @@ async fn test_activate_model() {
 
     let (k, v) = auth_header(&admin_claims());
     let uri = format!("/api/v1/configurator/models/{}/activate", id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let b: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(b["status"], "active");
 }
 
@@ -178,9 +286,18 @@ async fn test_delete_model() {
 
     let (k, v) = auth_header(&admin_claims());
     let uri = "/api/v1/configurator/models/number/DEL-001";
-    let r = app.clone().oneshot(Request::builder().method("DELETE").uri(uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -193,15 +310,32 @@ async fn test_delete_model_not_draft_fails() {
     // Activate first
     let (k, v) = auth_header(&admin_claims());
     let uri = format!("/api/v1/configurator/models/{}/activate", id);
-    app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Now try to delete - should fail
     let uri = "/api/v1/configurator/models/number/DELACT-001";
-    let r = app.clone().oneshot(Request::builder().method("DELETE").uri(uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -216,12 +350,23 @@ async fn test_create_feature_and_list() {
     // Activate model to add features
     let model_id = model["id"].as_str().unwrap();
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/configurator/models/{}/activate", model_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/configurator/models/{}/activate",
+                    model_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let feature = create_test_feature(&app, model_id, "COLOR", "Color", "single_select", true).await;
+    let feature =
+        create_test_feature(&app, model_id, "COLOR", "Color", "single_select", true).await;
     assert_eq!(feature["feature_code"], "COLOR");
     assert_eq!(feature["name"], "Color");
     assert_eq!(feature["feature_type"], "single_select");
@@ -229,13 +374,25 @@ async fn test_create_feature_and_list() {
 
     // List features
     let uri = format!("/api/v1/configurator/models/{}/features", model_id);
-    let r = app.clone().oneshot(Request::builder().method("GET").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let b: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(b["data"].as_array().unwrap().len(), 1);
 }
 
@@ -251,10 +408,20 @@ async fn test_create_option_and_list() {
 
     // Activate model
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/configurator/models/{}/activate", model_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/configurator/models/{}/activate",
+                    model_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     let feature = create_test_feature(&app, model_id, "SIZE", "Size", "single_select", true).await;
     let feature_id = feature["id"].as_str().unwrap();
@@ -266,13 +433,25 @@ async fn test_create_option_and_list() {
 
     // List options
     let uri = format!("/api/v1/configurator/features/{}/options", feature_id);
-    let r = app.clone().oneshot(Request::builder().method("GET").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let b: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(b["data"].as_array().unwrap().len(), 1);
 }
 
@@ -288,27 +467,52 @@ async fn test_create_rule() {
 
     // Activate
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/configurator/models/{}/activate", model_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/configurator/models/{}/activate",
+                    model_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     let uri = format!("/api/v1/configurator/models/{}/rules", model_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "ruleCode": "R-001",
-            "name": "V8 requires Sport Package",
-            "ruleType": "requirement",
-            "severity": "error",
-            "isActive": true,
-            "priority": 1
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "ruleCode": "R-001",
+                        "name": "V8 requires Sport Package",
+                        "ruleType": "requirement",
+                        "severity": "error",
+                        "isActive": true,
+                        "priority": 1
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
     let rule: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(rule["rule_code"], "R-001");
     assert_eq!(rule["rule_type"], "requirement");
 }
@@ -325,27 +529,52 @@ async fn test_create_instance() {
 
     // Activate model
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/configurator/models/{}/activate", model_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/configurator/models/{}/activate",
+                    model_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Create instance
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/configurator/instances")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "instanceNumber": "CFG-001",
-            "modelId": model_id,
-            "name": "My Laptop Config",
-            "selections": { "color": "red", "engine": "v8" },
-            "basePrice": 1000.0,
-            "currencyCode": "USD"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/configurator/instances")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "instanceNumber": "CFG-001",
+                        "modelId": model_id,
+                        "name": "My Laptop Config",
+                        "selections": { "color": "red", "engine": "v8" },
+                        "basePrice": 1000.0,
+                        "currencyCode": "USD"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
     let inst: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(inst["instance_number"], "CFG-001");
     assert_eq!(inst["base_price"], 1000.0);
     // Should be valid since no required features without selections
@@ -360,44 +589,90 @@ async fn test_instance_lifecycle() {
 
     // Activate model
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/configurator/models/{}/activate", model_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/configurator/models/{}/activate",
+                    model_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Create instance
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/configurator/instances")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "instanceNumber": "LC-CFG-001",
-            "modelId": model_id,
-            "basePrice": 2000.0,
-            "currencyCode": "USD"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/configurator/instances")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "instanceNumber": "LC-CFG-001",
+                        "modelId": model_id,
+                        "basePrice": 2000.0,
+                        "currencyCode": "USD"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
     let inst: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     let inst_id = inst["id"].as_str().unwrap();
 
     // Submit (only if valid)
     if inst["status"] == "valid" {
         let uri = format!("/api/v1/configurator/instances/{}/submit", inst_id);
-        let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-            .header(&k, &v).body(Body::empty()).unwrap()
-        ).await.unwrap();
+        let r = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&uri)
+                    .header(&k, &v)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(r.status(), StatusCode::OK);
 
         // Approve
         let uri = format!("/api/v1/configurator/instances/{}/approve", inst_id);
-        let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-            .header(&k, &v).body(Body::empty()).unwrap()
-        ).await.unwrap();
+        let r = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&uri)
+                    .header(&k, &v)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(r.status(), StatusCode::OK);
         let approved: serde_json::Value = serde_json::from_slice(
-            &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-        ).unwrap();
+            &axum::body::to_bytes(r.into_body(), usize::MAX)
+                .await
+                .unwrap(),
+        )
+        .unwrap();
         assert_eq!(approved["status"], "approved");
         assert!(approved["approved_by"].is_string());
     }
@@ -410,35 +685,72 @@ async fn test_cancel_instance() {
     let model_id = model["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/configurator/models/{}/activate", model_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/configurator/models/{}/activate",
+                    model_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Create instance
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/configurator/instances")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "instanceNumber": "CAN-CFG-001",
-            "modelId": model_id,
-            "basePrice": 500.0,
-            "currencyCode": "USD"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/configurator/instances")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "instanceNumber": "CAN-CFG-001",
+                        "modelId": model_id,
+                        "basePrice": 500.0,
+                        "currencyCode": "USD"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let inst: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     let inst_id = inst["id"].as_str().unwrap();
 
     // Cancel
     let uri = format!("/api/v1/configurator/instances/{}/cancel", inst_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let cancelled: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
 
@@ -449,32 +761,65 @@ async fn test_list_instances() {
     let model_id = model["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/configurator/models/{}/activate", model_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/configurator/models/{}/activate",
+                    model_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Create two instances
     for i in 1..=2 {
-        app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/configurator/instances")
-            .header("Content-Type", "application/json").header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({
-                "instanceNumber": format!("LIST-CFG-{:03}", i),
-                "modelId": model_id,
-                "basePrice": 1000.0,
-                "currencyCode": "USD"
-            })).unwrap())).unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/configurator/instances")
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({
+                            "instanceNumber": format!("LIST-CFG-{:03}", i),
+                            "modelId": model_id,
+                            "basePrice": 1000.0,
+                            "currencyCode": "USD"
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // List all
-    let r = app.clone().oneshot(Request::builder().method("GET").uri("/api/v1/configurator/instances")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/configurator/instances")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let b: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(b["data"].as_array().unwrap().len(), 2);
 }
 
@@ -487,13 +832,25 @@ async fn test_configurator_dashboard() {
     let (_state, app) = setup_configurator_test().await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET").uri("/api/v1/configurator/dashboard")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/configurator/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let dash: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(dash["total_models"], 0);
     assert_eq!(dash["active_models"], 0);
     assert_eq!(dash["total_configurations"], 0);
@@ -514,18 +871,34 @@ async fn test_full_configurator_lifecycle() {
 
     // 2. Activate the model
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/configurator/models/{}/activate", model_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/configurator/models/{}/activate",
+                    model_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let active_model: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(active_model["status"], "active");
 
     // 3. Create features
-    let color_feature = create_test_feature(&app, model_id, "COLOR", "Color", "single_select", true).await;
-    let size_feature = create_test_feature(&app, model_id, "SIZE", "Screen Size", "single_select", true).await;
+    let color_feature =
+        create_test_feature(&app, model_id, "COLOR", "Color", "single_select", true).await;
+    let size_feature =
+        create_test_feature(&app, model_id, "SIZE", "Screen Size", "single_select", true).await;
     let color_id = color_feature["id"].as_str().unwrap();
     let size_id = size_feature["id"].as_str().unwrap();
 
@@ -536,34 +909,63 @@ async fn test_full_configurator_lifecycle() {
     create_test_option(&app, size_id, "15_INCH", "15 inch", 200.0).await;
 
     // 5. Verify features and options via list
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/configurator/models/{}/features", model_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/configurator/models/{}/features",
+                    model_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let features: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(features["data"].as_array().unwrap().len(), 2);
 
     // 6. Create a configuration instance
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/configurator/instances")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "instanceNumber": "E2E-CFG-001",
-            "modelId": model_id,
-            "name": "My Enterprise Laptop",
-            "selections": {
-                "COLOR": "SPACE_GRAY",
-                "SIZE": "15_INCH"
-            },
-            "basePrice": 1500.0,
-            "currencyCode": "USD"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/configurator/instances")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "instanceNumber": "E2E-CFG-001",
+                        "modelId": model_id,
+                        "name": "My Enterprise Laptop",
+                        "selections": {
+                            "COLOR": "SPACE_GRAY",
+                            "SIZE": "15_INCH"
+                        },
+                        "basePrice": 1500.0,
+                        "currencyCode": "USD"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
     let inst: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     let inst_id = inst["id"].as_str().unwrap();
     assert_eq!(inst["instance_number"], "E2E-CFG-001");
     assert_eq!(inst["base_price"], 1500.0);
@@ -571,12 +973,24 @@ async fn test_full_configurator_lifecycle() {
     assert_eq!(inst["total_price"], 1750.0);
 
     // 7. Verify dashboard shows the model and configuration
-    let r = app.clone().oneshot(Request::builder().method("GET").uri("/api/v1/configurator/dashboard")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/configurator/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let dash: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(dash["total_models"], 1);
     assert_eq!(dash["active_models"], 1);
     assert_eq!(dash["total_configurations"], 1);
@@ -584,19 +998,40 @@ async fn test_full_configurator_lifecycle() {
     // 8. Submit and approve (if valid)
     if inst["status"] == "valid" {
         let uri = format!("/api/v1/configurator/instances/{}/submit", inst_id);
-        let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-            .header(&k, &v).body(Body::empty()).unwrap()
-        ).await.unwrap();
+        let r = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&uri)
+                    .header(&k, &v)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(r.status(), StatusCode::OK);
 
         let uri = format!("/api/v1/configurator/instances/{}/approve", inst_id);
-        let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-            .header(&k, &v).body(Body::empty()).unwrap()
-        ).await.unwrap();
+        let r = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&uri)
+                    .header(&k, &v)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(r.status(), StatusCode::OK);
         let approved: serde_json::Value = serde_json::from_slice(
-            &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-        ).unwrap();
+            &axum::body::to_bytes(r.into_body(), usize::MAX)
+                .await
+                .unwrap(),
+        )
+        .unwrap();
         assert_eq!(approved["status"], "approved");
     }
 }
@@ -611,21 +1046,45 @@ async fn test_create_model_validation_errors() {
     let (k, v) = auth_header(&admin_claims());
 
     // Missing model number
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/configurator/models")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "name": "No Number", "modelType": "standard"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/configurator/models")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "name": "No Number", "modelType": "standard"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 
     // Invalid model type
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/configurator/models")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "modelNumber": "BAD-TYPE", "name": "Bad Type", "modelType": "super_custom"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/configurator/models")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "modelNumber": "BAD-TYPE", "name": "Bad Type", "modelType": "super_custom"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -637,15 +1096,27 @@ async fn test_create_instance_inactive_model_fails() {
     // Model is still in "draft" status
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/configurator/instances")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "instanceNumber": "INACT-CFG-001",
-            "modelId": model_id,
-            "basePrice": 100.0,
-            "currencyCode": "USD"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/configurator/instances")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "instanceNumber": "INACT-CFG-001",
+                        "modelId": model_id,
+                        "basePrice": 100.0,
+                        "currencyCode": "USD"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     // Should fail because model is not active
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }

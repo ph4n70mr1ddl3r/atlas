@@ -49,7 +49,10 @@ impl PaymentSettlementService {
         currency: String,
     ) -> Result<SettlementBatch, String> {
         let mut batches = self.batches.write().unwrap();
-        if batches.iter().any(|b| b.organization_id == organization_id && b.batch_number == number) {
+        if batches
+            .iter()
+            .any(|b| b.organization_id == organization_id && b.batch_number == number)
+        {
             return Err("Settlement batch with this number already exists".to_string());
         }
 
@@ -74,7 +77,9 @@ impl PaymentSettlementService {
         discount: f64,
     ) -> Result<SettlementLine, String> {
         let mut batches = self.batches.write().unwrap();
-        let batch = batches.iter_mut().find(|b| b.id == batch_id)
+        let batch = batches
+            .iter_mut()
+            .find(|b| b.id == batch_id)
             .ok_or_else(|| "Batch not found".to_string())?;
 
         if batch.status != "draft" {
@@ -100,9 +105,11 @@ impl PaymentSettlementService {
 
     pub fn settle_batch(&self, id: Uuid) -> Result<(), String> {
         let mut batches = self.batches.write().unwrap();
-        let batch = batches.iter_mut().find(|b| b.id == id)
+        let batch = batches
+            .iter_mut()
+            .find(|b| b.id == id)
             .ok_or_else(|| "Batch not found".to_string())?;
-        
+
         if batch.status != "approved" && batch.status != "submitted" && batch.status != "draft" {
             return Err("Batch is not in a settleable status".to_string());
         }
@@ -113,7 +120,7 @@ impl PaymentSettlementService {
         for line in lines.iter_mut().filter(|l| l.batch_id == id) {
             line.status = "settled".to_string();
         }
-        
+
         Ok(())
     }
 }
@@ -126,12 +133,18 @@ mod tests {
     fn test_create_and_settle_batch() {
         let service = PaymentSettlementService::new();
         let org_id = Uuid::new_v4();
-        
-        let batch = service.create_batch(org_id, "SET-001".to_string(), "USD".to_string()).unwrap();
+
+        let batch = service
+            .create_batch(org_id, "SET-001".to_string(), "USD".to_string())
+            .unwrap();
         assert_eq!(batch.status, "draft");
 
-        service.add_settlement_line(batch.id, Uuid::new_v4(), 1000.0, 50.0).unwrap();
-        service.add_settlement_line(batch.id, Uuid::new_v4(), 500.0, 0.0).unwrap();
+        service
+            .add_settlement_line(batch.id, Uuid::new_v4(), 1000.0, 50.0)
+            .unwrap();
+        service
+            .add_settlement_line(batch.id, Uuid::new_v4(), 500.0, 0.0)
+            .unwrap();
 
         {
             let batches = service.batches.read().unwrap();
@@ -153,7 +166,9 @@ mod tests {
     fn test_duplicate_batch_number() {
         let service = PaymentSettlementService::new();
         let org_id = Uuid::new_v4();
-        service.create_batch(org_id, "B1".to_string(), "USD".to_string()).unwrap();
+        service
+            .create_batch(org_id, "B1".to_string(), "USD".to_string())
+            .unwrap();
         let res = service.create_batch(org_id, "B1".to_string(), "USD".to_string());
         assert!(res.is_err());
     }

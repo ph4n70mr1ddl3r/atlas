@@ -5,14 +5,12 @@
 //!
 //! Oracle Fusion Cloud equivalent: Financials > Joint Venture Management
 
-use atlas_shared::{
-    JointVenture, JointVenturePartner, JointVentureAfe,
-    JvCostDistribution, JvCostDistributionLine,
-    JvRevenueDistribution, JvRevenueDistributionLine,
-    JvBilling, JvBillingLine, JvDashboard,
-    AtlasError, AtlasResult,
-};
 use super::JointVentureRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, JointVenture, JointVentureAfe, JointVenturePartner, JvBilling,
+    JvBillingLine, JvCostDistribution, JvCostDistributionLine, JvDashboard, JvRevenueDistribution,
+    JvRevenueDistributionLine,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -33,7 +31,14 @@ const VALID_COST_TYPES: &[&str] = &["operating", "capital", "aba", "overhead"];
 const VALID_DISTRIBUTION_STATUSES: &[&str] = &["draft", "posted", "reversed"];
 const VALID_REVENUE_TYPES: &[&str] = &["sales", "royalty", "bonus", "other"];
 const VALID_BILLING_TYPES: &[&str] = &["jib", "revenue", "adjustment"];
-const VALID_BILLING_STATUSES: &[&str] = &["draft", "submitted", "approved", "paid", "disputed", "cancelled"];
+const VALID_BILLING_STATUSES: &[&str] = &[
+    "draft",
+    "submitted",
+    "approved",
+    "paid",
+    "disputed",
+    "cancelled",
+];
 
 /// Joint Venture Management Engine
 pub struct JointVentureEngine {
@@ -81,7 +86,11 @@ impl JointVentureEngine {
                 "Venture name is required".to_string(),
             ));
         }
-        validate_enum("accounting_method", accounting_method, VALID_ACCOUNTING_METHODS)?;
+        validate_enum(
+            "accounting_method",
+            accounting_method,
+            VALID_ACCOUNTING_METHODS,
+        )?;
         validate_enum("billing_cycle", billing_cycle, VALID_BILLING_CYCLES)?;
         if let (Some(start), Some(end)) = (start_date, end_date) {
             if start > end {
@@ -91,9 +100,9 @@ impl JointVentureEngine {
             }
         }
         if let Some(cap) = cost_cap_amount {
-            let cap_val: f64 = cap.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Cost cap amount must be a valid number".to_string(),
-            ))?;
+            let cap_val: f64 = cap.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Cost cap amount must be a valid number".to_string())
+            })?;
             if cap_val < 0.0 {
                 return Err(AtlasError::ValidationFailed(
                     "Cost cap amount must be non-negative".to_string(),
@@ -101,17 +110,32 @@ impl JointVentureEngine {
             }
         }
 
-        info!("Creating joint venture '{}' ({}) for org {}", venture_number, name, org_id);
+        info!(
+            "Creating joint venture '{}' ({}) for org {}",
+            venture_number, name, org_id
+        );
 
-        self.repository.create_venture(
-            org_id, venture_number, name, description,
-            operator_id, operator_name,
-            currency_code, start_date, end_date,
-            accounting_method, billing_cycle,
-            cost_cap_amount, cost_cap_currency,
-            gl_revenue_account, gl_cost_account, gl_billing_account,
-            created_by,
-        ).await
+        self.repository
+            .create_venture(
+                org_id,
+                venture_number,
+                name,
+                description,
+                operator_id,
+                operator_name,
+                currency_code,
+                start_date,
+                end_date,
+                accounting_method,
+                billing_cycle,
+                cost_cap_amount,
+                cost_cap_currency,
+                gl_revenue_account,
+                gl_cost_account,
+                gl_billing_account,
+                created_by,
+            )
+            .await
     }
 
     /// Get a joint venture by ID
@@ -120,12 +144,22 @@ impl JointVentureEngine {
     }
 
     /// Get a joint venture by number
-    pub async fn get_venture_by_number(&self, org_id: Uuid, venture_number: &str) -> AtlasResult<Option<JointVenture>> {
-        self.repository.get_venture_by_number(org_id, venture_number).await
+    pub async fn get_venture_by_number(
+        &self,
+        org_id: Uuid,
+        venture_number: &str,
+    ) -> AtlasResult<Option<JointVenture>> {
+        self.repository
+            .get_venture_by_number(org_id, venture_number)
+            .await
     }
 
     /// List joint ventures with optional status filter
-    pub async fn list_ventures(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JointVenture>> {
+    pub async fn list_ventures(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JointVenture>> {
         if let Some(s) = status {
             validate_enum("status", s, VALID_VENTURE_STATUSES)?;
         }
@@ -134,15 +168,16 @@ impl JointVentureEngine {
 
     /// Activate a joint venture
     pub async fn activate_venture(&self, id: Uuid) -> AtlasResult<JointVenture> {
-        let venture = self.repository.get_venture(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Joint venture {id} not found")
-            ))?;
+        let venture =
+            self.repository.get_venture(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Joint venture {id} not found"))
+            })?;
 
         if venture.status != "draft" && venture.status != "on_hold" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot activate venture in '{}' status. Must be 'draft' or 'on_hold'.", venture.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot activate venture in '{}' status. Must be 'draft' or 'on_hold'.",
+                venture.status
+            )));
         }
 
         info!("Activating joint venture {}", id);
@@ -151,15 +186,16 @@ impl JointVentureEngine {
 
     /// Put a venture on hold
     pub async fn hold_venture(&self, id: Uuid) -> AtlasResult<JointVenture> {
-        let venture = self.repository.get_venture(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Joint venture {id} not found")
-            ))?;
+        let venture =
+            self.repository.get_venture(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Joint venture {id} not found"))
+            })?;
 
         if venture.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot hold venture in '{}' status. Must be 'active'.", venture.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot hold venture in '{}' status. Must be 'active'.",
+                venture.status
+            )));
         }
 
         info!("Placing joint venture {} on hold", id);
@@ -168,10 +204,10 @@ impl JointVentureEngine {
 
     /// Close a joint venture
     pub async fn close_venture(&self, id: Uuid) -> AtlasResult<JointVenture> {
-        let venture = self.repository.get_venture(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Joint venture {id} not found")
-            ))?;
+        let venture =
+            self.repository.get_venture(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Joint venture {id} not found"))
+            })?;
 
         if venture.status == "closed" {
             return Err(AtlasError::WorkflowError(
@@ -208,10 +244,13 @@ impl JointVentureEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JointVenturePartner> {
         // Validate venture exists and is not closed
-        let venture = self.repository.get_venture(venture_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Joint venture {venture_id} not found")
-            ))?;
+        let venture = self
+            .repository
+            .get_venture(venture_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Joint venture {venture_id} not found"))
+            })?;
 
         if venture.status == "closed" {
             return Err(AtlasError::WorkflowError(
@@ -227,9 +266,9 @@ impl JointVentureEngine {
         validate_enum("partner_type", partner_type, VALID_PARTNER_TYPES)?;
         validate_enum("role", role, VALID_ROLES)?;
 
-        let ownership: f64 = ownership_percentage.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Ownership percentage must be a valid number".to_string(),
-        ))?;
+        let ownership: f64 = ownership_percentage.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Ownership percentage must be a valid number".to_string())
+        })?;
         if !(0.0..=100.0).contains(&ownership) {
             return Err(AtlasError::ValidationFailed(
                 "Ownership percentage must be between 0 and 100".to_string(),
@@ -245,9 +284,9 @@ impl JointVentureEngine {
             }
         }
         if total_ownership > 100.0 {
-            return Err(AtlasError::ValidationFailed(
-                format!("Total ownership would be {total_ownership:.2}% which exceeds 100%")
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Total ownership would be {total_ownership:.2}% which exceeds 100%"
+            )));
         }
 
         if let (Some(from), Some(to)) = (Some(effective_from), effective_to) {
@@ -258,15 +297,30 @@ impl JointVentureEngine {
             }
         }
 
-        info!("Adding partner '{}' to venture {} with {:.2}% ownership", partner_name, venture_id, ownership);
+        info!(
+            "Adding partner '{}' to venture {} with {:.2}% ownership",
+            partner_name, venture_id, ownership
+        );
 
-        self.repository.create_partner(
-            org_id, venture_id, partner_id, partner_name,
-            partner_type, ownership_percentage,
-            revenue_interest_pct, cost_bearing_pct,
-            role, billing_contact, billing_email, billing_address,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_partner(
+                org_id,
+                venture_id,
+                partner_id,
+                partner_name,
+                partner_type,
+                ownership_percentage,
+                revenue_interest_pct,
+                cost_bearing_pct,
+                role,
+                billing_contact,
+                billing_email,
+                billing_address,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a partner by ID
@@ -280,24 +334,35 @@ impl JointVentureEngine {
     }
 
     /// List active partners as of a given date
-    pub async fn list_active_partners(&self, venture_id: Uuid, on_date: chrono::NaiveDate) -> AtlasResult<Vec<JointVenturePartner>> {
-        self.repository.list_active_partners(venture_id, on_date).await
+    pub async fn list_active_partners(
+        &self,
+        venture_id: Uuid,
+        on_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<JointVenturePartner>> {
+        self.repository
+            .list_active_partners(venture_id, on_date)
+            .await
     }
 
     /// Withdraw a partner
     pub async fn withdraw_partner(&self, id: Uuid) -> AtlasResult<JointVenturePartner> {
-        let partner = self.repository.get_partner(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Partner {id} not found")
-            ))?;
+        let partner = self
+            .repository
+            .get_partner(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Partner {id} not found")))?;
 
         if partner.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot withdraw partner in '{}' status", partner.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot withdraw partner in '{}' status",
+                partner.status
+            )));
         }
 
-        info!("Withdrawing partner {} from venture {}", id, partner.venture_id);
+        info!(
+            "Withdrawing partner {} from venture {}",
+            id, partner.venture_id
+        );
         self.repository.update_partner_status(id, "withdrawn").await
     }
 
@@ -330,10 +395,13 @@ impl JointVentureEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JointVentureAfe> {
         // Validate venture exists
-        let venture = self.repository.get_venture(venture_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Joint venture {venture_id} not found")
-            ))?;
+        let venture = self
+            .repository
+            .get_venture(venture_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Joint venture {venture_id} not found"))
+            })?;
 
         if venture.status == "closed" {
             return Err(AtlasError::WorkflowError(
@@ -342,29 +410,47 @@ impl JointVentureEngine {
         }
 
         if afe_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("AFE number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "AFE number is required".to_string(),
+            ));
         }
         if title.is_empty() {
-            return Err(AtlasError::ValidationFailed("AFE title is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "AFE title is required".to_string(),
+            ));
         }
 
-        let cost: f64 = estimated_cost.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Estimated cost must be a valid number".to_string(),
-        ))?;
+        let cost: f64 = estimated_cost.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Estimated cost must be a valid number".to_string())
+        })?;
         if cost < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Estimated cost must be non-negative".to_string(),
             ));
         }
 
-        info!("Creating AFE '{}' for venture {} (estimated: {})", afe_number, venture_id, estimated_cost);
+        info!(
+            "Creating AFE '{}' for venture {} (estimated: {})",
+            afe_number, venture_id, estimated_cost
+        );
 
-        self.repository.create_afe(
-            org_id, venture_id, afe_number, title, description,
-            estimated_cost, currency_code,
-            cost_center, work_area, well_name,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_afe(
+                org_id,
+                venture_id,
+                afe_number,
+                title,
+                description,
+                estimated_cost,
+                currency_code,
+                cost_center,
+                work_area,
+                well_name,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get an AFE by ID
@@ -373,63 +459,83 @@ impl JointVentureEngine {
     }
 
     /// Get an AFE by number
-    pub async fn get_afe_by_number(&self, org_id: Uuid, afe_number: &str) -> AtlasResult<Option<JointVentureAfe>> {
+    pub async fn get_afe_by_number(
+        &self,
+        org_id: Uuid,
+        afe_number: &str,
+    ) -> AtlasResult<Option<JointVentureAfe>> {
         self.repository.get_afe_by_number(org_id, afe_number).await
     }
 
     /// List AFEs for a venture
-    pub async fn list_afes(&self, venture_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JointVentureAfe>> {
+    pub async fn list_afes(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JointVentureAfe>> {
         if let Some(s) = status {
             validate_enum("status", s, VALID_AFE_STATUSES)?;
         }
-        self.repository.list_afes_by_venture(venture_id, status).await
+        self.repository
+            .list_afes_by_venture(venture_id, status)
+            .await
     }
 
     /// Submit an AFE for approval
     pub async fn submit_afe(&self, id: Uuid) -> AtlasResult<JointVentureAfe> {
-        let afe = self.repository.get_afe(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AFE {id} not found")
-            ))?;
+        let afe = self
+            .repository
+            .get_afe(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("AFE {id} not found")))?;
 
         if afe.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit AFE in '{}' status. Must be 'draft'.", afe.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit AFE in '{}' status. Must be 'draft'.",
+                afe.status
+            )));
         }
 
         info!("Submitting AFE {} for approval", id);
-        self.repository.update_afe_status(id, "submitted", None, None).await
+        self.repository
+            .update_afe_status(id, "submitted", None, None)
+            .await
     }
 
     /// Approve an AFE
     pub async fn approve_afe(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<JointVentureAfe> {
-        let afe = self.repository.get_afe(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AFE {id} not found")
-            ))?;
+        let afe = self
+            .repository
+            .get_afe(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("AFE {id} not found")))?;
 
         if afe.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve AFE in '{}' status. Must be 'submitted'.", afe.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve AFE in '{}' status. Must be 'submitted'.",
+                afe.status
+            )));
         }
 
         info!("Approving AFE {} by {}", id, approved_by);
-        self.repository.update_afe_status(id, "approved", Some(approved_by), None).await
+        self.repository
+            .update_afe_status(id, "approved", Some(approved_by), None)
+            .await
     }
 
     /// Reject an AFE
     pub async fn reject_afe(&self, id: Uuid, reason: &str) -> AtlasResult<JointVentureAfe> {
-        let afe = self.repository.get_afe(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AFE {id} not found")
-            ))?;
+        let afe = self
+            .repository
+            .get_afe(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("AFE {id} not found")))?;
 
         if afe.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reject AFE in '{}' status. Must be 'submitted'.", afe.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reject AFE in '{}' status. Must be 'submitted'.",
+                afe.status
+            )));
         }
 
         if reason.is_empty() {
@@ -439,24 +545,30 @@ impl JointVentureEngine {
         }
 
         info!("Rejecting AFE {}: {}", id, reason);
-        self.repository.update_afe_status(id, "rejected", None, Some(reason)).await
+        self.repository
+            .update_afe_status(id, "rejected", None, Some(reason))
+            .await
     }
 
     /// Close an AFE
     pub async fn close_afe(&self, id: Uuid) -> AtlasResult<JointVentureAfe> {
-        let afe = self.repository.get_afe(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AFE {id} not found")
-            ))?;
+        let afe = self
+            .repository
+            .get_afe(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("AFE {id} not found")))?;
 
         if afe.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot close AFE in '{}' status. Must be 'approved'.", afe.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot close AFE in '{}' status. Must be 'approved'.",
+                afe.status
+            )));
         }
 
         info!("Closing AFE {}", id);
-        self.repository.update_afe_status(id, "closed", None, None).await
+        self.repository
+            .update_afe_status(id, "closed", None, None)
+            .await
     }
 
     // ========================================================================
@@ -482,26 +594,32 @@ impl JointVentureEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<(JvCostDistribution, Vec<JvCostDistributionLine>)> {
         // Validate venture is active
-        let venture = self.repository.get_venture(venture_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Joint venture {venture_id} not found")
-            ))?;
+        let venture = self
+            .repository
+            .get_venture(venture_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Joint venture {venture_id} not found"))
+            })?;
 
         if venture.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot distribute costs for venture in '{}' status. Must be 'active'.", venture.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot distribute costs for venture in '{}' status. Must be 'active'.",
+                venture.status
+            )));
         }
 
         if distribution_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Distribution number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Distribution number is required".to_string(),
+            ));
         }
 
         validate_enum("cost_type", cost_type, VALID_COST_TYPES)?;
 
-        let amount: f64 = total_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Total amount must be a valid number".to_string(),
-        ))?;
+        let amount: f64 = total_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Total amount must be a valid number".to_string())
+        })?;
         if amount < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Total amount must be non-negative".to_string(),
@@ -510,27 +628,44 @@ impl JointVentureEngine {
 
         // Validate AFE if specified
         if let Some(afe_id) = afe_id {
-            let afe = self.repository.get_afe(afe_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("AFE {afe_id} not found")
-                ))?;
+            let afe = self
+                .repository
+                .get_afe(afe_id)
+                .await?
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("AFE {afe_id} not found")))?;
             if afe.status != "approved" {
-                return Err(AtlasError::WorkflowError(
-                    format!("Cannot distribute against AFE in '{}' status. Must be 'approved'.", afe.status)
-                ));
+                return Err(AtlasError::WorkflowError(format!(
+                    "Cannot distribute against AFE in '{}' status. Must be 'approved'.",
+                    afe.status
+                )));
             }
         }
 
         // Create the distribution header
-        let distribution = self.repository.create_cost_distribution(
-            org_id, venture_id, distribution_number,
-            afe_id, description, total_amount, currency_code,
-            cost_type, distribution_date,
-            source_type, source_id, source_number, created_by,
-        ).await?;
+        let distribution = self
+            .repository
+            .create_cost_distribution(
+                org_id,
+                venture_id,
+                distribution_number,
+                afe_id,
+                description,
+                total_amount,
+                currency_code,
+                cost_type,
+                distribution_date,
+                source_type,
+                source_id,
+                source_number,
+                created_by,
+            )
+            .await?;
 
         // Get active partners as of distribution date
-        let partners = self.repository.list_active_partners(venture_id, distribution_date).await?;
+        let partners = self
+            .repository
+            .list_active_partners(venture_id, distribution_date)
+            .await?;
 
         if partners.is_empty() {
             return Err(AtlasError::ValidationFailed(
@@ -541,25 +676,40 @@ impl JointVentureEngine {
         // Distribute cost across partners based on cost_bearing_pct
         let mut lines = Vec::new();
         for partner in &partners {
-            let bearing_pct: f64 = partner.cost_bearing_pct
-                .as_deref().map_or_else(|| partner.ownership_percentage.parse().unwrap_or(0.0), |p| p.parse().unwrap_or(0.0));
+            let bearing_pct: f64 = partner.cost_bearing_pct.as_deref().map_or_else(
+                || partner.ownership_percentage.parse().unwrap_or(0.0),
+                |p| p.parse().unwrap_or(0.0),
+            );
 
             let distributed = (amount * bearing_pct) / 100.0;
 
-            let line = self.repository.create_cost_distribution_line(
-                org_id, distribution.id, partner.partner_id,
-                Some(&partner.partner_name),
-                &partner.ownership_percentage,
-                &format!("{bearing_pct:.4}"),
-                &format!("{distributed:.4}"),
-                venture.gl_cost_account.as_deref(),
-                Some(&format!("Cost distribution for {} ({:.2}%)", partner.partner_name, bearing_pct)),
-            ).await?;
+            let line = self
+                .repository
+                .create_cost_distribution_line(
+                    org_id,
+                    distribution.id,
+                    partner.partner_id,
+                    Some(&partner.partner_name),
+                    &partner.ownership_percentage,
+                    &format!("{bearing_pct:.4}"),
+                    &format!("{distributed:.4}"),
+                    venture.gl_cost_account.as_deref(),
+                    Some(&format!(
+                        "Cost distribution for {} ({:.2}%)",
+                        partner.partner_name, bearing_pct
+                    )),
+                )
+                .await?;
 
             lines.push(line);
         }
 
-        info!("Created cost distribution {} for venture {} with {} partner lines", distribution_number, venture_id, lines.len());
+        info!(
+            "Created cost distribution {} for venture {} with {} partner lines",
+            distribution_number,
+            venture_id,
+            lines.len()
+        );
 
         Ok((distribution, lines))
     }
@@ -570,50 +720,73 @@ impl JointVentureEngine {
     }
 
     /// List cost distributions for a venture
-    pub async fn list_cost_distributions(&self, venture_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JvCostDistribution>> {
+    pub async fn list_cost_distributions(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JvCostDistribution>> {
         if let Some(s) = status {
             validate_enum("status", s, VALID_DISTRIBUTION_STATUSES)?;
         }
-        self.repository.list_cost_distributions(venture_id, status).await
+        self.repository
+            .list_cost_distributions(venture_id, status)
+            .await
     }
 
     /// Post a cost distribution to GL
     pub async fn post_cost_distribution(&self, id: Uuid) -> AtlasResult<JvCostDistribution> {
-        let dist = self.repository.get_cost_distribution(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Cost distribution {id} not found")
-            ))?;
+        let dist = self
+            .repository
+            .get_cost_distribution(id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Cost distribution {id} not found"))
+            })?;
 
         if dist.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot post distribution in '{}' status. Must be 'draft'.", dist.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot post distribution in '{}' status. Must be 'draft'.",
+                dist.status
+            )));
         }
 
         info!("Posting cost distribution {} to GL", id);
-        self.repository.update_cost_distribution_status(id, "posted").await
+        self.repository
+            .update_cost_distribution_status(id, "posted")
+            .await
     }
 
     /// Reverse a posted cost distribution
     pub async fn reverse_cost_distribution(&self, id: Uuid) -> AtlasResult<JvCostDistribution> {
-        let dist = self.repository.get_cost_distribution(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Cost distribution {id} not found")
-            ))?;
+        let dist = self
+            .repository
+            .get_cost_distribution(id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Cost distribution {id} not found"))
+            })?;
 
         if dist.status != "posted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reverse distribution in '{}' status. Must be 'posted'.", dist.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reverse distribution in '{}' status. Must be 'posted'.",
+                dist.status
+            )));
         }
 
         info!("Reversing cost distribution {}", id);
-        self.repository.update_cost_distribution_status(id, "reversed").await
+        self.repository
+            .update_cost_distribution_status(id, "reversed")
+            .await
     }
 
     /// List cost distribution lines
-    pub async fn list_cost_distribution_lines(&self, distribution_id: Uuid) -> AtlasResult<Vec<JvCostDistributionLine>> {
-        self.repository.list_cost_distribution_lines(distribution_id).await
+    pub async fn list_cost_distribution_lines(
+        &self,
+        distribution_id: Uuid,
+    ) -> AtlasResult<Vec<JvCostDistributionLine>> {
+        self.repository
+            .list_cost_distribution_lines(distribution_id)
+            .await
     }
 
     // ========================================================================
@@ -638,26 +811,32 @@ impl JointVentureEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<(JvRevenueDistribution, Vec<JvRevenueDistributionLine>)> {
         // Validate venture is active
-        let venture = self.repository.get_venture(venture_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Joint venture {venture_id} not found")
-            ))?;
+        let venture = self
+            .repository
+            .get_venture(venture_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Joint venture {venture_id} not found"))
+            })?;
 
         if venture.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot distribute revenue for venture in '{}' status", venture.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot distribute revenue for venture in '{}' status",
+                venture.status
+            )));
         }
 
         if distribution_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Distribution number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Distribution number is required".to_string(),
+            ));
         }
 
         validate_enum("revenue_type", revenue_type, VALID_REVENUE_TYPES)?;
 
-        let amount: f64 = total_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Total amount must be a valid number".to_string(),
-        ))?;
+        let amount: f64 = total_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Total amount must be a valid number".to_string())
+        })?;
         if amount < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Total amount must be non-negative".to_string(),
@@ -665,15 +844,29 @@ impl JointVentureEngine {
         }
 
         // Create the distribution header
-        let distribution = self.repository.create_revenue_distribution(
-            org_id, venture_id, distribution_number,
-            description, total_amount, currency_code,
-            revenue_type, distribution_date,
-            source_type, source_id, source_number, created_by,
-        ).await?;
+        let distribution = self
+            .repository
+            .create_revenue_distribution(
+                org_id,
+                venture_id,
+                distribution_number,
+                description,
+                total_amount,
+                currency_code,
+                revenue_type,
+                distribution_date,
+                source_type,
+                source_id,
+                source_number,
+                created_by,
+            )
+            .await?;
 
         // Get active partners
-        let partners = self.repository.list_active_partners(venture_id, distribution_date).await?;
+        let partners = self
+            .repository
+            .list_active_partners(venture_id, distribution_date)
+            .await?;
 
         if partners.is_empty() {
             return Err(AtlasError::ValidationFailed(
@@ -684,78 +877,122 @@ impl JointVentureEngine {
         // Distribute revenue based on revenue_interest_pct
         let mut lines = Vec::new();
         for partner in &partners {
-            let rev_pct: f64 = partner.revenue_interest_pct
-                .as_deref().map_or_else(|| partner.ownership_percentage.parse().unwrap_or(0.0), |p| p.parse().unwrap_or(0.0));
+            let rev_pct: f64 = partner.revenue_interest_pct.as_deref().map_or_else(
+                || partner.ownership_percentage.parse().unwrap_or(0.0),
+                |p| p.parse().unwrap_or(0.0),
+            );
 
             let distributed = (amount * rev_pct) / 100.0;
 
-            let line = self.repository.create_revenue_distribution_line(
-                org_id, distribution.id, partner.partner_id,
-                Some(&partner.partner_name),
-                &format!("{rev_pct:.4}"),
-                &format!("{distributed:.4}"),
-                venture.gl_revenue_account.as_deref(),
-                Some(&format!("Revenue distribution for {} ({:.2}%)", partner.partner_name, rev_pct)),
-            ).await?;
+            let line = self
+                .repository
+                .create_revenue_distribution_line(
+                    org_id,
+                    distribution.id,
+                    partner.partner_id,
+                    Some(&partner.partner_name),
+                    &format!("{rev_pct:.4}"),
+                    &format!("{distributed:.4}"),
+                    venture.gl_revenue_account.as_deref(),
+                    Some(&format!(
+                        "Revenue distribution for {} ({:.2}%)",
+                        partner.partner_name, rev_pct
+                    )),
+                )
+                .await?;
 
             lines.push(line);
         }
 
-        info!("Created revenue distribution {} for venture {} with {} partner lines", distribution_number, venture_id, lines.len());
+        info!(
+            "Created revenue distribution {} for venture {} with {} partner lines",
+            distribution_number,
+            venture_id,
+            lines.len()
+        );
 
         Ok((distribution, lines))
     }
 
     /// Get a revenue distribution
-    pub async fn get_revenue_distribution(&self, id: Uuid) -> AtlasResult<Option<JvRevenueDistribution>> {
+    pub async fn get_revenue_distribution(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<JvRevenueDistribution>> {
         self.repository.get_revenue_distribution(id).await
     }
 
     /// List revenue distributions for a venture
-    pub async fn list_revenue_distributions(&self, venture_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JvRevenueDistribution>> {
+    pub async fn list_revenue_distributions(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JvRevenueDistribution>> {
         if let Some(s) = status {
             validate_enum("status", s, VALID_DISTRIBUTION_STATUSES)?;
         }
-        self.repository.list_revenue_distributions(venture_id, status).await
+        self.repository
+            .list_revenue_distributions(venture_id, status)
+            .await
     }
 
     /// Post a revenue distribution
     pub async fn post_revenue_distribution(&self, id: Uuid) -> AtlasResult<JvRevenueDistribution> {
-        let dist = self.repository.get_revenue_distribution(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Revenue distribution {id} not found")
-            ))?;
+        let dist = self
+            .repository
+            .get_revenue_distribution(id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Revenue distribution {id} not found"))
+            })?;
 
         if dist.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot post distribution in '{}' status. Must be 'draft'.", dist.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot post distribution in '{}' status. Must be 'draft'.",
+                dist.status
+            )));
         }
 
         info!("Posting revenue distribution {} to GL", id);
-        self.repository.update_revenue_distribution_status(id, "posted").await
+        self.repository
+            .update_revenue_distribution_status(id, "posted")
+            .await
     }
 
     /// Reverse a posted revenue distribution
-    pub async fn reverse_revenue_distribution(&self, id: Uuid) -> AtlasResult<JvRevenueDistribution> {
-        let dist = self.repository.get_revenue_distribution(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Revenue distribution {id} not found")
-            ))?;
+    pub async fn reverse_revenue_distribution(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<JvRevenueDistribution> {
+        let dist = self
+            .repository
+            .get_revenue_distribution(id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Revenue distribution {id} not found"))
+            })?;
 
         if dist.status != "posted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reverse distribution in '{}' status. Must be 'posted'.", dist.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reverse distribution in '{}' status. Must be 'posted'.",
+                dist.status
+            )));
         }
 
         info!("Reversing revenue distribution {}", id);
-        self.repository.update_revenue_distribution_status(id, "reversed").await
+        self.repository
+            .update_revenue_distribution_status(id, "reversed")
+            .await
     }
 
     /// List revenue distribution lines
-    pub async fn list_revenue_distribution_lines(&self, distribution_id: Uuid) -> AtlasResult<Vec<JvRevenueDistributionLine>> {
-        self.repository.list_revenue_distribution_lines(distribution_id).await
+    pub async fn list_revenue_distribution_lines(
+        &self,
+        distribution_id: Uuid,
+    ) -> AtlasResult<Vec<JvRevenueDistributionLine>> {
+        self.repository
+            .list_revenue_distribution_lines(distribution_id)
+            .await
     }
 
     // ========================================================================
@@ -781,22 +1018,28 @@ impl JointVentureEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JvBilling> {
         if billing_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Billing number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Billing number is required".to_string(),
+            ));
         }
         validate_enum("billing_type", billing_type, VALID_BILLING_TYPES)?;
 
-        let total: f64 = total_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Total amount must be a valid number".to_string(),
-        ))?;
-        let tax: f64 = tax_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Tax amount must be a valid number".to_string(),
-        ))?;
+        let total: f64 = total_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Total amount must be a valid number".to_string())
+        })?;
+        let tax: f64 = tax_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Tax amount must be a valid number".to_string())
+        })?;
 
         if total < 0.0 {
-            return Err(AtlasError::ValidationFailed("Total amount must be non-negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Total amount must be non-negative".to_string(),
+            ));
         }
         if tax < 0.0 {
-            return Err(AtlasError::ValidationFailed("Tax amount must be non-negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Tax amount must be non-negative".to_string(),
+            ));
         }
 
         if billing_period_start > billing_period_end {
@@ -807,15 +1050,29 @@ impl JointVentureEngine {
 
         let total_with_tax = format!("{:.4}", total + tax);
 
-        info!("Creating billing {} for partner {} in venture {}", billing_number, partner_id, venture_id);
+        info!(
+            "Creating billing {} for partner {} in venture {}",
+            billing_number, partner_id, venture_id
+        );
 
-        self.repository.create_billing(
-            org_id, venture_id, billing_number,
-            partner_id, partner_name, billing_type,
-            total_amount, tax_amount, &total_with_tax,
-            currency_code, billing_period_start, billing_period_end,
-            due_date, created_by,
-        ).await
+        self.repository
+            .create_billing(
+                org_id,
+                venture_id,
+                billing_number,
+                partner_id,
+                partner_name,
+                billing_type,
+                total_amount,
+                tax_amount,
+                &total_with_tax,
+                currency_code,
+                billing_period_start,
+                billing_period_end,
+                due_date,
+                created_by,
+            )
+            .await
     }
 
     /// Get a billing by ID
@@ -824,66 +1081,89 @@ impl JointVentureEngine {
     }
 
     /// Get a billing by number
-    pub async fn get_billing_by_number(&self, org_id: Uuid, billing_number: &str) -> AtlasResult<Option<JvBilling>> {
-        self.repository.get_billing_by_number(org_id, billing_number).await
+    pub async fn get_billing_by_number(
+        &self,
+        org_id: Uuid,
+        billing_number: &str,
+    ) -> AtlasResult<Option<JvBilling>> {
+        self.repository
+            .get_billing_by_number(org_id, billing_number)
+            .await
     }
 
     /// List billings for a venture
-    pub async fn list_billings(&self, venture_id: Uuid, status: Option<&str>, billing_type: Option<&str>) -> AtlasResult<Vec<JvBilling>> {
+    pub async fn list_billings(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+        billing_type: Option<&str>,
+    ) -> AtlasResult<Vec<JvBilling>> {
         if let Some(s) = status {
             validate_enum("status", s, VALID_BILLING_STATUSES)?;
         }
         if let Some(bt) = billing_type {
             validate_enum("billing_type", bt, VALID_BILLING_TYPES)?;
         }
-        self.repository.list_billings(venture_id, status, billing_type).await
+        self.repository
+            .list_billings(venture_id, status, billing_type)
+            .await
     }
 
     /// Submit a billing for approval
     pub async fn submit_billing(&self, id: Uuid) -> AtlasResult<JvBilling> {
-        let billing = self.repository.get_billing(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Billing {id} not found")
-            ))?;
+        let billing = self
+            .repository
+            .get_billing(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {id} not found")))?;
 
         if billing.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit billing in '{}' status. Must be 'draft'.", billing.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit billing in '{}' status. Must be 'draft'.",
+                billing.status
+            )));
         }
 
         info!("Submitting billing {} for approval", id);
-        self.repository.update_billing_status(id, "submitted", None, None, None).await
+        self.repository
+            .update_billing_status(id, "submitted", None, None, None)
+            .await
     }
 
     /// Approve a billing
     pub async fn approve_billing(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<JvBilling> {
-        let billing = self.repository.get_billing(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Billing {id} not found")
-            ))?;
+        let billing = self
+            .repository
+            .get_billing(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {id} not found")))?;
 
         if billing.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve billing in '{}' status. Must be 'submitted'.", billing.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve billing in '{}' status. Must be 'submitted'.",
+                billing.status
+            )));
         }
 
         info!("Approving billing {} by {}", id, approved_by);
-        self.repository.update_billing_status(id, "approved", Some(approved_by), None, None).await
+        self.repository
+            .update_billing_status(id, "approved", Some(approved_by), None, None)
+            .await
     }
 
     /// Record payment for a billing
     pub async fn pay_billing(&self, id: Uuid, payment_reference: &str) -> AtlasResult<JvBilling> {
-        let billing = self.repository.get_billing(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Billing {id} not found")
-            ))?;
+        let billing = self
+            .repository
+            .get_billing(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {id} not found")))?;
 
         if billing.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot pay billing in '{}' status. Must be 'approved'.", billing.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot pay billing in '{}' status. Must be 'approved'.",
+                billing.status
+            )));
         }
 
         if payment_reference.is_empty() {
@@ -892,21 +1172,28 @@ impl JointVentureEngine {
             ));
         }
 
-        info!("Recording payment for billing {} (ref: {})", id, payment_reference);
-        self.repository.update_billing_status(id, "paid", None, Some(payment_reference), None).await
+        info!(
+            "Recording payment for billing {} (ref: {})",
+            id, payment_reference
+        );
+        self.repository
+            .update_billing_status(id, "paid", None, Some(payment_reference), None)
+            .await
     }
 
     /// Dispute a billing
     pub async fn dispute_billing(&self, id: Uuid, reason: &str) -> AtlasResult<JvBilling> {
-        let billing = self.repository.get_billing(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Billing {id} not found")
-            ))?;
+        let billing = self
+            .repository
+            .get_billing(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {id} not found")))?;
 
         if billing.status != "approved" && billing.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot dispute billing in '{}' status", billing.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot dispute billing in '{}' status",
+                billing.status
+            )));
         }
 
         if reason.is_empty() {
@@ -916,24 +1203,30 @@ impl JointVentureEngine {
         }
 
         info!("Disputing billing {}: {}", id, reason);
-        self.repository.update_billing_status(id, "disputed", None, None, Some(reason)).await
+        self.repository
+            .update_billing_status(id, "disputed", None, None, Some(reason))
+            .await
     }
 
     /// Cancel a draft billing
     pub async fn cancel_billing(&self, id: Uuid) -> AtlasResult<JvBilling> {
-        let billing = self.repository.get_billing(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Billing {id} not found")
-            ))?;
+        let billing = self
+            .repository
+            .get_billing(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {id} not found")))?;
 
         if billing.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel billing in '{}' status. Must be 'draft'.", billing.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel billing in '{}' status. Must be 'draft'.",
+                billing.status
+            )));
         }
 
         info!("Cancelling billing {}", id);
-        self.repository.update_billing_status(id, "cancelled", None, None, None).await
+        self.repository
+            .update_billing_status(id, "cancelled", None, None, None)
+            .await
     }
 
     /// Add a line to a billing
@@ -949,10 +1242,11 @@ impl JointVentureEngine {
         amount: &str,
         ownership_pct: Option<&str>,
     ) -> AtlasResult<JvBillingLine> {
-        let billing = self.repository.get_billing(billing_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Billing {billing_id} not found")
-            ))?;
+        let billing = self
+            .repository
+            .get_billing(billing_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing {billing_id} not found")))?;
 
         if billing.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -960,20 +1254,28 @@ impl JointVentureEngine {
             ));
         }
 
-        let amount_val: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amount_val: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
         if amount_val < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Amount must be non-negative".to_string(),
             ));
         }
 
-        self.repository.create_billing_line(
-            org_id, billing_id, line_number,
-            cost_distribution_id, revenue_distribution_id,
-            description, cost_type, amount, ownership_pct,
-        ).await
+        self.repository
+            .create_billing_line(
+                org_id,
+                billing_id,
+                line_number,
+                cost_distribution_id,
+                revenue_distribution_id,
+                description,
+                cost_type,
+                amount,
+                ownership_pct,
+            )
+            .await
     }
 
     /// List billing lines
@@ -1000,7 +1302,10 @@ fn validate_enum(field: &str, value: &str, valid: &[&str]) -> AtlasResult<()> {
         Ok(())
     } else {
         Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field, value, valid.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field,
+            value,
+            valid.join(", ")
         )))
     }
 }
@@ -1145,12 +1450,27 @@ mod tests {
     #[tokio::test]
     async fn test_create_venture_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_venture(
-            test_org_id(), "", "Test Venture", None,
-            None, None, "USD", None, None,
-            "proportional", "monthly", None, None,
-            None, None, None, None,
-        ).await;
+        let result = engine
+            .create_venture(
+                test_org_id(),
+                "",
+                "Test Venture",
+                None,
+                None,
+                None,
+                "USD",
+                None,
+                None,
+                "proportional",
+                "monthly",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -1161,12 +1481,27 @@ mod tests {
     #[tokio::test]
     async fn test_create_venture_validation_empty_name() {
         let engine = create_engine();
-        let result = engine.create_venture(
-            test_org_id(), "JV-001", "", None,
-            None, None, "USD", None, None,
-            "proportional", "monthly", None, None,
-            None, None, None, None,
-        ).await;
+        let result = engine
+            .create_venture(
+                test_org_id(),
+                "JV-001",
+                "",
+                None,
+                None,
+                None,
+                "USD",
+                None,
+                None,
+                "proportional",
+                "monthly",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("name")),
@@ -1177,12 +1512,27 @@ mod tests {
     #[tokio::test]
     async fn test_create_venture_validation_bad_accounting_method() {
         let engine = create_engine();
-        let result = engine.create_venture(
-            test_org_id(), "JV-001", "Test Venture", None,
-            None, None, "USD", None, None,
-            "invalid_method", "monthly", None, None,
-            None, None, None, None,
-        ).await;
+        let result = engine
+            .create_venture(
+                test_org_id(),
+                "JV-001",
+                "Test Venture",
+                None,
+                None,
+                None,
+                "USD",
+                None,
+                None,
+                "invalid_method",
+                "monthly",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("accounting_method")),
@@ -1193,12 +1543,27 @@ mod tests {
     #[tokio::test]
     async fn test_create_venture_validation_bad_billing_cycle() {
         let engine = create_engine();
-        let result = engine.create_venture(
-            test_org_id(), "JV-001", "Test Venture", None,
-            None, None, "USD", None, None,
-            "proportional", "weekly", None, None,
-            None, None, None, None,
-        ).await;
+        let result = engine
+            .create_venture(
+                test_org_id(),
+                "JV-001",
+                "Test Venture",
+                None,
+                None,
+                None,
+                "USD",
+                None,
+                None,
+                "proportional",
+                "weekly",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("billing_cycle")),
@@ -1211,12 +1576,27 @@ mod tests {
         let engine = create_engine();
         let start = NaiveDate::from_ymd_opt(2025, 12, 1).unwrap();
         let end = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
-        let result = engine.create_venture(
-            test_org_id(), "JV-001", "Test Venture", None,
-            None, None, "USD", Some(start), Some(end),
-            "proportional", "monthly", None, None,
-            None, None, None, None,
-        ).await;
+        let result = engine
+            .create_venture(
+                test_org_id(),
+                "JV-001",
+                "Test Venture",
+                None,
+                None,
+                None,
+                "USD",
+                Some(start),
+                Some(end),
+                "proportional",
+                "monthly",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("date")),
@@ -1227,12 +1607,27 @@ mod tests {
     #[tokio::test]
     async fn test_create_venture_validation_negative_cost_cap() {
         let engine = create_engine();
-        let result = engine.create_venture(
-            test_org_id(), "JV-001", "Test Venture", None,
-            None, None, "USD", None, None,
-            "proportional", "monthly", Some("-100"), None,
-            None, None, None, None,
-        ).await;
+        let result = engine
+            .create_venture(
+                test_org_id(),
+                "JV-001",
+                "Test Venture",
+                None,
+                None,
+                None,
+                "USD",
+                None,
+                None,
+                "proportional",
+                "monthly",
+                Some("-100"),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("non-negative")),
@@ -1243,15 +1638,27 @@ mod tests {
     #[tokio::test]
     async fn test_create_venture_success() {
         let engine = create_engine();
-        let result = engine.create_venture(
-            test_org_id(), "JV-001", "Alpha Joint Venture", Some("Oil & gas partnership"),
-            Some(test_user_id()), Some("Operator Corp"), "USD",
-            Some(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()),
-            Some(NaiveDate::from_ymd_opt(2030, 12, 31).unwrap()),
-            "proportional", "monthly", Some("1000000"), Some("USD"),
-            Some("4000"), Some("5000"), Some("6000"),
-            Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_venture(
+                test_org_id(),
+                "JV-001",
+                "Alpha Joint Venture",
+                Some("Oil & gas partnership"),
+                Some(test_user_id()),
+                Some("Operator Corp"),
+                "USD",
+                Some(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()),
+                Some(NaiveDate::from_ymd_opt(2030, 12, 31).unwrap()),
+                "proportional",
+                "monthly",
+                Some("1000000"),
+                Some("USD"),
+                Some("4000"),
+                Some("5000"),
+                Some("6000"),
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let venture = result.unwrap();
         assert_eq!(venture.venture_number, "JV-001");
@@ -1278,12 +1685,25 @@ mod tests {
     #[tokio::test]
     async fn test_add_partner_venture_not_found() {
         let engine = create_engine();
-        let result = engine.add_partner(
-            test_org_id(), Uuid::new_v4(), Uuid::new_v4(), "",
-            "operator", "50.00", None, None,
-            "operator", None, None, None,
-            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await;
+        let result = engine
+            .add_partner(
+                test_org_id(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "",
+                "operator",
+                "50.00",
+                None,
+                None,
+                "operator",
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::EntityNotFound(msg) => assert!(msg.contains("not found")),
@@ -1294,12 +1714,25 @@ mod tests {
     #[tokio::test]
     async fn test_add_partner_invalid_type_venture_not_found() {
         let engine = create_engine();
-        let result = engine.add_partner(
-            test_org_id(), Uuid::new_v4(), Uuid::new_v4(), "Partner A",
-            "invalid_type", "50.00", None, None,
-            "operator", None, None, None,
-            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await;
+        let result = engine
+            .add_partner(
+                test_org_id(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "Partner A",
+                "invalid_type",
+                "50.00",
+                None,
+                None,
+                "operator",
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         // Venture check comes first, so EntityNotFound
         match result.unwrap_err() {
@@ -1311,12 +1744,25 @@ mod tests {
     #[tokio::test]
     async fn test_add_partner_ownership_over_100_venture_not_found() {
         let engine = create_engine();
-        let result = engine.add_partner(
-            test_org_id(), Uuid::new_v4(), Uuid::new_v4(), "Partner A",
-            "non_operator", "150.00", None, None,
-            "partner", None, None, None,
-            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await;
+        let result = engine
+            .add_partner(
+                test_org_id(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "Partner A",
+                "non_operator",
+                "150.00",
+                None,
+                None,
+                "partner",
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         // Venture check comes first
         match result.unwrap_err() {
@@ -1328,11 +1774,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_afe_venture_not_found() {
         let engine = create_engine();
-        let result = engine.create_afe(
-            test_org_id(), Uuid::new_v4(), "", "AFE Title", None,
-            "100000", "USD", None, None, None,
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_afe(
+                test_org_id(),
+                Uuid::new_v4(),
+                "",
+                "AFE Title",
+                None,
+                "100000",
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::EntityNotFound(msg) => assert!(msg.contains("not found")),
@@ -1343,11 +1801,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_afe_negative_cost_venture_not_found() {
         let engine = create_engine();
-        let result = engine.create_afe(
-            test_org_id(), Uuid::new_v4(), "AFE-001", "AFE Title", None,
-            "-500", "USD", None, None, None,
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_afe(
+                test_org_id(),
+                Uuid::new_v4(),
+                "AFE-001",
+                "AFE Title",
+                None,
+                "-500",
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         // Venture check comes first
         match result.unwrap_err() {
@@ -1359,14 +1829,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_billing_negative_amount() {
         let engine = create_engine();
-        let result = engine.create_billing(
-            test_org_id(), Uuid::new_v4(), "BIL-001",
-            Uuid::new_v4(), Some("Partner"), "jib",
-            "-100", "0", "USD",
-            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
-            None, None,
-        ).await;
+        let result = engine
+            .create_billing(
+                test_org_id(),
+                Uuid::new_v4(),
+                "BIL-001",
+                Uuid::new_v4(),
+                Some("Partner"),
+                "jib",
+                "-100",
+                "0",
+                "USD",
+                NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("non-negative")),
@@ -1377,14 +1856,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_billing_invalid_type() {
         let engine = create_engine();
-        let result = engine.create_billing(
-            test_org_id(), Uuid::new_v4(), "BIL-001",
-            Uuid::new_v4(), Some("Partner"), "invalid",
-            "100", "0", "USD",
-            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
-            None, None,
-        ).await;
+        let result = engine
+            .create_billing(
+                test_org_id(),
+                Uuid::new_v4(),
+                "BIL-001",
+                Uuid::new_v4(),
+                Some("Partner"),
+                "invalid",
+                "100",
+                "0",
+                "USD",
+                NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("billing_type")),
@@ -1395,14 +1883,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_billing_date_range_invalid() {
         let engine = create_engine();
-        let result = engine.create_billing(
-            test_org_id(), Uuid::new_v4(), "BIL-001",
-            Uuid::new_v4(), Some("Partner"), "jib",
-            "100", "0", "USD",
-            NaiveDate::from_ymd_opt(2025, 2, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            None, None,
-        ).await;
+        let result = engine
+            .create_billing(
+                test_org_id(),
+                Uuid::new_v4(),
+                "BIL-001",
+                Uuid::new_v4(),
+                Some("Partner"),
+                "jib",
+                "100",
+                "0",
+                "USD",
+                NaiveDate::from_ymd_opt(2025, 2, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("start must be before end")),
@@ -1431,28 +1928,36 @@ mod tests {
     #[tokio::test]
     async fn test_list_cost_distributions_invalid_status() {
         let engine = create_engine();
-        let result = engine.list_cost_distributions(Uuid::new_v4(), Some("invalid")).await;
+        let result = engine
+            .list_cost_distributions(Uuid::new_v4(), Some("invalid"))
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_list_revenue_distributions_invalid_status() {
         let engine = create_engine();
-        let result = engine.list_revenue_distributions(Uuid::new_v4(), Some("invalid")).await;
+        let result = engine
+            .list_revenue_distributions(Uuid::new_v4(), Some("invalid"))
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_list_billings_invalid_status() {
         let engine = create_engine();
-        let result = engine.list_billings(Uuid::new_v4(), Some("invalid"), None).await;
+        let result = engine
+            .list_billings(Uuid::new_v4(), Some("invalid"), None)
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_list_billings_invalid_type() {
         let engine = create_engine();
-        let result = engine.list_billings(Uuid::new_v4(), None, Some("invalid")).await;
+        let result = engine
+            .list_billings(Uuid::new_v4(), None, Some("invalid"))
+            .await;
         assert!(result.is_err());
     }
 
@@ -1655,7 +2160,9 @@ mod tests {
     #[tokio::test]
     async fn test_dispute_billing_not_found() {
         let engine = create_engine();
-        let result = engine.dispute_billing(Uuid::new_v4(), "Incorrect charges").await;
+        let result = engine
+            .dispute_billing(Uuid::new_v4(), "Incorrect charges")
+            .await;
         assert!(result.is_err());
     }
 

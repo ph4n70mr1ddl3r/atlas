@@ -6,8 +6,10 @@
 //!
 //! Oracle Fusion equivalent: Receivables > Collections > Allowance for Doubtful Accounts
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::DoubtfulAccountAllowanceEngine;
-pub use repository::{DoubtfulAccountAllowanceRepository, PostgresDoubtfulAccountAllowanceRepository};
+pub use repository::{
+    DoubtfulAccountAllowanceRepository, PostgresDoubtfulAccountAllowanceRepository,
+};

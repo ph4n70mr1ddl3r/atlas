@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for purchase requisitions, lines, distributions,
 //! approvals, and `AutoCreate` links.
 
-use atlas_shared::{
-    PurchaseRequisition, RequisitionLine, RequisitionDistribution,
-    RequisitionApproval, AutocreateLink, RequisitionDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, AutocreateLink, PurchaseRequisition, RequisitionApproval,
+    RequisitionDashboardSummary, RequisitionDistribution, RequisitionLine,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -19,29 +18,52 @@ pub trait PurchaseRequisitionRepository: Send + Sync {
     // ── Requisitions ─────────────────────────────────────────────
     async fn create_requisition(
         &self,
-        org_id: Uuid, requisition_number: &str, description: Option<&str>,
-        urgency_code: &str, requester_id: Option<Uuid>, requester_name: Option<&str>,
-        department: Option<&str>, justification: Option<&str>,
-        budget_code: Option<&str>, amount_limit: Option<&str>,
-        total_amount: &str, currency_code: &str,
-        charge_account_code: Option<&str>, delivery_address: Option<&str>,
+        org_id: Uuid,
+        requisition_number: &str,
+        description: Option<&str>,
+        urgency_code: &str,
+        requester_id: Option<Uuid>,
+        requester_name: Option<&str>,
+        department: Option<&str>,
+        justification: Option<&str>,
+        budget_code: Option<&str>,
+        amount_limit: Option<&str>,
+        total_amount: &str,
+        currency_code: &str,
+        charge_account_code: Option<&str>,
+        delivery_address: Option<&str>,
         requested_delivery_date: Option<chrono::NaiveDate>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<PurchaseRequisition>;
     async fn get_requisition_by_id(&self, id: Uuid) -> AtlasResult<Option<PurchaseRequisition>>;
-    async fn list_requisitions(&self, org_id: Uuid, status: Option<&str>, requester_id: Option<Uuid>) -> AtlasResult<Vec<PurchaseRequisition>>;
+    async fn list_requisitions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        requester_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<PurchaseRequisition>>;
     async fn update_requisition(
         &self,
-        id: Uuid, description: Option<&str>, urgency_code: &str,
-        department: Option<&str>, justification: Option<&str>,
-        budget_code: Option<&str>, total_amount: &str,
-        charge_account_code: Option<&str>, delivery_address: Option<&str>,
+        id: Uuid,
+        description: Option<&str>,
+        urgency_code: &str,
+        department: Option<&str>,
+        justification: Option<&str>,
+        budget_code: Option<&str>,
+        total_amount: &str,
+        charge_account_code: Option<&str>,
+        delivery_address: Option<&str>,
         requested_delivery_date: Option<chrono::NaiveDate>,
-        notes: Option<&str>, updated_by: Option<Uuid>,
+        notes: Option<&str>,
+        updated_by: Option<Uuid>,
     ) -> AtlasResult<PurchaseRequisition>;
     async fn update_requisition_status(
         &self,
-        id: Uuid, status: &str, approved_by: Option<Uuid>, approver_name: Option<&str>,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        approver_name: Option<&str>,
     ) -> AtlasResult<PurchaseRequisition>;
     async fn update_requisition_total(&self, id: Uuid, total_amount: &str) -> AtlasResult<()>;
     async fn delete_requisition(&self, id: Uuid) -> AtlasResult<()>;
@@ -49,15 +71,25 @@ pub trait PurchaseRequisitionRepository: Send + Sync {
     // ── Lines ────────────────────────────────────────────────────
     async fn create_line(
         &self,
-        org_id: Uuid, requisition_id: Uuid, line_number: i32,
-        item_code: Option<&str>, item_description: &str,
-        category: Option<&str>, quantity: &str, unit_of_measure: &str,
-        unit_price: &str, line_amount: &str, currency_code: &str,
+        org_id: Uuid,
+        requisition_id: Uuid,
+        line_number: i32,
+        item_code: Option<&str>,
+        item_description: &str,
+        category: Option<&str>,
+        quantity: &str,
+        unit_of_measure: &str,
+        unit_price: &str,
+        line_amount: &str,
+        currency_code: &str,
         charge_account_code: Option<&str>,
         requested_delivery_date: Option<chrono::NaiveDate>,
-        supplier_id: Option<Uuid>, supplier_name: Option<&str>,
-        source_type: &str, source_reference: Option<&str>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        supplier_id: Option<Uuid>,
+        supplier_name: Option<&str>,
+        source_type: &str,
+        source_reference: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<RequisitionLine>;
     async fn get_line_by_id(&self, line_id: Uuid) -> AtlasResult<Option<RequisitionLine>>;
     async fn update_line_status(&self, line_id: Uuid, status: &str) -> AtlasResult<()>;
@@ -67,35 +99,53 @@ pub trait PurchaseRequisitionRepository: Send + Sync {
     // ── Distributions ───────────────────────────────────────────
     async fn create_distribution(
         &self,
-        org_id: Uuid, requisition_id: Uuid, line_id: Uuid,
-        distribution_number: i32, charge_account_code: &str,
-        allocation_percentage: &str, amount: &str,
-        project_code: Option<&str>, cost_center: Option<&str>,
+        org_id: Uuid,
+        requisition_id: Uuid,
+        line_id: Uuid,
+        distribution_number: i32,
+        charge_account_code: &str,
+        allocation_percentage: &str,
+        amount: &str,
+        project_code: Option<&str>,
+        cost_center: Option<&str>,
     ) -> AtlasResult<RequisitionDistribution>;
-    async fn list_distributions_by_line(&self, line_id: Uuid) -> AtlasResult<Vec<RequisitionDistribution>>;
+    async fn list_distributions_by_line(
+        &self,
+        line_id: Uuid,
+    ) -> AtlasResult<Vec<RequisitionDistribution>>;
 
     // ── Approvals ────────────────────────────────────────────────
     async fn create_approval(
         &self,
-        org_id: Uuid, requisition_id: Uuid, approver_id: Uuid,
-        approver_name: Option<&str>, action: &str, comments: Option<&str>,
+        org_id: Uuid,
+        requisition_id: Uuid,
+        approver_id: Uuid,
+        approver_name: Option<&str>,
+        action: &str,
+        comments: Option<&str>,
     ) -> AtlasResult<RequisitionApproval>;
     async fn list_approvals(&self, requisition_id: Uuid) -> AtlasResult<Vec<RequisitionApproval>>;
 
     // ── AutoCreate Links ─────────────────────────────────────────
     async fn create_autocreate_link(
         &self,
-        org_id: Uuid, requisition_id: Uuid, requisition_line_id: Uuid,
+        org_id: Uuid,
+        requisition_id: Uuid,
+        requisition_line_id: Uuid,
         purchase_order_number: &str,
-        supplier_id: Option<Uuid>, supplier_name: Option<&str>,
-        quantity_ordered: &str, status: &str,
+        supplier_id: Option<Uuid>,
+        supplier_name: Option<&str>,
+        quantity_ordered: &str,
+        status: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutocreateLink>;
-    async fn list_autocreate_links(&self, requisition_id: Uuid) -> AtlasResult<Vec<AutocreateLink>>;
+    async fn list_autocreate_links(&self, requisition_id: Uuid)
+        -> AtlasResult<Vec<AutocreateLink>>;
     async fn update_autocreate_link_status(&self, link_id: Uuid, status: &str) -> AtlasResult<()>;
 
     // ── Dashboard ────────────────────────────────────────────────
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<RequisitionDashboardSummary>;
+    async fn get_dashboard_summary(&self, org_id: Uuid)
+        -> AtlasResult<RequisitionDashboardSummary>;
 }
 
 /// `PostgreSQL` implementation
@@ -104,7 +154,7 @@ pub struct PostgresPurchaseRequisitionRepository {
 }
 
 impl PostgresPurchaseRequisitionRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -225,9 +275,12 @@ impl PostgresPurchaseRequisitionRepository {
 
     async fn load_lines(&self, requisition_id: Uuid) -> AtlasResult<Vec<RequisitionLine>> {
         let line_rows = sqlx::query(
-            "SELECT * FROM _atlas.requisition_lines WHERE requisition_id = $1 ORDER BY line_number"
-        ).bind(requisition_id).fetch_all(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            "SELECT * FROM _atlas.requisition_lines WHERE requisition_id = $1 ORDER BY line_number",
+        )
+        .bind(requisition_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut lines = Vec::new();
         for line_row in &line_rows {
@@ -239,7 +292,10 @@ impl PostgresPurchaseRequisitionRepository {
             ).bind(line_id).fetch_all(&self.pool).await
                 .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-            line.distributions = dist_rows.iter().map(|d| self.row_to_distribution(d)).collect();
+            line.distributions = dist_rows
+                .iter()
+                .map(|d| self.row_to_distribution(d))
+                .collect();
             lines.push(line);
         }
         Ok(lines)
@@ -260,14 +316,23 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 
     async fn create_requisition(
         &self,
-        org_id: Uuid, requisition_number: &str, description: Option<&str>,
-        urgency_code: &str, requester_id: Option<Uuid>, requester_name: Option<&str>,
-        department: Option<&str>, justification: Option<&str>,
-        budget_code: Option<&str>, amount_limit: Option<&str>,
-        total_amount: &str, currency_code: &str,
-        charge_account_code: Option<&str>, delivery_address: Option<&str>,
+        org_id: Uuid,
+        requisition_number: &str,
+        description: Option<&str>,
+        urgency_code: &str,
+        requester_id: Option<Uuid>,
+        requester_name: Option<&str>,
+        department: Option<&str>,
+        justification: Option<&str>,
+        budget_code: Option<&str>,
+        amount_limit: Option<&str>,
+        total_amount: &str,
+        currency_code: &str,
+        charge_account_code: Option<&str>,
+        delivery_address: Option<&str>,
         requested_delivery_date: Option<chrono::NaiveDate>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<PurchaseRequisition> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.purchase_requisitions
@@ -279,12 +344,25 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
             VALUES ($1,$2,$3,$4,'draft',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
             RETURNING *",
         )
-        .bind(org_id).bind(requisition_number).bind(description).bind(urgency_code)
-        .bind(requester_id).bind(requester_name).bind(department).bind(justification)
-        .bind(budget_code).bind(amount_limit).bind(total_amount).bind(currency_code)
-        .bind(charge_account_code).bind(delivery_address).bind(requested_delivery_date)
-        .bind(notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(requisition_number)
+        .bind(description)
+        .bind(urgency_code)
+        .bind(requester_id)
+        .bind(requester_name)
+        .bind(department)
+        .bind(justification)
+        .bind(budget_code)
+        .bind(amount_limit)
+        .bind(total_amount)
+        .bind(currency_code)
+        .bind(charge_account_code)
+        .bind(delivery_address)
+        .bind(requested_delivery_date)
+        .bind(notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let id: Uuid = row.get("id");
@@ -295,9 +373,10 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
     }
 
     async fn get_requisition_by_id(&self, id: Uuid) -> AtlasResult<Option<PurchaseRequisition>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.purchase_requisitions WHERE id = $1"
-        ).bind(id).fetch_optional(&self.pool).await
+        let row = sqlx::query("SELECT * FROM _atlas.purchase_requisitions WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         match row {
@@ -311,7 +390,12 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
         }
     }
 
-    async fn list_requisitions(&self, org_id: Uuid, status: Option<&str>, requester_id: Option<Uuid>) -> AtlasResult<Vec<PurchaseRequisition>> {
+    async fn list_requisitions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        requester_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<PurchaseRequisition>> {
         let rows = if status.is_some() && requester_id.is_some() {
             sqlx::query(
                 "SELECT * FROM _atlas.purchase_requisitions WHERE organization_id = $1 AND status = $2 AND requester_id = $3 ORDER BY created_at DESC"
@@ -347,12 +431,18 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 
     async fn update_requisition(
         &self,
-        id: Uuid, description: Option<&str>, urgency_code: &str,
-        department: Option<&str>, justification: Option<&str>,
-        budget_code: Option<&str>, total_amount: &str,
-        charge_account_code: Option<&str>, delivery_address: Option<&str>,
+        id: Uuid,
+        description: Option<&str>,
+        urgency_code: &str,
+        department: Option<&str>,
+        justification: Option<&str>,
+        budget_code: Option<&str>,
+        total_amount: &str,
+        charge_account_code: Option<&str>,
+        delivery_address: Option<&str>,
         requested_delivery_date: Option<chrono::NaiveDate>,
-        notes: Option<&str>, updated_by: Option<Uuid>,
+        notes: Option<&str>,
+        updated_by: Option<Uuid>,
     ) -> AtlasResult<PurchaseRequisition> {
         let row = sqlx::query(
             r"UPDATE _atlas.purchase_requisitions SET
@@ -369,11 +459,21 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
                 updated_by = $12,
                 updated_at = now()
             WHERE id = $1 RETURNING *",
-        ).bind(id).bind(description).bind(urgency_code).bind(department)
-        .bind(justification).bind(budget_code).bind(total_amount)
-        .bind(charge_account_code).bind(delivery_address).bind(requested_delivery_date)
-        .bind(notes).bind(updated_by)
-        .fetch_one(&self.pool).await
+        )
+        .bind(id)
+        .bind(description)
+        .bind(urgency_code)
+        .bind(department)
+        .bind(justification)
+        .bind(budget_code)
+        .bind(total_amount)
+        .bind(charge_account_code)
+        .bind(delivery_address)
+        .bind(requested_delivery_date)
+        .bind(notes)
+        .bind(updated_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut req = self.row_to_requisition(&row);
@@ -383,7 +483,11 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
     }
 
     async fn update_requisition_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>, _approver_name: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        _approver_name: Option<&str>,
     ) -> AtlasResult<PurchaseRequisition> {
         let row = if status == "approved" {
             sqlx::query(
@@ -410,8 +514,11 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
             sqlx::query(
                 r"UPDATE _atlas.purchase_requisitions SET status = $2, updated_at = now()
                 WHERE id = $1 RETURNING *",
-            ).bind(id).bind(status)
-            .fetch_one(&self.pool).await
+            )
+            .bind(id)
+            .bind(status)
+            .fetch_one(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         };
 
@@ -432,7 +539,9 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 
     async fn delete_requisition(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.purchase_requisitions WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -441,15 +550,25 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 
     async fn create_line(
         &self,
-        org_id: Uuid, requisition_id: Uuid, line_number: i32,
-        item_code: Option<&str>, item_description: &str,
-        category: Option<&str>, quantity: &str, unit_of_measure: &str,
-        unit_price: &str, line_amount: &str, currency_code: &str,
+        org_id: Uuid,
+        requisition_id: Uuid,
+        line_number: i32,
+        item_code: Option<&str>,
+        item_description: &str,
+        category: Option<&str>,
+        quantity: &str,
+        unit_of_measure: &str,
+        unit_price: &str,
+        line_amount: &str,
+        currency_code: &str,
         charge_account_code: Option<&str>,
         requested_delivery_date: Option<chrono::NaiveDate>,
-        supplier_id: Option<Uuid>, supplier_name: Option<&str>,
-        source_type: &str, source_reference: Option<&str>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        supplier_id: Option<Uuid>,
+        supplier_name: Option<&str>,
+        source_type: &str,
+        source_reference: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<RequisitionLine> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.requisition_lines
@@ -461,13 +580,27 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'draft',$16,$17,$18,$19)
             RETURNING *",
         )
-        .bind(org_id).bind(requisition_id).bind(line_number)
-        .bind(item_code).bind(item_description).bind(category)
-        .bind(quantity).bind(unit_of_measure).bind(unit_price).bind(line_amount)
-        .bind(currency_code).bind(charge_account_code).bind(requested_delivery_date)
-        .bind(supplier_id).bind(supplier_name).bind(source_type).bind(source_reference)
-        .bind(notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(requisition_id)
+        .bind(line_number)
+        .bind(item_code)
+        .bind(item_description)
+        .bind(category)
+        .bind(quantity)
+        .bind(unit_of_measure)
+        .bind(unit_price)
+        .bind(line_amount)
+        .bind(currency_code)
+        .bind(charge_account_code)
+        .bind(requested_delivery_date)
+        .bind(supplier_id)
+        .bind(supplier_name)
+        .bind(source_type)
+        .bind(source_reference)
+        .bind(notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut line = self.row_to_line(&row);
@@ -476,9 +609,10 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
     }
 
     async fn get_line_by_id(&self, line_id: Uuid) -> AtlasResult<Option<RequisitionLine>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.requisition_lines WHERE id = $1"
-        ).bind(line_id).fetch_optional(&self.pool).await
+        let row = sqlx::query("SELECT * FROM _atlas.requisition_lines WHERE id = $1")
+            .bind(line_id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         match row {
@@ -493,9 +627,12 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 
     async fn update_line_status(&self, line_id: Uuid, status: &str) -> AtlasResult<()> {
         sqlx::query(
-            "UPDATE _atlas.requisition_lines SET status = $2, updated_at = now() WHERE id = $1"
-        ).bind(line_id).bind(status)
-        .execute(&self.pool).await
+            "UPDATE _atlas.requisition_lines SET status = $2, updated_at = now() WHERE id = $1",
+        )
+        .bind(line_id)
+        .bind(status)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -511,9 +648,14 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 
     async fn delete_line(&self, line_id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.requisition_distributions WHERE line_id = $1")
-            .bind(line_id).execute(&self.pool).await.ok();
+            .bind(line_id)
+            .execute(&self.pool)
+            .await
+            .ok();
         sqlx::query("DELETE FROM _atlas.requisition_lines WHERE id = $1")
-            .bind(line_id).execute(&self.pool).await
+            .bind(line_id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -522,10 +664,15 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 
     async fn create_distribution(
         &self,
-        org_id: Uuid, requisition_id: Uuid, line_id: Uuid,
-        distribution_number: i32, charge_account_code: &str,
-        allocation_percentage: &str, amount: &str,
-        project_code: Option<&str>, cost_center: Option<&str>,
+        org_id: Uuid,
+        requisition_id: Uuid,
+        line_id: Uuid,
+        distribution_number: i32,
+        charge_account_code: &str,
+        allocation_percentage: &str,
+        amount: &str,
+        project_code: Option<&str>,
+        cost_center: Option<&str>,
     ) -> AtlasResult<RequisitionDistribution> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.requisition_distributions
@@ -535,16 +682,26 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
             RETURNING *",
         )
-        .bind(org_id).bind(requisition_id).bind(line_id).bind(distribution_number)
-        .bind(charge_account_code).bind(allocation_percentage).bind(amount)
-        .bind(project_code).bind(cost_center)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(requisition_id)
+        .bind(line_id)
+        .bind(distribution_number)
+        .bind(charge_account_code)
+        .bind(allocation_percentage)
+        .bind(amount)
+        .bind(project_code)
+        .bind(cost_center)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_distribution(&row))
     }
 
-    async fn list_distributions_by_line(&self, line_id: Uuid) -> AtlasResult<Vec<RequisitionDistribution>> {
+    async fn list_distributions_by_line(
+        &self,
+        line_id: Uuid,
+    ) -> AtlasResult<Vec<RequisitionDistribution>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.requisition_distributions WHERE line_id = $1 ORDER BY distribution_number"
         ).bind(line_id).fetch_all(&self.pool).await
@@ -556,8 +713,12 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 
     async fn create_approval(
         &self,
-        org_id: Uuid, requisition_id: Uuid, approver_id: Uuid,
-        approver_name: Option<&str>, action: &str, comments: Option<&str>,
+        org_id: Uuid,
+        requisition_id: Uuid,
+        approver_id: Uuid,
+        approver_name: Option<&str>,
+        action: &str,
+        comments: Option<&str>,
     ) -> AtlasResult<RequisitionApproval> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.requisition_approvals
@@ -565,9 +726,14 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
             VALUES ($1,$2,$3,$4,$5,$6)
             RETURNING *",
         )
-        .bind(org_id).bind(requisition_id).bind(approver_id).bind(approver_name)
-        .bind(action).bind(comments)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(requisition_id)
+        .bind(approver_id)
+        .bind(approver_name)
+        .bind(action)
+        .bind(comments)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_approval(&row))
@@ -585,10 +751,14 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 
     async fn create_autocreate_link(
         &self,
-        org_id: Uuid, requisition_id: Uuid, requisition_line_id: Uuid,
+        org_id: Uuid,
+        requisition_id: Uuid,
+        requisition_line_id: Uuid,
         purchase_order_number: &str,
-        supplier_id: Option<Uuid>, supplier_name: Option<&str>,
-        quantity_ordered: &str, status: &str,
+        supplier_id: Option<Uuid>,
+        supplier_name: Option<&str>,
+        quantity_ordered: &str,
+        status: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AutocreateLink> {
         let row = sqlx::query(
@@ -599,35 +769,55 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
             RETURNING *",
         )
-        .bind(org_id).bind(requisition_id).bind(requisition_line_id)
-        .bind(purchase_order_number).bind(supplier_id).bind(supplier_name)
-        .bind(quantity_ordered).bind(status).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(requisition_id)
+        .bind(requisition_line_id)
+        .bind(purchase_order_number)
+        .bind(supplier_id)
+        .bind(supplier_name)
+        .bind(quantity_ordered)
+        .bind(status)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_autocreate_link(&row))
     }
 
-    async fn list_autocreate_links(&self, requisition_id: Uuid) -> AtlasResult<Vec<AutocreateLink>> {
+    async fn list_autocreate_links(
+        &self,
+        requisition_id: Uuid,
+    ) -> AtlasResult<Vec<AutocreateLink>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.autocreate_links WHERE requisition_id = $1 ORDER BY created_at"
-        ).bind(requisition_id).fetch_all(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_autocreate_link(r)).collect())
+            "SELECT * FROM _atlas.autocreate_links WHERE requisition_id = $1 ORDER BY created_at",
+        )
+        .bind(requisition_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_autocreate_link(r))
+            .collect())
     }
 
     async fn update_autocreate_link_status(&self, link_id: Uuid, status: &str) -> AtlasResult<()> {
-        sqlx::query(
-            "UPDATE _atlas.autocreate_links SET status = $2 WHERE id = $1"
-        ).bind(link_id).bind(status)
-        .execute(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query("UPDATE _atlas.autocreate_links SET status = $2 WHERE id = $1")
+            .bind(link_id)
+            .bind(status)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     // ── Dashboard ─────────────────────────────────────────────────
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<RequisitionDashboardSummary> {
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<RequisitionDashboardSummary> {
         let req_row = sqlx::query(
             r"SELECT
                 COUNT(*) as total,
@@ -637,17 +827,23 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
                 COUNT(*) FILTER (WHERE status = 'rejected') as rejected,
                 COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled,
                 COALESCE(SUM(total_amount::numeric), 0) as total_amount
-            FROM _atlas.purchase_requisitions WHERE organization_id = $1"
-        ).bind(org_id).fetch_one(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            FROM _atlas.purchase_requisitions WHERE organization_id = $1",
+        )
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let auto_row = sqlx::query(
             r"SELECT
                 COUNT(*) FILTER (WHERE status = 'pending') as pending,
                 COUNT(*) FILTER (WHERE status = 'ordered') as ordered
-            FROM _atlas.autocreate_links WHERE organization_id = $1"
-        ).bind(org_id).fetch_one(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            FROM _atlas.autocreate_links WHERE organization_id = $1",
+        )
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let prio_rows = sqlx::query(
             "SELECT urgency_code, COUNT(*) as cnt FROM _atlas.purchase_requisitions WHERE organization_id = $1 GROUP BY urgency_code"
@@ -667,7 +863,9 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
         let approved_reqs: i64 = req_row.try_get("approved").unwrap_or(0);
         let rejected_reqs: i64 = req_row.try_get("rejected").unwrap_or(0);
         let cancelled_reqs: i64 = req_row.try_get("cancelled").unwrap_or(0);
-        let total_amount: serde_json::Value = req_row.try_get("total_amount").unwrap_or(serde_json::json!("0"));
+        let total_amount: serde_json::Value = req_row
+            .try_get("total_amount")
+            .unwrap_or(serde_json::json!("0"));
         let auto_pending: i64 = auto_row.try_get("pending").unwrap_or(0);
         let auto_ordered: i64 = auto_row.try_get("ordered").unwrap_or(0);
 
@@ -687,7 +885,10 @@ impl PurchaseRequisitionRepository for PostgresPurchaseRequisitionRepository {
 }
 
 impl PostgresPurchaseRequisitionRepository {
-    async fn load_line_distributions(&self, line_id: Uuid) -> AtlasResult<Vec<RequisitionDistribution>> {
+    async fn load_line_distributions(
+        &self,
+        line_id: Uuid,
+    ) -> AtlasResult<Vec<RequisitionDistribution>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.requisition_distributions WHERE line_id = $1 ORDER BY distribution_number"
         ).bind(line_id).fetch_all(&self.pool).await

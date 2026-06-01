@@ -1,8 +1,8 @@
+use chrono::NaiveDate;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
-use rust_decimal::Decimal;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DerivativeInstrument {
@@ -22,7 +22,7 @@ pub struct HedgeRelationship {
     pub hedge_id: String,
     pub hedge_type: String, // fair_value, cash_flow, net_investment
     pub derivative_id: Uuid,
-    pub hedged_risk: String, // fx_risk, interest_rate_risk
+    pub hedged_risk: String,          // fx_risk, interest_rate_risk
     pub effectiveness_method: String, // dollar_offset, regression
     pub status: String,
 }
@@ -67,7 +67,10 @@ impl HedgeManagementService {
         amount: Decimal,
     ) -> Result<DerivativeInstrument, String> {
         let mut instruments = self.instruments.write().unwrap();
-        if instruments.iter().any(|i| i.organization_id == organization_id && i.instrument_number == number) {
+        if instruments
+            .iter()
+            .any(|i| i.organization_id == organization_id && i.instrument_number == number)
+        {
             return Err("Instrument with this number already exists".to_string());
         }
 
@@ -99,7 +102,10 @@ impl HedgeManagementService {
         }
 
         let mut relationships = self.relationships.write().unwrap();
-        if relationships.iter().any(|r| r.organization_id == organization_id && r.hedge_id == hedge_id) {
+        if relationships
+            .iter()
+            .any(|r| r.organization_id == organization_id && r.hedge_id == hedge_id)
+        {
             return Err("Hedge relationship with this ID already exists".to_string());
         }
 
@@ -132,7 +138,7 @@ impl HedgeManagementService {
 
         // Dollar Offset Ratio = (Change in Derivative FV) / (Change in Hedged Item FV)
         // Highly effective if between 80% and 125% (0.8 to 1.25)
-        
+
         let mut result = "ineffective".to_string();
         if !item_change.is_zero() {
             let ratio = (deriv_change / item_change).abs();
@@ -165,22 +171,44 @@ mod tests {
     fn test_hedge_effectiveness() {
         let service = HedgeManagementService::new();
         let org_id = Uuid::new_v4();
-        
-        let inst = service.create_instrument(org_id, "Fwd-001".to_string(), "forward".to_string(), "fx".to_string(), dec!(1000000)).unwrap();
-        let rel = service.create_relationship(org_id, "Hedge-1".to_string(), "cash_flow".to_string(), inst.id, "fx_risk".to_string()).unwrap();
+
+        let inst = service
+            .create_instrument(
+                org_id,
+                "Fwd-001".to_string(),
+                "forward".to_string(),
+                "fx".to_string(),
+                dec!(1000000),
+            )
+            .unwrap();
+        let rel = service
+            .create_relationship(
+                org_id,
+                "Hedge-1".to_string(),
+                "cash_flow".to_string(),
+                inst.id,
+                "fx_risk".to_string(),
+            )
+            .unwrap();
 
         let today = NaiveDate::from_ymd_opt(2026, 5, 31).unwrap();
 
         // Effective case: 100% offset (ratio 1.0)
-        let t1 = service.perform_dollar_offset_test(rel.id, today, dec!(-10000), dec!(10000)).unwrap();
+        let t1 = service
+            .perform_dollar_offset_test(rel.id, today, dec!(-10000), dec!(10000))
+            .unwrap();
         assert_eq!(t1.effectiveness_result, "effective");
 
         // Effective case: 90% offset (ratio 0.9)
-        let t2 = service.perform_dollar_offset_test(rel.id, today, dec!(-9000), dec!(10000)).unwrap();
+        let t2 = service
+            .perform_dollar_offset_test(rel.id, today, dec!(-9000), dec!(10000))
+            .unwrap();
         assert_eq!(t2.effectiveness_result, "effective");
 
         // Ineffective case: 50% offset (ratio 0.5)
-        let t3 = service.perform_dollar_offset_test(rel.id, today, dec!(-5000), dec!(10000)).unwrap();
+        let t3 = service
+            .perform_dollar_offset_test(rel.id, today, dec!(-5000), dec!(10000))
+            .unwrap();
         assert_eq!(t3.effectiveness_result, "ineffective");
     }
 }

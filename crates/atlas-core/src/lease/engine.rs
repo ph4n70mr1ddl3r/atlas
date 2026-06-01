@@ -10,13 +10,12 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Lease Management
 
-use chrono::Datelike;
-use atlas_shared::{
-    LeaseContract, LeasePayment, LeaseModification, LeaseTermination,
-    LeaseDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::LeaseAccountingRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, LeaseContract, LeaseDashboardSummary, LeaseModification, LeasePayment,
+    LeaseTermination,
+};
+use chrono::Datelike;
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -26,7 +25,12 @@ const VALID_CLASSIFICATIONS: &[&str] = &["operating", "finance"];
 
 /// Valid lease statuses
 const VALID_STATUSES: &[&str] = &[
-    "draft", "active", "modified", "impaired", "terminated", "expired",
+    "draft",
+    "active",
+    "modified",
+    "impaired",
+    "terminated",
+    "expired",
 ];
 
 /// Valid payment frequencies
@@ -34,14 +38,15 @@ const VALID_FREQUENCIES: &[&str] = &["monthly", "quarterly", "annually"];
 
 /// Valid modification types
 const VALID_MODIFICATION_TYPES: &[&str] = &[
-    "term_extension", "scope_change", "payment_change", "rate_change",
+    "term_extension",
+    "scope_change",
+    "payment_change",
+    "rate_change",
     "reclassification",
 ];
 
 /// Valid termination types
-const VALID_TERMINATION_TYPES: &[&str] = &[
-    "early", "end_of_term", "mutual_agreement", "default",
-];
+const VALID_TERMINATION_TYPES: &[&str] = &["early", "end_of_term", "mutual_agreement", "default"];
 
 /// Lease Accounting engine for managing leases per ASC 842 / IFRS 16
 pub struct LeaseAccountingEngine {
@@ -100,13 +105,15 @@ impl LeaseAccountingEngine {
         if !VALID_CLASSIFICATIONS.contains(&classification) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid classification '{}'. Must be one of: {}",
-                classification, VALID_CLASSIFICATIONS.join(", ")
+                classification,
+                VALID_CLASSIFICATIONS.join(", ")
             )));
         }
         if !VALID_FREQUENCIES.contains(&payment_frequency) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid payment frequency '{}'. Must be one of: {}",
-                payment_frequency, VALID_FREQUENCIES.join(", ")
+                payment_frequency,
+                VALID_FREQUENCIES.join(", ")
             )));
         }
         if commencement_date >= end_date {
@@ -120,18 +127,18 @@ impl LeaseAccountingEngine {
             ));
         }
 
-        let rate: f64 = discount_rate.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Discount rate must be a valid number".to_string(),
-        ))?;
+        let rate: f64 = discount_rate.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Discount rate must be a valid number".to_string())
+        })?;
         if rate <= 0.0 || rate > 1.0 {
             return Err(AtlasError::ValidationFailed(
                 "Discount rate must be between 0 and 1 (e.g., 0.05 for 5%)".to_string(),
             ));
         }
 
-        let annual_payment: f64 = annual_payment_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Annual payment amount must be a valid number".to_string(),
-        ))?;
+        let annual_payment: f64 = annual_payment_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Annual payment amount must be a valid number".to_string())
+        })?;
         if annual_payment <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Annual payment amount must be positive".to_string(),
@@ -141,9 +148,9 @@ impl LeaseAccountingEngine {
         let esc_rate: f64 = escalation_rate
             .map(str::parse::<f64>)
             .transpose()
-            .map_err(|_| AtlasError::ValidationFailed(
-                "Escalation rate must be a valid number".to_string(),
-            ))?
+            .map_err(|_| {
+                AtlasError::ValidationFailed("Escalation rate must be a valid number".to_string())
+            })?
             .unwrap_or(0.0);
 
         // Calculate number of payments based on frequency
@@ -151,7 +158,11 @@ impl LeaseAccountingEngine {
             "monthly" => 12,
             "quarterly" => 4,
             "annually" => 1,
-            _ => return Err(AtlasError::ValidationFailed("Invalid payment frequency".to_string())),
+            _ => {
+                return Err(AtlasError::ValidationFailed(
+                    "Invalid payment frequency".to_string(),
+                ))
+            }
         };
         let total_periods = periods_per_year * lease_term_months / 12;
         let payment_per_period = annual_payment / f64::from(periods_per_year);
@@ -166,9 +177,11 @@ impl LeaseAccountingEngine {
         let residual: f64 = residual_guarantee_amount
             .map(str::parse::<f64>)
             .transpose()
-            .map_err(|_| AtlasError::ValidationFailed(
-                "Residual guarantee amount must be a valid number".to_string(),
-            ))?
+            .map_err(|_| {
+                AtlasError::ValidationFailed(
+                    "Residual guarantee amount must be a valid number".to_string(),
+                )
+            })?
             .unwrap_or(0.0);
 
         // Add PV of residual guarantee
@@ -182,7 +195,9 @@ impl LeaseAccountingEngine {
 
         // Total lease payments (undiscounted)
         let total_lease_payments = self.calculate_total_lease_payments(
-            payment_per_period, total_periods, esc_rate,
+            payment_per_period,
+            total_periods,
+            esc_rate,
             escalation_frequency_months.map(|m| {
                 let years = f64::from(m) / 12.0;
                 (years * f64::from(periods_per_year)).round() as i32
@@ -195,37 +210,55 @@ impl LeaseAccountingEngine {
 
         let lease_number = format!("LSE-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating lease {} ({}) for org {}: liability={:.2}, rou={:.2}",
-              lease_number, title, org_id, total_liability, rou_asset);
+        info!(
+            "Creating lease {} ({}) for org {}: liability={:.2}, rou={:.2}",
+            lease_number, title, org_id, total_liability, rou_asset
+        );
 
-        self.repository.create_lease(
-            org_id, &lease_number, title, description,
-            classification,
-            lessor_id, lessor_name,
-            asset_description, location,
-            department_id, department_name,
-            commencement_date, end_date, lease_term_months,
-            purchase_option_exists, purchase_option_likely,
-            renewal_option_exists, renewal_option_months, renewal_option_likely,
-            discount_rate, currency_code, payment_frequency,
-            &format!("{annual_payment:.2}"),
-            escalation_rate, escalation_frequency_months,
-            &format!("{total_lease_payments:.2}"),
-            &format!("{total_liability:.2}"),
-            &format!("{rou_asset:.2}"),
-            residual_guarantee_amount,
-            &format!("{total_liability:.2}"),
-            &format!("{rou_asset:.2}"),
-            "0.00",
-            "0.00",
-            0,
-            rou_asset_account_code,
-            rou_depreciation_account_code,
-            lease_liability_account_code,
-            lease_expense_account_code,
-            interest_expense_account_code,
-            created_by,
-        ).await
+        self.repository
+            .create_lease(
+                org_id,
+                &lease_number,
+                title,
+                description,
+                classification,
+                lessor_id,
+                lessor_name,
+                asset_description,
+                location,
+                department_id,
+                department_name,
+                commencement_date,
+                end_date,
+                lease_term_months,
+                purchase_option_exists,
+                purchase_option_likely,
+                renewal_option_exists,
+                renewal_option_months,
+                renewal_option_likely,
+                discount_rate,
+                currency_code,
+                payment_frequency,
+                &format!("{annual_payment:.2}"),
+                escalation_rate,
+                escalation_frequency_months,
+                &format!("{total_lease_payments:.2}"),
+                &format!("{total_liability:.2}"),
+                &format!("{rou_asset:.2}"),
+                residual_guarantee_amount,
+                &format!("{total_liability:.2}"),
+                &format!("{rou_asset:.2}"),
+                "0.00",
+                "0.00",
+                0,
+                rou_asset_account_code,
+                rou_depreciation_account_code,
+                lease_liability_account_code,
+                lease_expense_account_code,
+                interest_expense_account_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get a lease contract by ID
@@ -234,8 +267,14 @@ impl LeaseAccountingEngine {
     }
 
     /// Get a lease contract by number
-    pub async fn get_lease_by_number(&self, org_id: Uuid, lease_number: &str) -> AtlasResult<Option<LeaseContract>> {
-        self.repository.get_lease_by_number(org_id, lease_number).await
+    pub async fn get_lease_by_number(
+        &self,
+        org_id: Uuid,
+        lease_number: &str,
+    ) -> AtlasResult<Option<LeaseContract>> {
+        self.repository
+            .get_lease_by_number(org_id, lease_number)
+            .await
     }
 
     /// List lease contracts with optional filters
@@ -248,18 +287,24 @@ impl LeaseAccountingEngine {
         if let Some(s) = status {
             if !VALID_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_STATUSES.join(", ")
                 )));
             }
         }
         if let Some(c) = classification {
             if !VALID_CLASSIFICATIONS.contains(&c) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid classification '{}'. Must be one of: {}", c, VALID_CLASSIFICATIONS.join(", ")
+                    "Invalid classification '{}'. Must be one of: {}",
+                    c,
+                    VALID_CLASSIFICATIONS.join(", ")
                 )));
             }
         }
-        self.repository.list_leases(org_id, status, classification).await
+        self.repository
+            .list_leases(org_id, status, classification)
+            .await
     }
 
     // ========================================================================
@@ -267,23 +312,32 @@ impl LeaseAccountingEngine {
     // ========================================================================
 
     /// Activate a draft lease and generate amortization schedule
-    pub async fn activate_lease(&self, lease_id: Uuid, _activated_by: Option<Uuid>) -> AtlasResult<LeaseContract> {
-        let lease = self.repository.get_lease(lease_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Lease {lease_id} not found")
-            ))?;
+    pub async fn activate_lease(
+        &self,
+        lease_id: Uuid,
+        _activated_by: Option<Uuid>,
+    ) -> AtlasResult<LeaseContract> {
+        let lease = self
+            .repository
+            .get_lease(lease_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lease {lease_id} not found")))?;
 
         if lease.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot activate lease in '{}' status. Must be 'draft'.", lease.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot activate lease in '{}' status. Must be 'draft'.",
+                lease.status
+            )));
         }
 
         // Generate amortization schedule
         self.generate_amortization_schedule(&lease).await?;
 
         // Update lease status
-        let updated = self.repository.update_lease_status(lease_id, "active", None, None).await?;
+        let updated = self
+            .repository
+            .update_lease_status(lease_id, "active", None, None)
+            .await?;
 
         info!("Activated lease {} ({})", lease.lease_number, lease.title);
         Ok(updated)
@@ -294,7 +348,10 @@ impl LeaseAccountingEngine {
     // ========================================================================
 
     /// Generate the full amortization schedule for a lease
-    async fn generate_amortization_schedule(&self, lease: &LeaseContract) -> AtlasResult<Vec<LeasePayment>> {
+    async fn generate_amortization_schedule(
+        &self,
+        lease: &LeaseContract,
+    ) -> AtlasResult<Vec<LeasePayment>> {
         let rate: f64 = lease.discount_rate.parse().unwrap_or(0.05);
         let periods_per_year = match lease.payment_frequency.as_str() {
             "monthly" => 12,
@@ -305,23 +362,30 @@ impl LeaseAccountingEngine {
         let total_periods = periods_per_year * lease.lease_term_months / 12;
         let period_rate = rate / f64::from(periods_per_year);
 
-        let annual_payment: f64 = lease.total_lease_payments.parse()
-            .unwrap_or(0.0) / (f64::from(lease.lease_term_months) / 12.0);
+        let annual_payment: f64 = lease.total_lease_payments.parse().unwrap_or(0.0)
+            / (f64::from(lease.lease_term_months) / 12.0);
         let base_payment = annual_payment / f64::from(periods_per_year);
 
-        let esc_rate: f64 = lease.escalation_rate
+        let esc_rate: f64 = lease
+            .escalation_rate
             .as_ref()
             .and_then(|r| r.parse().ok())
             .unwrap_or(0.0);
-        let esc_freq_periods: i32 = lease.escalation_frequency_months
-            .map_or(total_periods + 1, |m| {
-                let years = f64::from(m) / 12.0;
-                (years * f64::from(periods_per_year)).round() as i32
-            }); // No escalation if not set
+        let esc_freq_periods: i32 =
+            lease
+                .escalation_frequency_months
+                .map_or(total_periods + 1, |m| {
+                    let years = f64::from(m) / 12.0;
+                    (years * f64::from(periods_per_year)).round() as i32
+                }); // No escalation if not set
 
         let mut remaining_liability: f64 = lease.initial_lease_liability.parse().unwrap_or(0.0);
         let rou_value: f64 = lease.initial_rou_asset_value.parse().unwrap_or(0.0);
-        let rou_per_period = if total_periods > 0 { rou_value / f64::from(total_periods) } else { 0.0 };
+        let rou_per_period = if total_periods > 0 {
+            rou_value / f64::from(total_periods)
+        } else {
+            0.0
+        };
         let mut accumulated_dep = 0.0;
 
         // Straight-line lease expense (for operating leases)
@@ -336,11 +400,12 @@ impl LeaseAccountingEngine {
 
         for period in 1..=total_periods {
             // Apply escalation
-            let escalation_multiplier = if esc_freq_periods > 0 && period > 1 && (period - 1) % esc_freq_periods == 0 {
-                1.0 + esc_rate
-            } else {
-                1.0
-            };
+            let escalation_multiplier =
+                if esc_freq_periods > 0 && period > 1 && (period - 1) % esc_freq_periods == 0 {
+                    1.0 + esc_rate
+                } else {
+                    1.0
+                };
 
             let current_payment = base_payment * escalation_multiplier;
 
@@ -356,26 +421,41 @@ impl LeaseAccountingEngine {
 
             // Calculate payment date
             let payment_date = self.calculate_payment_date(
-                lease.commencement_date, period, lease.payment_frequency.as_str(),
+                lease.commencement_date,
+                period,
+                lease.payment_frequency.as_str(),
             );
 
-            let payment = self.repository.create_payment(
-                lease.organization_id, lease.id, period, payment_date,
-                &format!("{current_payment:.2}"),
-                &format!("{interest:.2}"),
-                &format!("{principal:.2}"),
-                &format!("{remaining_liability:.2}"),
-                &format!("{rou_value:.2}"),
-                &format!("{depreciation:.2}"),
-                &format!("{accumulated_dep:.2}"),
-                &format!("{straight_line_expense:.2}"),
-                false, None, None, "scheduled",
-            ).await?;
+            let payment = self
+                .repository
+                .create_payment(
+                    lease.organization_id,
+                    lease.id,
+                    period,
+                    payment_date,
+                    &format!("{current_payment:.2}"),
+                    &format!("{interest:.2}"),
+                    &format!("{principal:.2}"),
+                    &format!("{remaining_liability:.2}"),
+                    &format!("{rou_value:.2}"),
+                    &format!("{depreciation:.2}"),
+                    &format!("{accumulated_dep:.2}"),
+                    &format!("{straight_line_expense:.2}"),
+                    false,
+                    None,
+                    None,
+                    "scheduled",
+                )
+                .await?;
 
             payments.push(payment);
         }
 
-        info!("Generated {} payment schedule entries for lease {}", payments.len(), lease.lease_number);
+        info!(
+            "Generated {} payment schedule entries for lease {}",
+            payments.len(),
+            lease.lease_number
+        );
         Ok(payments)
     }
 
@@ -401,8 +481,9 @@ impl LeaseAccountingEngine {
         let new_year = total_months / 12;
         let new_month = total_months % 12 + 1;
 
-        chrono::NaiveDate::from_ymd_opt(new_year, new_month as u32, day)
-            .unwrap_or_else(|| chrono::NaiveDate::from_ymd_opt(new_year, new_month as u32, 28).unwrap())
+        chrono::NaiveDate::from_ymd_opt(new_year, new_month as u32, day).unwrap_or_else(|| {
+            chrono::NaiveDate::from_ymd_opt(new_year, new_month as u32, 28).unwrap()
+        })
     }
 
     // ========================================================================
@@ -416,32 +497,39 @@ impl LeaseAccountingEngine {
         period_number: i32,
         payment_reference: Option<&str>,
     ) -> AtlasResult<LeasePayment> {
-        let lease = self.repository.get_lease(lease_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Lease {lease_id} not found")
-            ))?;
+        let lease = self
+            .repository
+            .get_lease(lease_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lease {lease_id} not found")))?;
 
         if lease.status != "active" && lease.status != "modified" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot process payment for lease in '{}' status.", lease.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot process payment for lease in '{}' status.",
+                lease.status
+            )));
         }
 
-        let payment = self.repository.get_payment_by_period(lease_id, period_number).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment for period {period_number} not found")
-            ))?;
+        let payment = self
+            .repository
+            .get_payment_by_period(lease_id, period_number)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Payment for period {period_number} not found"))
+            })?;
 
         if payment.status != "scheduled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Payment for period {} is '{}' (expected 'scheduled')", period_number, payment.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Payment for period {} is '{}' (expected 'scheduled')",
+                period_number, payment.status
+            )));
         }
 
         // Mark payment as paid
-        let payment = self.repository.update_payment_status(
-            payment.id, "paid", true, payment_reference, None,
-        ).await?;
+        let payment = self
+            .repository
+            .update_payment_status(payment.id, "paid", true, payment_reference, None)
+            .await?;
 
         // Update lease balances
         let principal: f64 = payment.principal_amount.parse().unwrap_or(0.0);
@@ -454,16 +542,21 @@ impl LeaseAccountingEngine {
 
         let payment_amount: f64 = payment.payment_amount.parse().unwrap_or(0.0);
 
-        self.repository.update_lease_balances(
-            lease_id,
-            &format!("{:.2}", current_liability - principal),
-            &format!("{current_rou:.2}"),
-            &format!("{:.2}", current_accum_dep + depreciation),
-            &format!("{:.2}", current_payments + payment_amount),
-            lease.periods_elapsed + 1,
-        ).await?;
+        self.repository
+            .update_lease_balances(
+                lease_id,
+                &format!("{:.2}", current_liability - principal),
+                &format!("{current_rou:.2}"),
+                &format!("{:.2}", current_accum_dep + depreciation),
+                &format!("{:.2}", current_payments + payment_amount),
+                lease.periods_elapsed + 1,
+            )
+            .await?;
 
-        info!("Processed payment period {} for lease {}", period_number, lease.lease_number);
+        info!(
+            "Processed payment period {} for lease {}",
+            period_number, lease.lease_number
+        );
         Ok(payment)
     }
 
@@ -489,21 +582,24 @@ impl LeaseAccountingEngine {
         new_discount_rate: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<LeaseModification> {
-        let lease = self.repository.get_lease(lease_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Lease {lease_id} not found")
-            ))?;
+        let lease = self
+            .repository
+            .get_lease(lease_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lease {lease_id} not found")))?;
 
         if lease.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot modify lease in '{}' status. Must be 'active'.", lease.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot modify lease in '{}' status. Must be 'active'.",
+                lease.status
+            )));
         }
 
         if !VALID_MODIFICATION_TYPES.contains(&modification_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid modification type '{}'. Must be one of: {}",
-                modification_type, VALID_MODIFICATION_TYPES.join(", ")
+                modification_type,
+                VALID_MODIFICATION_TYPES.join(", ")
             )));
         }
 
@@ -512,22 +608,42 @@ impl LeaseAccountingEngine {
         let rou_adjustment = "0.00".to_string();
 
         // Get next modification number
-        let mod_number = self.repository.get_next_modification_number(lease_id).await?;
+        let mod_number = self
+            .repository
+            .get_next_modification_number(lease_id)
+            .await?;
 
-        info!("Creating modification {} for lease {}", mod_number, lease.lease_number);
+        info!(
+            "Creating modification {} for lease {}",
+            mod_number, lease.lease_number
+        );
 
-        let modification = self.repository.create_modification(
-            org_id, lease_id, mod_number, modification_type, description,
-            effective_date,
-            Some(lease.lease_term_months), new_term_months,
-            Some(lease.end_date), new_end_date,
-            Some(lease.discount_rate.as_str()), new_discount_rate,
-            &liability_adjustment, &rou_adjustment,
-            "pending", created_by,
-        ).await?;
+        let modification = self
+            .repository
+            .create_modification(
+                org_id,
+                lease_id,
+                mod_number,
+                modification_type,
+                description,
+                effective_date,
+                Some(lease.lease_term_months),
+                new_term_months,
+                Some(lease.end_date),
+                new_end_date,
+                Some(lease.discount_rate.as_str()),
+                new_discount_rate,
+                &liability_adjustment,
+                &rou_adjustment,
+                "pending",
+                created_by,
+            )
+            .await?;
 
         // Update lease status to modified
-        self.repository.update_lease_status(lease_id, "modified", None, None).await?;
+        self.repository
+            .update_lease_status(lease_id, "modified", None, None)
+            .await?;
 
         Ok(modification)
     }
@@ -548,20 +664,22 @@ impl LeaseAccountingEngine {
         impairment_amount: &str,
         impairment_date: chrono::NaiveDate,
     ) -> AtlasResult<LeaseContract> {
-        let lease = self.repository.get_lease(lease_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Lease {lease_id} not found")
-            ))?;
+        let lease = self
+            .repository
+            .get_lease(lease_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lease {lease_id} not found")))?;
 
         if lease.status != "active" && lease.status != "modified" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot impair lease in '{}' status.", lease.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot impair lease in '{}' status.",
+                lease.status
+            )));
         }
 
-        let impairment: f64 = impairment_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Impairment amount must be a valid number".to_string(),
-        ))?;
+        let impairment: f64 = impairment_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Impairment amount must be a valid number".to_string())
+        })?;
         if impairment <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Impairment amount must be positive".to_string(),
@@ -573,18 +691,24 @@ impl LeaseAccountingEngine {
         let net_rou = current_rou - accum_dep;
 
         if impairment > net_rou {
-            return Err(AtlasError::ValidationFailed(
-                format!("Impairment ({impairment:.2}) exceeds net ROU asset value ({net_rou:.2})")
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Impairment ({impairment:.2}) exceeds net ROU asset value ({net_rou:.2})"
+            )));
         }
 
-        info!("Recording impairment of {:.2} on lease {}", impairment, lease.lease_number);
+        info!(
+            "Recording impairment of {:.2} on lease {}",
+            impairment, lease.lease_number
+        );
 
-        self.repository.update_lease_status(
-            lease_id, "impaired",
-            Some(&format!("{impairment:.2}")),
-            Some(impairment_date),
-        ).await
+        self.repository
+            .update_lease_status(
+                lease_id,
+                "impaired",
+                Some(&format!("{impairment:.2}")),
+                Some(impairment_date),
+            )
+            .await
     }
 
     // ========================================================================
@@ -602,21 +726,24 @@ impl LeaseAccountingEngine {
         reason: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<LeaseTermination> {
-        let lease = self.repository.get_lease(lease_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Lease {lease_id} not found")
-            ))?;
+        let lease = self
+            .repository
+            .get_lease(lease_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Lease {lease_id} not found")))?;
 
         if lease.status != "active" && lease.status != "modified" && lease.status != "impaired" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot terminate lease in '{}' status.", lease.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot terminate lease in '{}' status.",
+                lease.status
+            )));
         }
 
         if !VALID_TERMINATION_TYPES.contains(&termination_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid termination type '{}'. Must be one of: {}",
-                termination_type, VALID_TERMINATION_TYPES.join(", ")
+                termination_type,
+                VALID_TERMINATION_TYPES.join(", ")
             )));
         }
 
@@ -628,22 +755,46 @@ impl LeaseAccountingEngine {
 
         // Gain/loss = remaining liability - remaining ROU - penalty
         let gain_loss = remaining_liability - remaining_rou - penalty;
-        let gain_loss_type = if gain_loss > 0.0 { "gain" } else if gain_loss < 0.0 { "loss" } else { "none" };
+        let gain_loss_type = if gain_loss > 0.0 {
+            "gain"
+        } else if gain_loss < 0.0 {
+            "loss"
+        } else {
+            "none"
+        };
 
-        let termination = self.repository.create_termination(
-            org_id, lease_id, termination_type, termination_date, reason,
-            &format!("{remaining_liability:.2}"),
-            &format!("{remaining_rou:.2}"),
-            &format!("{penalty:.2}"),
-            &format!("{:.2}", gain_loss.abs()),
-            if gain_loss_type == "none" { None } else { Some(gain_loss_type) },
-            None, "pending", created_by,
-        ).await?;
+        let termination = self
+            .repository
+            .create_termination(
+                org_id,
+                lease_id,
+                termination_type,
+                termination_date,
+                reason,
+                &format!("{remaining_liability:.2}"),
+                &format!("{remaining_rou:.2}"),
+                &format!("{penalty:.2}"),
+                &format!("{:.2}", gain_loss.abs()),
+                if gain_loss_type == "none" {
+                    None
+                } else {
+                    Some(gain_loss_type)
+                },
+                None,
+                "pending",
+                created_by,
+            )
+            .await?;
 
         // Update lease status to terminated
-        self.repository.update_lease_status(lease_id, "terminated", None, None).await?;
+        self.repository
+            .update_lease_status(lease_id, "terminated", None, None)
+            .await?;
 
-        info!("Terminated lease {} ({}): gain/loss={:.2}", lease.lease_number, termination_type, gain_loss);
+        info!(
+            "Terminated lease {} ({}): gain/loss={:.2}",
+            lease.lease_number, termination_type, gain_loss
+        );
         Ok(termination)
     }
 
@@ -667,7 +818,7 @@ impl LeaseAccountingEngine {
 
     /// Calculate present value of an annuity
     /// PV = PMT × [1 - (1 + r)^(-n)] / r
-    #[must_use] 
+    #[must_use]
     pub fn calculate_present_value(&self, payment: f64, periods: i32, rate_per_period: f64) -> f64 {
         if rate_per_period <= 0.0 {
             return payment * f64::from(periods);
@@ -781,6 +932,11 @@ mod tests {
         // First 12: 1000 each = 12000
         // Last 12: 1030 each = 12360
         let expected = 12000.0 + 12360.0;
-        assert!((total - expected).abs() < 0.01, "Expected {}, got {}", expected, total);
+        assert!(
+            (total - expected).abs() < 0.01,
+            "Expected {}, got {}",
+            expected,
+            total
+        );
     }
 }

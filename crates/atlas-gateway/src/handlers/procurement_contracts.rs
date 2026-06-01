@@ -5,18 +5,17 @@
 //! contract lines, milestones, renewals, spend tracking,
 //! and dashboard.
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Contract Types
@@ -49,9 +48,15 @@ pub struct CreateContractTypeRequest {
     pub default_currency_code: Option<String>,
 }
 
-fn default_classification() -> String { "blanket".to_string() }
-const fn default_true() -> bool { true }
-const fn default_false() -> bool { false }
+fn default_classification() -> String {
+    "blanket".to_string()
+}
+const fn default_true() -> bool {
+    true
+}
+const fn default_false() -> bool {
+    false
+}
 
 /// Create a contract type
 pub async fn create_contract_type(
@@ -59,14 +64,16 @@ pub async fn create_contract_type(
     claims: Extension<Claims>,
     Json(payload): Json<CreateContractTypeRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let ct = state.scm.procurement_contract_engine
+    let ct = state
+        .scm
+        .procurement_contract_engine
         .create_contract_type(
-            org_id, &payload.code, &payload.name,
+            org_id,
+            &payload.code,
+            &payload.name,
             payload.description.as_deref(),
             &payload.contract_classification,
             payload.requires_approval,
@@ -91,7 +98,10 @@ pub async fn create_contract_type(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ct))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(ct)),
+    ))
 }
 
 /// Get a contract type by code
@@ -100,10 +110,11 @@ pub async fn get_contract_type(
     claims: Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let ct = state.scm.procurement_contract_engine
+    let ct = state
+        .scm
+        .procurement_contract_engine
         .get_contract_type(org_id, &code)
         .await
         .map_err(|e| {
@@ -120,10 +131,11 @@ pub async fn list_contract_types(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let types = state.scm.procurement_contract_engine
+    let types = state
+        .scm
+        .procurement_contract_engine
         .list_contract_types(org_id)
         .await
         .map_err(|e| {
@@ -140,10 +152,11 @@ pub async fn delete_contract_type(
     claims: Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.scm.procurement_contract_engine
+    state
+        .scm
+        .procurement_contract_engine
         .delete_contract_type(org_id, &code)
         .await
         .map_err(|e| {
@@ -184,9 +197,15 @@ pub struct CreateContractRequest {
     pub notes: Option<String>,
 }
 
-fn default_zero() -> String { "0".to_string() }
-fn default_usd() -> String { "USD".to_string() }
-fn default_fixed() -> String { "fixed".to_string() }
+fn default_zero() -> String {
+    "0".to_string()
+}
+fn default_usd() -> String {
+    "USD".to_string()
+}
+fn default_fixed() -> String {
+    "fixed".to_string()
+}
 
 /// Create a procurement contract
 pub async fn create_contract(
@@ -194,22 +213,26 @@ pub async fn create_contract(
     claims: Extension<Claims>,
     Json(payload): Json<CreateContractRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let contract = state.scm.procurement_contract_engine
+    let contract = state
+        .scm
+        .procurement_contract_engine
         .create_contract(
-            org_id, &payload.title, payload.description.as_deref(),
+            org_id,
+            &payload.title,
+            payload.description.as_deref(),
             payload.contract_type_code.as_deref(),
             &payload.contract_classification,
             payload.supplier_id,
             payload.supplier_number.as_deref(),
             payload.supplier_name.as_deref(),
             payload.supplier_contact.as_deref(),
-            payload.buyer_id, payload.buyer_name.as_deref(),
-            payload.start_date, payload.end_date,
+            payload.buyer_id,
+            payload.buyer_name.as_deref(),
+            payload.start_date,
+            payload.end_date,
             &payload.total_committed_amount,
             &payload.currency_code,
             payload.payment_terms_code.as_deref(),
@@ -227,7 +250,10 @@ pub async fn create_contract(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(contract))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(contract)),
+    ))
 }
 
 /// Get a contract by ID
@@ -236,7 +262,9 @@ pub async fn get_contract(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let contract = state.scm.procurement_contract_engine
+    let contract = state
+        .scm
+        .procurement_contract_engine
         .get_contract(id)
         .await
         .map_err(|e| {
@@ -260,10 +288,11 @@ pub async fn list_contracts(
     claims: Extension<Claims>,
     Query(params): Query<ListContractsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let contracts = state.scm.procurement_contract_engine
+    let contracts = state
+        .scm
+        .procurement_contract_engine
         .list_contracts(org_id, params.status.as_deref(), params.supplier_id)
         .await
         .map_err(|e| {
@@ -283,7 +312,9 @@ pub async fn submit_contract(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let contract = state.scm.procurement_contract_engine
+    let contract = state
+        .scm
+        .procurement_contract_engine
         .submit_contract(id)
         .await
         .map_err(|e| {
@@ -311,10 +342,11 @@ pub async fn approve_contract(
     Path(id): Path<Uuid>,
     Json(_payload): Json<ApproveContractRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let contract = state.scm.procurement_contract_engine
+    let contract = state
+        .scm
+        .procurement_contract_engine
         .approve_contract(id, user_id)
         .await
         .map_err(|e| {
@@ -342,7 +374,9 @@ pub async fn reject_contract(
     Path(id): Path<Uuid>,
     Json(payload): Json<RejectContractRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let contract = state.scm.procurement_contract_engine
+    let contract = state
+        .scm
+        .procurement_contract_engine
         .reject_contract(id, &payload.reason)
         .await
         .map_err(|e| {
@@ -370,10 +404,11 @@ pub async fn terminate_contract(
     Path(id): Path<Uuid>,
     Json(payload): Json<TerminateContractRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let contract = state.scm.procurement_contract_engine
+    let contract = state
+        .scm
+        .procurement_contract_engine
         .terminate_contract(id, user_id, &payload.reason)
         .await
         .map_err(|e| {
@@ -395,7 +430,9 @@ pub async fn close_contract(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let contract = state.scm.procurement_contract_engine
+    let contract = state
+        .scm
+        .procurement_contract_engine
         .close_contract(id)
         .await
         .map_err(|e| {
@@ -437,14 +474,15 @@ pub async fn add_contract_line(
     Path(contract_id): Path<Uuid>,
     Json(payload): Json<AddContractLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let line = state.scm.procurement_contract_engine
+    let line = state
+        .scm
+        .procurement_contract_engine
         .add_contract_line(
-            org_id, contract_id,
+            org_id,
+            contract_id,
             &payload.item_description,
             payload.item_code.as_deref(),
             payload.category.as_deref(),
@@ -470,7 +508,10 @@ pub async fn add_contract_line(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(line)),
+    ))
 }
 
 /// List contract lines
@@ -479,7 +520,9 @@ pub async fn list_contract_lines(
     _claims: Extension<Claims>,
     Path(contract_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let lines = state.scm.procurement_contract_engine
+    let lines = state
+        .scm
+        .procurement_contract_engine
         .list_contract_lines(contract_id)
         .await
         .map_err(|e| {
@@ -496,7 +539,9 @@ pub async fn delete_contract_line(
     _claims: Extension<Claims>,
     Path(line_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.scm.procurement_contract_engine
+    state
+        .scm
+        .procurement_contract_engine
         .delete_contract_line(line_id)
         .await
         .map_err(|e| {
@@ -532,7 +577,9 @@ pub struct AddMilestoneRequest {
     pub is_billable: bool,
 }
 
-fn default_milestone_type() -> String { "delivery".to_string() }
+fn default_milestone_type() -> String {
+    "delivery".to_string()
+}
 
 /// Add a milestone
 pub async fn add_milestone(
@@ -541,14 +588,15 @@ pub async fn add_milestone(
     Path(contract_id): Path<Uuid>,
     Json(payload): Json<AddMilestoneRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let milestone = state.scm.procurement_contract_engine
+    let milestone = state
+        .scm
+        .procurement_contract_engine
         .add_milestone(
-            org_id, contract_id,
+            org_id,
+            contract_id,
             payload.contract_line_id,
             &payload.name,
             payload.description.as_deref(),
@@ -571,7 +619,10 @@ pub async fn add_milestone(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(milestone))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(milestone)),
+    ))
 }
 
 /// List milestones
@@ -580,7 +631,9 @@ pub async fn list_milestones(
     _claims: Extension<Claims>,
     Path(contract_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let milestones = state.scm.procurement_contract_engine
+    let milestones = state
+        .scm
+        .procurement_contract_engine
         .list_milestones(contract_id)
         .await
         .map_err(|e| {
@@ -604,7 +657,9 @@ pub async fn update_milestone(
     Path(milestone_id): Path<Uuid>,
     Json(payload): Json<UpdateMilestoneRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let milestone = state.scm.procurement_contract_engine
+    let milestone = state
+        .scm
+        .procurement_contract_engine
         .update_milestone_status(milestone_id, &payload.status, payload.actual_date)
         .await
         .map_err(|e| {
@@ -632,7 +687,9 @@ pub struct RenewContractRequest {
     pub notes: Option<String>,
 }
 
-fn default_renewal_type() -> String { "manual".to_string() }
+fn default_renewal_type() -> String {
+    "manual".to_string()
+}
 
 /// Renew a contract
 pub async fn renew_contract(
@@ -641,10 +698,11 @@ pub async fn renew_contract(
     Path(contract_id): Path<Uuid>,
     Json(payload): Json<RenewContractRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let renewal = state.scm.procurement_contract_engine
+    let renewal = state
+        .scm
+        .procurement_contract_engine
         .renew_contract(
             contract_id,
             payload.new_end_date,
@@ -664,7 +722,10 @@ pub async fn renew_contract(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(renewal))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(renewal)),
+    ))
 }
 
 /// List renewals
@@ -673,7 +734,9 @@ pub async fn list_renewals(
     _claims: Extension<Claims>,
     Path(contract_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let renewals = state.scm.procurement_contract_engine
+    let renewals = state
+        .scm
+        .procurement_contract_engine
         .list_renewals(contract_id)
         .await
         .map_err(|e| {
@@ -707,14 +770,15 @@ pub async fn record_spend(
     Path(contract_id): Path<Uuid>,
     Json(payload): Json<RecordSpendRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let spend = state.scm.procurement_contract_engine
+    let spend = state
+        .scm
+        .procurement_contract_engine
         .record_spend(
-            org_id, contract_id,
+            org_id,
+            contract_id,
             payload.contract_line_id,
             &payload.source_type,
             payload.source_id,
@@ -736,7 +800,10 @@ pub async fn record_spend(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(spend))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(spend)),
+    ))
 }
 
 /// List spend entries
@@ -745,7 +812,9 @@ pub async fn list_spend_entries(
     _claims: Extension<Claims>,
     Path(contract_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let entries = state.scm.procurement_contract_engine
+    let entries = state
+        .scm
+        .procurement_contract_engine
         .list_spend_entries(contract_id)
         .await
         .map_err(|e| {
@@ -765,10 +834,11 @@ pub async fn get_dashboard_summary(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let summary = state.scm.procurement_contract_engine
+    let summary = state
+        .scm
+        .procurement_contract_engine
         .get_dashboard_summary(org_id)
         .await
         .map_err(|e| {

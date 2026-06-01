@@ -2,11 +2,10 @@
 //!
 //! Storage interface for bank account transfer data.
 
-use atlas_shared::{
-    BankTransferType, BankAccountTransfer, BankTransferDashboardSummary,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, BankAccountTransfer, BankTransferDashboardSummary, BankTransferType,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -58,7 +57,11 @@ pub trait BankAccountTransferRepository: Send + Sync {
     ) -> AtlasResult<BankAccountTransfer>;
 
     async fn get_transfer(&self, id: Uuid) -> AtlasResult<Option<BankAccountTransfer>>;
-    async fn list_transfers(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<BankAccountTransfer>>;
+    async fn list_transfers(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<BankAccountTransfer>>;
     async fn update_transfer_status(
         &self,
         id: Uuid,
@@ -71,7 +74,10 @@ pub trait BankAccountTransferRepository: Send + Sync {
     ) -> AtlasResult<BankAccountTransfer>;
 
     // Dashboard
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<BankTransferDashboardSummary>;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<BankTransferDashboardSummary>;
 }
 
 /// `PostgreSQL` implementation
@@ -80,7 +86,7 @@ pub struct PostgresBankAccountTransferRepository {
 }
 
 impl PostgresBankAccountTransferRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -155,9 +161,14 @@ fn row_to_transfer(row: &sqlx::postgres::PgRow) -> BankAccountTransfer {
 impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
     async fn create_transfer_type(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        settlement_method: &str, requires_approval: bool,
-        approval_threshold: Option<&str>, created_by: Option<Uuid>,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        settlement_method: &str,
+        requires_approval: bool,
+        approval_threshold: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<BankTransferType> {
         let row = sqlx::query(
             r"
@@ -168,10 +179,16 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(settlement_method).bind(requires_approval)
-        .bind(approval_threshold).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(settlement_method)
+        .bind(requires_approval)
+        .bind(approval_threshold)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_transfer_type(&row))
     }
@@ -186,18 +203,29 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
 
     async fn create_transfer(
         &self,
-        org_id: Uuid, transfer_number: &str, transfer_type_id: Option<Uuid>,
-        from_bank_account_id: Uuid, from_bank_account_number: Option<&str>,
+        org_id: Uuid,
+        transfer_number: &str,
+        transfer_type_id: Option<Uuid>,
+        from_bank_account_id: Uuid,
+        from_bank_account_number: Option<&str>,
         from_bank_name: Option<&str>,
-        to_bank_account_id: Uuid, to_bank_account_number: Option<&str>,
+        to_bank_account_id: Uuid,
+        to_bank_account_number: Option<&str>,
         to_bank_name: Option<&str>,
-        amount: &str, currency_code: &str, exchange_rate: Option<&str>,
-        from_currency: Option<&str>, to_currency: Option<&str>,
+        amount: &str,
+        currency_code: &str,
+        exchange_rate: Option<&str>,
+        from_currency: Option<&str>,
+        to_currency: Option<&str>,
         transferred_amount: Option<&str>,
-        transfer_date: chrono::NaiveDate, value_date: Option<chrono::NaiveDate>,
+        transfer_date: chrono::NaiveDate,
+        value_date: Option<chrono::NaiveDate>,
         settlement_date: Option<chrono::NaiveDate>,
-        reference_number: Option<&str>, description: Option<&str>,
-        purpose: Option<&str>, status: &str, priority: &str,
+        reference_number: Option<&str>,
+        description: Option<&str>,
+        purpose: Option<&str>,
+        status: &str,
+        priority: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<BankAccountTransfer> {
         let row = sqlx::query(
@@ -215,39 +243,71 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(transfer_number).bind(transfer_type_id)
-        .bind(from_bank_account_id).bind(from_bank_account_number).bind(from_bank_name)
-        .bind(to_bank_account_id).bind(to_bank_account_number).bind(to_bank_name)
-        .bind(amount).bind(currency_code).bind(exchange_rate).bind(from_currency).bind(to_currency)
-        .bind(transferred_amount).bind(transfer_date).bind(value_date).bind(settlement_date)
-        .bind(reference_number).bind(description).bind(purpose).bind(status).bind(priority).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(transfer_number)
+        .bind(transfer_type_id)
+        .bind(from_bank_account_id)
+        .bind(from_bank_account_number)
+        .bind(from_bank_name)
+        .bind(to_bank_account_id)
+        .bind(to_bank_account_number)
+        .bind(to_bank_name)
+        .bind(amount)
+        .bind(currency_code)
+        .bind(exchange_rate)
+        .bind(from_currency)
+        .bind(to_currency)
+        .bind(transferred_amount)
+        .bind(transfer_date)
+        .bind(value_date)
+        .bind(settlement_date)
+        .bind(reference_number)
+        .bind(description)
+        .bind(purpose)
+        .bind(status)
+        .bind(priority)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_transfer(&row))
     }
 
     async fn get_transfer(&self, id: Uuid) -> AtlasResult<Option<BankAccountTransfer>> {
         let row = sqlx::query("SELECT * FROM _atlas.bank_account_transfers WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_transfer(&r)))
     }
 
-    async fn list_transfers(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<BankAccountTransfer>> {
+    async fn list_transfers(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<BankAccountTransfer>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.bank_account_transfers
                WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
                ORDER BY transfer_date DESC, created_at DESC",
-        ).bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        )
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_transfer).collect())
     }
 
     async fn update_transfer_status(
-        &self, id: Uuid, status: &str,
-        submitted_by: Option<Uuid>, approved_by: Option<Uuid>,
-        completed_by: Option<Uuid>, cancelled_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        submitted_by: Option<Uuid>,
+        approved_by: Option<Uuid>,
+        completed_by: Option<Uuid>,
+        cancelled_by: Option<Uuid>,
         cancellation_reason: Option<&str>,
     ) -> AtlasResult<BankAccountTransfer> {
         let row = sqlx::query(
@@ -266,14 +326,24 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
                 updated_at = now()
             WHERE id = $1 RETURNING *
             ",
-        ).bind(id).bind(status).bind(submitted_by).bind(approved_by)
-        .bind(completed_by).bind(cancelled_by).bind(cancellation_reason)
-        .fetch_one(&self.pool).await
+        )
+        .bind(id)
+        .bind(status)
+        .bind(submitted_by)
+        .bind(approved_by)
+        .bind(completed_by)
+        .bind(cancelled_by)
+        .bind(cancellation_reason)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_transfer(&row))
     }
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<BankTransferDashboardSummary> {
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<BankTransferDashboardSummary> {
         let row = sqlx::query(
             r"SELECT
                 COUNT(*) as total,
@@ -296,8 +366,14 @@ impl BankAccountTransferRepository for PostgresBankAccountTransferRepository {
             pending_transfers: row.try_get::<i64, _>("pending").unwrap_or(0) as i32,
             completed_transfers: row.try_get::<i64, _>("completed").unwrap_or(0) as i32,
             cancelled_transfers: row.try_get::<i64, _>("cancelled").unwrap_or(0) as i32,
-            total_amount_transferred: format!("{:.2}", row.try_get::<f64, _>("total_amount").unwrap_or(0.0)),
-            average_transfer_amount: format!("{:.2}", row.try_get::<f64, _>("avg_amount").unwrap_or(0.0)),
+            total_amount_transferred: format!(
+                "{:.2}",
+                row.try_get::<f64, _>("total_amount").unwrap_or(0.0)
+            ),
+            average_transfer_amount: format!(
+                "{:.2}",
+                row.try_get::<f64, _>("avg_amount").unwrap_or(0.0)
+            ),
             total_transfer_types: type_count.try_get::<i64, _>("cnt").unwrap_or(0) as i32,
         })
     }

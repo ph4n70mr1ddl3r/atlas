@@ -7,21 +7,41 @@
 //!
 //! Oracle Fusion equivalent: Financials > General Ledger > Statistical Accounting
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
-use sqlx::PgPool;
-use uuid::Uuid;
-use serde::{Serialize, Deserialize};
+use atlas_shared::{AtlasError, AtlasResult};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use std::sync::Arc;
 use tracing::info;
+use uuid::Uuid;
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const VALID_STAT_TYPES: &[&str] = &["headcount", "square_footage", "units_produced", "machine_hours", "labor_hours", "transactions", "vehicles", "lines_of_code", "custom"];
-const VALID_UNITS: &[&str] = &["people", "sqft", "sqm", "units", "hours", "transactions", "vehicles", "kloc", "each"];
+const VALID_STAT_TYPES: &[&str] = &[
+    "headcount",
+    "square_footage",
+    "units_produced",
+    "machine_hours",
+    "labor_hours",
+    "transactions",
+    "vehicles",
+    "lines_of_code",
+    "custom",
+];
+const VALID_UNITS: &[&str] = &[
+    "people",
+    "sqft",
+    "sqm",
+    "units",
+    "hours",
+    "transactions",
+    "vehicles",
+    "kloc",
+    "each",
+];
 const VALID_ENTRY_STATUSES: &[&str] = &["draft", "posted", "reversed"];
 
 // ============================================================================
@@ -99,28 +119,73 @@ pub struct StatisticalDashboard {
 #[async_trait]
 pub trait StatisticalAccountingRepository: Send + Sync {
     // Units
-    async fn create_unit(&self, org_id: Uuid, code: &str, name: &str, description: Option<&str>, stat_type: &str, unit_of_measure: &str, created_by: Option<Uuid>) -> AtlasResult<StatisticalUnit>;
+    async fn create_unit(
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        stat_type: &str,
+        unit_of_measure: &str,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<StatisticalUnit>;
     async fn get_unit(&self, id: Uuid) -> AtlasResult<Option<StatisticalUnit>>;
-    async fn get_unit_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<StatisticalUnit>>;
-    async fn list_units(&self, org_id: Uuid, stat_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<StatisticalUnit>>;
+    async fn get_unit_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<StatisticalUnit>>;
+    async fn list_units(
+        &self,
+        org_id: Uuid,
+        stat_type: Option<&str>,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<StatisticalUnit>>;
     async fn deactivate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit>;
     async fn activate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit>;
 
     // Entries
-    async fn create_entry(&self,
-        org_id: Uuid, entry_number: &str, statistical_unit_id: Uuid, statistical_unit_code: Option<&str>,
-        account_code: Option<&str>, dimension1: Option<&str>, dimension2: Option<&str>, dimension3: Option<&str>,
-        fiscal_year: i32, period_number: i32, quantity: &str,
-        unit_cost: Option<&str>, extended_amount: Option<&str>,
-        status: &str, source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
-        description: Option<&str>, created_by: Option<Uuid>,
+    async fn create_entry(
+        &self,
+        org_id: Uuid,
+        entry_number: &str,
+        statistical_unit_id: Uuid,
+        statistical_unit_code: Option<&str>,
+        account_code: Option<&str>,
+        dimension1: Option<&str>,
+        dimension2: Option<&str>,
+        dimension3: Option<&str>,
+        fiscal_year: i32,
+        period_number: i32,
+        quantity: &str,
+        unit_cost: Option<&str>,
+        extended_amount: Option<&str>,
+        status: &str,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        description: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<StatisticalEntry>;
     async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<StatisticalEntry>>;
-    async fn list_entries(&self, org_id: Uuid, unit_id: Option<Uuid>, fiscal_year: Option<i32>, period: Option<i32>, status: Option<&str>) -> AtlasResult<Vec<StatisticalEntry>>;
+    async fn list_entries(
+        &self,
+        org_id: Uuid,
+        unit_id: Option<Uuid>,
+        fiscal_year: Option<i32>,
+        period: Option<i32>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<StatisticalEntry>>;
     async fn update_entry_status(&self, id: Uuid, status: &str) -> AtlasResult<StatisticalEntry>;
 
     // Balance
-    async fn get_balance(&self, org_id: Uuid, unit_id: Uuid, fiscal_year: i32, period: i32) -> AtlasResult<Option<StatisticalBalance>>;
+    async fn get_balance(
+        &self,
+        org_id: Uuid,
+        unit_id: Uuid,
+        fiscal_year: i32,
+        period: i32,
+    ) -> AtlasResult<Option<StatisticalBalance>>;
 
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<StatisticalDashboard>;
@@ -133,7 +198,7 @@ pub struct PostgresStatisticalAccountingRepository {
 }
 
 impl PostgresStatisticalAccountingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -159,7 +224,8 @@ fn row_to_unit(row: &sqlx::postgres::PgRow) -> StatisticalUnit {
 
 fn get_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> String {
     use sqlx::Row;
-    row.try_get::<String, _>(col).unwrap_or_else(|_| "0".to_string())
+    row.try_get::<String, _>(col)
+        .unwrap_or_else(|_| "0".to_string())
 }
 
 fn get_optional_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> Option<String> {
@@ -199,48 +265,82 @@ fn row_to_entry(row: &sqlx::postgres::PgRow) -> StatisticalEntry {
 #[async_trait]
 impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository {
     async fn create_unit(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        stat_type: &str, unit_of_measure: &str, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        stat_type: &str,
+        unit_of_measure: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<StatisticalUnit> {
-        let row = sqlx::query(r"
+        let row = sqlx::query(
+            r"
             INSERT INTO financials.statistical_units
                 (organization_id, code, name, description, stat_type, unit_of_measure, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-        ")
-            .bind(org_id).bind(code).bind(name).bind(description).bind(stat_type).bind(unit_of_measure).bind(created_by)
-            .fetch_one(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        ",
+        )
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(stat_type)
+        .bind(unit_of_measure)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_unit(&row))
     }
 
     async fn get_unit(&self, id: Uuid) -> AtlasResult<Option<StatisticalUnit>> {
         let row = sqlx::query(r"SELECT * FROM financials.statistical_units WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.as_ref().map(row_to_unit))
     }
 
-    async fn get_unit_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<StatisticalUnit>> {
-        let row = sqlx::query(r"SELECT * FROM financials.statistical_units WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code)
-            .fetch_optional(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_unit_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<StatisticalUnit>> {
+        let row = sqlx::query(
+            r"SELECT * FROM financials.statistical_units WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.as_ref().map(row_to_unit))
     }
 
-    async fn list_units(&self, org_id: Uuid, stat_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<StatisticalUnit>> {
-        let rows = sqlx::query(r"
+    async fn list_units(
+        &self,
+        org_id: Uuid,
+        stat_type: Option<&str>,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<StatisticalUnit>> {
+        let rows = sqlx::query(
+            r"
             SELECT * FROM financials.statistical_units
             WHERE organization_id = $1
               AND ($2::varchar IS NULL OR stat_type = $2)
               AND ($3::bool IS NULL OR is_active = $3)
             ORDER BY code
-        ")
-            .bind(org_id).bind(stat_type).bind(is_active)
-            .fetch_all(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        ",
+        )
+        .bind(org_id)
+        .bind(stat_type)
+        .bind(is_active)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_unit).collect())
     }
 
@@ -265,12 +365,26 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     }
 
     async fn create_entry(
-        &self, org_id: Uuid, entry_number: &str, statistical_unit_id: Uuid, statistical_unit_code: Option<&str>,
-        account_code: Option<&str>, dimension1: Option<&str>, dimension2: Option<&str>, dimension3: Option<&str>,
-        fiscal_year: i32, period_number: i32, quantity: &str,
-        unit_cost: Option<&str>, extended_amount: Option<&str>,
-        status: &str, source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
-        description: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        entry_number: &str,
+        statistical_unit_id: Uuid,
+        statistical_unit_code: Option<&str>,
+        account_code: Option<&str>,
+        dimension1: Option<&str>,
+        dimension2: Option<&str>,
+        dimension3: Option<&str>,
+        fiscal_year: i32,
+        period_number: i32,
+        quantity: &str,
+        unit_cost: Option<&str>,
+        extended_amount: Option<&str>,
+        status: &str,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        description: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<StatisticalEntry> {
         let row = sqlx::query(r"
             INSERT INTO financials.statistical_entries
@@ -296,13 +410,22 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
     async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<StatisticalEntry>> {
         let row = sqlx::query(r"SELECT * FROM financials.statistical_entries WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.as_ref().map(row_to_entry))
     }
 
-    async fn list_entries(&self, org_id: Uuid, unit_id: Option<Uuid>, fiscal_year: Option<i32>, period: Option<i32>, status: Option<&str>) -> AtlasResult<Vec<StatisticalEntry>> {
-        let rows = sqlx::query(r"
+    async fn list_entries(
+        &self,
+        org_id: Uuid,
+        unit_id: Option<Uuid>,
+        fiscal_year: Option<i32>,
+        period: Option<i32>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<StatisticalEntry>> {
+        let rows = sqlx::query(
+            r"
             SELECT * FROM financials.statistical_entries
             WHERE organization_id = $1
               AND ($2::uuid IS NULL OR statistical_unit_id = $2)
@@ -310,10 +433,16 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
               AND ($4::int IS NULL OR period_number = $4)
               AND ($5::varchar IS NULL OR status = $5)
             ORDER BY fiscal_year DESC, period_number DESC, entry_number
-        ")
-            .bind(org_id).bind(unit_id).bind(fiscal_year).bind(period).bind(status)
-            .fetch_all(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        ",
+        )
+        .bind(org_id)
+        .bind(unit_id)
+        .bind(fiscal_year)
+        .bind(period)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_entry).collect())
     }
 
@@ -327,7 +456,13 @@ impl StatisticalAccountingRepository for PostgresStatisticalAccountingRepository
         Ok(row_to_entry(&row))
     }
 
-    async fn get_balance(&self, org_id: Uuid, unit_id: Uuid, fiscal_year: i32, period: i32) -> AtlasResult<Option<StatisticalBalance>> {
+    async fn get_balance(
+        &self,
+        org_id: Uuid,
+        unit_id: Uuid,
+        fiscal_year: i32,
+        period: i32,
+    ) -> AtlasResult<Option<StatisticalBalance>> {
         let row = sqlx::query(r"
             SELECT statistical_unit_id, statistical_unit_code, fiscal_year, period_number,
                    beginning_balance, period_activity, ending_balance
@@ -392,124 +527,267 @@ impl StatisticalAccountingEngine {
     // ── Unit operations ──
 
     pub async fn create_unit(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        stat_type: &str, unit_of_measure: &str, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        stat_type: &str,
+        unit_of_measure: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<StatisticalUnit> {
         if code.is_empty() || name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Code and name are required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Code and name are required".into(),
+            ));
         }
         if !VALID_STAT_TYPES.contains(&stat_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid stat type '{}'. Must be one of: {}", stat_type, VALID_STAT_TYPES.join(", ")
+                "Invalid stat type '{}'. Must be one of: {}",
+                stat_type,
+                VALID_STAT_TYPES.join(", ")
             )));
         }
         if !VALID_UNITS.contains(&unit_of_measure) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid unit of measure '{}'. Must be one of: {}", unit_of_measure, VALID_UNITS.join(", ")
+                "Invalid unit of measure '{}'. Must be one of: {}",
+                unit_of_measure,
+                VALID_UNITS.join(", ")
             )));
         }
-        if self.repository.get_unit_by_code(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Statistical unit '{code}' already exists")));
+        if self
+            .repository
+            .get_unit_by_code(org_id, code)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Statistical unit '{code}' already exists"
+            )));
         }
         info!("Creating statistical unit '{}' for org {}", code, org_id);
-        self.repository.create_unit(org_id, code, name, description, stat_type, unit_of_measure, created_by).await
+        self.repository
+            .create_unit(
+                org_id,
+                code,
+                name,
+                description,
+                stat_type,
+                unit_of_measure,
+                created_by,
+            )
+            .await
     }
 
-    pub async fn get_unit(&self, id: Uuid) -> AtlasResult<Option<StatisticalUnit>> { self.repository.get_unit(id).await }
-    pub async fn get_unit_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<StatisticalUnit>> { self.repository.get_unit_by_code(org_id, code).await }
+    pub async fn get_unit(&self, id: Uuid) -> AtlasResult<Option<StatisticalUnit>> {
+        self.repository.get_unit(id).await
+    }
+    pub async fn get_unit_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<StatisticalUnit>> {
+        self.repository.get_unit_by_code(org_id, code).await
+    }
 
-    pub async fn list_units(&self, org_id: Uuid, stat_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<StatisticalUnit>> {
+    pub async fn list_units(
+        &self,
+        org_id: Uuid,
+        stat_type: Option<&str>,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<StatisticalUnit>> {
         if let Some(st) = stat_type {
             if !VALID_STAT_TYPES.contains(&st) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid stat type '{st}'")));
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Invalid stat type '{st}'"
+                )));
             }
         }
-        self.repository.list_units(org_id, stat_type, is_active).await
+        self.repository
+            .list_units(org_id, stat_type, is_active)
+            .await
     }
 
     pub async fn deactivate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit> {
-        let u = self.repository.get_unit(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Unit {id} not found")))?;
-        if !u.is_active { return Err(AtlasError::ValidationFailed("Already inactive".into())); }
+        let u = self
+            .repository
+            .get_unit(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Unit {id} not found")))?;
+        if !u.is_active {
+            return Err(AtlasError::ValidationFailed("Already inactive".into()));
+        }
         self.repository.deactivate_unit(id).await
     }
 
     pub async fn activate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit> {
-        let u = self.repository.get_unit(id).await?.ok_or_else(|| AtlasError::EntityNotFound(format!("Unit {id} not found")))?;
-        if u.is_active { return Err(AtlasError::ValidationFailed("Already active".into())); }
+        let u = self
+            .repository
+            .get_unit(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Unit {id} not found")))?;
+        if u.is_active {
+            return Err(AtlasError::ValidationFailed("Already active".into()));
+        }
         self.repository.activate_unit(id).await
     }
 
     // ── Entry operations ──
 
     pub async fn create_entry(
-        &self, org_id: Uuid, statistical_unit_id: Uuid,
-        account_code: Option<&str>, dimension1: Option<&str>, dimension2: Option<&str>, dimension3: Option<&str>,
-        fiscal_year: i32, period_number: i32, quantity: &str,
-        unit_cost: Option<&str>, source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
-        description: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        statistical_unit_id: Uuid,
+        account_code: Option<&str>,
+        dimension1: Option<&str>,
+        dimension2: Option<&str>,
+        dimension3: Option<&str>,
+        fiscal_year: i32,
+        period_number: i32,
+        quantity: &str,
+        unit_cost: Option<&str>,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        description: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<StatisticalEntry> {
-        let unit = self.repository.get_unit(statistical_unit_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Statistical unit {statistical_unit_id} not found")))?;
+        let unit = self
+            .repository
+            .get_unit(statistical_unit_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Statistical unit {statistical_unit_id} not found"
+                ))
+            })?;
         if !unit.is_active {
-            return Err(AtlasError::ValidationFailed("Cannot create entries for inactive statistical unit".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Cannot create entries for inactive statistical unit".into(),
+            ));
         }
-        if fiscal_year <= 0 { return Err(AtlasError::ValidationFailed("Fiscal year must be positive".into())); }
-        if period_number <= 0 || period_number > 13 { return Err(AtlasError::ValidationFailed("Period must be 1-13".into())); }
-        let qty: f64 = quantity.parse().map_err(|_| AtlasError::ValidationFailed("Invalid quantity".into()))?;
-        if qty == 0.0 { return Err(AtlasError::ValidationFailed("Quantity cannot be zero".into())); }
+        if fiscal_year <= 0 {
+            return Err(AtlasError::ValidationFailed(
+                "Fiscal year must be positive".into(),
+            ));
+        }
+        if period_number <= 0 || period_number > 13 {
+            return Err(AtlasError::ValidationFailed("Period must be 1-13".into()));
+        }
+        let qty: f64 = quantity
+            .parse()
+            .map_err(|_| AtlasError::ValidationFailed("Invalid quantity".into()))?;
+        if qty == 0.0 {
+            return Err(AtlasError::ValidationFailed(
+                "Quantity cannot be zero".into(),
+            ));
+        }
 
         let extended = if let Some(uc) = unit_cost {
-            let uc_val: f64 = uc.parse().map_err(|_| AtlasError::ValidationFailed("Invalid unit cost".into()))?;
+            let uc_val: f64 = uc
+                .parse()
+                .map_err(|_| AtlasError::ValidationFailed("Invalid unit cost".into()))?;
             Some((qty * uc_val).to_string())
         } else {
             None
         };
 
         let entry_number = format!("STAT-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
-        info!("Creating statistical entry {} for unit {}", entry_number, unit.code);
-        self.repository.create_entry(
-            org_id, &entry_number, statistical_unit_id, Some(&unit.code),
-            account_code, dimension1, dimension2, dimension3,
-            fiscal_year, period_number, quantity,
-            unit_cost, extended.as_deref(),
-            "draft", source_type, source_id, source_number,
-            description, created_by,
-        ).await
+        info!(
+            "Creating statistical entry {} for unit {}",
+            entry_number, unit.code
+        );
+        self.repository
+            .create_entry(
+                org_id,
+                &entry_number,
+                statistical_unit_id,
+                Some(&unit.code),
+                account_code,
+                dimension1,
+                dimension2,
+                dimension3,
+                fiscal_year,
+                period_number,
+                quantity,
+                unit_cost,
+                extended.as_deref(),
+                "draft",
+                source_type,
+                source_id,
+                source_number,
+                description,
+                created_by,
+            )
+            .await
     }
 
-    pub async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<StatisticalEntry>> { self.repository.get_entry(id).await }
+    pub async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<StatisticalEntry>> {
+        self.repository.get_entry(id).await
+    }
 
-    pub async fn list_entries(&self, org_id: Uuid, unit_id: Option<Uuid>, fiscal_year: Option<i32>, period: Option<i32>, status: Option<&str>) -> AtlasResult<Vec<StatisticalEntry>> {
+    pub async fn list_entries(
+        &self,
+        org_id: Uuid,
+        unit_id: Option<Uuid>,
+        fiscal_year: Option<i32>,
+        period: Option<i32>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<StatisticalEntry>> {
         if let Some(s) = status {
             if !VALID_ENTRY_STATUSES.contains(&s) {
-                return Err(AtlasError::ValidationFailed(format!("Invalid status '{s}'")));
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Invalid status '{s}'"
+                )));
             }
         }
-        self.repository.list_entries(org_id, unit_id, fiscal_year, period, status).await
+        self.repository
+            .list_entries(org_id, unit_id, fiscal_year, period, status)
+            .await
     }
 
     pub async fn post_entry(&self, id: Uuid) -> AtlasResult<StatisticalEntry> {
-        let entry = self.repository.get_entry(id).await?
+        let entry = self
+            .repository
+            .get_entry(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {id} not found")))?;
         if entry.status != "draft" {
-            return Err(AtlasError::WorkflowError(format!("Cannot post entry in '{}' status", entry.status)));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot post entry in '{}' status",
+                entry.status
+            )));
         }
         info!("Posting statistical entry {}", entry.entry_number);
         self.repository.update_entry_status(id, "posted").await
     }
 
     pub async fn reverse_entry(&self, id: Uuid) -> AtlasResult<StatisticalEntry> {
-        let entry = self.repository.get_entry(id).await?
+        let entry = self
+            .repository
+            .get_entry(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Entry {id} not found")))?;
         if entry.status != "posted" {
-            return Err(AtlasError::WorkflowError(format!("Cannot reverse entry in '{}' status", entry.status)));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reverse entry in '{}' status",
+                entry.status
+            )));
         }
         info!("Reversing statistical entry {}", entry.entry_number);
         self.repository.update_entry_status(id, "reversed").await
     }
 
-    pub async fn get_balance(&self, org_id: Uuid, unit_id: Uuid, fiscal_year: i32, period: i32) -> AtlasResult<Option<StatisticalBalance>> {
-        self.repository.get_balance(org_id, unit_id, fiscal_year, period).await
+    pub async fn get_balance(
+        &self,
+        org_id: Uuid,
+        unit_id: Uuid,
+        fiscal_year: i32,
+        period: i32,
+    ) -> AtlasResult<Option<StatisticalBalance>> {
+        self.repository
+            .get_balance(org_id, unit_id, fiscal_year, period)
+            .await
     }
 
     pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<StatisticalDashboard> {
@@ -529,85 +807,258 @@ mod tests {
         units: std::sync::Mutex<Vec<StatisticalUnit>>,
         entries: std::sync::Mutex<Vec<StatisticalEntry>>,
     }
-    impl MockRepo { fn new() -> Self { Self { units: std::sync::Mutex::new(vec![]), entries: std::sync::Mutex::new(vec![]) } } }
+    impl MockRepo {
+        fn new() -> Self {
+            Self {
+                units: std::sync::Mutex::new(vec![]),
+                entries: std::sync::Mutex::new(vec![]),
+            }
+        }
+    }
 
     #[async_trait]
     impl StatisticalAccountingRepository for MockRepo {
-        async fn create_unit(&self, org_id: Uuid, code: &str, name: &str, description: Option<&str>, stat_type: &str, uom: &str, created_by: Option<Uuid>) -> AtlasResult<StatisticalUnit> {
+        async fn create_unit(
+            &self,
+            org_id: Uuid,
+            code: &str,
+            name: &str,
+            description: Option<&str>,
+            stat_type: &str,
+            uom: &str,
+            created_by: Option<Uuid>,
+        ) -> AtlasResult<StatisticalUnit> {
             let u = StatisticalUnit {
-                id: Uuid::new_v4(), organization_id: org_id, code: code.into(), name: name.into(),
-                description: description.map(Into::into), stat_type: stat_type.into(), unit_of_measure: uom.into(),
-                is_active: true, metadata: serde_json::json!({}), created_by, created_at: Utc::now(), updated_at: Utc::now(),
+                id: Uuid::new_v4(),
+                organization_id: org_id,
+                code: code.into(),
+                name: name.into(),
+                description: description.map(Into::into),
+                stat_type: stat_type.into(),
+                unit_of_measure: uom.into(),
+                is_active: true,
+                metadata: serde_json::json!({}),
+                created_by,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
             };
             self.units.lock().unwrap().push(u.clone());
             Ok(u)
         }
         async fn get_unit(&self, id: Uuid) -> AtlasResult<Option<StatisticalUnit>> {
-            Ok(self.units.lock().unwrap().iter().find(|u| u.id == id).cloned())
+            Ok(self
+                .units
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|u| u.id == id)
+                .cloned())
         }
-        async fn get_unit_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<StatisticalUnit>> {
-            Ok(self.units.lock().unwrap().iter().find(|u| u.organization_id == org_id && u.code == code).cloned())
+        async fn get_unit_by_code(
+            &self,
+            org_id: Uuid,
+            code: &str,
+        ) -> AtlasResult<Option<StatisticalUnit>> {
+            Ok(self
+                .units
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|u| u.organization_id == org_id && u.code == code)
+                .cloned())
         }
-        async fn list_units(&self, org_id: Uuid, stat_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<StatisticalUnit>> {
-            Ok(self.units.lock().unwrap().iter()
-                .filter(|u| u.organization_id == org_id && (stat_type.is_none() || u.stat_type == stat_type.unwrap()) && (is_active.is_none() || u.is_active == is_active.unwrap()))
-                .cloned().collect())
+        async fn list_units(
+            &self,
+            org_id: Uuid,
+            stat_type: Option<&str>,
+            is_active: Option<bool>,
+        ) -> AtlasResult<Vec<StatisticalUnit>> {
+            Ok(self
+                .units
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|u| {
+                    u.organization_id == org_id
+                        && (stat_type.is_none() || u.stat_type == stat_type.unwrap())
+                        && (is_active.is_none() || u.is_active == is_active.unwrap())
+                })
+                .cloned()
+                .collect())
         }
         async fn deactivate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit> {
             let mut all = self.units.lock().unwrap();
-            let u = all.iter_mut().find(|u| u.id == id).ok_or_else(|| AtlasError::EntityNotFound("Not found".into()))?;
-            u.is_active = false; u.updated_at = Utc::now(); Ok(u.clone())
+            let u = all
+                .iter_mut()
+                .find(|u| u.id == id)
+                .ok_or_else(|| AtlasError::EntityNotFound("Not found".into()))?;
+            u.is_active = false;
+            u.updated_at = Utc::now();
+            Ok(u.clone())
         }
         async fn activate_unit(&self, id: Uuid) -> AtlasResult<StatisticalUnit> {
             let mut all = self.units.lock().unwrap();
-            let u = all.iter_mut().find(|u| u.id == id).ok_or_else(|| AtlasError::EntityNotFound("Not found".into()))?;
-            u.is_active = true; u.updated_at = Utc::now(); Ok(u.clone())
+            let u = all
+                .iter_mut()
+                .find(|u| u.id == id)
+                .ok_or_else(|| AtlasError::EntityNotFound("Not found".into()))?;
+            u.is_active = true;
+            u.updated_at = Utc::now();
+            Ok(u.clone())
         }
-        async fn create_entry(&self, org_id: Uuid, entry_number: &str, unit_id: Uuid, unit_code: Option<&str>, account_code: Option<&str>, dim1: Option<&str>, dim2: Option<&str>, dim3: Option<&str>, fy: i32, pn: i32, qty: &str, uc: Option<&str>, ext: Option<&str>, status: &str, src_type: Option<&str>, src_id: Option<Uuid>, src_num: Option<&str>, desc: Option<&str>, created_by: Option<Uuid>) -> AtlasResult<StatisticalEntry> {
+        async fn create_entry(
+            &self,
+            org_id: Uuid,
+            entry_number: &str,
+            unit_id: Uuid,
+            unit_code: Option<&str>,
+            account_code: Option<&str>,
+            dim1: Option<&str>,
+            dim2: Option<&str>,
+            dim3: Option<&str>,
+            fy: i32,
+            pn: i32,
+            qty: &str,
+            uc: Option<&str>,
+            ext: Option<&str>,
+            status: &str,
+            src_type: Option<&str>,
+            src_id: Option<Uuid>,
+            src_num: Option<&str>,
+            desc: Option<&str>,
+            created_by: Option<Uuid>,
+        ) -> AtlasResult<StatisticalEntry> {
             let e = StatisticalEntry {
-                id: Uuid::new_v4(), organization_id: org_id, entry_number: entry_number.into(),
-                statistical_unit_id: unit_id, statistical_unit_code: unit_code.map(Into::into),
-                account_code: account_code.map(Into::into), dimension1: dim1.map(Into::into),
-                dimension2: dim2.map(Into::into), dimension3: dim3.map(Into::into),
-                fiscal_year: fy, period_number: pn, quantity: qty.into(),
-                unit_cost: uc.map(Into::into), extended_amount: ext.map(Into::into),
-                status: status.into(), source_type: src_type.map(Into::into),
-                source_id: src_id, source_number: src_num.map(Into::into), description: desc.map(Into::into),
-                metadata: serde_json::json!({}), created_by, created_at: Utc::now(), updated_at: Utc::now(),
+                id: Uuid::new_v4(),
+                organization_id: org_id,
+                entry_number: entry_number.into(),
+                statistical_unit_id: unit_id,
+                statistical_unit_code: unit_code.map(Into::into),
+                account_code: account_code.map(Into::into),
+                dimension1: dim1.map(Into::into),
+                dimension2: dim2.map(Into::into),
+                dimension3: dim3.map(Into::into),
+                fiscal_year: fy,
+                period_number: pn,
+                quantity: qty.into(),
+                unit_cost: uc.map(Into::into),
+                extended_amount: ext.map(Into::into),
+                status: status.into(),
+                source_type: src_type.map(Into::into),
+                source_id: src_id,
+                source_number: src_num.map(Into::into),
+                description: desc.map(Into::into),
+                metadata: serde_json::json!({}),
+                created_by,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
             };
             self.entries.lock().unwrap().push(e.clone());
             Ok(e)
         }
         async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<StatisticalEntry>> {
-            Ok(self.entries.lock().unwrap().iter().find(|e| e.id == id).cloned())
+            Ok(self
+                .entries
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|e| e.id == id)
+                .cloned())
         }
-        async fn list_entries(&self, org_id: Uuid, unit_id: Option<Uuid>, fy: Option<i32>, pn: Option<i32>, status: Option<&str>) -> AtlasResult<Vec<StatisticalEntry>> {
-            Ok(self.entries.lock().unwrap().iter()
-                .filter(|e| e.organization_id == org_id && (unit_id.is_none() || e.statistical_unit_id == unit_id.unwrap()) && (fy.is_none() || e.fiscal_year == fy.unwrap()) && (pn.is_none() || e.period_number == pn.unwrap()) && (status.is_none() || e.status == status.unwrap()))
-                .cloned().collect())
+        async fn list_entries(
+            &self,
+            org_id: Uuid,
+            unit_id: Option<Uuid>,
+            fy: Option<i32>,
+            pn: Option<i32>,
+            status: Option<&str>,
+        ) -> AtlasResult<Vec<StatisticalEntry>> {
+            Ok(self
+                .entries
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|e| {
+                    e.organization_id == org_id
+                        && (unit_id.is_none() || e.statistical_unit_id == unit_id.unwrap())
+                        && (fy.is_none() || e.fiscal_year == fy.unwrap())
+                        && (pn.is_none() || e.period_number == pn.unwrap())
+                        && (status.is_none() || e.status == status.unwrap())
+                })
+                .cloned()
+                .collect())
         }
-        async fn update_entry_status(&self, id: Uuid, status: &str) -> AtlasResult<StatisticalEntry> {
+        async fn update_entry_status(
+            &self,
+            id: Uuid,
+            status: &str,
+        ) -> AtlasResult<StatisticalEntry> {
             let mut all = self.entries.lock().unwrap();
-            let e = all.iter_mut().find(|e| e.id == id).ok_or_else(|| AtlasError::EntityNotFound("Not found".into()))?;
-            e.status = status.into(); e.updated_at = Utc::now(); Ok(e.clone())
+            let e = all
+                .iter_mut()
+                .find(|e| e.id == id)
+                .ok_or_else(|| AtlasError::EntityNotFound("Not found".into()))?;
+            e.status = status.into();
+            e.updated_at = Utc::now();
+            Ok(e.clone())
         }
-        async fn get_balance(&self, org_id: Uuid, unit_id: Uuid, fy: i32, pn: i32) -> AtlasResult<Option<StatisticalBalance>> {
+        async fn get_balance(
+            &self,
+            org_id: Uuid,
+            unit_id: Uuid,
+            fy: i32,
+            pn: i32,
+        ) -> AtlasResult<Option<StatisticalBalance>> {
             let entries = self.entries.lock().unwrap();
-            let unit_code = self.units.lock().unwrap().iter().find(|u| u.id == unit_id).map(|u| u.code.clone()).unwrap_or_default();
-            let posted: Vec<_> = entries.iter()
-                .filter(|e| e.organization_id == org_id && e.statistical_unit_id == unit_id && e.fiscal_year == fy && e.period_number == pn && e.status == "posted")
+            let unit_code = self
+                .units
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|u| u.id == unit_id)
+                .map(|u| u.code.clone())
+                .unwrap_or_default();
+            let posted: Vec<_> = entries
+                .iter()
+                .filter(|e| {
+                    e.organization_id == org_id
+                        && e.statistical_unit_id == unit_id
+                        && e.fiscal_year == fy
+                        && e.period_number == pn
+                        && e.status == "posted"
+                })
                 .collect();
-            if posted.is_empty() { return Ok(None); }
-            let activity: f64 = posted.iter().map(|e| e.quantity.parse::<f64>().unwrap_or(0.0)).sum();
-            Ok(Some(StatisticalBalance { statistical_unit_id: unit_id, statistical_unit_code: unit_code, fiscal_year: fy, period_number: pn, beginning_balance: "0".into(), period_activity: activity.to_string(), ending_balance: activity.to_string() }))
+            if posted.is_empty() {
+                return Ok(None);
+            }
+            let activity: f64 = posted
+                .iter()
+                .map(|e| e.quantity.parse::<f64>().unwrap_or(0.0))
+                .sum();
+            Ok(Some(StatisticalBalance {
+                statistical_unit_id: unit_id,
+                statistical_unit_code: unit_code,
+                fiscal_year: fy,
+                period_number: pn,
+                beginning_balance: "0".into(),
+                period_activity: activity.to_string(),
+                ending_balance: activity.to_string(),
+            }))
         }
         async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<StatisticalDashboard> {
             let units = self.units.lock().unwrap();
             let entries = self.entries.lock().unwrap();
-            let org_units: Vec<_> = units.iter().filter(|u| u.organization_id == org_id).collect();
-            let org_entries: Vec<_> = entries.iter().filter(|e| e.organization_id == org_id).collect();
+            let org_units: Vec<_> = units
+                .iter()
+                .filter(|u| u.organization_id == org_id)
+                .collect();
+            let org_entries: Vec<_> = entries
+                .iter()
+                .filter(|e| e.organization_id == org_id)
+                .collect();
             Ok(StatisticalDashboard {
-                organization_id: org_id, total_units: org_units.len() as i32,
+                organization_id: org_id,
+                total_units: org_units.len() as i32,
                 active_units: org_units.iter().filter(|u| u.is_active).count() as i32,
                 total_entries: org_entries.len() as i32,
                 posted_entries: org_entries.iter().filter(|e| e.status == "posted").count() as i32,
@@ -616,48 +1067,117 @@ mod tests {
         }
     }
 
-    fn eng() -> StatisticalAccountingEngine { StatisticalAccountingEngine::new(Arc::new(MockRepo::new())) }
+    fn eng() -> StatisticalAccountingEngine {
+        StatisticalAccountingEngine::new(Arc::new(MockRepo::new()))
+    }
 
     #[test]
-    fn test_valid_stat_types() { assert!(VALID_STAT_TYPES.contains(&"headcount")); assert!(VALID_STAT_TYPES.contains(&"custom")); }
+    fn test_valid_stat_types() {
+        assert!(VALID_STAT_TYPES.contains(&"headcount"));
+        assert!(VALID_STAT_TYPES.contains(&"custom"));
+    }
 
     #[test]
-    fn test_valid_units() { assert!(VALID_UNITS.contains(&"people")); assert!(VALID_UNITS.contains(&"hours")); }
+    fn test_valid_units() {
+        assert!(VALID_UNITS.contains(&"people"));
+        assert!(VALID_UNITS.contains(&"hours"));
+    }
 
     #[tokio::test]
     async fn test_create_unit_valid() {
-        let u = eng().create_unit(Uuid::new_v4(), "HEADCOUNT", "Headcount", Some("Total employees"), "headcount", "people", None).await.unwrap();
+        let u = eng()
+            .create_unit(
+                Uuid::new_v4(),
+                "HEADCOUNT",
+                "Headcount",
+                Some("Total employees"),
+                "headcount",
+                "people",
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(u.code, "HEADCOUNT");
         assert!(u.is_active);
     }
 
     #[tokio::test]
     async fn test_create_unit_empty_code() {
-        assert!(eng().create_unit(Uuid::new_v4(), "", "Name", None, "headcount", "people", None).await.is_err());
+        assert!(eng()
+            .create_unit(
+                Uuid::new_v4(),
+                "",
+                "Name",
+                None,
+                "headcount",
+                "people",
+                None
+            )
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_create_unit_invalid_type() {
-        assert!(eng().create_unit(Uuid::new_v4(), "CODE", "Name", None, "invalid", "people", None).await.is_err());
+        assert!(eng()
+            .create_unit(
+                Uuid::new_v4(),
+                "CODE",
+                "Name",
+                None,
+                "invalid",
+                "people",
+                None
+            )
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_create_unit_invalid_uom() {
-        assert!(eng().create_unit(Uuid::new_v4(), "CODE", "Name", None, "headcount", "invalid", None).await.is_err());
+        assert!(eng()
+            .create_unit(
+                Uuid::new_v4(),
+                "CODE",
+                "Name",
+                None,
+                "headcount",
+                "invalid",
+                None
+            )
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_create_unit_duplicate() {
         let e = eng();
         let org = Uuid::new_v4();
-        let _ = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        assert!(e.create_unit(org, "HC", "Headcount 2", None, "headcount", "people", None).await.is_err());
+        let _ = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        assert!(e
+            .create_unit(org, "HC", "Headcount 2", None, "headcount", "people", None)
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_deactivate_activate_unit() {
         let e = eng();
-        let u = e.create_unit(Uuid::new_v4(), "SQFT", "Square Footage", None, "square_footage", "sqft", None).await.unwrap();
+        let u = e
+            .create_unit(
+                Uuid::new_v4(),
+                "SQFT",
+                "Square Footage",
+                None,
+                "square_footage",
+                "sqft",
+                None,
+            )
+            .await
+            .unwrap();
         let deactivated = e.deactivate_unit(u.id).await.unwrap();
         assert!(!deactivated.is_active);
         let activated = e.activate_unit(u.id).await.unwrap();
@@ -667,7 +1187,18 @@ mod tests {
     #[tokio::test]
     async fn test_deactivate_already_inactive() {
         let e = eng();
-        let u = e.create_unit(Uuid::new_v4(), "SQFT", "Square Footage", None, "square_footage", "sqft", None).await.unwrap();
+        let u = e
+            .create_unit(
+                Uuid::new_v4(),
+                "SQFT",
+                "Square Footage",
+                None,
+                "square_footage",
+                "sqft",
+                None,
+            )
+            .await
+            .unwrap();
         let _ = e.deactivate_unit(u.id).await.unwrap();
         assert!(e.deactivate_unit(u.id).await.is_err());
     }
@@ -675,7 +1206,18 @@ mod tests {
     #[tokio::test]
     async fn test_activate_already_active() {
         let e = eng();
-        let u = e.create_unit(Uuid::new_v4(), "SQFT", "Square Footage", None, "square_footage", "sqft", None).await.unwrap();
+        let u = e
+            .create_unit(
+                Uuid::new_v4(),
+                "SQFT",
+                "Square Footage",
+                None,
+                "square_footage",
+                "sqft",
+                None,
+            )
+            .await
+            .unwrap();
         assert!(e.activate_unit(u.id).await.is_err());
     }
 
@@ -683,8 +1225,30 @@ mod tests {
     async fn test_create_entry_valid() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        let entry = e.create_entry(org, u.id, Some("7000"), Some("IT"), Some("NYC"), None, 2026, 5, "150", Some("65000"), Some("hr_feed"), None, None, Some("May headcount"), None).await.unwrap();
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        let entry = e
+            .create_entry(
+                org,
+                u.id,
+                Some("7000"),
+                Some("IT"),
+                Some("NYC"),
+                None,
+                2026,
+                5,
+                "150",
+                Some("65000"),
+                Some("hr_feed"),
+                None,
+                None,
+                Some("May headcount"),
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(entry.status, "draft");
         assert_eq!(entry.quantity, "150");
         assert_eq!(entry.extended_amount.as_deref(), Some("9750000")); // 150 * 65000
@@ -694,41 +1258,84 @@ mod tests {
     async fn test_create_entry_inactive_unit() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
         let _ = e.deactivate_unit(u.id).await.unwrap();
-        assert!(e.create_entry(org, u.id, None, None, None, None, 2026, 5, "10", None, None, None, None, None, None).await.is_err());
+        assert!(e
+            .create_entry(
+                org, u.id, None, None, None, None, 2026, 5, "10", None, None, None, None, None,
+                None
+            )
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_create_entry_zero_quantity() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        assert!(e.create_entry(org, u.id, None, None, None, None, 2026, 5, "0", None, None, None, None, None, None).await.is_err());
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        assert!(e
+            .create_entry(
+                org, u.id, None, None, None, None, 2026, 5, "0", None, None, None, None, None, None
+            )
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_create_entry_invalid_year() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        assert!(e.create_entry(org, u.id, None, None, None, None, 0, 5, "10", None, None, None, None, None, None).await.is_err());
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        assert!(e
+            .create_entry(
+                org, u.id, None, None, None, None, 0, 5, "10", None, None, None, None, None, None
+            )
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_create_entry_invalid_period() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        assert!(e.create_entry(org, u.id, None, None, None, None, 2026, 14, "10", None, None, None, None, None, None).await.is_err());
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        assert!(e
+            .create_entry(
+                org, u.id, None, None, None, None, 2026, 14, "10", None, None, None, None, None,
+                None
+            )
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_post_entry() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        let entry = e.create_entry(org, u.id, None, None, None, None, 2026, 5, "50", None, None, None, None, None, None).await.unwrap();
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        let entry = e
+            .create_entry(
+                org, u.id, None, None, None, None, 2026, 5, "50", None, None, None, None, None,
+                None,
+            )
+            .await
+            .unwrap();
         let posted = e.post_entry(entry.id).await.unwrap();
         assert_eq!(posted.status, "posted");
     }
@@ -737,8 +1344,17 @@ mod tests {
     async fn test_post_entry_not_draft() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        let entry = e.create_entry(org, u.id, None, None, None, None, 2026, 5, "50", None, None, None, None, None, None).await.unwrap();
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        let entry = e
+            .create_entry(
+                org, u.id, None, None, None, None, 2026, 5, "50", None, None, None, None, None,
+                None,
+            )
+            .await
+            .unwrap();
         let _ = e.post_entry(entry.id).await.unwrap();
         assert!(e.post_entry(entry.id).await.is_err());
     }
@@ -747,8 +1363,17 @@ mod tests {
     async fn test_reverse_entry() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        let entry = e.create_entry(org, u.id, None, None, None, None, 2026, 5, "50", None, None, None, None, None, None).await.unwrap();
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        let entry = e
+            .create_entry(
+                org, u.id, None, None, None, None, 2026, 5, "50", None, None, None, None, None,
+                None,
+            )
+            .await
+            .unwrap();
         let _ = e.post_entry(entry.id).await.unwrap();
         let reversed = e.reverse_entry(entry.id).await.unwrap();
         assert_eq!(reversed.status, "reversed");
@@ -758,8 +1383,17 @@ mod tests {
     async fn test_reverse_entry_not_posted() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        let entry = e.create_entry(org, u.id, None, None, None, None, 2026, 5, "50", None, None, None, None, None, None).await.unwrap();
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        let entry = e
+            .create_entry(
+                org, u.id, None, None, None, None, 2026, 5, "50", None, None, None, None, None,
+                None,
+            )
+            .await
+            .unwrap();
         assert!(e.reverse_entry(entry.id).await.is_err());
     }
 
@@ -767,10 +1401,25 @@ mod tests {
     async fn test_get_balance() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        let e1 = e.create_entry(org, u.id, None, None, None, None, 2026, 5, "100", None, None, None, None, None, None).await.unwrap();
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        let e1 = e
+            .create_entry(
+                org, u.id, None, None, None, None, 2026, 5, "100", None, None, None, None, None,
+                None,
+            )
+            .await
+            .unwrap();
         let _ = e.post_entry(e1.id).await.unwrap();
-        let e2 = e.create_entry(org, u.id, None, None, None, None, 2026, 5, "50", None, None, None, None, None, None).await.unwrap();
+        let e2 = e
+            .create_entry(
+                org, u.id, None, None, None, None, 2026, 5, "50", None, None, None, None, None,
+                None,
+            )
+            .await
+            .unwrap();
         let _ = e.post_entry(e2.id).await.unwrap();
         let bal = e.get_balance(org, u.id, 2026, 5).await.unwrap().unwrap();
         assert_eq!(bal.period_activity, "150");
@@ -778,20 +1427,35 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_entries_invalid_status() {
-        assert!(eng().list_entries(Uuid::new_v4(), None, None, None, Some("invalid")).await.is_err());
+        assert!(eng()
+            .list_entries(Uuid::new_v4(), None, None, None, Some("invalid"))
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_list_units_invalid_type() {
-        assert!(eng().list_units(Uuid::new_v4(), Some("invalid"), None).await.is_err());
+        assert!(eng()
+            .list_units(Uuid::new_v4(), Some("invalid"), None)
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn test_dashboard() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
-        let entry = e.create_entry(org, u.id, None, None, None, None, 2026, 5, "100", None, None, None, None, None, None).await.unwrap();
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
+        let entry = e
+            .create_entry(
+                org, u.id, None, None, None, None, 2026, 5, "100", None, None, None, None, None,
+                None,
+            )
+            .await
+            .unwrap();
         let _ = e.post_entry(entry.id).await.unwrap();
         let dash = e.get_dashboard(org).await.unwrap();
         assert_eq!(dash.total_units, 1);
@@ -804,9 +1468,31 @@ mod tests {
     async fn test_negative_quantity() {
         let e = eng();
         let org = Uuid::new_v4();
-        let u = e.create_unit(org, "HC", "Headcount", None, "headcount", "people", None).await.unwrap();
+        let u = e
+            .create_unit(org, "HC", "Headcount", None, "headcount", "people", None)
+            .await
+            .unwrap();
         // Negative quantities are valid (e.g., headcount reduction)
-        let entry = e.create_entry(org, u.id, None, None, None, None, 2026, 5, "-5", None, None, None, None, Some("Layoffs"), None).await.unwrap();
+        let entry = e
+            .create_entry(
+                org,
+                u.id,
+                None,
+                None,
+                None,
+                None,
+                2026,
+                5,
+                "-5",
+                None,
+                None,
+                None,
+                None,
+                Some("Layoffs"),
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(entry.quantity, "-5");
     }
 }

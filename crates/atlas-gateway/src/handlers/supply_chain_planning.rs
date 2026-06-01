@@ -4,18 +4,17 @@
 //! HTTP API for planning scenarios, parameters, supply/demand,
 //! planned orders, exceptions, and dashboard.
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 fn scp_map_err(e: atlas_shared::AtlasError) -> StatusCode {
     match e.status_code() {
@@ -52,21 +51,34 @@ pub async fn create_scenario(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.scm.planning_engine.create_scenario(
-        org_id, &payload.name, payload.description.as_deref(),
-        payload.scenario_type.as_deref().unwrap_or("mrp"),
-        payload.planning_horizon_days.unwrap_or(90),
-        payload.planning_start_date,
-        payload.include_existing_supply.unwrap_or(true),
-        payload.include_on_hand.unwrap_or(true),
-        payload.include_work_in_progress.unwrap_or(true),
-        payload.auto_firm.unwrap_or(false),
-        payload.auto_firm_days,
-        payload.net_shortages_only.unwrap_or(false),
-        user_id,
-    ).await {
-        Ok(s) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(s)))),
-        Err(e) => { error!("Failed to create planning scenario: {}", e); Err(scp_map_err(e)) }
+    match state
+        .scm
+        .planning_engine
+        .create_scenario(
+            org_id,
+            &payload.name,
+            payload.description.as_deref(),
+            payload.scenario_type.as_deref().unwrap_or("mrp"),
+            payload.planning_horizon_days.unwrap_or(90),
+            payload.planning_start_date,
+            payload.include_existing_supply.unwrap_or(true),
+            payload.include_on_hand.unwrap_or(true),
+            payload.include_work_in_progress.unwrap_or(true),
+            payload.auto_firm.unwrap_or(false),
+            payload.auto_firm_days,
+            payload.net_shortages_only.unwrap_or(false),
+            user_id,
+        )
+        .await
+    {
+        Ok(s) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(s)),
+        )),
+        Err(e) => {
+            error!("Failed to create planning scenario: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -82,11 +94,21 @@ pub async fn list_scenarios(
     Query(params): Query<ListScenariosParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.scm.planning_engine.list_scenarios(
-        org_id, params.scenario_type.as_deref(), params.status.as_deref(),
-    ).await {
+    match state
+        .scm
+        .planning_engine
+        .list_scenarios(
+            org_id,
+            params.scenario_type.as_deref(),
+            params.status.as_deref(),
+        )
+        .await
+    {
         Ok(list) => Ok(Json(crate::handlers::records::to_json_or_null(list))),
-        Err(e) => { error!("Failed to list scenarios: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to list scenarios: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -98,7 +120,10 @@ pub async fn get_scenario(
     match state.scm.planning_engine.get_scenario(id).await {
         Ok(Some(s)) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get scenario: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to get scenario: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -109,7 +134,10 @@ pub async fn run_mrp(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.scm.planning_engine.run_mrp(id).await {
         Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
-        Err(e) => { error!("Failed to run MRP: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to run MRP: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -120,7 +148,10 @@ pub async fn cancel_scenario(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.scm.planning_engine.cancel_scenario(id).await {
         Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
-        Err(e) => { error!("Failed to cancel scenario: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to cancel scenario: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -154,24 +185,38 @@ pub async fn upsert_parameter(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.scm.planning_engine.upsert_planning_parameter(
-        org_id, payload.item_id, payload.item_name.as_deref(),
-        payload.item_number.as_deref(), payload.planner_code.as_deref(),
-        payload.planning_method.as_deref().unwrap_or("mrp"),
-        payload.make_buy.as_deref().unwrap_or("buy"),
-        payload.lead_time_days.unwrap_or(0),
-        payload.safety_stock_quantity.as_deref().unwrap_or("0"),
-        payload.min_order_quantity.as_deref().unwrap_or("0"),
-        payload.max_order_quantity.as_deref(),
-        payload.fixed_order_quantity.as_deref(),
-        payload.lot_size_policy.as_deref().unwrap_or("lot_for_lot"),
-        payload.order_multiple.as_deref(),
-        payload.default_supplier_id,
-        payload.default_supplier_name.as_deref(),
-        user_id,
-    ).await {
-        Ok(p) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(p)))),
-        Err(e) => { error!("Failed to upsert parameter: {}", e); Err(scp_map_err(e)) }
+    match state
+        .scm
+        .planning_engine
+        .upsert_planning_parameter(
+            org_id,
+            payload.item_id,
+            payload.item_name.as_deref(),
+            payload.item_number.as_deref(),
+            payload.planner_code.as_deref(),
+            payload.planning_method.as_deref().unwrap_or("mrp"),
+            payload.make_buy.as_deref().unwrap_or("buy"),
+            payload.lead_time_days.unwrap_or(0),
+            payload.safety_stock_quantity.as_deref().unwrap_or("0"),
+            payload.min_order_quantity.as_deref().unwrap_or("0"),
+            payload.max_order_quantity.as_deref(),
+            payload.fixed_order_quantity.as_deref(),
+            payload.lot_size_policy.as_deref().unwrap_or("lot_for_lot"),
+            payload.order_multiple.as_deref(),
+            payload.default_supplier_id,
+            payload.default_supplier_name.as_deref(),
+            user_id,
+        )
+        .await
+    {
+        Ok(p) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(p)),
+        )),
+        Err(e) => {
+            error!("Failed to upsert parameter: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -180,9 +225,17 @@ pub async fn list_parameters(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.scm.planning_engine.list_planning_parameters(org_id).await {
+    match state
+        .scm
+        .planning_engine
+        .list_planning_parameters(org_id)
+        .await
+    {
         Ok(list) => Ok(Json(crate::handlers::records::to_json_or_null(list))),
-        Err(e) => { error!("Failed to list parameters: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to list parameters: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -192,9 +245,17 @@ pub async fn delete_parameter(
     Path(item_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.scm.planning_engine.delete_planning_parameter(org_id, item_id).await {
+    match state
+        .scm
+        .planning_engine
+        .delete_planning_parameter(org_id, item_id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Failed to delete parameter: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to delete parameter: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -223,15 +284,33 @@ pub async fn create_supply_demand(
     Json(payload): Json<CreateSupplyDemandRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.scm.planning_engine.create_supply_demand_entry(
-        org_id, payload.scenario_id, payload.item_id,
-        payload.item_name.as_deref(), payload.item_number.as_deref(),
-        &payload.entry_type, &payload.source_type,
-        payload.source_id, payload.source_number.as_deref(),
-        &payload.quantity, payload.due_date, payload.priority,
-    ).await {
-        Ok(e) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(e)))),
-        Err(e) => { error!("Failed to create supply/demand: {}", e); Err(scp_map_err(e)) }
+    match state
+        .scm
+        .planning_engine
+        .create_supply_demand_entry(
+            org_id,
+            payload.scenario_id,
+            payload.item_id,
+            payload.item_name.as_deref(),
+            payload.item_number.as_deref(),
+            &payload.entry_type,
+            &payload.source_type,
+            payload.source_id,
+            payload.source_number.as_deref(),
+            &payload.quantity,
+            payload.due_date,
+            payload.priority,
+        )
+        .await
+    {
+        Ok(e) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(e)),
+        )),
+        Err(e) => {
+            error!("Failed to create supply/demand: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -246,11 +325,17 @@ pub async fn list_supply_demand(
     Path(scenario_id): Path<Uuid>,
     Query(params): Query<ListSupplyDemandParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.scm.planning_engine.list_supply_demand(
-        scenario_id, params.entry_type.as_deref(),
-    ).await {
+    match state
+        .scm
+        .planning_engine
+        .list_supply_demand(scenario_id, params.entry_type.as_deref())
+        .await
+    {
         Ok(list) => Ok(Json(crate::handlers::records::to_json_or_null(list))),
-        Err(e) => { error!("Failed to list supply/demand: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to list supply/demand: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -270,11 +355,21 @@ pub async fn list_planned_orders(
     Path(scenario_id): Path<Uuid>,
     Query(params): Query<ListPlannedOrdersParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.scm.planning_engine.list_planned_orders(
-        scenario_id, params.status.as_deref(), params.order_type.as_deref(),
-    ).await {
+    match state
+        .scm
+        .planning_engine
+        .list_planned_orders(
+            scenario_id,
+            params.status.as_deref(),
+            params.order_type.as_deref(),
+        )
+        .await
+    {
         Ok(list) => Ok(Json(crate::handlers::records::to_json_or_null(list))),
-        Err(e) => { error!("Failed to list planned orders: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to list planned orders: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -286,7 +381,10 @@ pub async fn get_planned_order(
     match state.scm.planning_engine.get_planned_order(id).await {
         Ok(Some(o)) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get planned order: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to get planned order: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -297,7 +395,10 @@ pub async fn firm_planned_order(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.scm.planning_engine.firm_planned_order(id).await {
         Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
-        Err(e) => { error!("Failed to firm order: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to firm order: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -308,7 +409,10 @@ pub async fn cancel_planned_order(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.scm.planning_engine.cancel_planned_order(id).await {
         Ok(o) => Ok(Json(crate::handlers::records::to_json_or_null(o))),
-        Err(e) => { error!("Failed to cancel order: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to cancel order: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -328,11 +432,21 @@ pub async fn list_exceptions(
     Path(scenario_id): Path<Uuid>,
     Query(params): Query<ListExceptionsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.scm.planning_engine.list_exceptions(
-        scenario_id, params.severity.as_deref(), params.resolution_status.as_deref(),
-    ).await {
+    match state
+        .scm
+        .planning_engine
+        .list_exceptions(
+            scenario_id,
+            params.severity.as_deref(),
+            params.resolution_status.as_deref(),
+        )
+        .await
+    {
         Ok(list) => Ok(Json(crate::handlers::records::to_json_or_null(list))),
-        Err(e) => { error!("Failed to list exceptions: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to list exceptions: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -348,11 +462,17 @@ pub async fn resolve_exception(
     Json(payload): Json<ResolveExceptionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&_claims.sub).ok();
-    match state.scm.planning_engine.resolve_exception(
-        id, &payload.resolution, user_id,
-    ).await {
+    match state
+        .scm
+        .planning_engine
+        .resolve_exception(id, &payload.resolution, user_id)
+        .await
+    {
         Ok(ex) => Ok(Json(crate::handlers::records::to_json_or_null(ex))),
-        Err(e) => { error!("Failed to resolve exception: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to resolve exception: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -368,11 +488,17 @@ pub async fn dismiss_exception(
     Json(payload): Json<DismissExceptionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.scm.planning_engine.dismiss_exception(
-        id, payload.reason.as_deref(), user_id,
-    ).await {
+    match state
+        .scm
+        .planning_engine
+        .dismiss_exception(id, payload.reason.as_deref(), user_id)
+        .await
+    {
         Ok(ex) => Ok(Json(crate::handlers::records::to_json_or_null(ex))),
-        Err(e) => { error!("Failed to dismiss exception: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to dismiss exception: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }
 
@@ -387,6 +513,9 @@ pub async fn get_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.scm.planning_engine.get_dashboard(org_id).await {
         Ok(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
-        Err(e) => { error!("Failed to get planning dashboard: {}", e); Err(scp_map_err(e)) }
+        Err(e) => {
+            error!("Failed to get planning dashboard: {}", e);
+            Err(scp_map_err(e))
+        }
     }
 }

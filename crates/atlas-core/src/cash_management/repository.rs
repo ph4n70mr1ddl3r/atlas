@@ -3,13 +3,11 @@
 //! `PostgreSQL` storage for cash positions, forecast templates, forecast sources,
 //! cash forecasts, and forecast lines.
 
-use atlas_shared::{
-    CashPosition,
-    CashForecastTemplate, CashForecastSource,
-    CashForecast, CashForecastLine,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, CashForecast, CashForecastLine, CashForecastSource, CashForecastTemplate,
+    CashPosition,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -51,7 +49,11 @@ pub trait CashManagementRepository: Send + Sync {
     ) -> AtlasResult<Option<CashPosition>>;
 
     async fn get_cash_position_by_id(&self, id: Uuid) -> AtlasResult<Option<CashPosition>>;
-    async fn list_cash_positions(&self, org_id: Uuid, position_date: Option<chrono::NaiveDate>) -> AtlasResult<Vec<CashPosition>>;
+    async fn list_cash_positions(
+        &self,
+        org_id: Uuid,
+        position_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<Vec<CashPosition>>;
 
     // ========================================================================
     // Forecast Templates
@@ -71,9 +73,17 @@ pub trait CashManagementRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CashForecastTemplate>;
 
-    async fn get_forecast_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CashForecastTemplate>>;
-    async fn get_forecast_template_by_id(&self, id: Uuid) -> AtlasResult<Option<CashForecastTemplate>>;
-    async fn list_forecast_templates(&self, org_id: Uuid) -> AtlasResult<Vec<CashForecastTemplate>>;
+    async fn get_forecast_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CashForecastTemplate>>;
+    async fn get_forecast_template_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<CashForecastTemplate>>;
+    async fn list_forecast_templates(&self, org_id: Uuid)
+        -> AtlasResult<Vec<CashForecastTemplate>>;
     async fn delete_forecast_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // ========================================================================
@@ -97,9 +107,22 @@ pub trait CashManagementRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CashForecastSource>;
 
-    async fn get_forecast_source(&self, org_id: Uuid, template_id: Uuid, code: &str) -> AtlasResult<Option<CashForecastSource>>;
-    async fn list_forecast_sources(&self, template_id: Uuid) -> AtlasResult<Vec<CashForecastSource>>;
-    async fn delete_forecast_source(&self, org_id: Uuid, template_id: Uuid, code: &str) -> AtlasResult<()>;
+    async fn get_forecast_source(
+        &self,
+        org_id: Uuid,
+        template_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CashForecastSource>>;
+    async fn list_forecast_sources(
+        &self,
+        template_id: Uuid,
+    ) -> AtlasResult<Vec<CashForecastSource>>;
+    async fn delete_forecast_source(
+        &self,
+        org_id: Uuid,
+        template_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<()>;
 
     // ========================================================================
     // Cash Forecasts
@@ -128,15 +151,28 @@ pub trait CashManagementRepository: Send + Sync {
     ) -> AtlasResult<CashForecast>;
 
     async fn get_forecast(&self, id: Uuid) -> AtlasResult<Option<CashForecast>>;
-    async fn get_forecast_by_number(&self, org_id: Uuid, forecast_number: &str) -> AtlasResult<Option<CashForecast>>;
-    async fn list_forecasts(&self, org_id: Uuid, template_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<CashForecast>>;
+    async fn get_forecast_by_number(
+        &self,
+        org_id: Uuid,
+        forecast_number: &str,
+    ) -> AtlasResult<Option<CashForecast>>;
+    async fn list_forecasts(
+        &self,
+        org_id: Uuid,
+        template_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CashForecast>>;
     async fn update_forecast_status(
         &self,
         id: Uuid,
         status: &str,
         approved_by: Option<Uuid>,
     ) -> AtlasResult<CashForecast>;
-    async fn supersede_previous_forecasts(&self, template_id: Uuid, new_forecast_id: Uuid) -> AtlasResult<()>;
+    async fn supersede_previous_forecasts(
+        &self,
+        template_id: Uuid,
+        new_forecast_id: Uuid,
+    ) -> AtlasResult<()>;
 
     // ========================================================================
     // Forecast Lines
@@ -177,7 +213,7 @@ pub struct PostgresCashManagementRepository {
 }
 
 impl PostgresCashManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -366,12 +402,24 @@ impl CashManagementRepository for PostgresCashManagementRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(bank_account_id).bind(account_number).bind(account_name)
-        .bind(currency_code).bind(book_balance).bind(available_balance)
-        .bind(float_amount).bind(one_day_float).bind(two_day_float)
-        .bind(position_date).bind(average_balance).bind(prior_day_balance)
-        .bind(projected_inflows).bind(projected_outflows).bind(projected_net)
-        .bind(is_reconciled).bind(created_by)
+        .bind(org_id)
+        .bind(bank_account_id)
+        .bind(account_number)
+        .bind(account_name)
+        .bind(currency_code)
+        .bind(book_balance)
+        .bind(available_balance)
+        .bind(float_amount)
+        .bind(one_day_float)
+        .bind(two_day_float)
+        .bind(position_date)
+        .bind(average_balance)
+        .bind(prior_day_balance)
+        .bind(projected_inflows)
+        .bind(projected_outflows)
+        .bind(projected_net)
+        .bind(is_reconciled)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -417,7 +465,8 @@ impl CashManagementRepository for PostgresCashManagementRepository {
             ORDER BY position_date DESC, account_name
             ",
         )
-        .bind(org_id).bind(position_date)
+        .bind(org_id)
+        .bind(position_date)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -454,9 +503,16 @@ impl CashManagementRepository for PostgresCashManagementRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(bucket_type)
-        .bind(number_of_periods).bind(start_offset_days).bind(is_default)
-        .bind(columns).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(bucket_type)
+        .bind(number_of_periods)
+        .bind(start_offset_days)
+        .bind(is_default)
+        .bind(columns)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -464,7 +520,11 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         Ok(row_to_template(&row))
     }
 
-    async fn get_forecast_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CashForecastTemplate>> {
+    async fn get_forecast_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CashForecastTemplate>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.cash_forecast_templates WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -475,7 +535,10 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         Ok(row.map(|r| row_to_template(&r)))
     }
 
-    async fn get_forecast_template_by_id(&self, id: Uuid) -> AtlasResult<Option<CashForecastTemplate>> {
+    async fn get_forecast_template_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<CashForecastTemplate>> {
         let row = sqlx::query("SELECT * FROM _atlas.cash_forecast_templates WHERE id = $1")
             .bind(id)
             .fetch_optional(&self.pool)
@@ -484,7 +547,10 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         Ok(row.map(|r| row_to_template(&r)))
     }
 
-    async fn list_forecast_templates(&self, org_id: Uuid) -> AtlasResult<Vec<CashForecastTemplate>> {
+    async fn list_forecast_templates(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<CashForecastTemplate>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.cash_forecast_templates WHERE organization_id = $1 AND is_active = true ORDER BY name"
         )
@@ -541,9 +607,18 @@ impl CashManagementRepository for PostgresCashManagementRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(template_id).bind(code).bind(name).bind(description)
-        .bind(source_type).bind(cash_flow_direction).bind(is_actual).bind(display_order)
-        .bind(lead_time_days).bind(payment_terms_reference).bind(account_code_filter)
+        .bind(org_id)
+        .bind(template_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(source_type)
+        .bind(cash_flow_direction)
+        .bind(is_actual)
+        .bind(display_order)
+        .bind(lead_time_days)
+        .bind(payment_terms_reference)
+        .bind(account_code_filter)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -552,7 +627,12 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         Ok(row_to_source(&row))
     }
 
-    async fn get_forecast_source(&self, org_id: Uuid, template_id: Uuid, code: &str) -> AtlasResult<Option<CashForecastSource>> {
+    async fn get_forecast_source(
+        &self,
+        org_id: Uuid,
+        template_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CashForecastSource>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.cash_forecast_sources WHERE organization_id = $1 AND template_id = $2 AND code = $3 AND is_active = true"
         )
@@ -563,7 +643,10 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         Ok(row.map(|r| row_to_source(&r)))
     }
 
-    async fn list_forecast_sources(&self, template_id: Uuid) -> AtlasResult<Vec<CashForecastSource>> {
+    async fn list_forecast_sources(
+        &self,
+        template_id: Uuid,
+    ) -> AtlasResult<Vec<CashForecastSource>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.cash_forecast_sources WHERE template_id = $1 AND is_active = true ORDER BY display_order, code"
         )
@@ -574,7 +657,12 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         Ok(rows.iter().map(row_to_source).collect())
     }
 
-    async fn delete_forecast_source(&self, org_id: Uuid, template_id: Uuid, code: &str) -> AtlasResult<()> {
+    async fn delete_forecast_source(
+        &self,
+        org_id: Uuid,
+        template_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.cash_forecast_sources SET is_active = false, updated_at = now() WHERE organization_id = $1 AND template_id = $2 AND code = $3"
         )
@@ -625,11 +713,24 @@ impl CashManagementRepository for PostgresCashManagementRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(forecast_number).bind(template_id).bind(template_name)
-        .bind(name).bind(description).bind(start_date).bind(end_date)
-        .bind(opening_balance).bind(total_inflows).bind(total_outflows).bind(net_cash_flow)
-        .bind(closing_balance).bind(minimum_balance).bind(maximum_balance)
-        .bind(deficit_count).bind(surplus_count).bind(created_by)
+        .bind(org_id)
+        .bind(forecast_number)
+        .bind(template_id)
+        .bind(template_name)
+        .bind(name)
+        .bind(description)
+        .bind(start_date)
+        .bind(end_date)
+        .bind(opening_balance)
+        .bind(total_inflows)
+        .bind(total_outflows)
+        .bind(net_cash_flow)
+        .bind(closing_balance)
+        .bind(minimum_balance)
+        .bind(maximum_balance)
+        .bind(deficit_count)
+        .bind(surplus_count)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -646,7 +747,11 @@ impl CashManagementRepository for PostgresCashManagementRepository {
         Ok(row.map(|r| row_to_forecast(&r)))
     }
 
-    async fn get_forecast_by_number(&self, org_id: Uuid, forecast_number: &str) -> AtlasResult<Option<CashForecast>> {
+    async fn get_forecast_by_number(
+        &self,
+        org_id: Uuid,
+        forecast_number: &str,
+    ) -> AtlasResult<Option<CashForecast>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.cash_forecasts WHERE organization_id = $1 AND forecast_number = $2"
         )
@@ -672,7 +777,9 @@ impl CashManagementRepository for PostgresCashManagementRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(template_id).bind(status)
+        .bind(org_id)
+        .bind(template_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -696,14 +803,20 @@ impl CashManagementRepository for PostgresCashManagementRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_forecast(&row))
     }
 
-    async fn supersede_previous_forecasts(&self, template_id: Uuid, new_forecast_id: Uuid) -> AtlasResult<()> {
+    async fn supersede_previous_forecasts(
+        &self,
+        template_id: Uuid,
+        new_forecast_id: Uuid,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"
             UPDATE _atlas.cash_forecasts
@@ -754,10 +867,22 @@ impl CashManagementRepository for PostgresCashManagementRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(forecast_id).bind(source_id).bind(source_name).bind(source_type)
-        .bind(cash_flow_direction).bind(period_start_date).bind(period_end_date)
-        .bind(period_label).bind(period_sequence).bind(amount).bind(cumulative_amount)
-        .bind(is_actual).bind(currency_code).bind(transaction_count).bind(created_by)
+        .bind(org_id)
+        .bind(forecast_id)
+        .bind(source_id)
+        .bind(source_name)
+        .bind(source_type)
+        .bind(cash_flow_direction)
+        .bind(period_start_date)
+        .bind(period_end_date)
+        .bind(period_label)
+        .bind(period_sequence)
+        .bind(amount)
+        .bind(cumulative_amount)
+        .bind(is_actual)
+        .bind(currency_code)
+        .bind(transaction_count)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -791,7 +916,9 @@ impl CashManagementRepository for PostgresCashManagementRepository {
             ORDER BY period_sequence
             ",
         )
-        .bind(forecast_id).bind(period_start_date).bind(period_end_date)
+        .bind(forecast_id)
+        .bind(period_start_date)
+        .bind(period_end_date)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;

@@ -9,66 +9,80 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Receivables
 
-use atlas_shared::{
-    ArTransaction, ArTransactionLine, ArReceipt, ArCreditMemo, ArAdjustment,
-    ArAgingSummary, ArAgingByCustomer,
-    AtlasError, AtlasResult,
-};
 use super::AccountsReceivableRepository;
+use atlas_shared::{
+    ArAdjustment, ArAgingByCustomer, ArAgingSummary, ArCreditMemo, ArReceipt, ArTransaction,
+    ArTransactionLine, AtlasError, AtlasResult,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid transaction types
 const VALID_TRANSACTION_TYPES: &[&str] = &[
-    "invoice", "debit_memo", "credit_memo", "chargeback", "deposit", "guarantee",
+    "invoice",
+    "debit_memo",
+    "credit_memo",
+    "chargeback",
+    "deposit",
+    "guarantee",
 ];
 
 /// Valid transaction statuses
-const VALID_TRANSACTION_STATUSES: &[&str] = &[
-    "draft", "complete", "open", "closed", "cancelled",
-];
+const VALID_TRANSACTION_STATUSES: &[&str] = &["draft", "complete", "open", "closed", "cancelled"];
 
 /// Valid line types
-const VALID_LINE_TYPES: &[&str] = &[
-    "line", "tax", "freight", "charges",
-];
+const VALID_LINE_TYPES: &[&str] = &["line", "tax", "freight", "charges"];
 
 /// Valid receipt types
 const VALID_RECEIPT_TYPES: &[&str] = &[
-    "cash", "check", "credit_card", "wire_transfer", "ach", "other",
+    "cash",
+    "check",
+    "credit_card",
+    "wire_transfer",
+    "ach",
+    "other",
 ];
 
 /// Valid receipt methods
 const VALID_RECEIPT_METHODS: &[&str] = &[
-    "automatic_receipt", "manual_receipt", "quick_cash", "miscellaneous",
+    "automatic_receipt",
+    "manual_receipt",
+    "quick_cash",
+    "miscellaneous",
 ];
 
 /// Valid receipt statuses
-const VALID_RECEIPT_STATUSES: &[&str] = &[
-    "draft", "confirmed", "applied", "deposited", "reversed",
-];
+const VALID_RECEIPT_STATUSES: &[&str] = &["draft", "confirmed", "applied", "deposited", "reversed"];
 
 /// Valid credit memo reason codes
 const VALID_CREDIT_MEMO_REASONS: &[&str] = &[
-    "return", "pricing_error", "damaged", "wrong_item", "discount", "other",
+    "return",
+    "pricing_error",
+    "damaged",
+    "wrong_item",
+    "discount",
+    "other",
 ];
 
 /// Valid credit memo statuses
-const VALID_CREDIT_MEMO_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "applied", "cancelled",
-];
+const VALID_CREDIT_MEMO_STATUSES: &[&str] =
+    &["draft", "submitted", "approved", "applied", "cancelled"];
 
 /// Valid adjustment types
 const VALID_ADJUSTMENT_TYPES: &[&str] = &[
-    "write_off", "write_off_bad_debt", "small_balance_write_off",
-    "increase", "decrease", "transfer", "revaluation",
+    "write_off",
+    "write_off_bad_debt",
+    "small_balance_write_off",
+    "increase",
+    "decrease",
+    "transfer",
+    "revaluation",
 ];
 
 /// Valid adjustment statuses
-const VALID_ADJUSTMENT_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "rejected", "posted",
-];
+const VALID_ADJUSTMENT_STATUSES: &[&str] =
+    &["draft", "submitted", "approved", "rejected", "posted"];
 
 /// Accounts Receivable Engine
 pub struct AccountsReceivableEngine {
@@ -108,7 +122,8 @@ impl AccountsReceivableEngine {
         if !VALID_TRANSACTION_TYPES.contains(&transaction_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid transaction_type '{}'. Must be one of: {}",
-                transaction_type, VALID_TRANSACTION_TYPES.join(", ")
+                transaction_type,
+                VALID_TRANSACTION_TYPES.join(", ")
             )));
         }
         if currency_code.is_empty() {
@@ -117,12 +132,12 @@ impl AccountsReceivableEngine {
             ));
         }
 
-        let entered: f64 = entered_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "entered_amount must be a valid number".to_string(),
-        ))?;
-        let tax: f64 = tax_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "tax_amount must be a valid number".to_string(),
-        ))?;
+        let entered: f64 = entered_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("entered_amount must be a valid number".to_string())
+        })?;
+        let tax: f64 = tax_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("tax_amount must be a valid number".to_string())
+        })?;
         if entered < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "entered_amount must be non-negative".to_string(),
@@ -132,17 +147,34 @@ impl AccountsReceivableEngine {
         let total = entered + tax;
         let transaction_number = format!("AR-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating AR transaction {} type {} for customer {} amount {}",
-            transaction_number, transaction_type, customer_id, total);
+        info!(
+            "Creating AR transaction {} type {} for customer {} amount {}",
+            transaction_number, transaction_type, customer_id, total
+        );
 
-        self.repository.create_transaction(
-            org_id, &transaction_number, transaction_type, transaction_date,
-            customer_id, customer_number, customer_name,
-            currency_code, entered_amount, tax_amount, &format!("{total:.2}"),
-            payment_terms, due_date, gl_date,
-            reference_number, purchase_order, sales_rep, notes,
-            created_by,
-        ).await
+        self.repository
+            .create_transaction(
+                org_id,
+                &transaction_number,
+                transaction_type,
+                transaction_date,
+                customer_id,
+                customer_number,
+                customer_name,
+                currency_code,
+                entered_amount,
+                tax_amount,
+                &format!("{total:.2}"),
+                payment_terms,
+                due_date,
+                gl_date,
+                reference_number,
+                purchase_order,
+                sales_rep,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a transaction by ID
@@ -151,8 +183,14 @@ impl AccountsReceivableEngine {
     }
 
     /// Get a transaction by number
-    pub async fn get_transaction_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<ArTransaction>> {
-        self.repository.get_transaction_by_number(org_id, number).await
+    pub async fn get_transaction_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<ArTransaction>> {
+        self.repository
+            .get_transaction_by_number(org_id, number)
+            .await
     }
 
     /// List transactions with optional filters
@@ -166,69 +204,97 @@ impl AccountsReceivableEngine {
         if let Some(s) = status {
             if !VALID_TRANSACTION_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_TRANSACTION_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_TRANSACTION_STATUSES.join(", ")
                 )));
             }
         }
         if let Some(t) = transaction_type {
             if !VALID_TRANSACTION_TYPES.contains(&t) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid transaction_type '{}'. Must be one of: {}", t, VALID_TRANSACTION_TYPES.join(", ")
+                    "Invalid transaction_type '{}'. Must be one of: {}",
+                    t,
+                    VALID_TRANSACTION_TYPES.join(", ")
                 )));
             }
         }
-        self.repository.list_transactions(org_id, status, customer_id, transaction_type).await
+        self.repository
+            .list_transactions(org_id, status, customer_id, transaction_type)
+            .await
     }
 
     /// Complete a draft transaction (marks it ready for posting)
     pub async fn complete_transaction(&self, transaction_id: Uuid) -> AtlasResult<ArTransaction> {
-        let txn = self.repository.get_transaction(transaction_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {transaction_id} not found")
-            ))?;
+        let txn = self
+            .repository
+            .get_transaction(transaction_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("AR transaction {transaction_id} not found"))
+            })?;
 
         if txn.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot complete transaction in '{}' status. Must be 'draft'.", txn.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot complete transaction in '{}' status. Must be 'draft'.",
+                txn.status
+            )));
         }
 
         info!("Completing AR transaction {}", txn.transaction_number);
-        self.repository.update_transaction_status(transaction_id, "complete", None, None).await
+        self.repository
+            .update_transaction_status(transaction_id, "complete", None, None)
+            .await
     }
 
     /// Post a completed transaction (opens it for receipt application)
     pub async fn post_transaction(&self, transaction_id: Uuid) -> AtlasResult<ArTransaction> {
-        let txn = self.repository.get_transaction(transaction_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {transaction_id} not found")
-            ))?;
+        let txn = self
+            .repository
+            .get_transaction(transaction_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("AR transaction {transaction_id} not found"))
+            })?;
 
         if txn.status != "complete" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot post transaction in '{}' status. Must be 'complete'.", txn.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot post transaction in '{}' status. Must be 'complete'.",
+                txn.status
+            )));
         }
 
         info!("Posting AR transaction {}", txn.transaction_number);
-        self.repository.update_transaction_status(transaction_id, "open", None, None).await
+        self.repository
+            .update_transaction_status(transaction_id, "open", None, None)
+            .await
     }
 
     /// Cancel a transaction
-    pub async fn cancel_transaction(&self, transaction_id: Uuid, reason: Option<&str>) -> AtlasResult<ArTransaction> {
-        let txn = self.repository.get_transaction(transaction_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {transaction_id} not found")
-            ))?;
+    pub async fn cancel_transaction(
+        &self,
+        transaction_id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<ArTransaction> {
+        let txn = self
+            .repository
+            .get_transaction(transaction_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("AR transaction {transaction_id} not found"))
+            })?;
 
         if txn.status == "closed" || txn.status == "cancelled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel transaction in '{}' status", txn.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel transaction in '{}' status",
+                txn.status
+            )));
         }
 
         info!("Cancelling AR transaction {}", txn.transaction_number);
-        self.repository.update_transaction_status(transaction_id, "cancelled", None, reason).await
+        self.repository
+            .update_transaction_status(transaction_id, "cancelled", None, reason)
+            .await
     }
 
     // ========================================================================
@@ -253,68 +319,103 @@ impl AccountsReceivableEngine {
         revenue_account: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArTransactionLine> {
-        let txn = self.repository.get_transaction(transaction_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {transaction_id} not found")
-            ))?;
+        let txn = self
+            .repository
+            .get_transaction(transaction_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("AR transaction {transaction_id} not found"))
+            })?;
 
         if txn.status == "cancelled" || txn.status == "closed" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot add lines to transaction in '{}' status", txn.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot add lines to transaction in '{}' status",
+                txn.status
+            )));
         }
 
         if !VALID_LINE_TYPES.contains(&line_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid line_type '{}'. Must be one of: {}", line_type, VALID_LINE_TYPES.join(", ")
+                "Invalid line_type '{}'. Must be one of: {}",
+                line_type,
+                VALID_LINE_TYPES.join(", ")
             )));
         }
 
-        let amount: f64 = line_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "line_amount must be a valid number".to_string(),
-        ))?;
+        let amount: f64 = line_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("line_amount must be a valid number".to_string())
+        })?;
         if amount < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "line_amount must be non-negative".to_string(),
             ));
         }
 
-        let lines = self.repository.list_transaction_lines(transaction_id).await?;
+        let lines = self
+            .repository
+            .list_transaction_lines(transaction_id)
+            .await?;
         let line_number = (lines.len() as i32) + 1;
 
-        info!("Adding line {} to AR transaction {}", line_number, txn.transaction_number);
+        info!(
+            "Adding line {} to AR transaction {}",
+            line_number, txn.transaction_number
+        );
 
-        let line = self.repository.create_transaction_line(
-            org_id, transaction_id, line_number,
-            line_type, description, item_code, item_description,
-            unit_of_measure, quantity, unit_price,
-            line_amount, tax_amount, tax_code, revenue_account,
-            created_by,
-        ).await?;
+        let line = self
+            .repository
+            .create_transaction_line(
+                org_id,
+                transaction_id,
+                line_number,
+                line_type,
+                description,
+                item_code,
+                item_description,
+                unit_of_measure,
+                quantity,
+                unit_price,
+                line_amount,
+                tax_amount,
+                tax_code,
+                revenue_account,
+                created_by,
+            )
+            .await?;
 
         // Update transaction totals
-        let all_lines = self.repository.list_transaction_lines(transaction_id).await?;
-        let total_line_amount: f64 = all_lines.iter()
+        let all_lines = self
+            .repository
+            .list_transaction_lines(transaction_id)
+            .await?;
+        let total_line_amount: f64 = all_lines
+            .iter()
             .map(|l| l.line_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_tax: f64 = all_lines.iter()
+        let total_tax: f64 = all_lines
+            .iter()
             .map(|l| l.tax_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
         let total = total_line_amount + total_tax;
 
-        self.repository.update_transaction_totals(
-            transaction_id,
-            &format!("{total_line_amount:.2}"),
-            &format!("{total_tax:.2}"),
-            &format!("{total:.2}"),
-            &format!("{total:.2}"),
-        ).await?;
+        self.repository
+            .update_transaction_totals(
+                transaction_id,
+                &format!("{total_line_amount:.2}"),
+                &format!("{total_tax:.2}"),
+                &format!("{total:.2}"),
+                &format!("{total:.2}"),
+            )
+            .await?;
 
         Ok(line)
     }
 
     /// List transaction lines
-    pub async fn list_transaction_lines(&self, transaction_id: Uuid) -> AtlasResult<Vec<ArTransactionLine>> {
+    pub async fn list_transaction_lines(
+        &self,
+        transaction_id: Uuid,
+    ) -> AtlasResult<Vec<ArTransactionLine>> {
         self.repository.list_transaction_lines(transaction_id).await
     }
 
@@ -343,19 +444,21 @@ impl AccountsReceivableEngine {
         if !VALID_RECEIPT_TYPES.contains(&receipt_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid receipt_type '{}'. Must be one of: {}",
-                receipt_type, VALID_RECEIPT_TYPES.join(", ")
+                receipt_type,
+                VALID_RECEIPT_TYPES.join(", ")
             )));
         }
         if !VALID_RECEIPT_METHODS.contains(&receipt_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid receipt_method '{}'. Must be one of: {}",
-                receipt_method, VALID_RECEIPT_METHODS.join(", ")
+                receipt_method,
+                VALID_RECEIPT_METHODS.join(", ")
             )));
         }
 
-        let amt: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "amount must be a valid number".to_string(),
-        ))?;
+        let amt: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("amount must be a valid number".to_string())
+        })?;
         if amt <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "amount must be positive".to_string(),
@@ -366,11 +469,25 @@ impl AccountsReceivableEngine {
 
         info!("Creating receipt {} for {}", receipt_number, amt);
 
-        self.repository.create_receipt(
-            org_id, &receipt_number, receipt_date, receipt_type, receipt_method,
-            amount, currency_code, customer_id, customer_number, customer_name,
-            reference_number, bank_account_name, check_number, notes, created_by,
-        ).await
+        self.repository
+            .create_receipt(
+                org_id,
+                &receipt_number,
+                receipt_date,
+                receipt_type,
+                receipt_method,
+                amount,
+                currency_code,
+                customer_id,
+                customer_number,
+                customer_name,
+                reference_number,
+                bank_account_name,
+                check_number,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a receipt by ID
@@ -388,28 +505,36 @@ impl AccountsReceivableEngine {
         if let Some(s) = status {
             if !VALID_RECEIPT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid receipt status '{}'. Must be one of: {}", s, VALID_RECEIPT_STATUSES.join(", ")
+                    "Invalid receipt status '{}'. Must be one of: {}",
+                    s,
+                    VALID_RECEIPT_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_receipts(org_id, status, customer_id).await
+        self.repository
+            .list_receipts(org_id, status, customer_id)
+            .await
     }
 
     /// Confirm a draft receipt
     pub async fn confirm_receipt(&self, receipt_id: Uuid) -> AtlasResult<ArReceipt> {
-        let receipt = self.repository.get_receipt(receipt_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt {receipt_id} not found")
-            ))?;
+        let receipt = self
+            .repository
+            .get_receipt(receipt_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {receipt_id} not found")))?;
 
         if receipt.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot confirm receipt in '{}' status. Must be 'draft'.", receipt.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot confirm receipt in '{}' status. Must be 'draft'.",
+                receipt.status
+            )));
         }
 
         info!("Confirming receipt {}", receipt.receipt_number);
-        self.repository.update_receipt_status(receipt_id, "confirmed").await
+        self.repository
+            .update_receipt_status(receipt_id, "confirmed")
+            .await
     }
 
     /// Apply a confirmed receipt to a transaction
@@ -418,26 +543,32 @@ impl AccountsReceivableEngine {
         receipt_id: Uuid,
         transaction_id: Uuid,
     ) -> AtlasResult<ArReceipt> {
-        let receipt = self.repository.get_receipt(receipt_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt {receipt_id} not found")
-            ))?;
+        let receipt = self
+            .repository
+            .get_receipt(receipt_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {receipt_id} not found")))?;
 
         if receipt.status != "confirmed" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot apply receipt in '{}' status. Must be 'confirmed'.", receipt.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot apply receipt in '{}' status. Must be 'confirmed'.",
+                receipt.status
+            )));
         }
 
-        let txn = self.repository.get_transaction(transaction_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {transaction_id} not found")
-            ))?;
+        let txn = self
+            .repository
+            .get_transaction(transaction_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("AR transaction {transaction_id} not found"))
+            })?;
 
         if txn.status != "open" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot apply receipt to transaction in '{}' status. Must be 'open'.", txn.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot apply receipt to transaction in '{}' status. Must be 'open'.",
+                txn.status
+            )));
         }
 
         let receipt_amount: f64 = receipt.amount.parse().unwrap_or(0.0);
@@ -445,36 +576,50 @@ impl AccountsReceivableEngine {
         let applied_amount = receipt_amount.min(remaining);
         let new_remaining = remaining - applied_amount;
         let new_applied: f64 = txn.amount_applied.parse().unwrap_or(0.0) + applied_amount;
-        let new_status = if new_remaining < 0.01 { "closed" } else { "open" };
+        let new_status = if new_remaining < 0.01 {
+            "closed"
+        } else {
+            "open"
+        };
 
-        info!("Applying receipt {} ({}) to transaction {} (remaining: {})",
-            receipt.receipt_number, receipt_amount, txn.transaction_number, remaining);
+        info!(
+            "Applying receipt {} ({}) to transaction {} (remaining: {})",
+            receipt.receipt_number, receipt_amount, txn.transaction_number, remaining
+        );
 
-        self.repository.update_transaction_amounts(
-            transaction_id,
-            &format!("{new_remaining:.2}"),
-            Some(&format!("{new_applied:.2}")),
-            new_status,
-        ).await?;
+        self.repository
+            .update_transaction_amounts(
+                transaction_id,
+                &format!("{new_remaining:.2}"),
+                Some(&format!("{new_applied:.2}")),
+                new_status,
+            )
+            .await?;
 
-        self.repository.update_receipt_status(receipt_id, "applied").await
+        self.repository
+            .update_receipt_status(receipt_id, "applied")
+            .await
     }
 
     /// Reverse a receipt
     pub async fn reverse_receipt(&self, receipt_id: Uuid) -> AtlasResult<ArReceipt> {
-        let receipt = self.repository.get_receipt(receipt_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Receipt {receipt_id} not found")
-            ))?;
+        let receipt = self
+            .repository
+            .get_receipt(receipt_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Receipt {receipt_id} not found")))?;
 
         if receipt.status != "confirmed" && receipt.status != "applied" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reverse receipt in '{}' status", receipt.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reverse receipt in '{}' status",
+                receipt.status
+            )));
         }
 
         info!("Reversing receipt {}", receipt.receipt_number);
-        self.repository.update_receipt_status(receipt_id, "reversed").await
+        self.repository
+            .update_receipt_status(receipt_id, "reversed")
+            .await
     }
 
     // ========================================================================
@@ -501,13 +646,14 @@ impl AccountsReceivableEngine {
         if !VALID_CREDIT_MEMO_REASONS.contains(&reason_code) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid reason_code '{}'. Must be one of: {}",
-                reason_code, VALID_CREDIT_MEMO_REASONS.join(", ")
+                reason_code,
+                VALID_CREDIT_MEMO_REASONS.join(", ")
             )));
         }
 
-        let amt: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "amount must be a valid number".to_string(),
-        ))?;
+        let amt: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("amount must be a valid number".to_string())
+        })?;
         if amt <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "credit memo amount must be positive".to_string(),
@@ -518,15 +664,30 @@ impl AccountsReceivableEngine {
         let tax: f64 = tax_amount.parse().unwrap_or(0.0);
         let total = amt + tax;
 
-        info!("Creating credit memo {} for customer {} amount {}",
-            credit_memo_number, customer_id, total);
+        info!(
+            "Creating credit memo {} for customer {} amount {}",
+            credit_memo_number, customer_id, total
+        );
 
-        self.repository.create_credit_memo(
-            org_id, &credit_memo_number, customer_id, customer_number, customer_name,
-            transaction_id, transaction_number, credit_memo_date,
-            reason_code, reason_description, amount, tax_amount,
-            &format!("{total:.2}"), notes, created_by,
-        ).await
+        self.repository
+            .create_credit_memo(
+                org_id,
+                &credit_memo_number,
+                customer_id,
+                customer_number,
+                customer_name,
+                transaction_id,
+                transaction_number,
+                credit_memo_date,
+                reason_code,
+                reason_description,
+                amount,
+                tax_amount,
+                &format!("{total:.2}"),
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a credit memo by ID
@@ -545,28 +706,37 @@ impl AccountsReceivableEngine {
             if !VALID_CREDIT_MEMO_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid credit memo status '{}'. Must be one of: {}",
-                    s, VALID_CREDIT_MEMO_STATUSES.join(", ")
+                    s,
+                    VALID_CREDIT_MEMO_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_credit_memos(org_id, status, customer_id).await
+        self.repository
+            .list_credit_memos(org_id, status, customer_id)
+            .await
     }
 
     /// Approve a credit memo (moves from submitted to approved)
     pub async fn approve_credit_memo(&self, memo_id: Uuid) -> AtlasResult<ArCreditMemo> {
-        let memo = self.repository.get_credit_memo(memo_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit memo {memo_id} not found")
-            ))?;
+        let memo = self
+            .repository
+            .get_credit_memo(memo_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit memo {memo_id} not found"))
+            })?;
 
         if memo.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve credit memo in '{}' status. Must be 'submitted'.", memo.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve credit memo in '{}' status. Must be 'submitted'.",
+                memo.status
+            )));
         }
 
         info!("Approving credit memo {}", memo.credit_memo_number);
-        self.repository.update_credit_memo_status(memo_id, "approved").await
+        self.repository
+            .update_credit_memo_status(memo_id, "approved")
+            .await
     }
 
     /// Apply a credit memo to a transaction
@@ -575,48 +745,69 @@ impl AccountsReceivableEngine {
         memo_id: Uuid,
         transaction_id: Uuid,
     ) -> AtlasResult<ArCreditMemo> {
-        let memo = self.repository.get_credit_memo(memo_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit memo {memo_id} not found")
-            ))?;
+        let memo = self
+            .repository
+            .get_credit_memo(memo_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit memo {memo_id} not found"))
+            })?;
 
         if memo.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot apply credit memo in '{}' status. Must be 'approved'.", memo.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot apply credit memo in '{}' status. Must be 'approved'.",
+                memo.status
+            )));
         }
 
-        let txn = self.repository.get_transaction(transaction_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("AR transaction {transaction_id} not found")
-            ))?;
+        let txn = self
+            .repository
+            .get_transaction(transaction_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("AR transaction {transaction_id} not found"))
+            })?;
 
         if txn.status != "open" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot apply credit memo to transaction in '{}' status.", txn.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot apply credit memo to transaction in '{}' status.",
+                txn.status
+            )));
         }
 
         let memo_amount: f64 = memo.total_amount.parse().unwrap_or(0.0);
         let remaining: f64 = txn.amount_due_remaining.parse().unwrap_or(0.0);
         let new_remaining = (remaining - memo_amount).max(0.0);
-        let new_adjusted: f64 = txn.amount_adjusted.parse().unwrap_or(0.0) + memo_amount.min(remaining);
-        let new_status = if new_remaining < 0.01 { "closed" } else { "open" };
+        let new_adjusted: f64 =
+            txn.amount_adjusted.parse().unwrap_or(0.0) + memo_amount.min(remaining);
+        let new_status = if new_remaining < 0.01 {
+            "closed"
+        } else {
+            "open"
+        };
 
-        info!("Applying credit memo {} ({}) to transaction {}",
-            memo.credit_memo_number, memo_amount, txn.transaction_number);
+        info!(
+            "Applying credit memo {} ({}) to transaction {}",
+            memo.credit_memo_number, memo_amount, txn.transaction_number
+        );
 
-        self.repository.update_transaction_amounts(
-            transaction_id,
-            &format!("{new_remaining:.2}"),
-            None,
-            new_status,
-        ).await?;
+        self.repository
+            .update_transaction_amounts(
+                transaction_id,
+                &format!("{new_remaining:.2}"),
+                None,
+                new_status,
+            )
+            .await?;
 
         // Also update the amount_adjusted
-        self.repository.update_transaction_adjusted(transaction_id, &format!("{new_adjusted:.2}")).await?;
+        self.repository
+            .update_transaction_adjusted(transaction_id, &format!("{new_adjusted:.2}"))
+            .await?;
 
-        self.repository.update_credit_memo_status(memo_id, "applied").await
+        self.repository
+            .update_credit_memo_status(memo_id, "applied")
+            .await
     }
 
     // ========================================================================
@@ -645,13 +836,14 @@ impl AccountsReceivableEngine {
         if !VALID_ADJUSTMENT_TYPES.contains(&adjustment_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid adjustment_type '{}'. Must be one of: {}",
-                adjustment_type, VALID_ADJUSTMENT_TYPES.join(", ")
+                adjustment_type,
+                VALID_ADJUSTMENT_TYPES.join(", ")
             )));
         }
 
-        let amt: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "amount must be a valid number".to_string(),
-        ))?;
+        let amt: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("amount must be a valid number".to_string())
+        })?;
         if amt <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "adjustment amount must be positive".to_string(),
@@ -660,14 +852,31 @@ impl AccountsReceivableEngine {
 
         let adjustment_number = format!("ADJ-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating AR adjustment {} type {} amount {}", adjustment_number, adjustment_type, amt);
+        info!(
+            "Creating AR adjustment {} type {} amount {}",
+            adjustment_number, adjustment_type, amt
+        );
 
-        self.repository.create_adjustment(
-            org_id, &adjustment_number, transaction_id, transaction_number,
-            customer_id, customer_number, adjustment_date, gl_date,
-            adjustment_type, amount, receivable_account, adjustment_account,
-            reason_code, reason_description, notes, created_by,
-        ).await
+        self.repository
+            .create_adjustment(
+                org_id,
+                &adjustment_number,
+                transaction_id,
+                transaction_number,
+                customer_id,
+                customer_number,
+                adjustment_date,
+                gl_date,
+                adjustment_type,
+                amount,
+                receivable_account,
+                adjustment_account,
+                reason_code,
+                reason_description,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// List adjustments
@@ -681,28 +890,41 @@ impl AccountsReceivableEngine {
             if !VALID_ADJUSTMENT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid adjustment status '{}'. Must be one of: {}",
-                    s, VALID_ADJUSTMENT_STATUSES.join(", ")
+                    s,
+                    VALID_ADJUSTMENT_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_adjustments(org_id, status, customer_id).await
+        self.repository
+            .list_adjustments(org_id, status, customer_id)
+            .await
     }
 
     /// Approve an adjustment
-    pub async fn approve_adjustment(&self, adjustment_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<ArAdjustment> {
-        let adj = self.repository.get_adjustment(adjustment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Adjustment {adjustment_id} not found")
-            ))?;
+    pub async fn approve_adjustment(
+        &self,
+        adjustment_id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<ArAdjustment> {
+        let adj = self
+            .repository
+            .get_adjustment(adjustment_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Adjustment {adjustment_id} not found"))
+            })?;
 
         if adj.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve adjustment in '{}' status. Must be 'submitted'.", adj.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve adjustment in '{}' status. Must be 'submitted'.",
+                adj.status
+            )));
         }
 
         info!("Approving AR adjustment {}", adj.adjustment_number);
-        self.repository.update_adjustment_status(adjustment_id, "approved", approved_by).await
+        self.repository
+            .update_adjustment_status(adjustment_id, "approved", approved_by)
+            .await
     }
 
     // ========================================================================
@@ -710,14 +932,27 @@ impl AccountsReceivableEngine {
     // ========================================================================
 
     /// Get AR aging summary
-    pub async fn get_aging_summary(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<ArAgingSummary> {
-        info!("Generating AR aging summary for org {} as of {}", org_id, as_of_date);
+    pub async fn get_aging_summary(
+        &self,
+        org_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<ArAgingSummary> {
+        info!(
+            "Generating AR aging summary for org {} as of {}",
+            org_id, as_of_date
+        );
         self.repository.get_aging_summary(org_id, as_of_date).await
     }
 
     /// Get AR aging by customer
-    pub async fn get_aging_by_customer(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<ArAgingByCustomer>> {
-        self.repository.get_aging_by_customer(org_id, as_of_date).await
+    pub async fn get_aging_by_customer(
+        &self,
+        org_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<ArAgingByCustomer>> {
+        self.repository
+            .get_aging_by_customer(org_id, as_of_date)
+            .await
     }
 }
 

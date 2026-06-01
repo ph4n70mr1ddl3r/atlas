@@ -7,8 +7,10 @@
 //!
 //! Oracle Fusion equivalent: Cash Management > Bank Statements > Auto-Reconciliation
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::BankStatementReconciliationEngine;
-pub use repository::{BankStatementReconciliationRepository, PostgresBankStatementReconciliationRepository};
+pub use repository::{
+    BankStatementReconciliationRepository, PostgresBankStatementReconciliationRepository,
+};

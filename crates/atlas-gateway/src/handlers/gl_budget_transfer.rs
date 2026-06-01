@@ -2,19 +2,18 @@
 //!
 //! Oracle Fusion: General Ledger > Budget Transfers
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateBudgetTransferRequest {
@@ -41,17 +40,29 @@ pub async fn create_budget_transfer(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.gl_budget_transfer_engine.create(
-        org_id, payload.description.as_deref(),
-        payload.transfer_date, payload.effective_date,
-        payload.budget_name.as_deref(), &payload.transfer_type,
-        payload.from_account_combination.as_deref(), payload.from_department.as_deref(),
-        payload.from_period.as_deref(),
-        payload.to_account_combination.as_deref(), payload.to_department.as_deref(),
-        payload.to_period.as_deref(),
-        &payload.transfer_amount, &payload.currency_code,
-        payload.reason.as_deref(), Some(user_id),
-    ).await {
+    match state
+        .financials
+        .gl_budget_transfer_engine
+        .create(
+            org_id,
+            payload.description.as_deref(),
+            payload.transfer_date,
+            payload.effective_date,
+            payload.budget_name.as_deref(),
+            &payload.transfer_type,
+            payload.from_account_combination.as_deref(),
+            payload.from_department.as_deref(),
+            payload.from_period.as_deref(),
+            payload.to_account_combination.as_deref(),
+            payload.to_department.as_deref(),
+            payload.to_period.as_deref(),
+            &payload.transfer_amount,
+            &payload.currency_code,
+            payload.reason.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(t) => Ok(created_json(t)),
         Err(e) => {
             error!("Failed to create budget transfer: {}", e);
@@ -71,7 +82,10 @@ pub async fn get_budget_transfer(
     match state.financials.gl_budget_transfer_engine.get(id).await {
         Ok(Some(t)) => Ok(to_json(t)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get budget transfer: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get budget transfer: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -87,9 +101,21 @@ pub async fn list_budget_transfers(
     Query(query): Query<ListBudgetTransfersQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.gl_budget_transfer_engine.list(org_id, query.status.as_deref(), query.transfer_type.as_deref()).await {
+    match state
+        .financials
+        .gl_budget_transfer_engine
+        .list(
+            org_id,
+            query.status.as_deref(),
+            query.transfer_type.as_deref(),
+        )
+        .await
+    {
         Ok(items) => Ok(Json(serde_json::json!({ "data": items }))),
-        Err(e) => { error!("Failed to list budget transfers: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list budget transfers: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -102,7 +128,8 @@ pub async fn submit_budget_transfer(
         Err(e) => {
             error!("Failed to submit budget transfer: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -116,12 +143,18 @@ pub async fn approve_budget_transfer(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.gl_budget_transfer_engine.approve(id, user_id).await {
+    match state
+        .financials
+        .gl_budget_transfer_engine
+        .approve(id, user_id)
+        .await
+    {
         Ok(t) => Ok(to_json(t)),
         Err(e) => {
             error!("Failed to approve budget transfer: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -133,12 +166,18 @@ pub async fn complete_budget_transfer(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.gl_budget_transfer_engine.complete(id).await {
+    match state
+        .financials
+        .gl_budget_transfer_engine
+        .complete(id)
+        .await
+    {
         Ok(t) => Ok(to_json(t)),
         Err(e) => {
             error!("Failed to complete budget transfer: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -151,8 +190,16 @@ pub async fn get_budget_transfer_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.gl_budget_transfer_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .gl_budget_transfer_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dash) => Ok(to_json(dash)),
-        Err(e) => { error!("Failed to get budget transfer dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get budget transfer dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

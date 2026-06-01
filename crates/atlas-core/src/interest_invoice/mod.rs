@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Receivables > Late Charges
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::InterestInvoiceEngine;
 pub use repository::{InterestInvoiceRepository, PostgresInterestInvoiceRepository};

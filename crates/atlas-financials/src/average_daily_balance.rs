@@ -1,7 +1,7 @@
-use atlas_shared::{AtlasResult, AtlasError, RecordId};
+use atlas_shared::{AtlasError, AtlasResult, RecordId};
 use chrono::NaiveDate;
-use std::collections::BTreeMap;
 use rust_decimal::Decimal;
+use std::collections::BTreeMap;
 
 /// Represents a daily balance record for an account.
 #[derive(Debug, Clone)]
@@ -10,7 +10,7 @@ pub struct DailyBalance {
     pub end_of_day_balance: Decimal,
 }
 
-/// Service to calculate Average Daily Balances (ADB), 
+/// Service to calculate Average Daily Balances (ADB),
 /// inspired by Oracle Fusion Financials General Ledger features.
 #[derive(Default)]
 pub struct AverageDailyBalanceService {
@@ -19,7 +19,7 @@ pub struct AverageDailyBalanceService {
 }
 
 impl AverageDailyBalanceService {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -59,7 +59,7 @@ impl AverageDailyBalanceService {
             }
             sum_of_balances += current_balance;
             days_in_period += 1;
-            
+
             let Some(next_date) = current_date.succ_opt() else {
                 break;
             };

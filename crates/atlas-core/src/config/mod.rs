@@ -1,5 +1,5 @@
 //! Configuration Engine
-//! 
+//!
 //! Hot-reload configuration system for dynamic updates without restarts.
 
 mod engine;
@@ -62,13 +62,13 @@ pub struct ConfigWatcherRegistry {
 }
 
 impl ConfigWatcherRegistry {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             watchers: RwLock::new(HashMap::new()),
         }
     }
-    
+
     /// Register a watcher for a config key pattern
     pub async fn register(&self, pattern: &str, watcher: Box<dyn ConfigWatcher>) {
         let mut watchers = self.watchers.write().await;
@@ -77,11 +77,11 @@ impl ConfigWatcherRegistry {
             .or_insert_with(Vec::new)
             .push(watcher);
     }
-    
+
     /// Notify watchers of a change
     pub async fn notify(&self, change: &ConfigChange) {
         let watchers = self.watchers.read().await;
-        
+
         for (pattern, watchers_list) in watchers.iter() {
             if self.matches(pattern, &change.key) {
                 for watcher in watchers_list {
@@ -90,16 +90,16 @@ impl ConfigWatcherRegistry {
             }
         }
     }
-    
+
     fn matches(&self, pattern: &str, key: &str) -> bool {
         if pattern == "*" {
             return true;
         }
-        
+
         if let Some(prefix) = pattern.strip_suffix(".*") {
             return key.starts_with(prefix) && key.len() > prefix.len();
         }
-        
+
         if pattern.contains('*') {
             // Glob matching
             let parts: Vec<&str> = pattern.split('*').collect();
@@ -113,7 +113,7 @@ impl ConfigWatcherRegistry {
             }
             return true;
         }
-        
+
         pattern == key
     }
 }

@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Receivables > Receipts > Automatic Receipts > Remittance Batches
 
-pub mod repository;
 pub mod engine;
+pub mod repository;
 
 pub use engine::RemittanceBatchEngine;
-pub use repository::{RemittanceBatchRepository, PostgresRemittanceBatchRepository};
+pub use repository::{PostgresRemittanceBatchRepository, RemittanceBatchRepository};

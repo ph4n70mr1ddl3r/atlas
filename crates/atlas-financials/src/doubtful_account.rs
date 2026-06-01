@@ -51,7 +51,10 @@ impl DoubtfulAccountService {
         flat_pct: f64,
     ) -> Result<DoubtfulAccountPolicy, String> {
         let mut policies = self.policies.write().unwrap();
-        if policies.iter().any(|p| p.organization_id == organization_id && p.policy_code == code) {
+        if policies
+            .iter()
+            .any(|p| p.organization_id == organization_id && p.policy_code == code)
+        {
             return Err("Policy with this code already exists".to_string());
         }
 
@@ -107,15 +110,20 @@ impl DoubtfulAccountService {
             "percentage_based" => balance * (policy.flat_percentage / 100.0),
             "aging_based" => {
                 let buckets = self.buckets.read().unwrap();
-                let applicable_bucket = buckets.iter()
-                    .filter(|b| b.policy_id == policy_id)
-                    .find(|b| days_overdue >= b.from_days && b.to_days.is_none_or(|to| days_overdue <= to));
-                
+                let applicable_bucket =
+                    buckets
+                        .iter()
+                        .filter(|b| b.policy_id == policy_id)
+                        .find(|b| {
+                            days_overdue >= b.from_days
+                                && b.to_days.is_none_or(|to| days_overdue <= to)
+                        });
+
                 match applicable_bucket {
                     Some(b) => balance * (b.provision_percentage / 100.0),
                     None => 0.0,
                 }
-            },
+            }
             _ => 0.0,
         }
     }
@@ -129,9 +137,17 @@ mod tests {
     fn test_percentage_based_provision() {
         let service = DoubtfulAccountService::new();
         let org_id = Uuid::new_v4();
-        
-        let p = service.create_policy(org_id, "FLAT_5".to_string(), "5% Flat".to_string(), "percentage_based".to_string(), 5.0).unwrap();
-        
+
+        let p = service
+            .create_policy(
+                org_id,
+                "FLAT_5".to_string(),
+                "5% Flat".to_string(),
+                "percentage_based".to_string(),
+                5.0,
+            )
+            .unwrap();
+
         let provision = service.calculate_provision(p.id, 1000.0, 0);
         assert_eq!(provision, 50.0);
     }
@@ -140,11 +156,23 @@ mod tests {
     fn test_aging_based_provision() {
         let service = DoubtfulAccountService::new();
         let org_id = Uuid::new_v4();
-        
-        let p = service.create_policy(org_id, "AGING".to_string(), "Aging".to_string(), "aging_based".to_string(), 0.0).unwrap();
-        
-        service.add_bucket(p.id, "Current".to_string(), 0, Some(30), 1.0).unwrap();
-        service.add_bucket(p.id, "Overdue".to_string(), 31, None, 10.0).unwrap();
+
+        let p = service
+            .create_policy(
+                org_id,
+                "AGING".to_string(),
+                "Aging".to_string(),
+                "aging_based".to_string(),
+                0.0,
+            )
+            .unwrap();
+
+        service
+            .add_bucket(p.id, "Current".to_string(), 0, Some(30), 1.0)
+            .unwrap();
+        service
+            .add_bucket(p.id, "Overdue".to_string(), 31, None, 10.0)
+            .unwrap();
 
         // 15 days overdue -> 1%
         assert_eq!(service.calculate_provision(p.id, 1000.0, 15), 10.0);

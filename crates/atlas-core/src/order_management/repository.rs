@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for sales orders, order lines, holds, and shipments.
 
-use atlas_shared::{
-    SalesOrder, SalesOrderLine, OrderHold, FulfillmentShipment,
-    OrderManagementDashboard, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, FulfillmentShipment, OrderHold, OrderManagementDashboard, SalesOrder,
+    SalesOrderLine,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -15,37 +15,61 @@ use uuid::Uuid;
 pub trait OrderManagementRepository: Send + Sync {
     // Sales Orders
     async fn create_order(
-        &self, org_id: Uuid, order_number: &str, customer_id: Option<Uuid>,
-        customer_name: Option<&str>, customer_po_number: Option<&str>,
+        &self,
+        org_id: Uuid,
+        order_number: &str,
+        customer_id: Option<Uuid>,
+        customer_name: Option<&str>,
+        customer_po_number: Option<&str>,
         order_date: chrono::NaiveDate,
         requested_ship_date: Option<chrono::NaiveDate>,
         requested_delivery_date: Option<chrono::NaiveDate>,
-        ship_to_address: Option<&str>, bill_to_address: Option<&str>,
+        ship_to_address: Option<&str>,
+        bill_to_address: Option<&str>,
         currency_code: &str,
-        payment_terms: Option<&str>, shipping_method: Option<&str>,
+        payment_terms: Option<&str>,
+        shipping_method: Option<&str>,
         sales_channel: Option<&str>,
-        salesperson_id: Option<Uuid>, salesperson_name: Option<&str>,
+        salesperson_id: Option<Uuid>,
+        salesperson_name: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesOrder>;
     async fn get_order(&self, org_id: Uuid, order_number: &str) -> AtlasResult<Option<SalesOrder>>;
     async fn get_order_by_id(&self, id: Uuid) -> AtlasResult<Option<SalesOrder>>;
-    async fn list_orders(&self, org_id: Uuid, status: Option<&str>, fulfillment_status: Option<&str>) -> AtlasResult<Vec<SalesOrder>>;
+    async fn list_orders(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        fulfillment_status: Option<&str>,
+    ) -> AtlasResult<Vec<SalesOrder>>;
     async fn update_order_status(&self, id: Uuid, status: &str) -> AtlasResult<SalesOrder>;
-    async fn update_order_fulfillment(&self, id: Uuid, fulfillment_status: &str) -> AtlasResult<SalesOrder>;
+    async fn update_order_fulfillment(
+        &self,
+        id: Uuid,
+        fulfillment_status: &str,
+    ) -> AtlasResult<SalesOrder>;
     async fn update_order_totals(&self, id: Uuid) -> AtlasResult<SalesOrder>;
     async fn update_order_dates(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_ship_date: Option<chrono::NaiveDate>,
         actual_delivery_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<SalesOrder>;
 
     // Sales Order Lines
     async fn create_order_line(
-        &self, org_id: Uuid, order_id: Uuid, line_number: i32,
-        item_id: Option<Uuid>, item_code: Option<&str>, item_description: Option<&str>,
-        quantity_ordered: &str, unit_selling_price: &str,
+        &self,
+        org_id: Uuid,
+        order_id: Uuid,
+        line_number: i32,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        quantity_ordered: &str,
+        unit_selling_price: &str,
         unit_list_price: Option<&str>,
-        discount_percent: Option<&str>, discount_amount: Option<&str>,
+        discount_percent: Option<&str>,
+        discount_amount: Option<&str>,
         tax_code: Option<&str>,
         requested_ship_date: Option<chrono::NaiveDate>,
         promised_delivery_date: Option<chrono::NaiveDate>,
@@ -54,46 +78,84 @@ pub trait OrderManagementRepository: Send + Sync {
     async fn get_order_line(&self, id: Uuid) -> AtlasResult<Option<SalesOrderLine>>;
     async fn list_order_lines(&self, order_id: Uuid) -> AtlasResult<Vec<SalesOrderLine>>;
     async fn update_line_quantities(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         quantity_shipped: Option<&str>,
         quantity_cancelled: Option<&str>,
         quantity_backordered: Option<&str>,
     ) -> AtlasResult<SalesOrderLine>;
-    async fn update_line_status(&self, id: Uuid, status: &str, fulfillment_status: &str) -> AtlasResult<SalesOrderLine>;
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        fulfillment_status: &str,
+    ) -> AtlasResult<SalesOrderLine>;
 
     /// Update the cancellation reason on an order line
-    async fn update_line_cancellation_reason(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<()>;
+    async fn update_line_cancellation_reason(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<()>;
 
     // Order Holds
     async fn create_hold(
-        &self, org_id: Uuid, order_id: Uuid, order_line_id: Option<Uuid>,
-        hold_type: &str, hold_reason: &str,
-        applied_by: Option<Uuid>, applied_by_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        order_id: Uuid,
+        order_line_id: Option<Uuid>,
+        hold_type: &str,
+        hold_reason: &str,
+        applied_by: Option<Uuid>,
+        applied_by_name: Option<&str>,
     ) -> AtlasResult<OrderHold>;
     async fn get_hold(&self, id: Uuid) -> AtlasResult<Option<OrderHold>>;
     async fn list_holds(&self, order_id: Uuid, active_only: bool) -> AtlasResult<Vec<OrderHold>>;
     async fn release_hold(
-        &self, id: Uuid, released_by: Option<Uuid>, released_by_name: Option<&str>,
+        &self,
+        id: Uuid,
+        released_by: Option<Uuid>,
+        released_by_name: Option<&str>,
     ) -> AtlasResult<OrderHold>;
 
     // Fulfillment Shipments
     async fn create_shipment(
-        &self, org_id: Uuid, shipment_number: &str, order_id: Uuid,
+        &self,
+        org_id: Uuid,
+        shipment_number: &str,
+        order_id: Uuid,
         order_line_ids: serde_json::Value,
-        warehouse: Option<&str>, carrier: Option<&str>,
+        warehouse: Option<&str>,
+        carrier: Option<&str>,
         shipping_method: Option<&str>,
         estimated_delivery_date: Option<chrono::NaiveDate>,
-        shipped_by: Option<Uuid>, shipped_by_name: Option<&str>,
+        shipped_by: Option<Uuid>,
+        shipped_by_name: Option<&str>,
     ) -> AtlasResult<FulfillmentShipment>;
     async fn get_shipment(&self, id: Uuid) -> AtlasResult<Option<FulfillmentShipment>>;
-    async fn list_shipments(&self, org_id: Uuid, status: Option<&str>, order_id: Option<Uuid>) -> AtlasResult<Vec<FulfillmentShipment>>;
-    async fn update_shipment_status(&self, id: Uuid, status: &str) -> AtlasResult<FulfillmentShipment>;
+    async fn list_shipments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        order_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<FulfillmentShipment>>;
+    async fn update_shipment_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<FulfillmentShipment>;
     async fn update_shipment_tracking(
-        &self, id: Uuid, tracking_number: Option<&str>,
+        &self,
+        id: Uuid,
+        tracking_number: Option<&str>,
         actual_delivery_date: Option<chrono::NaiveDate>,
         delivery_confirmation: Option<&str>,
     ) -> AtlasResult<FulfillmentShipment>;
-    async fn confirm_ship(&self, id: Uuid, ship_date: chrono::NaiveDate) -> AtlasResult<FulfillmentShipment>;
+    async fn confirm_ship(
+        &self,
+        id: Uuid,
+        ship_date: chrono::NaiveDate,
+    ) -> AtlasResult<FulfillmentShipment>;
 
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<OrderManagementDashboard>;
@@ -105,7 +167,7 @@ pub struct PostgresOrderManagementRepository {
 }
 
 impl PostgresOrderManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -169,10 +231,19 @@ fn row_to_order_line(row: &sqlx::postgres::PgRow) -> SalesOrderLine {
         quantity_cancelled: row_to_numeric(row, "quantity_cancelled"),
         quantity_backordered: row_to_numeric(row, "quantity_backordered"),
         unit_selling_price: row_to_numeric(row, "unit_selling_price"),
-        unit_list_price: row.try_get("unit_list_price").ok().map(|v: serde_json::Value| v.to_string()),
+        unit_list_price: row
+            .try_get("unit_list_price")
+            .ok()
+            .map(|v: serde_json::Value| v.to_string()),
         line_amount: row_to_numeric(row, "line_amount"),
-        discount_percent: row.try_get("discount_percent").ok().map(|v: serde_json::Value| v.to_string()),
-        discount_amount: row.try_get("discount_amount").ok().map(|v: serde_json::Value| v.to_string()),
+        discount_percent: row
+            .try_get("discount_percent")
+            .ok()
+            .map(|v: serde_json::Value| v.to_string()),
+        discount_amount: row
+            .try_get("discount_amount")
+            .ok()
+            .map(|v: serde_json::Value| v.to_string()),
         tax_code: row.get("tax_code"),
         tax_amount: row_to_numeric(row, "tax_amount"),
         requested_ship_date: row.get("requested_ship_date"),
@@ -214,7 +285,9 @@ fn row_to_shipment(row: &sqlx::postgres::PgRow) -> FulfillmentShipment {
         organization_id: row.get("organization_id"),
         shipment_number: row.get("shipment_number"),
         order_id: row.get("order_id"),
-        order_line_ids: row.try_get("order_line_ids").unwrap_or(serde_json::json!([])),
+        order_line_ids: row
+            .try_get("order_line_ids")
+            .unwrap_or(serde_json::json!([])),
         warehouse: row.get("warehouse"),
         carrier: row.get("carrier"),
         tracking_number: row.get("tracking_number"),
@@ -239,16 +312,23 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     // ========================================================================
 
     async fn create_order(
-        &self, org_id: Uuid, order_number: &str, customer_id: Option<Uuid>,
-        customer_name: Option<&str>, customer_po_number: Option<&str>,
+        &self,
+        org_id: Uuid,
+        order_number: &str,
+        customer_id: Option<Uuid>,
+        customer_name: Option<&str>,
+        customer_po_number: Option<&str>,
         order_date: chrono::NaiveDate,
         requested_ship_date: Option<chrono::NaiveDate>,
         requested_delivery_date: Option<chrono::NaiveDate>,
-        ship_to_address: Option<&str>, bill_to_address: Option<&str>,
+        ship_to_address: Option<&str>,
+        bill_to_address: Option<&str>,
         currency_code: &str,
-        payment_terms: Option<&str>, shipping_method: Option<&str>,
+        payment_terms: Option<&str>,
+        shipping_method: Option<&str>,
         sales_channel: Option<&str>,
-        salesperson_id: Option<Uuid>, salesperson_name: Option<&str>,
+        salesperson_id: Option<Uuid>,
+        salesperson_name: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesOrder> {
         let row = sqlx::query(
@@ -261,12 +341,25 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
             RETURNING *",
         )
-        .bind(org_id).bind(order_number).bind(customer_id).bind(customer_name)
-        .bind(customer_po_number).bind(order_date).bind(requested_ship_date)
-        .bind(requested_delivery_date).bind(ship_to_address).bind(bill_to_address)
-        .bind(currency_code).bind(payment_terms).bind(shipping_method).bind(sales_channel)
-        .bind(salesperson_id).bind(salesperson_name).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(order_number)
+        .bind(customer_id)
+        .bind(customer_name)
+        .bind(customer_po_number)
+        .bind(order_date)
+        .bind(requested_ship_date)
+        .bind(requested_delivery_date)
+        .bind(ship_to_address)
+        .bind(bill_to_address)
+        .bind(currency_code)
+        .bind(payment_terms)
+        .bind(shipping_method)
+        .bind(sales_channel)
+        .bind(salesperson_id)
+        .bind(salesperson_name)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_order(&row))
@@ -274,10 +367,12 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
 
     async fn get_order(&self, org_id: Uuid, order_number: &str) -> AtlasResult<Option<SalesOrder>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.sales_orders WHERE organization_id=$1 AND order_number=$2"
+            "SELECT * FROM _atlas.sales_orders WHERE organization_id=$1 AND order_number=$2",
         )
-        .bind(org_id).bind(order_number)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(order_number)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_order(&r)))
@@ -286,13 +381,19 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     async fn get_order_by_id(&self, id: Uuid) -> AtlasResult<Option<SalesOrder>> {
         let row = sqlx::query("SELECT * FROM _atlas.sales_orders WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_order(&r)))
     }
 
-    async fn list_orders(&self, org_id: Uuid, status: Option<&str>, fulfillment_status: Option<&str>) -> AtlasResult<Vec<SalesOrder>> {
+    async fn list_orders(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        fulfillment_status: Option<&str>,
+    ) -> AtlasResult<Vec<SalesOrder>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.sales_orders
             WHERE organization_id=$1
@@ -300,8 +401,11 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
             AND ($3::text IS NULL OR fulfillment_status=$3)
             ORDER BY order_date DESC, created_at DESC",
         )
-        .bind(org_id).bind(status).bind(fulfillment_status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .bind(fulfillment_status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_order).collect())
@@ -324,7 +428,11 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         Ok(row_to_order(&row))
     }
 
-    async fn update_order_fulfillment(&self, id: Uuid, fulfillment_status: &str) -> AtlasResult<SalesOrder> {
+    async fn update_order_fulfillment(
+        &self,
+        id: Uuid,
+        fulfillment_status: &str,
+    ) -> AtlasResult<SalesOrder> {
         let row = sqlx::query(
             "UPDATE _atlas.sales_orders SET fulfillment_status=$2, updated_at=now() WHERE id=$1 RETURNING *",
         )
@@ -354,7 +462,8 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     }
 
     async fn update_order_dates(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_ship_date: Option<chrono::NaiveDate>,
         actual_delivery_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<SalesOrder> {
@@ -365,8 +474,11 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
                 updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(actual_ship_date).bind(actual_delivery_date)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(actual_ship_date)
+        .bind(actual_delivery_date)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_order(&row))
@@ -377,11 +489,18 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     // ========================================================================
 
     async fn create_order_line(
-        &self, org_id: Uuid, order_id: Uuid, line_number: i32,
-        item_id: Option<Uuid>, item_code: Option<&str>, item_description: Option<&str>,
-        quantity_ordered: &str, unit_selling_price: &str,
+        &self,
+        org_id: Uuid,
+        order_id: Uuid,
+        line_number: i32,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        quantity_ordered: &str,
+        unit_selling_price: &str,
         unit_list_price: Option<&str>,
-        discount_percent: Option<&str>, discount_amount: Option<&str>,
+        discount_percent: Option<&str>,
+        discount_amount: Option<&str>,
         tax_code: Option<&str>,
         requested_ship_date: Option<chrono::NaiveDate>,
         promised_delivery_date: Option<chrono::NaiveDate>,
@@ -412,7 +531,8 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     async fn get_order_line(&self, id: Uuid) -> AtlasResult<Option<SalesOrderLine>> {
         let row = sqlx::query("SELECT * FROM _atlas.sales_order_lines WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_order_line(&r)))
@@ -420,17 +540,19 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
 
     async fn list_order_lines(&self, order_id: Uuid) -> AtlasResult<Vec<SalesOrderLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.sales_order_lines WHERE order_id=$1 ORDER BY line_number"
+            "SELECT * FROM _atlas.sales_order_lines WHERE order_id=$1 ORDER BY line_number",
         )
         .bind(order_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_order_line).collect())
     }
 
     async fn update_line_quantities(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         quantity_shipped: Option<&str>,
         quantity_cancelled: Option<&str>,
         quantity_backordered: Option<&str>,
@@ -450,7 +572,12 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         Ok(row_to_order_line(&row))
     }
 
-    async fn update_line_status(&self, id: Uuid, status: &str, fulfillment_status: &str) -> AtlasResult<SalesOrderLine> {
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        fulfillment_status: &str,
+    ) -> AtlasResult<SalesOrderLine> {
         let row = sqlx::query(
             "UPDATE _atlas.sales_order_lines SET status=$2, fulfillment_status=$3, updated_at=now() WHERE id=$1 RETURNING *",
         )
@@ -461,7 +588,11 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         Ok(row_to_order_line(&row))
     }
 
-    async fn update_line_cancellation_reason(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<()> {
+    async fn update_line_cancellation_reason(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.sales_order_lines SET cancellation_reason=$2, updated_at=now() WHERE id=$1",
         )
@@ -476,9 +607,14 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     // ========================================================================
 
     async fn create_hold(
-        &self, org_id: Uuid, order_id: Uuid, order_line_id: Option<Uuid>,
-        hold_type: &str, hold_reason: &str,
-        applied_by: Option<Uuid>, applied_by_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        order_id: Uuid,
+        order_line_id: Option<Uuid>,
+        hold_type: &str,
+        hold_reason: &str,
+        applied_by: Option<Uuid>,
+        applied_by_name: Option<&str>,
     ) -> AtlasResult<OrderHold> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.order_holds
@@ -487,10 +623,15 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7)
             RETURNING *",
         )
-        .bind(org_id).bind(order_id).bind(order_line_id)
-        .bind(hold_type).bind(hold_reason)
-        .bind(applied_by).bind(applied_by_name)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(order_id)
+        .bind(order_line_id)
+        .bind(hold_type)
+        .bind(hold_reason)
+        .bind(applied_by)
+        .bind(applied_by_name)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_hold(&row))
@@ -499,7 +640,8 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     async fn get_hold(&self, id: Uuid) -> AtlasResult<Option<OrderHold>> {
         let row = sqlx::query("SELECT * FROM _atlas.order_holds WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_hold(&r)))
@@ -520,7 +662,10 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     }
 
     async fn release_hold(
-        &self, id: Uuid, released_by: Option<Uuid>, released_by_name: Option<&str>,
+        &self,
+        id: Uuid,
+        released_by: Option<Uuid>,
+        released_by_name: Option<&str>,
     ) -> AtlasResult<OrderHold> {
         let row = sqlx::query(
             r"UPDATE _atlas.order_holds SET
@@ -528,8 +673,11 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
                 released_at=now(), updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(released_by).bind(released_by_name)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(released_by)
+        .bind(released_by_name)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_hold(&row))
@@ -540,12 +688,17 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     // ========================================================================
 
     async fn create_shipment(
-        &self, org_id: Uuid, shipment_number: &str, order_id: Uuid,
+        &self,
+        org_id: Uuid,
+        shipment_number: &str,
+        order_id: Uuid,
         order_line_ids: serde_json::Value,
-        warehouse: Option<&str>, carrier: Option<&str>,
+        warehouse: Option<&str>,
+        carrier: Option<&str>,
         shipping_method: Option<&str>,
         estimated_delivery_date: Option<chrono::NaiveDate>,
-        shipped_by: Option<Uuid>, shipped_by_name: Option<&str>,
+        shipped_by: Option<Uuid>,
+        shipped_by_name: Option<&str>,
     ) -> AtlasResult<FulfillmentShipment> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.fulfillment_shipments
@@ -555,11 +708,18 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
             RETURNING *",
         )
-        .bind(org_id).bind(shipment_number).bind(order_id).bind(order_line_ids)
-        .bind(warehouse).bind(carrier).bind(shipping_method)
+        .bind(org_id)
+        .bind(shipment_number)
+        .bind(order_id)
+        .bind(order_line_ids)
+        .bind(warehouse)
+        .bind(carrier)
+        .bind(shipping_method)
         .bind(estimated_delivery_date)
-        .bind(shipped_by).bind(shipped_by_name)
-        .fetch_one(&self.pool).await
+        .bind(shipped_by)
+        .bind(shipped_by_name)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_shipment(&row))
@@ -568,13 +728,19 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     async fn get_shipment(&self, id: Uuid) -> AtlasResult<Option<FulfillmentShipment>> {
         let row = sqlx::query("SELECT * FROM _atlas.fulfillment_shipments WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_shipment(&r)))
     }
 
-    async fn list_shipments(&self, org_id: Uuid, status: Option<&str>, order_id: Option<Uuid>) -> AtlasResult<Vec<FulfillmentShipment>> {
+    async fn list_shipments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        order_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<FulfillmentShipment>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.fulfillment_shipments
             WHERE organization_id=$1
@@ -582,14 +748,21 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
             AND ($3::uuid IS NULL OR order_id=$3)
             ORDER BY created_at DESC",
         )
-        .bind(org_id).bind(status).bind(order_id)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .bind(order_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_shipment).collect())
     }
 
-    async fn update_shipment_status(&self, id: Uuid, status: &str) -> AtlasResult<FulfillmentShipment> {
+    async fn update_shipment_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<FulfillmentShipment> {
         let row = sqlx::query(
             "UPDATE _atlas.fulfillment_shipments SET status=$2, updated_at=now() WHERE id=$1 RETURNING *",
         )
@@ -601,7 +774,9 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
     }
 
     async fn update_shipment_tracking(
-        &self, id: Uuid, tracking_number: Option<&str>,
+        &self,
+        id: Uuid,
+        tracking_number: Option<&str>,
         actual_delivery_date: Option<chrono::NaiveDate>,
         delivery_confirmation: Option<&str>,
     ) -> AtlasResult<FulfillmentShipment> {
@@ -613,14 +788,22 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
                 updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(tracking_number).bind(actual_delivery_date).bind(delivery_confirmation)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(tracking_number)
+        .bind(actual_delivery_date)
+        .bind(delivery_confirmation)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_shipment(&row))
     }
 
-    async fn confirm_ship(&self, id: Uuid, ship_date: chrono::NaiveDate) -> AtlasResult<FulfillmentShipment> {
+    async fn confirm_ship(
+        &self,
+        id: Uuid,
+        ship_date: chrono::NaiveDate,
+    ) -> AtlasResult<FulfillmentShipment> {
         let row = sqlx::query(
             "UPDATE _atlas.fulfillment_shipments SET status='shipped', ship_date=$2, updated_at=now() WHERE id=$1 RETURNING *",
         )
@@ -657,7 +840,9 @@ impl OrderManagementRepository for PostgresOrderManagementRepository {
         let orders_in_fulfillment: i64 = row.try_get("orders_in_fulfillment").unwrap_or(0);
         let completed_orders: i64 = row.try_get("completed_orders").unwrap_or(0);
         let cancelled_orders: i64 = row.try_get("cancelled_orders").unwrap_or(0);
-        let total_order_value: serde_json::Value = row.try_get("total_order_value").unwrap_or(serde_json::json!("0"));
+        let total_order_value: serde_json::Value = row
+            .try_get("total_order_value")
+            .unwrap_or(serde_json::json!("0"));
         let orders_on_hold: i64 = row.try_get("orders_on_hold").unwrap_or(0);
         let backordered_lines: i64 = row.try_get("backordered_lines").unwrap_or(0);
         let overdue_shipments: i64 = row.try_get("overdue_shipments").unwrap_or(0);

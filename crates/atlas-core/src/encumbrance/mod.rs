@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > General Ledger > Encumbrance Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::EncumbranceEngine;
 pub use repository::{EncumbranceRepository, PostgresEncumbranceRepository};

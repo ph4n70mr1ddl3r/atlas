@@ -3,12 +3,10 @@
 //! `PostgreSQL` storage for fund reservations, reservation lines,
 //! fund availability checks, and budgetary control dashboard.
 
-use atlas_shared::{
-    FundReservation, FundReservationLine, FundAvailability,
-    BudgetaryControlDashboard,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, BudgetaryControlDashboard, FundAvailability, FundReservation, FundReservationLine,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -18,52 +16,100 @@ use uuid::Uuid;
 pub trait FundsReservationRepository: Send + Sync {
     // Fund Reservations
     async fn create_reservation(
-        &self, org_id: Uuid, reservation_number: &str,
-        budget_id: Uuid, budget_code: &str, budget_version_id: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        reservation_number: &str,
+        budget_id: Uuid,
+        budget_code: &str,
+        budget_version_id: Option<Uuid>,
         description: Option<&str>,
-        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
-        reserved_amount: f64, currency_code: &str,
-        reservation_date: chrono::NaiveDate, expiry_date: Option<chrono::NaiveDate>,
-        status: &str, control_level: &str,
-        fiscal_year: Option<i32>, period_name: Option<&str>,
-        department_id: Option<Uuid>, department_name: Option<&str>,
-        fund_check_passed: bool, fund_check_message: Option<&str>,
-        metadata: serde_json::Value, created_by: Option<Uuid>,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        reserved_amount: f64,
+        currency_code: &str,
+        reservation_date: chrono::NaiveDate,
+        expiry_date: Option<chrono::NaiveDate>,
+        status: &str,
+        control_level: &str,
+        fiscal_year: Option<i32>,
+        period_name: Option<&str>,
+        department_id: Option<Uuid>,
+        department_name: Option<&str>,
+        fund_check_passed: bool,
+        fund_check_message: Option<&str>,
+        metadata: serde_json::Value,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<FundReservation>;
 
     async fn get_reservation(&self, id: Uuid) -> AtlasResult<Option<FundReservation>>;
-    async fn get_reservation_by_number(&self, org_id: Uuid, reservation_number: &str) -> AtlasResult<Option<FundReservation>>;
+    async fn get_reservation_by_number(
+        &self,
+        org_id: Uuid,
+        reservation_number: &str,
+    ) -> AtlasResult<Option<FundReservation>>;
     async fn list_reservations(
-        &self, org_id: Uuid, status: Option<&str>, budget_id: Option<&Uuid>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        budget_id: Option<&Uuid>,
         department_id: Option<&Uuid>,
     ) -> AtlasResult<Vec<FundReservation>>;
-    async fn update_reservation_status(&self, id: Uuid, status: &str) -> AtlasResult<FundReservation>;
+    async fn update_reservation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<FundReservation>;
     async fn update_reservation_amounts(
-        &self, id: Uuid, consumed_amount: f64, released_amount: f64, remaining_amount: f64,
+        &self,
+        id: Uuid,
+        consumed_amount: f64,
+        released_amount: f64,
+        remaining_amount: f64,
     ) -> AtlasResult<FundReservation>;
     async fn cancel_reservation(
-        &self, id: Uuid, cancelled_by: Option<Uuid>, reason: Option<&str>,
+        &self,
+        id: Uuid,
+        cancelled_by: Option<Uuid>,
+        reason: Option<&str>,
     ) -> AtlasResult<FundReservation>;
     async fn delete_reservation(&self, org_id: Uuid, reservation_number: &str) -> AtlasResult<()>;
 
     // Fund Reservation Lines
     async fn create_reservation_line(
-        &self, org_id: Uuid, reservation_id: Uuid, line_number: i32,
-        account_code: &str, account_description: Option<&str>,
-        budget_line_id: Option<Uuid>, department_id: Option<Uuid>,
-        project_id: Option<Uuid>, cost_center: Option<&str>,
+        &self,
+        org_id: Uuid,
+        reservation_id: Uuid,
+        line_number: i32,
+        account_code: &str,
+        account_description: Option<&str>,
+        budget_line_id: Option<Uuid>,
+        department_id: Option<Uuid>,
+        project_id: Option<Uuid>,
+        cost_center: Option<&str>,
         reserved_amount: f64,
         metadata: serde_json::Value,
     ) -> AtlasResult<FundReservationLine>;
-    async fn list_reservation_lines(&self, reservation_id: Uuid) -> AtlasResult<Vec<FundReservationLine>>;
+    async fn list_reservation_lines(
+        &self,
+        reservation_id: Uuid,
+    ) -> AtlasResult<Vec<FundReservationLine>>;
     async fn update_reservation_line_amounts(
-        &self, id: Uuid, consumed_amount: f64, released_amount: f64, remaining_amount: f64,
+        &self,
+        id: Uuid,
+        consumed_amount: f64,
+        released_amount: f64,
+        remaining_amount: f64,
     ) -> AtlasResult<FundReservationLine>;
 
     // Fund Availability
     async fn check_fund_availability(
-        &self, org_id: Uuid, budget_id: Uuid, account_code: &str,
-        as_of_date: chrono::NaiveDate, fiscal_year: Option<i32>,
+        &self,
+        org_id: Uuid,
+        budget_id: Uuid,
+        account_code: &str,
+        as_of_date: chrono::NaiveDate,
+        fiscal_year: Option<i32>,
         period_name: Option<&str>,
     ) -> AtlasResult<FundAvailability>;
 
@@ -77,7 +123,7 @@ pub struct PostgresFundsReservationRepository {
 }
 
 impl PostgresFundsReservationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -139,7 +185,9 @@ fn row_to_reservation(row: &sqlx::postgres::PgRow) -> FundReservation {
         released_amount: get_numeric(row, "released_amount"),
         remaining_amount: get_numeric(row, "remaining_amount"),
         currency_code: row.try_get("currency_code").unwrap_or_default(),
-        reservation_date: row.try_get("reservation_date").unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+        reservation_date: row
+            .try_get("reservation_date")
+            .unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
         expiry_date: row.try_get("expiry_date").unwrap_or_default(),
         status: row.try_get("status").unwrap_or_default(),
         control_level: row.try_get("control_level").unwrap_or_default(),
@@ -189,17 +237,30 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
     // ========================================================================
 
     async fn create_reservation(
-        &self, org_id: Uuid, reservation_number: &str,
-        budget_id: Uuid, budget_code: &str, budget_version_id: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        reservation_number: &str,
+        budget_id: Uuid,
+        budget_code: &str,
+        budget_version_id: Option<Uuid>,
         description: Option<&str>,
-        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
-        reserved_amount: f64, currency_code: &str,
-        reservation_date: chrono::NaiveDate, expiry_date: Option<chrono::NaiveDate>,
-        status: &str, control_level: &str,
-        fiscal_year: Option<i32>, period_name: Option<&str>,
-        department_id: Option<Uuid>, department_name: Option<&str>,
-        fund_check_passed: bool, fund_check_message: Option<&str>,
-        metadata: serde_json::Value, created_by: Option<Uuid>,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        reserved_amount: f64,
+        currency_code: &str,
+        reservation_date: chrono::NaiveDate,
+        expiry_date: Option<chrono::NaiveDate>,
+        status: &str,
+        control_level: &str,
+        fiscal_year: Option<i32>,
+        period_name: Option<&str>,
+        department_id: Option<Uuid>,
+        department_name: Option<&str>,
+        fund_check_passed: bool,
+        fund_check_message: Option<&str>,
+        metadata: serde_json::Value,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<FundReservation> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.fund_reservations
@@ -218,27 +279,47 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
                     $18, $19, $20, $21, $22, $23)
             RETURNING *",
         )
-        .bind(org_id).bind(reservation_number)
-        .bind(budget_id).bind(budget_code).bind(budget_version_id)
-        .bind(description).bind(source_type).bind(source_id).bind(source_number)
+        .bind(org_id)
+        .bind(reservation_number)
+        .bind(budget_id)
+        .bind(budget_code)
+        .bind(budget_version_id)
+        .bind(description)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
         .bind(reserved_amount)
-        .bind(currency_code).bind(reservation_date).bind(expiry_date)
-        .bind(status).bind(control_level).bind(fiscal_year).bind(period_name)
-        .bind(department_id).bind(department_name)
-        .bind(fund_check_passed).bind(fund_check_message)
-        .bind(&metadata).bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .bind(currency_code)
+        .bind(reservation_date)
+        .bind(expiry_date)
+        .bind(status)
+        .bind(control_level)
+        .bind(fiscal_year)
+        .bind(period_name)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(fund_check_passed)
+        .bind(fund_check_message)
+        .bind(&metadata)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_reservation(&row))
     }
 
     async fn get_reservation(&self, id: Uuid) -> AtlasResult<Option<FundReservation>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.fund_reservations WHERE id = $1"
-        ).bind(id).fetch_optional(&self.pool).await?;
+        let row = sqlx::query("SELECT * FROM _atlas.fund_reservations WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_reservation))
     }
 
-    async fn get_reservation_by_number(&self, org_id: Uuid, reservation_number: &str) -> AtlasResult<Option<FundReservation>> {
+    async fn get_reservation_by_number(
+        &self,
+        org_id: Uuid,
+        reservation_number: &str,
+    ) -> AtlasResult<Option<FundReservation>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.fund_reservations WHERE organization_id = $1 AND reservation_number = $2"
         ).bind(org_id).bind(reservation_number).fetch_optional(&self.pool).await?;
@@ -246,7 +327,10 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
     }
 
     async fn list_reservations(
-        &self, org_id: Uuid, status: Option<&str>, budget_id: Option<&Uuid>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        budget_id: Option<&Uuid>,
         department_id: Option<&Uuid>,
     ) -> AtlasResult<Vec<FundReservation>> {
         let rows = sqlx::query(
@@ -257,12 +341,20 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
                  AND ($4::uuid IS NULL OR department_id = $4)
                ORDER BY reservation_date DESC, created_at DESC",
         )
-        .bind(org_id).bind(status).bind(budget_id.copied()).bind(department_id.copied())
-        .fetch_all(&self.pool).await?;
+        .bind(org_id)
+        .bind(status)
+        .bind(budget_id.copied())
+        .bind(department_id.copied())
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows.iter().map(row_to_reservation).collect())
     }
 
-    async fn update_reservation_status(&self, id: Uuid, status: &str) -> AtlasResult<FundReservation> {
+    async fn update_reservation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<FundReservation> {
         let row = sqlx::query(
             "UPDATE _atlas.fund_reservations SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
@@ -272,7 +364,11 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
     }
 
     async fn update_reservation_amounts(
-        &self, id: Uuid, consumed_amount: f64, released_amount: f64, remaining_amount: f64,
+        &self,
+        id: Uuid,
+        consumed_amount: f64,
+        released_amount: f64,
+        remaining_amount: f64,
     ) -> AtlasResult<FundReservation> {
         let row = sqlx::query(
             r"UPDATE _atlas.fund_reservations
@@ -285,14 +381,23 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
                    updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(consumed_amount).bind(released_amount).bind(remaining_amount)
-        .fetch_one(&self.pool).await
-        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
+        .bind(id)
+        .bind(consumed_amount)
+        .bind(released_amount)
+        .bind(remaining_amount)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|_| {
+            atlas_shared::AtlasError::EntityNotFound(format!("Reservation {id} not found"))
+        })?;
         Ok(row_to_reservation(&row))
     }
 
     async fn cancel_reservation(
-        &self, id: Uuid, cancelled_by: Option<Uuid>, reason: Option<&str>,
+        &self,
+        id: Uuid,
+        cancelled_by: Option<Uuid>,
+        reason: Option<&str>,
     ) -> AtlasResult<FundReservation> {
         let row = sqlx::query(
             r"UPDATE _atlas.fund_reservations
@@ -305,9 +410,14 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
                    updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(cancelled_by).bind(reason)
-        .fetch_one(&self.pool).await
-        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
+        .bind(id)
+        .bind(cancelled_by)
+        .bind(reason)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|_| {
+            atlas_shared::AtlasError::EntityNotFound(format!("Reservation {id} not found"))
+        })?;
         Ok(row_to_reservation(&row))
     }
 
@@ -316,9 +426,9 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
             "DELETE FROM _atlas.fund_reservations WHERE organization_id = $1 AND reservation_number = $2"
         ).bind(org_id).bind(reservation_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(atlas_shared::AtlasError::EntityNotFound(
-                format!("Reservation '{reservation_number}' not found")
-            ));
+            return Err(atlas_shared::AtlasError::EntityNotFound(format!(
+                "Reservation '{reservation_number}' not found"
+            )));
         }
         Ok(())
     }
@@ -328,10 +438,16 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
     // ========================================================================
 
     async fn create_reservation_line(
-        &self, org_id: Uuid, reservation_id: Uuid, line_number: i32,
-        account_code: &str, account_description: Option<&str>,
-        budget_line_id: Option<Uuid>, department_id: Option<Uuid>,
-        project_id: Option<Uuid>, cost_center: Option<&str>,
+        &self,
+        org_id: Uuid,
+        reservation_id: Uuid,
+        line_number: i32,
+        account_code: &str,
+        account_description: Option<&str>,
+        budget_line_id: Option<Uuid>,
+        department_id: Option<Uuid>,
+        project_id: Option<Uuid>,
+        cost_center: Option<&str>,
         reserved_amount: f64,
         metadata: serde_json::Value,
     ) -> AtlasResult<FundReservationLine> {
@@ -345,15 +461,26 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 0, $10, $11)
             RETURNING *",
         )
-        .bind(org_id).bind(reservation_id).bind(line_number)
-        .bind(account_code).bind(account_description)
-        .bind(budget_line_id).bind(department_id).bind(project_id).bind(cost_center)
-        .bind(reserved_amount).bind(&metadata)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(reservation_id)
+        .bind(line_number)
+        .bind(account_code)
+        .bind(account_description)
+        .bind(budget_line_id)
+        .bind(department_id)
+        .bind(project_id)
+        .bind(cost_center)
+        .bind(reserved_amount)
+        .bind(&metadata)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_reservation_line(&row))
     }
 
-    async fn list_reservation_lines(&self, reservation_id: Uuid) -> AtlasResult<Vec<FundReservationLine>> {
+    async fn list_reservation_lines(
+        &self,
+        reservation_id: Uuid,
+    ) -> AtlasResult<Vec<FundReservationLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.fund_reservation_lines WHERE reservation_id = $1 ORDER BY line_number"
         ).bind(reservation_id).fetch_all(&self.pool).await?;
@@ -361,7 +488,11 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
     }
 
     async fn update_reservation_line_amounts(
-        &self, id: Uuid, consumed_amount: f64, released_amount: f64, remaining_amount: f64,
+        &self,
+        id: Uuid,
+        consumed_amount: f64,
+        released_amount: f64,
+        remaining_amount: f64,
     ) -> AtlasResult<FundReservationLine> {
         let row = sqlx::query(
             r"UPDATE _atlas.fund_reservation_lines
@@ -369,9 +500,15 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
                    updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(consumed_amount).bind(released_amount).bind(remaining_amount)
-        .fetch_one(&self.pool).await
-        .map_err(|_| atlas_shared::AtlasError::EntityNotFound(format!("Reservation line {id} not found")))?;
+        .bind(id)
+        .bind(consumed_amount)
+        .bind(released_amount)
+        .bind(remaining_amount)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|_| {
+            atlas_shared::AtlasError::EntityNotFound(format!("Reservation line {id} not found"))
+        })?;
         Ok(row_to_reservation_line(&row))
     }
 
@@ -380,8 +517,12 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
     // ========================================================================
 
     async fn check_fund_availability(
-        &self, org_id: Uuid, budget_id: Uuid, account_code: &str,
-        as_of_date: chrono::NaiveDate, fiscal_year: Option<i32>,
+        &self,
+        org_id: Uuid,
+        budget_id: Uuid,
+        account_code: &str,
+        as_of_date: chrono::NaiveDate,
+        fiscal_year: Option<i32>,
         period_name: Option<&str>,
     ) -> AtlasResult<FundAvailability> {
         // Get budget amount from budget lines
@@ -400,16 +541,22 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
               AND bl.account_code = $2
               AND bl.organization_id = $3",
         )
-        .bind(budget_id).bind(account_code).bind(org_id)
-        .fetch_optional(&self.pool).await?;
+        .bind(budget_id)
+        .bind(account_code)
+        .bind(org_id)
+        .fetch_optional(&self.pool)
+        .await?;
 
-        let budget_amount: f64 = budget_row.as_ref()
+        let budget_amount: f64 = budget_row
+            .as_ref()
             .and_then(|r| get_optional_numeric(r, "budget_amount"))
             .unwrap_or(0.0);
-        let control_level = budget_row.as_ref()
+        let control_level = budget_row
+            .as_ref()
             .and_then(|r| r.try_get::<String, _>("control_level").ok())
             .unwrap_or_else(|| "none".to_string());
-        let budget_code = budget_row.as_ref()
+        let budget_code = budget_row
+            .as_ref()
             .and_then(|r| r.try_get::<String, _>("budget_code").ok())
             .unwrap_or_default();
 
@@ -455,7 +602,10 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
             message: if available_balance >= 0.0 {
                 format!("Funds available: {available_balance:.2}")
             } else {
-                format!("Insufficient funds: shortfall of {:.2}", available_balance.abs())
+                format!(
+                    "Insufficient funds: shortfall of {:.2}",
+                    available_balance.abs()
+                )
             },
             as_of_date,
             fiscal_year,
@@ -473,31 +623,31 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
         ).bind(org_id).fetch_all(&self.pool).await.unwrap_or_default();
 
         let total_reservations = rows.len() as i64;
-        let active_reservations = rows.iter()
+        let active_reservations = rows
+            .iter()
             .filter(|r| {
                 let s: String = r.try_get("status").unwrap_or_default();
                 s == "active" || s == "partially_consumed"
             })
             .count() as i64;
 
-        let total_reserved_amount: f64 = rows.iter()
-            .map(|r| get_numeric(r, "reserved_amount"))
-            .sum();
-        let total_consumed_amount: f64 = rows.iter()
-            .map(|r| get_numeric(r, "consumed_amount"))
-            .sum();
-        let total_released_amount: f64 = rows.iter()
-            .map(|r| get_numeric(r, "released_amount"))
-            .sum();
+        let total_reserved_amount: f64 =
+            rows.iter().map(|r| get_numeric(r, "reserved_amount")).sum();
+        let total_consumed_amount: f64 =
+            rows.iter().map(|r| get_numeric(r, "consumed_amount")).sum();
+        let total_released_amount: f64 =
+            rows.iter().map(|r| get_numeric(r, "released_amount")).sum();
 
         // Build status summary
-        let mut status_counts: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+        let mut status_counts: std::collections::HashMap<String, i64> =
+            std::collections::HashMap::new();
         for row in &rows {
             let s: String = row.try_get("status").unwrap_or_default();
             *status_counts.entry(s).or_insert(0) += 1;
         }
 
-        let total_available_amount = total_reserved_amount - total_consumed_amount - total_released_amount;
+        let total_available_amount =
+            total_reserved_amount - total_consumed_amount - total_released_amount;
         let budget_utilization_pct = if total_reserved_amount > 0.0 {
             (total_consumed_amount / total_reserved_amount * 100.0).clamp(0.0, 100.0)
         } else {
@@ -512,7 +662,8 @@ impl FundsReservationRepository for PostgresFundsReservationRepository {
             total_consumed_amount,
             total_released_amount,
             total_available_amount,
-            reservations_by_status: serde_json::to_value(&status_counts).unwrap_or(serde_json::json!({})),
+            reservations_by_status: serde_json::to_value(&status_counts)
+                .unwrap_or(serde_json::json!({})),
             top_departments_by_reservation: serde_json::json!([]),
             budget_utilization_pct,
         })

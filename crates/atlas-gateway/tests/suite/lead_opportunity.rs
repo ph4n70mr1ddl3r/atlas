@@ -9,11 +9,11 @@
 //! - Sales activities
 //! - Pipeline dashboard
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_sales_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -24,73 +24,141 @@ async fn setup_sales_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::R
 
 async fn create_test_lead_source(app: &axum::Router, code: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/sales/lead-sources")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": code,
-            "name": format!("{} Source", code),
-            "description": "Test lead source"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/sales/lead-sources")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": code,
+                        "name": format!("{} Source", code),
+                        "description": "Test lead source"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
-async fn create_test_stage(app: &axum::Router, code: &str, name: &str, probability: &str, order: i32, is_won: bool, is_lost: bool) -> serde_json::Value {
+async fn create_test_stage(
+    app: &axum::Router,
+    code: &str,
+    name: &str,
+    probability: &str,
+    order: i32,
+    is_won: bool,
+    is_lost: bool,
+) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/sales/opportunity-stages")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": code,
-            "name": name,
-            "probability": probability,
-            "display_order": order,
-            "is_won": is_won,
-            "is_lost": is_lost
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/sales/opportunity-stages")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": code,
+                        "name": name,
+                        "probability": probability,
+                        "display_order": order,
+                        "is_won": is_won,
+                        "is_lost": is_lost
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
 async fn create_test_lead(app: &axum::Router, lead_number: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/sales/leads")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "lead_number": lead_number,
-            "first_name": "John",
-            "last_name": "Doe",
-            "company": "Acme Corp",
-            "email": "john@acme.com",
-            "phone": "+1-555-0100",
-            "industry": "technology",
-            "estimated_value": "50000",
-            "currency_code": "USD"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/sales/leads")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "lead_number": lead_number,
+                        "first_name": "John",
+                        "last_name": "Doe",
+                        "company": "Acme Corp",
+                        "email": "john@acme.com",
+                        "phone": "+1-555-0100",
+                        "industry": "technology",
+                        "estimated_value": "50000",
+                        "currency_code": "USD"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
-async fn create_test_opportunity(app: &axum::Router, opp_number: &str, amount: &str) -> serde_json::Value {
+async fn create_test_opportunity(
+    app: &axum::Router,
+    opp_number: &str,
+    amount: &str,
+) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/sales/opportunities")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "opportunity_number": opp_number,
-            "name": format!("Opportunity {}", opp_number),
-            "amount": amount,
-            "currency_code": "USD",
-            "probability": "25",
-            "customer_name": "Test Customer"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/sales/opportunities")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "opportunity_number": opp_number,
+                        "name": format!("Opportunity {}", opp_number),
+                        "amount": amount,
+                        "currency_code": "USD",
+                        "probability": "25",
+                        "customer_name": "Test Customer"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -112,13 +180,25 @@ async fn test_create_lead_source_duplicate() {
     let (_state, app) = setup_sales_test().await;
     create_test_lead_source(&app, "DUP").await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/sales/lead-sources")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": "DUP",
-            "name": "Duplicate"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/sales/lead-sources")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": "DUP",
+                        "name": "Duplicate"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -128,11 +208,22 @@ async fn test_list_lead_sources() {
     create_test_lead_source(&app, "LS-A").await;
     create_test_lead_source(&app, "LS-B").await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/sales/lead-sources").header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/sales/lead-sources")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let resp: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(resp["data"].as_array().unwrap().len() >= 2);
 }
@@ -142,9 +233,18 @@ async fn test_delete_lead_source() {
     let (_state, app) = setup_sales_test().await;
     create_test_lead_source(&app, "DEL-LS").await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/sales/lead-sources/DEL-LS").header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/sales/lead-sources/DEL-LS")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -165,7 +265,11 @@ async fn test_create_lead() {
     // estimated_value comes back as estimatedValue via camelCase
     let ev = lead["estimatedValue"].as_str().unwrap();
     let ev_val: f64 = ev.parse().unwrap();
-    assert!(ev_val > 0.0, "estimated_value should be positive, got: {}", ev);
+    assert!(
+        ev_val > 0.0,
+        "estimated_value should be positive, got: {}",
+        ev
+    );
 }
 
 #[tokio::test]
@@ -173,13 +277,25 @@ async fn test_create_lead_duplicate() {
     let (_state, app) = setup_sales_test().await;
     create_test_lead(&app, "LD-DUP").await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/sales/leads")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "lead_number": "LD-DUP",
-            "first_name": "Jane"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/sales/leads")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "lead_number": "LD-DUP",
+                        "first_name": "Jane"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -189,12 +305,22 @@ async fn test_get_lead() {
     let lead = create_test_lead(&app, "LD-GET").await;
     let lead_id = lead["id"].as_str().unwrap();
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/sales/leads/{}", lead_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/sales/leads/{}", lead_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fetched: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(fetched["leadNumber"], "LD-GET");
 }
@@ -205,11 +331,22 @@ async fn test_list_leads() {
     create_test_lead(&app, "LD-LA").await;
     create_test_lead(&app, "LD-LB").await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/sales/leads?status=new").header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/sales/leads?status=new")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let resp: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(resp["data"].as_array().unwrap().len() >= 2);
 }
@@ -220,13 +357,25 @@ async fn test_update_lead_status() {
     let lead = create_test_lead(&app, "LD-STS").await;
     let lead_id = lead["id"].as_str().unwrap();
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/leads/{}/status", lead_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "contacted"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/leads/{}/status", lead_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "contacted"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(updated["status"], "contacted");
 }
@@ -237,16 +386,29 @@ async fn test_update_lead_score() {
     let lead = create_test_lead(&app, "LD-SCR").await;
     let lead_id = lead["id"].as_str().unwrap();
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/leads/{}/score", lead_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "score": "85",
-            "rating": "hot"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/leads/{}/score", lead_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "score": "85",
+                        "rating": "hot"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(updated["leadRating"], "hot");
     assert!(updated["leadScore"].as_str().unwrap().starts_with("85"));
@@ -258,11 +420,21 @@ async fn test_update_lead_score_invalid_rating() {
     let lead = create_test_lead(&app, "LD-INV").await;
     let lead_id = lead["id"].as_str().unwrap();
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/leads/{}/score", lead_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"score": "50", "rating": "frozen"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/leads/{}/score", lead_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"score": "50", "rating": "frozen"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -272,10 +444,18 @@ async fn test_delete_lead() {
     let lead = create_test_lead(&app, "LD-DEL").await;
     let lead_id = lead["id"].as_str().unwrap();
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/sales/leads/{}", lead_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/sales/leads/{}", lead_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -309,11 +489,22 @@ async fn test_list_opportunity_stages() {
     create_test_stage(&app, "QUAL", "Qualification", "25", 2, false, false).await;
     create_test_stage(&app, "PROP", "Proposal", "50", 3, false, false).await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/sales/opportunity-stages").header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/sales/opportunity-stages")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let resp: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(resp["data"].as_array().unwrap().len() >= 2);
 }
@@ -340,14 +531,26 @@ async fn test_create_opportunity_duplicate() {
     let (_state, app) = setup_sales_test().await;
     create_test_opportunity(&app, "OPP-DUP", "50000").await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/sales/opportunities")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "opportunity_number": "OPP-DUP",
-            "name": "Duplicate",
-            "amount": "1000"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/sales/opportunities")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "opportunity_number": "OPP-DUP",
+                        "name": "Duplicate",
+                        "amount": "1000"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -357,11 +560,22 @@ async fn test_list_opportunities() {
     create_test_opportunity(&app, "OPP-LA", "50000").await;
     create_test_opportunity(&app, "OPP-LB", "75000").await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/sales/opportunities?status=open").header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/sales/opportunities?status=open")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let resp: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(resp["data"].as_array().unwrap().len() >= 2);
 }
@@ -375,21 +589,37 @@ async fn test_update_opportunity_stage() {
     let opp_id = opp["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/opportunities/{}/stage", opp_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "stage_id": stage_id
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/opportunities/{}/stage", opp_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "stage_id": stage_id
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(updated["stageName"], "Negotiation");
     // probability should be 75
     assert!(updated["probability"].as_str().unwrap().starts_with("75"));
     // weighted = 200000 * 75 / 100 = 150000
-    assert!(updated["weightedAmount"].as_str().unwrap().starts_with("150000"));
+    assert!(updated["weightedAmount"]
+        .as_str()
+        .unwrap()
+        .starts_with("150000"));
 }
 
 #[tokio::test]
@@ -399,12 +629,22 @@ async fn test_close_opportunity_won() {
     let opp_id = opp["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/opportunities/{}/win", opp_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/opportunities/{}/win", opp_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let won: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(won["status"], "won");
     assert!(won["probability"].as_str().unwrap().starts_with("100"));
@@ -417,15 +657,28 @@ async fn test_close_opportunity_lost() {
     let opp_id = opp["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/opportunities/{}/lose", opp_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "lost_reason": "Customer chose competitor"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/opportunities/{}/lose", opp_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "lost_reason": "Customer chose competitor"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let lost: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(lost["status"], "lost");
     assert_eq!(lost["lostReason"], "Customer chose competitor");
@@ -439,15 +692,30 @@ async fn test_close_won_twice_rejected() {
     let opp_id = opp["id"].as_str().unwrap();
     let (k, v) = auth_header(&admin_claims());
     // Close as won
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/opportunities/{}/win", opp_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/opportunities/{}/win", opp_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     // Try to close again
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/opportunities/{}/win", opp_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/opportunities/{}/win", opp_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -461,19 +729,38 @@ async fn test_stage_history() {
 
     let (k, v) = auth_header(&admin_claims());
     // Update stage
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/opportunities/{}/stage", opp_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"stage_id": stage_id})).unwrap())).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/opportunities/{}/stage", opp_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"stage_id": stage_id})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Check history
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/sales/opportunities/{}/history", opp_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/sales/opportunities/{}/history", opp_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let resp: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let history = resp["data"].as_array().unwrap();
     assert!(history.len() >= 1);
@@ -486,10 +773,18 @@ async fn test_delete_opportunity() {
     let opp = create_test_opportunity(&app, "OPP-DEL", "30000").await;
     let opp_id = opp["id"].as_str().unwrap();
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/sales/opportunities/{}", opp_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/sales/opportunities/{}", opp_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -506,31 +801,54 @@ async fn test_opportunity_lines() {
     let (k, v) = auth_header(&admin_claims());
 
     // Add line items
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/opportunities/{}/lines", opp_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "product_name": "Enterprise License",
-            "product_code": "EL-100",
-            "quantity": "10",
-            "unit_price": "5000",
-            "discount_percent": "10"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/opportunities/{}/lines", opp_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "product_name": "Enterprise License",
+                        "product_code": "EL-100",
+                        "quantity": "10",
+                        "unit_price": "5000",
+                        "discount_percent": "10"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let line: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(line["productName"], "Enterprise License");
     // 10 * 5000 * (1 - 10/100) = 45000
     assert!(line["lineAmount"].as_str().unwrap().starts_with("45000"));
 
     // List lines
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/sales/opportunities/{}/lines", opp_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/sales/opportunities/{}/lines", opp_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let resp: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(resp["data"].as_array().unwrap().len() >= 1);
 }
@@ -547,19 +865,38 @@ async fn test_convert_lead_to_opportunity() {
 
     // Qualify the lead first
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/leads/{}/status", lead_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "qualified"})).unwrap())).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/leads/{}/status", lead_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "qualified"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Convert
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/leads/{}/convert", lead_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/leads/{}/convert", lead_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
 
     // Verify lead is converted
@@ -569,7 +906,10 @@ async fn test_convert_lead_to_opportunity() {
     // Verify opportunity was created
     assert!(result["opportunity"]["id"].is_string());
     assert_eq!(result["opportunity"]["leadId"], lead_id);
-    assert!(result["opportunity"]["name"].as_str().unwrap().contains("LD-CVT"));
+    assert!(result["opportunity"]["name"]
+        .as_str()
+        .unwrap()
+        .contains("LD-CVT"));
 }
 
 #[tokio::test]
@@ -579,15 +919,30 @@ async fn test_convert_lead_twice_rejected() {
     let lead_id = lead["id"].as_str().unwrap();
     let (k, v) = auth_header(&admin_claims());
     // Convert once
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/leads/{}/convert", lead_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/leads/{}/convert", lead_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     // Try again
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/leads/{}/convert", lead_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/leads/{}/convert", lead_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -604,17 +959,31 @@ async fn test_activity_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     // Create activity
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/sales/activities")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "subject": "Demo call with customer",
-            "activity_type": "demo",
-            "priority": "high",
-            "opportunity_id": opp_id
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/sales/activities")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "subject": "Demo call with customer",
+                        "activity_type": "demo",
+                        "priority": "high",
+                        "opportunity_id": opp_id
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let act: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let act_id = act["id"].as_str().unwrap();
     assert_eq!(act["subject"], "Demo call with customer");
@@ -623,42 +992,82 @@ async fn test_activity_lifecycle() {
     assert_eq!(act["priority"], "high");
 
     // Complete activity
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/activities/{}/complete", act_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "outcome": "Customer was impressed, wants proposal"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/activities/{}/complete", act_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "outcome": "Customer was impressed, wants proposal"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let completed: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(completed["status"], "completed");
-    assert_eq!(completed["outcome"], "Customer was impressed, wants proposal");
+    assert_eq!(
+        completed["outcome"],
+        "Customer was impressed, wants proposal"
+    );
 }
 
 #[tokio::test]
 async fn test_activity_cancel() {
     let (_state, app) = setup_sales_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/sales/activities")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "subject": "Meeting to cancel",
-            "activity_type": "meeting",
-            "priority": "medium"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/sales/activities")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "subject": "Meeting to cancel",
+                        "activity_type": "meeting",
+                        "priority": "medium"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let act: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let act_id = act["id"].as_str().unwrap();
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/sales/activities/{}/cancel", act_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/sales/activities/{}/cancel", act_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cancelled: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
@@ -671,22 +1080,46 @@ async fn test_list_activities() {
     let (k, v) = auth_header(&admin_claims());
 
     for i in 0..2 {
-        app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/sales/activities")
-            .header("Content-Type", "application/json").header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({
-                "subject": format!("Activity {}", i),
-                "activity_type": "call",
-                "opportunity_id": opp_id
-            })).unwrap())).unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/sales/activities")
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({
+                            "subject": format!("Activity {}", i),
+                            "activity_type": "call",
+                            "opportunity_id": opp_id
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/sales/activities?opportunity_id={}", opp_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/sales/activities?opportunity_id={}",
+                    opp_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let resp: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(resp["data"].as_array().unwrap().len() >= 2);
 }
@@ -702,11 +1135,22 @@ async fn test_sales_pipeline_dashboard() {
     create_test_opportunity(&app, "OPP-DASH", "100000").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/sales/dashboard").header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/sales/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(dashboard["totalLeads"].as_i64().unwrap() >= 1);
     assert!(dashboard["totalOpportunities"].as_i64().unwrap() >= 1);

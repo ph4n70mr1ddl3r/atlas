@@ -8,8 +8,8 @@
 //!
 //! Oracle Fusion equivalent: Fixed Assets
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::FixedAssetEngine;
 pub use repository::{FixedAssetRepository, PostgresFixedAssetRepository};

@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: Intercompany > Intercompany Transactions
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::IntercompanyEngine;
 pub use repository::{IntercompanyRepository, PostgresIntercompanyRepository};

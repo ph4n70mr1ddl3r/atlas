@@ -3,95 +3,202 @@
 //! `PostgreSQL` storage for transfer pricing policies, transactions,
 //! benchmark studies, comparables, and documentation packages.
 
-use atlas_shared::{
-    TransferPricingPolicy, TransferPriceTransaction,
-    BenchmarkStudy, BenchmarkComparable,
-    TransferPricingDocumentation, TransferPricingDashboard,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, BenchmarkComparable, BenchmarkStudy, TransferPriceTransaction,
+    TransferPricingDashboard, TransferPricingDocumentation, TransferPricingPolicy,
+};
+use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
 /// Repository trait for transfer pricing data storage
 #[async_trait]
 pub trait TransferPricingRepository: Send + Sync {
     // Policies
     async fn create_policy(
-        &self, org_id: Uuid, policy_code: &str, name: &str, description: Option<&str>,
-        pricing_method: &str, from_entity_id: Option<Uuid>, from_entity_name: Option<&str>,
-        to_entity_id: Option<Uuid>, to_entity_name: Option<&str>,
-        product_category: Option<&str>, item_id: Option<Uuid>, item_code: Option<&str>,
-        geography: Option<&str>, tax_jurisdiction: Option<&str>,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
-        arm_length_range_low: Option<&str>, arm_length_range_mid: Option<&str>,
-        arm_length_range_high: Option<&str>, margin_pct: Option<&str>,
-        cost_base: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        policy_code: &str,
+        name: &str,
+        description: Option<&str>,
+        pricing_method: &str,
+        from_entity_id: Option<Uuid>,
+        from_entity_name: Option<&str>,
+        to_entity_id: Option<Uuid>,
+        to_entity_name: Option<&str>,
+        product_category: Option<&str>,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        geography: Option<&str>,
+        tax_jurisdiction: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
+        arm_length_range_low: Option<&str>,
+        arm_length_range_mid: Option<&str>,
+        arm_length_range_high: Option<&str>,
+        margin_pct: Option<&str>,
+        cost_base: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<TransferPricingPolicy>;
-    async fn get_policy(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<TransferPricingPolicy>>;
+    async fn get_policy(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TransferPricingPolicy>>;
     async fn get_policy_by_id(&self, id: Uuid) -> AtlasResult<Option<TransferPricingPolicy>>;
-    async fn list_policies(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<TransferPricingPolicy>>;
-    async fn update_policy_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<TransferPricingPolicy>;
+    async fn list_policies(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<TransferPricingPolicy>>;
+    async fn update_policy_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<TransferPricingPolicy>;
     async fn delete_policy(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Transactions
     async fn create_transaction(
-        &self, org_id: Uuid, transaction_number: &str, policy_id: Option<Uuid>,
-        from_entity_id: Option<Uuid>, from_entity_name: Option<&str>,
-        to_entity_id: Option<Uuid>, to_entity_name: Option<&str>,
-        item_id: Option<Uuid>, item_code: Option<&str>, item_description: Option<&str>,
-        quantity: &str, unit_cost: &str, transfer_price: &str,
-        total_amount: &str, currency_code: &str, transaction_date: chrono::NaiveDate,
-        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
-        margin_applied: Option<&str>, margin_amount: Option<&str>,
-        is_arm_length_compliant: Option<bool>, compliance_notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        transaction_number: &str,
+        policy_id: Option<Uuid>,
+        from_entity_id: Option<Uuid>,
+        from_entity_name: Option<&str>,
+        to_entity_id: Option<Uuid>,
+        to_entity_name: Option<&str>,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        quantity: &str,
+        unit_cost: &str,
+        transfer_price: &str,
+        total_amount: &str,
+        currency_code: &str,
+        transaction_date: chrono::NaiveDate,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        margin_applied: Option<&str>,
+        margin_amount: Option<&str>,
+        is_arm_length_compliant: Option<bool>,
+        compliance_notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransferPriceTransaction>;
     async fn get_transaction(&self, id: Uuid) -> AtlasResult<Option<TransferPriceTransaction>>;
-    async fn list_transactions(&self, org_id: Uuid, status: Option<&str>, policy_id: Option<Uuid>) -> AtlasResult<Vec<TransferPriceTransaction>>;
-    async fn update_transaction_status(&self, id: Uuid, status: &str, submitted_at: Option<DateTime<Utc>>, approved_by: Option<Uuid>) -> AtlasResult<TransferPriceTransaction>;
+    async fn list_transactions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        policy_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<TransferPriceTransaction>>;
+    async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        submitted_at: Option<DateTime<Utc>>,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<TransferPriceTransaction>;
 
     // Benchmarks
     async fn create_benchmark(
-        &self, org_id: Uuid, study_number: &str, title: &str, description: Option<&str>,
-        policy_id: Option<Uuid>, analysis_method: &str, fiscal_year: Option<i32>,
-        from_entity_id: Option<Uuid>, from_entity_name: Option<&str>,
-        to_entity_id: Option<Uuid>, to_entity_name: Option<&str>,
-        product_category: Option<&str>, tested_party: Option<&str>,
-        prepared_by: Option<Uuid>, prepared_by_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        study_number: &str,
+        title: &str,
+        description: Option<&str>,
+        policy_id: Option<Uuid>,
+        analysis_method: &str,
+        fiscal_year: Option<i32>,
+        from_entity_id: Option<Uuid>,
+        from_entity_name: Option<&str>,
+        to_entity_id: Option<Uuid>,
+        to_entity_name: Option<&str>,
+        product_category: Option<&str>,
+        tested_party: Option<&str>,
+        prepared_by: Option<Uuid>,
+        prepared_by_name: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<BenchmarkStudy>;
     async fn get_benchmark(&self, id: Uuid) -> AtlasResult<Option<BenchmarkStudy>>;
-    async fn list_benchmarks(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<BenchmarkStudy>>;
-    async fn update_benchmark_status(&self, id: Uuid, status: &str, reviewed_by: Option<Uuid>, reviewed_by_name: Option<&str>) -> AtlasResult<BenchmarkStudy>;
+    async fn list_benchmarks(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<BenchmarkStudy>>;
+    async fn update_benchmark_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        reviewed_by: Option<Uuid>,
+        reviewed_by_name: Option<&str>,
+    ) -> AtlasResult<BenchmarkStudy>;
     async fn delete_benchmark(&self, id: Uuid) -> AtlasResult<()>;
 
     // Comparables
     async fn add_comparable(
-        &self, org_id: Uuid, benchmark_id: Uuid, comparable_number: i32,
-        company_name: &str, country: Option<&str>,
-        industry_code: Option<&str>, industry_description: Option<&str>,
-        fiscal_year: Option<i32>, revenue: Option<&str>,
-        operating_income: Option<&str>, operating_margin_pct: Option<&str>,
-        net_income: Option<&str>, total_assets: Option<&str>,
-        employees: Option<i32>, data_source: Option<&str>,
+        &self,
+        org_id: Uuid,
+        benchmark_id: Uuid,
+        comparable_number: i32,
+        company_name: &str,
+        country: Option<&str>,
+        industry_code: Option<&str>,
+        industry_description: Option<&str>,
+        fiscal_year: Option<i32>,
+        revenue: Option<&str>,
+        operating_income: Option<&str>,
+        operating_margin_pct: Option<&str>,
+        net_income: Option<&str>,
+        total_assets: Option<&str>,
+        employees: Option<i32>,
+        data_source: Option<&str>,
     ) -> AtlasResult<BenchmarkComparable>;
     async fn list_comparables(&self, benchmark_id: Uuid) -> AtlasResult<Vec<BenchmarkComparable>>;
-    async fn update_comparable_inclusion(&self, id: Uuid, included: bool, reason: Option<&str>) -> AtlasResult<BenchmarkComparable>;
+    async fn update_comparable_inclusion(
+        &self,
+        id: Uuid,
+        included: bool,
+        reason: Option<&str>,
+    ) -> AtlasResult<BenchmarkComparable>;
 
     // Documentation
     async fn create_documentation(
-        &self, org_id: Uuid, doc_number: &str, title: &str, doc_type: &str,
-        fiscal_year: i32, country: Option<&str>,
-        reporting_entity_id: Option<Uuid>, reporting_entity_name: Option<&str>,
-        description: Option<&str>, content_summary: Option<&str>,
-        filing_deadline: Option<chrono::NaiveDate>, responsible_party: Option<&str>,
+        &self,
+        org_id: Uuid,
+        doc_number: &str,
+        title: &str,
+        doc_type: &str,
+        fiscal_year: i32,
+        country: Option<&str>,
+        reporting_entity_id: Option<Uuid>,
+        reporting_entity_name: Option<&str>,
+        description: Option<&str>,
+        content_summary: Option<&str>,
+        filing_deadline: Option<chrono::NaiveDate>,
+        responsible_party: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransferPricingDocumentation>;
-    async fn get_documentation(&self, id: Uuid) -> AtlasResult<Option<TransferPricingDocumentation>>;
-    async fn list_documentation(&self, org_id: Uuid, doc_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<TransferPricingDocumentation>>;
-    async fn update_documentation_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, filed_at: Option<DateTime<Utc>>) -> AtlasResult<TransferPricingDocumentation>;
+    async fn get_documentation(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<TransferPricingDocumentation>>;
+    async fn list_documentation(
+        &self,
+        org_id: Uuid,
+        doc_type: Option<&str>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<TransferPricingDocumentation>>;
+    async fn update_documentation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        filed_at: Option<DateTime<Utc>>,
+    ) -> AtlasResult<TransferPricingDocumentation>;
 
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<TransferPricingDashboard>;
@@ -103,7 +210,7 @@ pub struct PostgresTransferPricingRepository {
 }
 
 impl PostgresTransferPricingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -172,8 +279,14 @@ fn row_to_transaction(row: &sqlx::postgres::PgRow) -> TransferPriceTransaction {
         source_type: row.get("source_type"),
         source_id: row.get("source_id"),
         source_number: row.get("source_number"),
-        margin_applied: row.try_get("margin_applied").ok().map(|v: serde_json::Value| v.to_string()),
-        margin_amount: row.try_get("margin_amount").ok().map(|v: serde_json::Value| v.to_string()),
+        margin_applied: row
+            .try_get("margin_applied")
+            .ok()
+            .map(|v: serde_json::Value| v.to_string()),
+        margin_amount: row
+            .try_get("margin_amount")
+            .ok()
+            .map(|v: serde_json::Value| v.to_string()),
         is_arm_length_compliant: row.get("is_arm_length_compliant"),
         compliance_notes: row.get("compliance_notes"),
         status: row.get("status"),
@@ -242,7 +355,10 @@ fn row_to_comparable(row: &sqlx::postgres::PgRow) -> BenchmarkComparable {
         data_source: row.get("data_source"),
         is_included: row.get("is_included"),
         exclusion_reason: row.get("exclusion_reason"),
-        relevance_score: row.try_get("relevance_score").ok().map(|v: serde_json::Value| v.to_string()),
+        relevance_score: row
+            .try_get("relevance_score")
+            .ok()
+            .map(|v: serde_json::Value| v.to_string()),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
@@ -286,15 +402,29 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
     // ========================================================================
 
     async fn create_policy(
-        &self, org_id: Uuid, policy_code: &str, name: &str, description: Option<&str>,
-        pricing_method: &str, from_entity_id: Option<Uuid>, from_entity_name: Option<&str>,
-        to_entity_id: Option<Uuid>, to_entity_name: Option<&str>,
-        product_category: Option<&str>, item_id: Option<Uuid>, item_code: Option<&str>,
-        geography: Option<&str>, tax_jurisdiction: Option<&str>,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
-        arm_length_range_low: Option<&str>, arm_length_range_mid: Option<&str>,
-        arm_length_range_high: Option<&str>, margin_pct: Option<&str>,
-        cost_base: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        policy_code: &str,
+        name: &str,
+        description: Option<&str>,
+        pricing_method: &str,
+        from_entity_id: Option<Uuid>,
+        from_entity_name: Option<&str>,
+        to_entity_id: Option<Uuid>,
+        to_entity_name: Option<&str>,
+        product_category: Option<&str>,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        geography: Option<&str>,
+        tax_jurisdiction: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
+        arm_length_range_low: Option<&str>,
+        arm_length_range_mid: Option<&str>,
+        arm_length_range_high: Option<&str>,
+        margin_pct: Option<&str>,
+        cost_base: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<TransferPricingPolicy> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.transfer_pricing_policies
@@ -308,22 +438,40 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
                     $17::numeric,$18::numeric,$19::numeric,$20::numeric,$21,$22)
             RETURNING *",
         )
-        .bind(org_id).bind(policy_code).bind(name).bind(description)
+        .bind(org_id)
+        .bind(policy_code)
+        .bind(name)
+        .bind(description)
         .bind(pricing_method)
-        .bind(from_entity_id).bind(from_entity_name)
-        .bind(to_entity_id).bind(to_entity_name)
-        .bind(product_category).bind(item_id).bind(item_code)
-        .bind(geography).bind(tax_jurisdiction)
-        .bind(effective_from).bind(effective_to)
-        .bind(arm_length_range_low).bind(arm_length_range_mid).bind(arm_length_range_high)
-        .bind(margin_pct).bind(cost_base).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(from_entity_id)
+        .bind(from_entity_name)
+        .bind(to_entity_id)
+        .bind(to_entity_name)
+        .bind(product_category)
+        .bind(item_id)
+        .bind(item_code)
+        .bind(geography)
+        .bind(tax_jurisdiction)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(arm_length_range_low)
+        .bind(arm_length_range_mid)
+        .bind(arm_length_range_high)
+        .bind(margin_pct)
+        .bind(cost_base)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_policy(&row))
     }
 
-    async fn get_policy(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<TransferPricingPolicy>> {
+    async fn get_policy(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TransferPricingPolicy>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.transfer_pricing_policies WHERE organization_id=$1 AND policy_code=$2"
         )
@@ -335,17 +483,20 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
     }
 
     async fn get_policy_by_id(&self, id: Uuid) -> AtlasResult<Option<TransferPricingPolicy>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.transfer_pricing_policies WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.transfer_pricing_policies WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_policy(&r)))
     }
 
-    async fn list_policies(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<TransferPricingPolicy>> {
+    async fn list_policies(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<TransferPricingPolicy>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.transfer_pricing_policies WHERE organization_id=$1 AND status=$2 ORDER BY policy_code"
@@ -359,7 +510,12 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         Ok(rows.iter().map(row_to_policy).collect())
     }
 
-    async fn update_policy_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<TransferPricingPolicy> {
+    async fn update_policy_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<TransferPricingPolicy> {
         let row = sqlx::query(
             r"UPDATE _atlas.transfer_pricing_policies SET status=$2,
                 approved_by=COALESCE($3, approved_by),
@@ -388,15 +544,30 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
     // ========================================================================
 
     async fn create_transaction(
-        &self, org_id: Uuid, transaction_number: &str, policy_id: Option<Uuid>,
-        from_entity_id: Option<Uuid>, from_entity_name: Option<&str>,
-        to_entity_id: Option<Uuid>, to_entity_name: Option<&str>,
-        item_id: Option<Uuid>, item_code: Option<&str>, item_description: Option<&str>,
-        quantity: &str, unit_cost: &str, transfer_price: &str,
-        total_amount: &str, currency_code: &str, transaction_date: chrono::NaiveDate,
-        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
-        margin_applied: Option<&str>, margin_amount: Option<&str>,
-        is_arm_length_compliant: Option<bool>, compliance_notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        transaction_number: &str,
+        policy_id: Option<Uuid>,
+        from_entity_id: Option<Uuid>,
+        from_entity_name: Option<&str>,
+        to_entity_id: Option<Uuid>,
+        to_entity_name: Option<&str>,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        quantity: &str,
+        unit_cost: &str,
+        transfer_price: &str,
+        total_amount: &str,
+        currency_code: &str,
+        transaction_date: chrono::NaiveDate,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        margin_applied: Option<&str>,
+        margin_amount: Option<&str>,
+        is_arm_length_compliant: Option<bool>,
+        compliance_notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransferPriceTransaction> {
         let row = sqlx::query(
@@ -416,46 +587,76 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
                     $22,$23,$24)
             RETURNING *",
         )
-        .bind(org_id).bind(transaction_number).bind(policy_id)
-        .bind(from_entity_id).bind(from_entity_name)
-        .bind(to_entity_id).bind(to_entity_name)
-        .bind(item_id).bind(item_code).bind(item_description)
-        .bind(quantity).bind(unit_cost).bind(transfer_price).bind(total_amount)
-        .bind(currency_code).bind(transaction_date)
-        .bind(source_type).bind(source_id).bind(source_number)
-        .bind(margin_applied).bind(margin_amount)
-        .bind(is_arm_length_compliant).bind(compliance_notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(transaction_number)
+        .bind(policy_id)
+        .bind(from_entity_id)
+        .bind(from_entity_name)
+        .bind(to_entity_id)
+        .bind(to_entity_name)
+        .bind(item_id)
+        .bind(item_code)
+        .bind(item_description)
+        .bind(quantity)
+        .bind(unit_cost)
+        .bind(transfer_price)
+        .bind(total_amount)
+        .bind(currency_code)
+        .bind(transaction_date)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
+        .bind(margin_applied)
+        .bind(margin_amount)
+        .bind(is_arm_length_compliant)
+        .bind(compliance_notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_transaction(&row))
     }
 
     async fn get_transaction(&self, id: Uuid) -> AtlasResult<Option<TransferPriceTransaction>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.transfer_pricing_transactions WHERE id=$1"
-        )
-        .bind(id).fetch_optional(&self.pool).await
-        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.transfer_pricing_transactions WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_transaction(&r)))
     }
 
-    async fn list_transactions(&self, org_id: Uuid, status: Option<&str>, policy_id: Option<Uuid>) -> AtlasResult<Vec<TransferPriceTransaction>> {
+    async fn list_transactions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        policy_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<TransferPriceTransaction>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.transfer_pricing_transactions
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             AND ($3::uuid IS NULL OR policy_id=$3)
             ORDER BY transaction_date DESC, created_at DESC",
         )
-        .bind(org_id).bind(status).bind(policy_id)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .bind(policy_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_transaction).collect())
     }
 
-    async fn update_transaction_status(&self, id: Uuid, status: &str, submitted_at: Option<DateTime<Utc>>, approved_by: Option<Uuid>) -> AtlasResult<TransferPriceTransaction> {
+    async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        submitted_at: Option<DateTime<Utc>>,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<TransferPriceTransaction> {
         let row = sqlx::query(
             r"UPDATE _atlas.transfer_pricing_transactions SET status=$2,
                 submitted_at=COALESCE($3, submitted_at),
@@ -475,12 +676,22 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
     // ========================================================================
 
     async fn create_benchmark(
-        &self, org_id: Uuid, study_number: &str, title: &str, description: Option<&str>,
-        policy_id: Option<Uuid>, analysis_method: &str, fiscal_year: Option<i32>,
-        from_entity_id: Option<Uuid>, from_entity_name: Option<&str>,
-        to_entity_id: Option<Uuid>, to_entity_name: Option<&str>,
-        product_category: Option<&str>, tested_party: Option<&str>,
-        prepared_by: Option<Uuid>, prepared_by_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        study_number: &str,
+        title: &str,
+        description: Option<&str>,
+        policy_id: Option<Uuid>,
+        analysis_method: &str,
+        fiscal_year: Option<i32>,
+        from_entity_id: Option<Uuid>,
+        from_entity_name: Option<&str>,
+        to_entity_id: Option<Uuid>,
+        to_entity_name: Option<&str>,
+        product_category: Option<&str>,
+        tested_party: Option<&str>,
+        prepared_by: Option<Uuid>,
+        prepared_by_name: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<BenchmarkStudy> {
         let row = sqlx::query(
@@ -493,29 +704,44 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
             RETURNING *",
         )
-        .bind(org_id).bind(study_number).bind(title).bind(description).bind(policy_id)
-        .bind(analysis_method).bind(fiscal_year)
-        .bind(from_entity_id).bind(from_entity_name)
-        .bind(to_entity_id).bind(to_entity_name)
-        .bind(product_category).bind(tested_party)
-        .bind(prepared_by).bind(prepared_by_name).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(study_number)
+        .bind(title)
+        .bind(description)
+        .bind(policy_id)
+        .bind(analysis_method)
+        .bind(fiscal_year)
+        .bind(from_entity_id)
+        .bind(from_entity_name)
+        .bind(to_entity_id)
+        .bind(to_entity_name)
+        .bind(product_category)
+        .bind(tested_party)
+        .bind(prepared_by)
+        .bind(prepared_by_name)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_benchmark(&row))
     }
 
     async fn get_benchmark(&self, id: Uuid) -> AtlasResult<Option<BenchmarkStudy>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.transfer_pricing_benchmarks WHERE id=$1"
-        )
-        .bind(id).fetch_optional(&self.pool).await
-        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.transfer_pricing_benchmarks WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_benchmark(&r)))
     }
 
-    async fn list_benchmarks(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<BenchmarkStudy>> {
+    async fn list_benchmarks(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<BenchmarkStudy>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.transfer_pricing_benchmarks WHERE organization_id=$1 AND status=$2 ORDER BY created_at DESC"
@@ -529,7 +755,13 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         Ok(rows.iter().map(row_to_benchmark).collect())
     }
 
-    async fn update_benchmark_status(&self, id: Uuid, status: &str, reviewed_by: Option<Uuid>, reviewed_by_name: Option<&str>) -> AtlasResult<BenchmarkStudy> {
+    async fn update_benchmark_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        reviewed_by: Option<Uuid>,
+        reviewed_by_name: Option<&str>,
+    ) -> AtlasResult<BenchmarkStudy> {
         let row = sqlx::query(
             r"UPDATE _atlas.transfer_pricing_benchmarks SET status=$2,
                 reviewed_by=COALESCE($3, reviewed_by),
@@ -546,7 +778,9 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
 
     async fn delete_benchmark(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.transfer_pricing_benchmarks WHERE id=$1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -556,13 +790,22 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
     // ========================================================================
 
     async fn add_comparable(
-        &self, org_id: Uuid, benchmark_id: Uuid, comparable_number: i32,
-        company_name: &str, country: Option<&str>,
-        industry_code: Option<&str>, industry_description: Option<&str>,
-        fiscal_year: Option<i32>, revenue: Option<&str>,
-        operating_income: Option<&str>, operating_margin_pct: Option<&str>,
-        net_income: Option<&str>, total_assets: Option<&str>,
-        employees: Option<i32>, data_source: Option<&str>,
+        &self,
+        org_id: Uuid,
+        benchmark_id: Uuid,
+        comparable_number: i32,
+        company_name: &str,
+        country: Option<&str>,
+        industry_code: Option<&str>,
+        industry_description: Option<&str>,
+        fiscal_year: Option<i32>,
+        revenue: Option<&str>,
+        operating_income: Option<&str>,
+        operating_margin_pct: Option<&str>,
+        net_income: Option<&str>,
+        total_assets: Option<&str>,
+        employees: Option<i32>,
+        data_source: Option<&str>,
     ) -> AtlasResult<BenchmarkComparable> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.transfer_pricing_comparables
@@ -594,14 +837,22 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         Ok(rows.iter().map(row_to_comparable).collect())
     }
 
-    async fn update_comparable_inclusion(&self, id: Uuid, included: bool, reason: Option<&str>) -> AtlasResult<BenchmarkComparable> {
+    async fn update_comparable_inclusion(
+        &self,
+        id: Uuid,
+        included: bool,
+        reason: Option<&str>,
+    ) -> AtlasResult<BenchmarkComparable> {
         let row = sqlx::query(
             r"UPDATE _atlas.transfer_pricing_comparables SET
                 is_included=$2, exclusion_reason=$3,
                 updated_at=now() WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(included).bind(reason)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(included)
+        .bind(reason)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_comparable(&row))
@@ -612,11 +863,19 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
     // ========================================================================
 
     async fn create_documentation(
-        &self, org_id: Uuid, doc_number: &str, title: &str, doc_type: &str,
-        fiscal_year: i32, country: Option<&str>,
-        reporting_entity_id: Option<Uuid>, reporting_entity_name: Option<&str>,
-        description: Option<&str>, content_summary: Option<&str>,
-        filing_deadline: Option<chrono::NaiveDate>, responsible_party: Option<&str>,
+        &self,
+        org_id: Uuid,
+        doc_number: &str,
+        title: &str,
+        doc_type: &str,
+        fiscal_year: i32,
+        country: Option<&str>,
+        reporting_entity_id: Option<Uuid>,
+        reporting_entity_name: Option<&str>,
+        description: Option<&str>,
+        content_summary: Option<&str>,
+        filing_deadline: Option<chrono::NaiveDate>,
+        responsible_party: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransferPricingDocumentation> {
         let row = sqlx::query(
@@ -627,41 +886,68 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
             RETURNING *",
         )
-        .bind(org_id).bind(doc_number).bind(title).bind(doc_type).bind(fiscal_year)
-        .bind(country).bind(reporting_entity_id).bind(reporting_entity_name)
-        .bind(description).bind(content_summary).bind(filing_deadline).bind(responsible_party)
+        .bind(org_id)
+        .bind(doc_number)
+        .bind(title)
+        .bind(doc_type)
+        .bind(fiscal_year)
+        .bind(country)
+        .bind(reporting_entity_id)
+        .bind(reporting_entity_name)
+        .bind(description)
+        .bind(content_summary)
+        .bind(filing_deadline)
+        .bind(responsible_party)
         .bind(created_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_documentation(&row))
     }
 
-    async fn get_documentation(&self, id: Uuid) -> AtlasResult<Option<TransferPricingDocumentation>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.transfer_pricing_documentation WHERE id=$1"
-        )
-        .bind(id).fetch_optional(&self.pool).await
-        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_documentation(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<TransferPricingDocumentation>> {
+        let row = sqlx::query("SELECT * FROM _atlas.transfer_pricing_documentation WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_documentation(&r)))
     }
 
-    async fn list_documentation(&self, org_id: Uuid, doc_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<TransferPricingDocumentation>> {
+    async fn list_documentation(
+        &self,
+        org_id: Uuid,
+        doc_type: Option<&str>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<TransferPricingDocumentation>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.transfer_pricing_documentation
             WHERE organization_id=$1 AND ($2::text IS NULL OR doc_type=$2)
             AND ($3::text IS NULL OR status=$3)
             ORDER BY fiscal_year DESC, created_at DESC",
         )
-        .bind(org_id).bind(doc_type).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(doc_type)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_documentation).collect())
     }
 
-    async fn update_documentation_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, filed_at: Option<DateTime<Utc>>) -> AtlasResult<TransferPricingDocumentation> {
+    async fn update_documentation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        filed_at: Option<DateTime<Utc>>,
+    ) -> AtlasResult<TransferPricingDocumentation> {
         let row = sqlx::query(
             r"UPDATE _atlas.transfer_pricing_documentation SET status=$2,
                 approved_by=COALESCE($3, approved_by),
@@ -703,7 +989,9 @@ impl TransferPricingRepository for PostgresTransferPricingRepository {
         let total_policies: i64 = row.try_get("total_policies").unwrap_or(0);
         let active_policies: i64 = row.try_get("active_policies").unwrap_or(0);
         let total_transactions: i64 = row.try_get("total_transactions").unwrap_or(0);
-        let total_tx_value: serde_json::Value = row.try_get("total_transaction_value").unwrap_or(serde_json::json!("0"));
+        let total_tx_value: serde_json::Value = row
+            .try_get("total_transaction_value")
+            .unwrap_or(serde_json::json!("0"));
         let pending_transactions: i64 = row.try_get("pending_transactions").unwrap_or(0);
         let non_compliant: i64 = row.try_get("non_compliant_transactions").unwrap_or(0);
         let total_benchmarks: i64 = row.try_get("total_benchmarks").unwrap_or(0);

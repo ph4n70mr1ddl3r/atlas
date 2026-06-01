@@ -19,7 +19,7 @@ impl Default for PostgresBankStatementReconciliationRepository {
 }
 
 impl PostgresBankStatementReconciliationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new() -> Self {
         Self
     }

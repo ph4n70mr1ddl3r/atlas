@@ -5,11 +5,11 @@
 //!
 //! Oracle Fusion Cloud equivalent: Project Management > Resource Management
 
-use atlas_shared::{
-    ResourceProfile, ResourceRequest, ResourceAssignment, UtilizationEntry,
-    ResourceDashboard, AtlasError, AtlasResult,
-};
 use super::ProjectResourceManagementRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ResourceAssignment, ResourceDashboard, ResourceProfile,
+    ResourceRequest, UtilizationEntry,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -23,44 +23,44 @@ const VALID_RESOURCE_TYPES: &[&str] = &["employee", "contractor"];
 
 #[allow(dead_code)]
 const VALID_AVAILABILITY_STATUSES: &[&str] = &[
-    "available", "partially_available", "fully_allocated", "on_leave",
+    "available",
+    "partially_available",
+    "fully_allocated",
+    "on_leave",
 ];
 
 #[allow(dead_code)]
-const VALID_REQUEST_PRIORITIES: &[&str] = &[
-    "low", "medium", "high", "critical",
-];
+const VALID_REQUEST_PRIORITIES: &[&str] = &["low", "medium", "high", "critical"];
 
 #[allow(dead_code)]
 const VALID_REQUEST_STATUSES: &[&str] = &[
-    "draft", "submitted", "fulfilled", "partially_fulfilled", "cancelled",
+    "draft",
+    "submitted",
+    "fulfilled",
+    "partially_fulfilled",
+    "cancelled",
 ];
 
 #[allow(dead_code)]
-const VALID_RESOURCE_TYPE_PREFERENCES: &[&str] = &[
-    "any", "employee_only", "contractor_only",
-];
+const VALID_RESOURCE_TYPE_PREFERENCES: &[&str] = &["any", "employee_only", "contractor_only"];
 
 #[allow(dead_code)]
-const VALID_ASSIGNMENT_STATUSES: &[&str] = &[
-    "planned", "active", "completed", "cancelled",
-];
+const VALID_ASSIGNMENT_STATUSES: &[&str] = &["planned", "active", "completed", "cancelled"];
 
 #[allow(dead_code)]
-const VALID_UTILIZATION_STATUSES: &[&str] = &[
-    "submitted", "approved", "rejected",
-];
+const VALID_UTILIZATION_STATUSES: &[&str] = &["submitted", "approved", "rejected"];
 
 /// Helper to validate a value against allowed set
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
-        return Err(AtlasError::ValidationFailed(format!(
-            "{field} is required"
-        )));
+        return Err(AtlasError::ValidationFailed(format!("{field} is required")));
     }
     if !allowed.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field, value, allowed.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field,
+            value,
+            allowed.join(", ")
         )));
     }
     Ok(())
@@ -107,10 +107,14 @@ impl ProjectResourceManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ResourceProfile> {
         if resource_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Resource number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Resource number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Resource name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Resource name is required".to_string(),
+            ));
         }
         validate_enum("resource_type", resource_type, VALID_RESOURCE_TYPES)?;
 
@@ -142,7 +146,12 @@ impl ProjectResourceManagementEngine {
             }
         }
 
-        if self.repository.get_profile_by_number(org_id, resource_number).await?.is_some() {
+        if self
+            .repository
+            .get_profile_by_number(org_id, resource_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Resource profile '{resource_number}' already exists"
             )));
@@ -151,23 +160,31 @@ impl ProjectResourceManagementEngine {
         info!("Creating resource profile '{}' ({}) for org {} [type={}, cost_rate={:?}, bill_rate={:?}]",
               resource_number, name, org_id, resource_type, cost_rate, bill_rate);
 
-        self.repository.create_profile(
-            org_id, resource_number, name, email,
-            resource_type, department, job_title,
-            skills.unwrap_or(""), certifications.unwrap_or(""),
-            availability_status.unwrap_or("available"),
-            available_hours_per_week.unwrap_or(40.0),
-            cost_rate.unwrap_or(0.0),
-            cost_rate_currency.unwrap_or("USD"),
-            bill_rate.unwrap_or(0.0),
-            bill_rate_currency.unwrap_or("USD"),
-            location.unwrap_or(""),
-            manager_id,
-            manager_name.unwrap_or(""),
-            hire_date,
-            notes.unwrap_or(""),
-            created_by,
-        ).await
+        self.repository
+            .create_profile(
+                org_id,
+                resource_number,
+                name,
+                email,
+                resource_type,
+                department,
+                job_title,
+                skills.unwrap_or(""),
+                certifications.unwrap_or(""),
+                availability_status.unwrap_or("available"),
+                available_hours_per_week.unwrap_or(40.0),
+                cost_rate.unwrap_or(0.0),
+                cost_rate_currency.unwrap_or("USD"),
+                bill_rate.unwrap_or(0.0),
+                bill_rate_currency.unwrap_or("USD"),
+                location.unwrap_or(""),
+                manager_id,
+                manager_name.unwrap_or(""),
+                hire_date,
+                notes.unwrap_or(""),
+                created_by,
+            )
+            .await
     }
 
     /// Get a profile by ID
@@ -176,8 +193,14 @@ impl ProjectResourceManagementEngine {
     }
 
     /// Get a profile by number
-    pub async fn get_profile_by_number(&self, org_id: Uuid, resource_number: &str) -> AtlasResult<Option<ResourceProfile>> {
-        self.repository.get_profile_by_number(org_id, resource_number).await
+    pub async fn get_profile_by_number(
+        &self,
+        org_id: Uuid,
+        resource_number: &str,
+    ) -> AtlasResult<Option<ResourceProfile>> {
+        self.repository
+            .get_profile_by_number(org_id, resource_number)
+            .await
     }
 
     /// List profiles with optional filters
@@ -188,11 +211,17 @@ impl ProjectResourceManagementEngine {
         resource_type: Option<&str>,
         department: Option<&str>,
     ) -> AtlasResult<Vec<ResourceProfile>> {
-        self.repository.list_profiles(org_id, availability_status, resource_type, department).await
+        self.repository
+            .list_profiles(org_id, availability_status, resource_type, department)
+            .await
     }
 
     /// Update availability status
-    pub async fn update_availability(&self, id: Uuid, status: &str) -> AtlasResult<ResourceProfile> {
+    pub async fn update_availability(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<ResourceProfile> {
         validate_enum("availability_status", status, VALID_AVAILABILITY_STATUSES)?;
         info!("Updating resource {} availability to {}", id, status);
         self.repository.update_availability_status(id, status).await
@@ -200,8 +229,13 @@ impl ProjectResourceManagementEngine {
 
     /// Delete a profile by number
     pub async fn delete_profile(&self, org_id: Uuid, resource_number: &str) -> AtlasResult<()> {
-        info!("Deleting resource profile '{}' for org {}", resource_number, org_id);
-        self.repository.delete_profile(org_id, resource_number).await
+        info!(
+            "Deleting resource profile '{}' for org {}",
+            resource_number, org_id
+        );
+        self.repository
+            .delete_profile(org_id, resource_number)
+            .await
     }
 
     // ========================================================================
@@ -232,12 +266,18 @@ impl ProjectResourceManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ResourceRequest> {
         if request_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Request number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Request number is required".to_string(),
+            ));
         }
         validate_enum("priority", priority, VALID_REQUEST_PRIORITIES)?;
 
         if let Some(rtp) = resource_type_preference {
-            validate_enum("resource_type_preference", rtp, VALID_RESOURCE_TYPE_PREFERENCES)?;
+            validate_enum(
+                "resource_type_preference",
+                rtp,
+                VALID_RESOURCE_TYPE_PREFERENCES,
+            )?;
         }
 
         if start_date >= end_date {
@@ -260,24 +300,44 @@ impl ProjectResourceManagementEngine {
             }
         }
 
-        if self.repository.get_request_by_number(org_id, request_number).await?.is_some() {
+        if self
+            .repository
+            .get_request_by_number(org_id, request_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Resource request '{request_number}' already exists"
             )));
         }
 
-        info!("Creating resource request '{}' for org {} [role={}, priority={}]",
-              request_number, org_id, requested_role, priority);
+        info!(
+            "Creating resource request '{}' for org {} [role={}, priority={}]",
+            request_number, org_id, requested_role, priority
+        );
 
-        self.repository.create_request(
-            org_id, request_number, project_id,
-            project_name.unwrap_or(""), project_number.unwrap_or(""),
-            requested_role, required_skills.unwrap_or(""), priority,
-            start_date, end_date, hours_per_week, total_planned_hours,
-            max_cost_rate, currency_code.unwrap_or("USD"),
-            resource_type_preference.unwrap_or("any"),
-            location_requirement.unwrap_or(""), notes.unwrap_or(""), created_by,
-        ).await
+        self.repository
+            .create_request(
+                org_id,
+                request_number,
+                project_id,
+                project_name.unwrap_or(""),
+                project_number.unwrap_or(""),
+                requested_role,
+                required_skills.unwrap_or(""),
+                priority,
+                start_date,
+                end_date,
+                hours_per_week,
+                total_planned_hours,
+                max_cost_rate,
+                currency_code.unwrap_or("USD"),
+                resource_type_preference.unwrap_or("any"),
+                location_requirement.unwrap_or(""),
+                notes.unwrap_or(""),
+                created_by,
+            )
+            .await
     }
 
     /// Get a request by ID
@@ -293,7 +353,9 @@ impl ProjectResourceManagementEngine {
         priority: Option<&str>,
         project_id: Option<Uuid>,
     ) -> AtlasResult<Vec<ResourceRequest>> {
-        self.repository.list_requests(org_id, status, priority, project_id).await
+        self.repository
+            .list_requests(org_id, status, priority, project_id)
+            .await
     }
 
     /// Submit a draft request
@@ -303,7 +365,11 @@ impl ProjectResourceManagementEngine {
     }
 
     /// Fulfill a request
-    pub async fn fulfill_request(&self, id: Uuid, fulfilled_by: Uuid) -> AtlasResult<ResourceRequest> {
+    pub async fn fulfill_request(
+        &self,
+        id: Uuid,
+        fulfilled_by: Uuid,
+    ) -> AtlasResult<ResourceRequest> {
         info!("Fulfilling resource request {} by {}", id, fulfilled_by);
         self.repository.fulfill_request(id, fulfilled_by).await
     }
@@ -316,7 +382,10 @@ impl ProjectResourceManagementEngine {
 
     /// Delete a request by number (only drafts)
     pub async fn delete_request(&self, org_id: Uuid, request_number: &str) -> AtlasResult<()> {
-        info!("Deleting resource request '{}' for org {}", request_number, org_id);
+        info!(
+            "Deleting resource request '{}' for org {}",
+            request_number, org_id
+        );
         self.repository.delete_request(org_id, request_number).await
     }
 
@@ -348,7 +417,9 @@ impl ProjectResourceManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ResourceAssignment> {
         if assignment_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Assignment number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Assignment number is required".to_string(),
+            ));
         }
 
         if start_date >= end_date {
@@ -380,32 +451,52 @@ impl ProjectResourceManagementEngine {
         }
 
         // Verify resource exists
-        let resource = self.repository.get_profile(resource_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Resource profile {resource_id} not found"
-            )))?;
+        let resource = self
+            .repository
+            .get_profile(resource_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Resource profile {resource_id} not found"))
+            })?;
 
-        if self.repository.get_assignment_by_number(org_id, assignment_number).await?.is_some() {
+        if self
+            .repository
+            .get_assignment_by_number(org_id, assignment_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Resource assignment '{assignment_number}' already exists"
             )));
         }
 
-        info!("Creating assignment '{}' for resource {} on project [role={}]",
-              assignment_number, resource.name, role);
+        info!(
+            "Creating assignment '{}' for resource {} on project [role={}]",
+            assignment_number, resource.name, role
+        );
 
-        self.repository.create_assignment(
-            org_id, assignment_number, resource_id,
-            resource_name.unwrap_or(&resource.name),
-            resource_email.unwrap_or(&resource.email),
-            project_id, project_name.unwrap_or(""), project_number.unwrap_or(""),
-            request_id, role,
-            start_date, end_date, planned_hours,
-            cost_rate.unwrap_or(resource.cost_rate),
-            bill_rate.unwrap_or(resource.bill_rate),
-            currency_code.unwrap_or(&resource.cost_rate_currency),
-            notes.unwrap_or(""), created_by,
-        ).await
+        self.repository
+            .create_assignment(
+                org_id,
+                assignment_number,
+                resource_id,
+                resource_name.unwrap_or(&resource.name),
+                resource_email.unwrap_or(&resource.email),
+                project_id,
+                project_name.unwrap_or(""),
+                project_number.unwrap_or(""),
+                request_id,
+                role,
+                start_date,
+                end_date,
+                planned_hours,
+                cost_rate.unwrap_or(resource.cost_rate),
+                bill_rate.unwrap_or(resource.bill_rate),
+                currency_code.unwrap_or(&resource.cost_rate_currency),
+                notes.unwrap_or(""),
+                created_by,
+            )
+            .await
     }
 
     /// Get an assignment by ID
@@ -421,7 +512,9 @@ impl ProjectResourceManagementEngine {
         resource_id: Option<Uuid>,
         project_id: Option<Uuid>,
     ) -> AtlasResult<Vec<ResourceAssignment>> {
-        self.repository.list_assignments(org_id, status, resource_id, project_id).await
+        self.repository
+            .list_assignments(org_id, status, resource_id, project_id)
+            .await
     }
 
     /// Activate a planned assignment
@@ -433,19 +526,32 @@ impl ProjectResourceManagementEngine {
     /// Complete an assignment
     pub async fn complete_assignment(&self, id: Uuid) -> AtlasResult<ResourceAssignment> {
         info!("Completing resource assignment {}", id);
-        self.repository.update_assignment_status(id, "completed").await
+        self.repository
+            .update_assignment_status(id, "completed")
+            .await
     }
 
     /// Cancel an assignment
     pub async fn cancel_assignment(&self, id: Uuid) -> AtlasResult<ResourceAssignment> {
         info!("Cancelling resource assignment {}", id);
-        self.repository.update_assignment_status(id, "cancelled").await
+        self.repository
+            .update_assignment_status(id, "cancelled")
+            .await
     }
 
     /// Delete an assignment by number
-    pub async fn delete_assignment(&self, org_id: Uuid, assignment_number: &str) -> AtlasResult<()> {
-        info!("Deleting resource assignment '{}' for org {}", assignment_number, org_id);
-        self.repository.delete_assignment(org_id, assignment_number).await
+    pub async fn delete_assignment(
+        &self,
+        org_id: Uuid,
+        assignment_number: &str,
+    ) -> AtlasResult<()> {
+        info!(
+            "Deleting resource assignment '{}' for org {}",
+            assignment_number, org_id
+        );
+        self.repository
+            .delete_assignment(org_id, assignment_number)
+            .await
     }
 
     // ========================================================================
@@ -477,10 +583,13 @@ impl ProjectResourceManagementEngine {
         }
 
         // Verify assignment exists
-        let assignment = self.repository.get_assignment(assignment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Resource assignment {assignment_id} not found"
-            )))?;
+        let assignment = self
+            .repository
+            .get_assignment(assignment_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Resource assignment {assignment_id} not found"))
+            })?;
 
         if assignment.status == "cancelled" {
             return Err(AtlasError::ValidationFailed(
@@ -488,15 +597,25 @@ impl ProjectResourceManagementEngine {
             ));
         }
 
-        info!("Creating utilization entry for assignment {} [hours={}, date={}]",
-              assignment_id, hours_worked, entry_date);
+        info!(
+            "Creating utilization entry for assignment {} [hours={}, date={}]",
+            assignment_id, hours_worked, entry_date
+        );
 
-        let entry = self.repository.create_utilization_entry(
-            org_id, assignment_id, resource_id,
-            entry_date, hours_worked,
-            description.unwrap_or(""), billable.unwrap_or(true),
-            notes.unwrap_or(""), created_by,
-        ).await?;
+        let entry = self
+            .repository
+            .create_utilization_entry(
+                org_id,
+                assignment_id,
+                resource_id,
+                entry_date,
+                hours_worked,
+                description.unwrap_or(""),
+                billable.unwrap_or(true),
+                notes.unwrap_or(""),
+                created_by,
+            )
+            .await?;
 
         // Update assignment actual hours and remaining hours
         let new_actual = assignment.actual_hours + hours_worked;
@@ -506,9 +625,10 @@ impl ProjectResourceManagementEngine {
         } else {
             0.0
         };
-        self.repository.update_assignment_hours(
-            assignment_id, new_actual, remaining, utilization,
-        ).await.ok();
+        self.repository
+            .update_assignment_hours(assignment_id, new_actual, remaining, utilization)
+            .await
+            .ok();
 
         Ok(entry)
     }
@@ -526,19 +646,29 @@ impl ProjectResourceManagementEngine {
         resource_id: Option<Uuid>,
         status: Option<&str>,
     ) -> AtlasResult<Vec<UtilizationEntry>> {
-        self.repository.list_utilization_entries(org_id, assignment_id, resource_id, status).await
+        self.repository
+            .list_utilization_entries(org_id, assignment_id, resource_id, status)
+            .await
     }
 
     /// Approve a utilization entry
-    pub async fn approve_utilization_entry(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<UtilizationEntry> {
+    pub async fn approve_utilization_entry(
+        &self,
+        id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<UtilizationEntry> {
         info!("Approving utilization entry {} by {}", id, approved_by);
-        self.repository.approve_utilization_entry(id, approved_by).await
+        self.repository
+            .approve_utilization_entry(id, approved_by)
+            .await
     }
 
     /// Reject a utilization entry
     pub async fn reject_utilization_entry(&self, id: Uuid) -> AtlasResult<UtilizationEntry> {
         info!("Rejecting utilization entry {}", id);
-        self.repository.update_utilization_status(id, "rejected").await
+        self.repository
+            .update_utilization_status(id, "rejected")
+            .await
     }
 
     /// Delete a utilization entry

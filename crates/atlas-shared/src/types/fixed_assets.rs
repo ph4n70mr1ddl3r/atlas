@@ -648,8 +648,8 @@ pub struct JournalImportFormat {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    pub source_type: String,            // "file", "api", "subledger"
-    pub file_format: String,            // "csv", "json", "fixed_width"
+    pub source_type: String, // "file", "api", "subledger"
+    pub file_format: String, // "csv", "json", "fixed_width"
     pub delimiter: Option<String>,
     pub header_row: bool,
     pub ledger_id: Option<Uuid>,
@@ -657,7 +657,7 @@ pub struct JournalImportFormat {
     pub default_date: Option<chrono::NaiveDate>,
     pub default_journal_type: Option<String>,
     pub balancing_segment: Option<String>,
-    pub status: String,                 // "active", "inactive"
+    pub status: String, // "active", "inactive"
     pub validation_enabled: bool,
     pub auto_post: bool,
     pub max_errors_allowed: i32,
@@ -676,8 +676,8 @@ pub struct JournalImportColumnMapping {
     pub format_id: Uuid,
     pub column_position: i32,
     pub source_column: String,
-    pub target_field: String,           // "account_code", "debit", "credit", "description", etc.
-    pub data_type: String,              // "string", "number", "date"
+    pub target_field: String, // "account_code", "debit", "credit", "description", etc.
+    pub data_type: String,    // "string", "number", "date"
     pub is_required: bool,
     pub default_value: Option<String>,
     pub transformation: Option<String>,
@@ -698,8 +698,8 @@ pub struct JournalImportBatch {
     pub description: Option<String>,
     pub source: String,
     pub source_file_name: Option<String>,
-    pub status: String,                 // "uploaded", "validating", "validated", "importing",
-                                        // "completed", "completed_with_errors", "failed"
+    pub status: String, // "uploaded", "validating", "validated", "importing",
+    // "completed", "completed_with_errors", "failed"
     pub total_rows: i32,
     pub valid_rows: i32,
     pub error_rows: i32,
@@ -730,7 +730,7 @@ pub struct JournalImportRow {
     pub batch_id: Uuid,
     pub row_number: i32,
     pub raw_data: serde_json::Value,
-    pub status: String,                 // "pending", "valid", "error", "imported", "skipped"
+    pub status: String, // "pending", "valid", "error", "imported", "skipped"
     pub account_code: Option<String>,
     pub account_name: Option<String>,
     pub description: Option<String>,
@@ -757,7 +757,7 @@ pub struct JournalImportError {
     pub row_number: i32,
     pub field: String,
     pub error: String,
-    pub severity: String,               // "error", "warning"
+    pub severity: String, // "error", "warning"
     pub raw_value: Option<String>,
 }
 
@@ -1247,4 +1247,3 @@ pub struct TaxReportingDashboardSummary {
     pub total_refunds: String,
     pub upcoming_filings: i32,
 }
-

@@ -58,7 +58,13 @@ impl AutomaticOffsetTemplateService {
         default_offset_account: String,
         enable_intra_entity: bool,
     ) -> Result<AutoOffsetTemplate, String> {
-        let valid_segments = ["entity", "department", "cost_center", "location", "intercompany"];
+        let valid_segments = [
+            "entity",
+            "department",
+            "cost_center",
+            "location",
+            "intercompany",
+        ];
         if !valid_segments.contains(&balancing_segment.as_str()) {
             return Err("Invalid balancing segment".to_string());
         }
@@ -69,7 +75,10 @@ impl AutomaticOffsetTemplateService {
         }
 
         let mut templates = self.templates.write().unwrap();
-        if templates.iter().any(|t| t.organization_id == organization_id && t.template_code == template_code) {
+        if templates
+            .iter()
+            .any(|t| t.organization_id == organization_id && t.template_code == template_code)
+        {
             return Err("Template with this code already exists for the organization".to_string());
         }
 
@@ -107,7 +116,10 @@ impl AutomaticOffsetTemplateService {
         }
 
         let mut lines = self.lines.write().unwrap();
-        if lines.iter().any(|l| l.template_id == template_id && l.line_number == line_number) {
+        if lines
+            .iter()
+            .any(|l| l.template_id == template_id && l.line_number == line_number)
+        {
             return Err("Line number already exists in this template".to_string());
         }
 
@@ -126,19 +138,32 @@ impl AutomaticOffsetTemplateService {
         Ok(line)
     }
 
-    pub fn resolve_offset_accounts(&self, template_id: Uuid, target_segment_value: &str) -> Option<(String, String)> {
+    pub fn resolve_offset_accounts(
+        &self,
+        template_id: Uuid,
+        target_segment_value: &str,
+    ) -> Option<(String, String)> {
         let templates = self.templates.read().unwrap();
-        let default_acct = templates.iter().find(|t| t.id == template_id).map(|t| t.default_offset_account.clone());
+        let default_acct = templates
+            .iter()
+            .find(|t| t.id == template_id)
+            .map(|t| t.default_offset_account.clone());
 
         let lines = self.lines.read().unwrap();
-        let mut matches: Vec<&AutoOffsetTemplateLine> = lines.iter()
-            .filter(|l| l.template_id == template_id && l.balancing_segment_value == target_segment_value)
+        let mut matches: Vec<&AutoOffsetTemplateLine> = lines
+            .iter()
+            .filter(|l| {
+                l.template_id == template_id && l.balancing_segment_value == target_segment_value
+            })
             .collect();
-            
+
         matches.sort_by_key(|l| std::cmp::Reverse(l.priority));
-        
+
         if let Some(best_match) = matches.first() {
-            Some((best_match.due_to_account.clone(), best_match.due_from_account.clone()))
+            Some((
+                best_match.due_to_account.clone(),
+                best_match.due_from_account.clone(),
+            ))
         } else {
             default_acct.map(|def_acct| (def_acct.clone(), def_acct))
         }
@@ -153,7 +178,7 @@ mod tests {
     fn test_create_template() {
         let service = AutomaticOffsetTemplateService::new();
         let org_id = Uuid::new_v4();
-        
+
         let result = service.create_template(
             org_id,
             "DEF_OFFSET".to_string(),
@@ -174,11 +199,29 @@ mod tests {
     fn test_invalid_segment_method() {
         let service = AutomaticOffsetTemplateService::new();
         let org_id = Uuid::new_v4();
-        
-        let res = service.create_template(org_id, "CODE".to_string(), "N".to_string(), None, "invalid".to_string(), "single_entry".to_string(), "AC".to_string(), false);
+
+        let res = service.create_template(
+            org_id,
+            "CODE".to_string(),
+            "N".to_string(),
+            None,
+            "invalid".to_string(),
+            "single_entry".to_string(),
+            "AC".to_string(),
+            false,
+        );
         assert!(res.is_err());
-        
-        let res2 = service.create_template(org_id, "CODE".to_string(), "N".to_string(), None, "entity".to_string(), "invalid".to_string(), "AC".to_string(), false);
+
+        let res2 = service.create_template(
+            org_id,
+            "CODE".to_string(),
+            "N".to_string(),
+            None,
+            "entity".to_string(),
+            "invalid".to_string(),
+            "AC".to_string(),
+            false,
+        );
         assert!(res2.is_err());
     }
 
@@ -186,14 +229,31 @@ mod tests {
     fn test_add_template_line_and_resolve() {
         let service = AutomaticOffsetTemplateService::new();
         let org_id = Uuid::new_v4();
-        
-        let t = service.create_template(
-            org_id, "DEF".to_string(), "Def".to_string(), None, "entity".to_string(), "single_entry".to_string(), "DEF-ACCT".to_string(), false
-        ).unwrap();
 
-        service.add_template_line(
-            org_id, t.id, 1, "US-ENT".to_string(), "US-DUE-TO".to_string(), "US-DUE-FROM".to_string(), 100
-        ).unwrap();
+        let t = service
+            .create_template(
+                org_id,
+                "DEF".to_string(),
+                "Def".to_string(),
+                None,
+                "entity".to_string(),
+                "single_entry".to_string(),
+                "DEF-ACCT".to_string(),
+                false,
+            )
+            .unwrap();
+
+        service
+            .add_template_line(
+                org_id,
+                t.id,
+                1,
+                "US-ENT".to_string(),
+                "US-DUE-TO".to_string(),
+                "US-DUE-FROM".to_string(),
+                100,
+            )
+            .unwrap();
 
         // Specific match
         let (dt, df) = service.resolve_offset_accounts(t.id, "US-ENT").unwrap();

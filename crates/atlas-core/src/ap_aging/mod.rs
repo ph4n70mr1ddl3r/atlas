@@ -8,11 +8,11 @@
 mod engine;
 pub use engine::ApAgingEngine;
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 
 // Local type definitions
 
@@ -110,47 +110,203 @@ pub struct ApAgingDashboard {
 /// Repository trait
 #[async_trait]
 pub trait ApAgingRepository: Send + Sync {
-    async fn create_definition(&self, org_id: Uuid, code: &str, name: &str, description: Option<&str>, aging_basis: &str, num_buckets: i32, created_by: Option<Uuid>) -> AtlasResult<ApAgingDefinition>;
-    async fn get_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ApAgingDefinition>>;
+    async fn create_definition(
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        aging_basis: &str,
+        num_buckets: i32,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<ApAgingDefinition>;
+    async fn get_definition(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ApAgingDefinition>>;
     async fn get_definition_by_id(&self, id: Uuid) -> AtlasResult<Option<ApAgingDefinition>>;
-    async fn list_definitions(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ApAgingDefinition>>;
-    async fn update_definition_status(&self, id: Uuid, status: &str) -> AtlasResult<ApAgingDefinition>;
+    async fn list_definitions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ApAgingDefinition>>;
+    async fn update_definition_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<ApAgingDefinition>;
     async fn delete_definition(&self, id: Uuid) -> AtlasResult<()>;
-    async fn create_bucket(&self, org_id: Uuid, definition_id: Uuid, bucket_number: i32, name: &str, from_days: i32, to_days: Option<i32>, display_order: i32) -> AtlasResult<ApAgingBucket>;
+    async fn create_bucket(
+        &self,
+        org_id: Uuid,
+        definition_id: Uuid,
+        bucket_number: i32,
+        name: &str,
+        from_days: i32,
+        to_days: Option<i32>,
+        display_order: i32,
+    ) -> AtlasResult<ApAgingBucket>;
     async fn list_buckets(&self, definition_id: Uuid) -> AtlasResult<Vec<ApAgingBucket>>;
-    async fn create_snapshot(&self, org_id: Uuid, definition_id: Uuid, as_of_date: chrono::NaiveDate, currency_code: &str, created_by: Option<Uuid>) -> AtlasResult<ApAgingSnapshot>;
+    async fn create_snapshot(
+        &self,
+        org_id: Uuid,
+        definition_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+        currency_code: &str,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<ApAgingSnapshot>;
     async fn get_snapshot(&self, id: Uuid) -> AtlasResult<Option<ApAgingSnapshot>>;
-    async fn list_snapshots(&self, org_id: Uuid, definition_id: Option<Uuid>) -> AtlasResult<Vec<ApAgingSnapshot>>;
-    async fn update_snapshot_totals(&self, id: Uuid, total_open: &str, total_overdue: &str, past_due_count: i32) -> AtlasResult<()>;
-    async fn create_snapshot_line(&self, org_id: Uuid, snapshot_id: Uuid, supplier_id: Option<Uuid>, supplier_number: &str, supplier_name: Option<&str>, invoice_id: Option<Uuid>, invoice_number: &str, invoice_date: chrono::NaiveDate, due_date: chrono::NaiveDate, original_amount: &str, open_amount: &str, days_past_due: i32, bucket_number: i32, bucket_name: &str, currency_code: &str) -> AtlasResult<ApAgingSnapshotLine>;
-    async fn list_snapshot_lines(&self, snapshot_id: Uuid) -> AtlasResult<Vec<ApAgingSnapshotLine>>;
+    async fn list_snapshots(
+        &self,
+        org_id: Uuid,
+        definition_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ApAgingSnapshot>>;
+    async fn update_snapshot_totals(
+        &self,
+        id: Uuid,
+        total_open: &str,
+        total_overdue: &str,
+        past_due_count: i32,
+    ) -> AtlasResult<()>;
+    async fn create_snapshot_line(
+        &self,
+        org_id: Uuid,
+        snapshot_id: Uuid,
+        supplier_id: Option<Uuid>,
+        supplier_number: &str,
+        supplier_name: Option<&str>,
+        invoice_id: Option<Uuid>,
+        invoice_number: &str,
+        invoice_date: chrono::NaiveDate,
+        due_date: chrono::NaiveDate,
+        original_amount: &str,
+        open_amount: &str,
+        days_past_due: i32,
+        bucket_number: i32,
+        bucket_name: &str,
+        currency_code: &str,
+    ) -> AtlasResult<ApAgingSnapshotLine>;
+    async fn list_snapshot_lines(&self, snapshot_id: Uuid)
+        -> AtlasResult<Vec<ApAgingSnapshotLine>>;
     async fn get_aging_summary(&self, snapshot_id: Uuid) -> AtlasResult<Vec<ApAgingSummary>>;
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ApAgingDashboard>;
 }
 
 /// `PostgreSQL` implementation
 #[allow(dead_code)]
-pub struct PostgresApAgingRepository { #[allow(dead_code)]
-    pool: PgPool }
-impl PostgresApAgingRepository { #[must_use] 
-pub const fn new(pool: PgPool) -> Self { Self { pool } } }
+pub struct PostgresApAgingRepository {
+    #[allow(dead_code)]
+    pool: PgPool,
+}
+impl PostgresApAgingRepository {
+    #[must_use]
+    pub const fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
 
 #[async_trait]
 impl ApAgingRepository for PostgresApAgingRepository {
-    async fn create_definition(&self, _: Uuid, _: &str, _: &str, _: Option<&str>, _: &str, _: i32, _: Option<Uuid>) -> AtlasResult<ApAgingDefinition> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_definition(&self, _: Uuid, _: &str) -> AtlasResult<Option<ApAgingDefinition>> { Ok(None) }
-    async fn get_definition_by_id(&self, _: Uuid) -> AtlasResult<Option<ApAgingDefinition>> { Ok(None) }
-    async fn list_definitions(&self, _: Uuid, _: Option<&str>) -> AtlasResult<Vec<ApAgingDefinition>> { Ok(vec![]) }
-    async fn update_definition_status(&self, _: Uuid, _: &str) -> AtlasResult<ApAgingDefinition> { Err(AtlasError::EntityNotFound("Not found".into())) }
-    async fn delete_definition(&self, _: Uuid) -> AtlasResult<()> { Ok(()) }
-    async fn create_bucket(&self, _: Uuid, _: Uuid, _: i32, _: &str, _: i32, _: Option<i32>, _: i32) -> AtlasResult<ApAgingBucket> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn list_buckets(&self, _: Uuid) -> AtlasResult<Vec<ApAgingBucket>> { Ok(vec![]) }
-    async fn create_snapshot(&self, _: Uuid, _: Uuid, _: chrono::NaiveDate, _: &str, _: Option<Uuid>) -> AtlasResult<ApAgingSnapshot> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_snapshot(&self, _: Uuid) -> AtlasResult<Option<ApAgingSnapshot>> { Ok(None) }
-    async fn list_snapshots(&self, _: Uuid, _: Option<Uuid>) -> AtlasResult<Vec<ApAgingSnapshot>> { Ok(vec![]) }
-    async fn update_snapshot_totals(&self, _: Uuid, _: &str, _: &str, _: i32) -> AtlasResult<()> { Ok(()) }
-    async fn create_snapshot_line(&self, _: Uuid, _: Uuid, _: Option<Uuid>, _: &str, _: Option<&str>, _: Option<Uuid>, _: &str, _: chrono::NaiveDate, _: chrono::NaiveDate, _: &str, _: &str, _: i32, _: i32, _: &str, _: &str) -> AtlasResult<ApAgingSnapshotLine> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn list_snapshot_lines(&self, _: Uuid) -> AtlasResult<Vec<ApAgingSnapshotLine>> { Ok(vec![]) }
-    async fn get_aging_summary(&self, _: Uuid) -> AtlasResult<Vec<ApAgingSummary>> { Ok(vec![]) }
-    async fn get_dashboard(&self, _: Uuid) -> AtlasResult<ApAgingDashboard> { Ok(ApAgingDashboard { total_definitions: 0, total_snapshots: 0, total_open_payables: "0".into(), total_overdue: "0".into(), overdue_count: 0, avg_days_past_due: "0".into() }) }
+    async fn create_definition(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+        _: &str,
+        _: i32,
+        _: Option<Uuid>,
+    ) -> AtlasResult<ApAgingDefinition> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_definition(&self, _: Uuid, _: &str) -> AtlasResult<Option<ApAgingDefinition>> {
+        Ok(None)
+    }
+    async fn get_definition_by_id(&self, _: Uuid) -> AtlasResult<Option<ApAgingDefinition>> {
+        Ok(None)
+    }
+    async fn list_definitions(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+    ) -> AtlasResult<Vec<ApAgingDefinition>> {
+        Ok(vec![])
+    }
+    async fn update_definition_status(&self, _: Uuid, _: &str) -> AtlasResult<ApAgingDefinition> {
+        Err(AtlasError::EntityNotFound("Not found".into()))
+    }
+    async fn delete_definition(&self, _: Uuid) -> AtlasResult<()> {
+        Ok(())
+    }
+    async fn create_bucket(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: i32,
+        _: &str,
+        _: i32,
+        _: Option<i32>,
+        _: i32,
+    ) -> AtlasResult<ApAgingBucket> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn list_buckets(&self, _: Uuid) -> AtlasResult<Vec<ApAgingBucket>> {
+        Ok(vec![])
+    }
+    async fn create_snapshot(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: chrono::NaiveDate,
+        _: &str,
+        _: Option<Uuid>,
+    ) -> AtlasResult<ApAgingSnapshot> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_snapshot(&self, _: Uuid) -> AtlasResult<Option<ApAgingSnapshot>> {
+        Ok(None)
+    }
+    async fn list_snapshots(&self, _: Uuid, _: Option<Uuid>) -> AtlasResult<Vec<ApAgingSnapshot>> {
+        Ok(vec![])
+    }
+    async fn update_snapshot_totals(&self, _: Uuid, _: &str, _: &str, _: i32) -> AtlasResult<()> {
+        Ok(())
+    }
+    async fn create_snapshot_line(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: Option<Uuid>,
+        _: &str,
+        _: Option<&str>,
+        _: Option<Uuid>,
+        _: &str,
+        _: chrono::NaiveDate,
+        _: chrono::NaiveDate,
+        _: &str,
+        _: &str,
+        _: i32,
+        _: i32,
+        _: &str,
+        _: &str,
+    ) -> AtlasResult<ApAgingSnapshotLine> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn list_snapshot_lines(&self, _: Uuid) -> AtlasResult<Vec<ApAgingSnapshotLine>> {
+        Ok(vec![])
+    }
+    async fn get_aging_summary(&self, _: Uuid) -> AtlasResult<Vec<ApAgingSummary>> {
+        Ok(vec![])
+    }
+    async fn get_dashboard(&self, _: Uuid) -> AtlasResult<ApAgingDashboard> {
+        Ok(ApAgingDashboard {
+            total_definitions: 0,
+            total_snapshots: 0,
+            total_open_payables: "0".into(),
+            total_overdue: "0".into(),
+            overdue_count: 0,
+            avg_days_past_due: "0".into(),
+        })
+    }
 }

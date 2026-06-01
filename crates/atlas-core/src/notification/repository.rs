@@ -2,20 +2,31 @@
 //!
 //! PostgreSQL-backed storage for notifications.
 
-use atlas_shared::{Notification, CreateNotificationRequest, AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult, CreateNotificationRequest, Notification};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 /// Repository trait for notification storage
 #[async_trait]
 pub trait NotificationRepository: Send + Sync {
-    async fn create(&self, org_id: Uuid, request: CreateNotificationRequest) -> AtlasResult<Notification>;
+    async fn create(
+        &self,
+        org_id: Uuid,
+        request: CreateNotificationRequest,
+    ) -> AtlasResult<Notification>;
     async fn mark_read(&self, notification_id: Uuid) -> AtlasResult<()>;
     async fn mark_all_read(&self, org_id: Uuid, user_id: Uuid) -> AtlasResult<u64>;
     async fn dismiss(&self, notification_id: Uuid) -> AtlasResult<()>;
     async fn unread_count(&self, org_id: Uuid, user_id: Uuid) -> AtlasResult<i64>;
-    async fn list(&self, org_id: Uuid, user_id: Uuid, include_read: bool, limit: i64, offset: i64) -> AtlasResult<Vec<Notification>>;
+    async fn list(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+        include_read: bool,
+        limit: i64,
+        offset: i64,
+    ) -> AtlasResult<Vec<Notification>>;
     async fn get_users_by_role(&self, org_id: Uuid, role: &str) -> AtlasResult<Vec<Uuid>>;
     async fn cleanup_expired(&self) -> AtlasResult<u64>;
     async fn send_scheduled(&self) -> AtlasResult<u64>;
@@ -27,7 +38,7 @@ pub struct PostgresNotificationRepository {
 }
 
 impl PostgresNotificationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -65,10 +76,16 @@ impl PostgresNotificationRepository {
 
 #[async_trait]
 impl NotificationRepository for PostgresNotificationRepository {
-    async fn create(&self, org_id: Uuid, request: CreateNotificationRequest) -> AtlasResult<Notification> {
+    async fn create(
+        &self,
+        org_id: Uuid,
+        request: CreateNotificationRequest,
+    ) -> AtlasResult<Notification> {
         let user_id = request.user_id.unwrap_or(Uuid::nil());
         let priority = request.priority.unwrap_or_else(|| "normal".to_string());
-        let channels = request.channels.unwrap_or_else(|| serde_json::json!(["in_app"]));
+        let channels = request
+            .channels
+            .unwrap_or_else(|| serde_json::json!(["in_app"]));
 
         let row = sqlx::query(
             r"
@@ -78,7 +95,7 @@ impl NotificationRepository for PostgresNotificationRepository {
                  action, performed_by, channels, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
-            "
+            ",
         )
         .bind(org_id)
         .bind(user_id)
@@ -105,7 +122,7 @@ impl NotificationRepository for PostgresNotificationRepository {
 
     async fn mark_read(&self, notification_id: Uuid) -> AtlasResult<()> {
         sqlx::query(
-            "UPDATE _atlas.notifications SET is_read = true, read_at = now() WHERE id = $1"
+            "UPDATE _atlas.notifications SET is_read = true, read_at = now() WHERE id = $1",
         )
         .bind(notification_id)
         .execute(&self.pool)
@@ -151,15 +168,26 @@ impl NotificationRepository for PostgresNotificationRepository {
         Ok(count.0)
     }
 
-    async fn list(&self, org_id: Uuid, user_id: Uuid, include_read: bool, limit: i64, offset: i64) -> AtlasResult<Vec<Notification>> {
+    async fn list(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+        include_read: bool,
+        limit: i64,
+        offset: i64,
+    ) -> AtlasResult<Vec<Notification>> {
         let rows = if include_read {
             sqlx::query(
                 "SELECT * FROM _atlas.notifications 
                  WHERE organization_id = $1 AND user_id = $2 AND is_dismissed = false
-                 ORDER BY created_at DESC LIMIT $3 OFFSET $4"
+                 ORDER BY created_at DESC LIMIT $3 OFFSET $4",
             )
-            .bind(org_id).bind(user_id).bind(limit).bind(offset)
-            .fetch_all(&self.pool).await
+            .bind(org_id)
+            .bind(user_id)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await
         } else {
             sqlx::query(
                 "SELECT * FROM _atlas.notifications 
@@ -172,7 +200,9 @@ impl NotificationRepository for PostgresNotificationRepository {
 
         let rows = rows.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         rows.iter()
-            .map(|r| Self::row_to_notification(r).map_err(|e| AtlasError::DatabaseError(e.to_string())))
+            .map(|r| {
+                Self::row_to_notification(r).map_err(|e| AtlasError::DatabaseError(e.to_string()))
+            })
             .collect()
     }
 
@@ -180,7 +210,7 @@ impl NotificationRepository for PostgresNotificationRepository {
         let rows: Vec<(Uuid,)> = sqlx::query_as(
             "SELECT id FROM _atlas.users 
              WHERE organization_id = $1 AND is_active = true 
-             AND roles @> $2::jsonb"
+             AND roles @> $2::jsonb",
         )
         .bind(org_id)
         .bind(serde_json::json!([role]))
@@ -192,7 +222,7 @@ impl NotificationRepository for PostgresNotificationRepository {
 
     async fn cleanup_expired(&self) -> AtlasResult<u64> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.notifications WHERE expires_at IS NOT NULL AND expires_at < now()"
+            "DELETE FROM _atlas.notifications WHERE expires_at IS NOT NULL AND expires_at < now()",
         )
         .execute(&self.pool)
         .await
@@ -203,7 +233,7 @@ impl NotificationRepository for PostgresNotificationRepository {
     async fn send_scheduled(&self) -> AtlasResult<u64> {
         let result = sqlx::query(
             "UPDATE _atlas.notifications SET sent_at = now() 
-             WHERE scheduled_for IS NOT NULL AND sent_at IS NULL AND scheduled_for <= now()"
+             WHERE scheduled_for IS NOT NULL AND sent_at IS NULL AND scheduled_for <= now()",
         )
         .execute(&self.pool)
         .await

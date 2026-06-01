@@ -6,17 +6,17 @@
 //! routing rules, quotas, and automatic lead/opportunity routing.
 
 use axum::{
-    extract::{Path, Query, State, Extension},
-    Json,
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::auth::Claims;
+use crate::AppState;
 
 // ============================================================================
 // Query Parameters
@@ -63,31 +63,42 @@ pub async fn create_territory(
     Json(payload): Json<CreateTerritoryRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let parent_id = payload.parent_id
+    let parent_id = payload
+        .parent_id
         .map(|s| Uuid::parse_str(&s))
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
-    let owner_id = payload.owner_id
+    let owner_id = payload
+        .owner_id
         .map(|s| Uuid::parse_str(&s))
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.shared.territory_engine.create_territory(
-        org_id,
-        &payload.code,
-        &payload.name,
-        payload.description.as_deref(),
-        &payload.territory_type,
-        parent_id,
-        owner_id,
-        payload.owner_name.as_deref(),
-        payload.effective_from,
-        payload.effective_to,
-        None,
-    ).await {
-        Ok(territory) => Ok((StatusCode::CREATED, Json(serde_json::to_value(territory).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
-        })))),
+    match state
+        .shared
+        .territory_engine
+        .create_territory(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.territory_type,
+            parent_id,
+            owner_id,
+            payload.owner_name.as_deref(),
+            payload.effective_from,
+            payload.effective_to,
+            None,
+        )
+        .await
+    {
+        Ok(territory) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(territory).unwrap_or_else(|e| {
+                error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create territory: {}", e);
             Err(match e.status_code() {
@@ -106,9 +117,14 @@ pub async fn get_territory(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
     match state.shared.territory_engine.get_territory(id).await {
-        Ok(Some(t)) => Ok(Json(serde_json::to_value(t).unwrap_or(serde_json::Value::Null))),
+        Ok(Some(t)) => Ok(Json(
+            serde_json::to_value(t).unwrap_or(serde_json::Value::Null),
+        )),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get territory: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get territory: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -118,21 +134,33 @@ pub async fn list_territories(
     Query(query): Query<ListTerritoriesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let parent_id = query.parent_id
+    let parent_id = query
+        .parent_id
         .map(|s| Uuid::parse_str(&s))
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
-    let include_inactive = query.include_inactive
+    let include_inactive = query
+        .include_inactive
         .is_some_and(|s| s == "true" || s == "1");
 
-    match state.shared.territory_engine.list_territories(
-        org_id,
-        query.territory_type.as_deref(),
-        parent_id,
-        include_inactive,
-    ).await {
-        Ok(territories) => Ok(Json(serde_json::to_value(territories).unwrap_or(serde_json::Value::Null))),
-        Err(e) => { error!("Failed to list territories: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+    match state
+        .shared
+        .territory_engine
+        .list_territories(
+            org_id,
+            query.territory_type.as_deref(),
+            parent_id,
+            include_inactive,
+        )
+        .await
+    {
+        Ok(territories) => Ok(Json(
+            serde_json::to_value(territories).unwrap_or(serde_json::Value::Null),
+        )),
+        Err(e) => {
+            error!("Failed to list territories: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -156,7 +184,8 @@ pub async fn update_territory(
     Json(payload): Json<UpdateTerritoryRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let owner_id = payload.owner_id
+    let owner_id = payload
+        .owner_id
         .map(|s| Uuid::parse_str(&s))
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -166,24 +195,33 @@ pub async fn update_territory(
         if pid_str == "null" || pid_str.is_empty() {
             Some(None)
         } else {
-            Some(Some(Uuid::parse_str(pid_str).map_err(|_| StatusCode::BAD_REQUEST)?))
+            Some(Some(
+                Uuid::parse_str(pid_str).map_err(|_| StatusCode::BAD_REQUEST)?,
+            ))
         }
     } else {
         None
     };
 
-    match state.shared.territory_engine.update_territory(
-        id,
-        payload.name.as_deref(),
-        payload.description.as_deref(),
-        payload.territory_type.as_deref(),
-        parent_id,
-        owner_id,
-        payload.owner_name.as_deref(),
-        payload.effective_from,
-        payload.effective_to,
-    ).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap_or(serde_json::Value::Null))),
+    match state
+        .shared
+        .territory_engine
+        .update_territory(
+            id,
+            payload.name.as_deref(),
+            payload.description.as_deref(),
+            payload.territory_type.as_deref(),
+            parent_id,
+            owner_id,
+            payload.owner_name.as_deref(),
+            payload.effective_from,
+            payload.effective_to,
+        )
+        .await
+    {
+        Ok(t) => Ok(Json(
+            serde_json::to_value(t).unwrap_or(serde_json::Value::Null),
+        )),
         Err(e) => {
             error!("Failed to update territory: {}", e);
             Err(match e.status_code() {
@@ -202,10 +240,16 @@ pub async fn activate_territory(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
     match state.shared.territory_engine.activate_territory(id).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap_or(serde_json::Value::Null))),
+        Ok(t) => Ok(Json(
+            serde_json::to_value(t).unwrap_or(serde_json::Value::Null),
+        )),
         Err(e) => {
             error!("Failed to activate territory: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -217,10 +261,16 @@ pub async fn deactivate_territory(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
     match state.shared.territory_engine.deactivate_territory(id).await {
-        Ok(t) => Ok(Json(serde_json::to_value(t).unwrap_or(serde_json::Value::Null))),
+        Ok(t) => Ok(Json(
+            serde_json::to_value(t).unwrap_or(serde_json::Value::Null),
+        )),
         Err(e) => {
             error!("Failed to deactivate territory: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -235,7 +285,11 @@ pub async fn delete_territory(
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete territory: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -264,20 +318,33 @@ pub async fn add_member(
     let territory_id = Uuid::parse_str(&territory_id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let user_id = Uuid::parse_str(&payload.user_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.shared.territory_engine.add_territory_member(
-        org_id,
-        territory_id,
-        user_id,
-        &payload.user_name,
-        &payload.role,
-        payload.effective_from,
-        payload.effective_to,
-        None,
-    ).await {
-        Ok(m) => Ok((StatusCode::CREATED, Json(serde_json::to_value(m).unwrap_or(serde_json::Value::Null)))),
+    match state
+        .shared
+        .territory_engine
+        .add_territory_member(
+            org_id,
+            territory_id,
+            user_id,
+            &payload.user_name,
+            &payload.role,
+            payload.effective_from,
+            payload.effective_to,
+            None,
+        )
+        .await
+    {
+        Ok(m) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(m).unwrap_or(serde_json::Value::Null)),
+        )),
         Err(e) => {
             error!("Failed to add member: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                409 => StatusCode::CONFLICT,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -289,9 +356,19 @@ pub async fn list_members(
     Query(query): Query<ListMembersQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let territory_id = Uuid::parse_str(&territory_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.shared.territory_engine.list_territory_members(territory_id, query.role.as_deref()).await {
-        Ok(members) => Ok(Json(serde_json::to_value(members).unwrap_or(serde_json::Value::Null))),
-        Err(e) => { error!("Failed to list members: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+    match state
+        .shared
+        .territory_engine
+        .list_territory_members(territory_id, query.role.as_deref())
+        .await
+    {
+        Ok(members) => Ok(Json(
+            serde_json::to_value(members).unwrap_or(serde_json::Value::Null),
+        )),
+        Err(e) => {
+            error!("Failed to list members: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -301,9 +378,17 @@ pub async fn remove_member(
     Path(member_id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let member_id = Uuid::parse_str(&member_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.shared.territory_engine.remove_territory_member(member_id).await {
+    match state
+        .shared
+        .territory_engine
+        .remove_territory_member(member_id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Failed to remove member: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to remove member: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -330,20 +415,32 @@ pub async fn add_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let territory_id = Uuid::parse_str(&territory_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.shared.territory_engine.add_territory_rule(
-        org_id,
-        territory_id,
-        &payload.entity_type,
-        &payload.field_name,
-        &payload.match_operator,
-        &payload.match_value,
-        payload.priority,
-        None,
-    ).await {
-        Ok(r) => Ok((StatusCode::CREATED, Json(serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))),
+    match state
+        .shared
+        .territory_engine
+        .add_territory_rule(
+            org_id,
+            territory_id,
+            &payload.entity_type,
+            &payload.field_name,
+            &payload.match_operator,
+            &payload.match_value,
+            payload.priority,
+            None,
+        )
+        .await
+    {
+        Ok(r) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(r).unwrap_or(serde_json::Value::Null)),
+        )),
         Err(e) => {
             error!("Failed to add rule: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -355,9 +452,19 @@ pub async fn list_rules(
     Query(query): Query<ListRulesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let territory_id = Uuid::parse_str(&territory_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.shared.territory_engine.list_territory_rules(territory_id, query.entity_type.as_deref()).await {
-        Ok(rules) => Ok(Json(serde_json::to_value(rules).unwrap_or(serde_json::Value::Null))),
-        Err(e) => { error!("Failed to list rules: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+    match state
+        .shared
+        .territory_engine
+        .list_territory_rules(territory_id, query.entity_type.as_deref())
+        .await
+    {
+        Ok(rules) => Ok(Json(
+            serde_json::to_value(rules).unwrap_or(serde_json::Value::Null),
+        )),
+        Err(e) => {
+            error!("Failed to list rules: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -367,9 +474,17 @@ pub async fn remove_rule(
     Path(rule_id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let rule_id = Uuid::parse_str(&rule_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.shared.territory_engine.remove_territory_rule(rule_id).await {
+    match state
+        .shared
+        .territory_engine
+        .remove_territory_rule(rule_id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Failed to remove rule: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to remove rule: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -391,15 +506,21 @@ pub async fn route_entity(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.shared.territory_engine.route_entity(
-        org_id,
-        &payload.entity_type,
-        &payload.entity_data,
-    ).await {
-        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap_or(serde_json::Value::Null))),
+    match state
+        .shared
+        .territory_engine
+        .route_entity(org_id, &payload.entity_type, &payload.entity_data)
+        .await
+    {
+        Ok(result) => Ok(Json(
+            serde_json::to_value(result).unwrap_or(serde_json::Value::Null),
+        )),
         Err(e) => {
             error!("Failed to route entity: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -427,20 +548,32 @@ pub async fn set_quota(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let territory_id = Uuid::parse_str(&territory_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.shared.territory_engine.set_territory_quota(
-        org_id,
-        territory_id,
-        &payload.period_name,
-        payload.period_start,
-        payload.period_end,
-        &payload.revenue_quota,
-        &payload.currency_code,
-        None,
-    ).await {
-        Ok(q) => Ok((StatusCode::CREATED, Json(serde_json::to_value(q).unwrap_or(serde_json::Value::Null)))),
+    match state
+        .shared
+        .territory_engine
+        .set_territory_quota(
+            org_id,
+            territory_id,
+            &payload.period_name,
+            payload.period_start,
+            payload.period_end,
+            &payload.revenue_quota,
+            &payload.currency_code,
+            None,
+        )
+        .await
+    {
+        Ok(q) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(q).unwrap_or(serde_json::Value::Null)),
+        )),
         Err(e) => {
             error!("Failed to set quota: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -451,9 +584,19 @@ pub async fn list_quotas(
     Path(territory_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let territory_id = Uuid::parse_str(&territory_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.shared.territory_engine.list_territory_quotas(territory_id).await {
-        Ok(quotas) => Ok(Json(serde_json::to_value(quotas).unwrap_or(serde_json::Value::Null))),
-        Err(e) => { error!("Failed to list quotas: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+    match state
+        .shared
+        .territory_engine
+        .list_territory_quotas(territory_id)
+        .await
+    {
+        Ok(quotas) => Ok(Json(
+            serde_json::to_value(quotas).unwrap_or(serde_json::Value::Null),
+        )),
+        Err(e) => {
+            error!("Failed to list quotas: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -470,11 +613,21 @@ pub async fn update_attainment(
     Json(payload): Json<UpdateAttainmentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let quota_id = Uuid::parse_str(&quota_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.shared.territory_engine.update_quota_attainment(quota_id, &payload.actual_revenue).await {
-        Ok(q) => Ok(Json(serde_json::to_value(q).unwrap_or(serde_json::Value::Null))),
+    match state
+        .shared
+        .territory_engine
+        .update_quota_attainment(quota_id, &payload.actual_revenue)
+        .await
+    {
+        Ok(q) => Ok(Json(
+            serde_json::to_value(q).unwrap_or(serde_json::Value::Null),
+        )),
         Err(e) => {
             error!("Failed to update attainment: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -485,9 +638,17 @@ pub async fn delete_quota(
     Path(quota_id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let quota_id = Uuid::parse_str(&quota_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    match state.shared.territory_engine.delete_territory_quota(quota_id).await {
+    match state
+        .shared
+        .territory_engine
+        .delete_territory_quota(quota_id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Failed to delete quota: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to delete quota: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -501,7 +662,12 @@ pub async fn get_territory_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.shared.territory_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or(serde_json::Value::Null))),
-        Err(e) => { error!("Failed to get territory dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Ok(dashboard) => Ok(Json(
+            serde_json::to_value(dashboard).unwrap_or(serde_json::Value::Null),
+        )),
+        Err(e) => {
+            error!("Failed to get territory dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

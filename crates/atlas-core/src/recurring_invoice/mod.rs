@@ -13,4 +13,4 @@ pub mod engine;
 pub mod repository;
 
 pub use engine::RecurringInvoiceEngine;
-pub use repository::{RecurringInvoiceRepository, PostgresRecurringInvoiceRepository};
+pub use repository::{PostgresRecurringInvoiceRepository, RecurringInvoiceRepository};

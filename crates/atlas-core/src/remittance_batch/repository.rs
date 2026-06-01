@@ -2,11 +2,10 @@
 //!
 //! `PostgreSQL` storage for remittance batches and batch receipts.
 
-use atlas_shared::{
-    RemittanceBatch, RemittanceBatchReceipt, RemittanceBatchSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, RemittanceBatch, RemittanceBatchReceipt, RemittanceBatchSummary,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -33,7 +32,11 @@ pub trait RemittanceBatchRepository: Send + Sync {
     ) -> AtlasResult<RemittanceBatch>;
 
     async fn get_batch(&self, id: Uuid) -> AtlasResult<Option<RemittanceBatch>>;
-    async fn get_batch_by_number(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<RemittanceBatch>>;
+    async fn get_batch_by_number(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<RemittanceBatch>>;
     async fn list_batches(
         &self,
         org_id: Uuid,
@@ -44,7 +47,12 @@ pub trait RemittanceBatchRepository: Send + Sync {
     async fn update_batch_status(&self, id: Uuid, status: &str) -> AtlasResult<RemittanceBatch>;
     async fn update_batch_notes(&self, id: Uuid, notes: Option<&str>) -> AtlasResult<()>;
     async fn update_reference_number(&self, id: Uuid, reference_number: &str) -> AtlasResult<()>;
-    async fn update_batch_totals(&self, id: Uuid, total_amount: f64, receipt_count: i32) -> AtlasResult<()>;
+    async fn update_batch_totals(
+        &self,
+        id: Uuid,
+        total_amount: f64,
+        receipt_count: i32,
+    ) -> AtlasResult<()>;
     async fn update_advice_sent(&self, id: Uuid) -> AtlasResult<RemittanceBatch>;
     async fn get_next_batch_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 
@@ -67,16 +75,22 @@ pub trait RemittanceBatchRepository: Send + Sync {
         metadata: serde_json::Value,
     ) -> AtlasResult<RemittanceBatchReceipt>;
 
-    async fn list_batch_receipts(&self, batch_id: Uuid) -> AtlasResult<Vec<RemittanceBatchReceipt>>;
+    async fn list_batch_receipts(&self, batch_id: Uuid)
+        -> AtlasResult<Vec<RemittanceBatchReceipt>>;
     async fn delete_batch_receipt(&self, batch_id: Uuid, receipt_id: Uuid) -> AtlasResult<()>;
-    async fn get_batch_receipt_by_receipt_id(&self, batch_id: Uuid, receipt_id: Uuid) -> AtlasResult<Option<RemittanceBatchReceipt>>;
+    async fn get_batch_receipt_by_receipt_id(
+        &self,
+        batch_id: Uuid,
+        receipt_id: Uuid,
+    ) -> AtlasResult<Option<RemittanceBatchReceipt>>;
     async fn get_next_receipt_order(&self, batch_id: Uuid) -> AtlasResult<i32>;
     async fn get_batch_summary(&self, org_id: Uuid) -> AtlasResult<RemittanceBatchSummary>;
 }
 
 // Helper functions
 fn get_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> String {
-    row.try_get::<f64, _>(col).map_or_else(|_| "0.00".to_string(), |v| format!("{v:.2}"))
+    row.try_get::<f64, _>(col)
+        .map_or_else(|_| "0.00".to_string(), |v| format!("{v:.2}"))
 }
 
 fn row_to_batch(row: &sqlx::postgres::PgRow) -> RemittanceBatch {
@@ -104,7 +118,10 @@ fn row_to_batch(row: &sqlx::postgres::PgRow) -> RemittanceBatch {
         settlement_date: row.get("settlement_date"),
         reversal_date: row.get("reversal_date"),
         reference_number: row.get("reference_number"),
-        remittance_advice_sent: row.try_get("remittance_advice_sent").unwrap_or(false).into(),
+        remittance_advice_sent: row
+            .try_get("remittance_advice_sent")
+            .unwrap_or(false)
+            .into(),
         remittance_advice_date: row.get("remittance_advice_date"),
         notes: row.get("notes"),
         created_by: row.get("created_by"),
@@ -128,7 +145,10 @@ fn row_to_receipt(row: &sqlx::postgres::PgRow) -> RemittanceBatchReceipt {
         applied_amount: get_numeric_text(row, "applied_amount"),
         receipt_method: row.get("receipt_method"),
         currency_code: row.get("currency_code"),
-        exchange_rate: row.try_get::<f64, _>("exchange_rate").ok().map(|v| format!("{v:.6}")),
+        exchange_rate: row
+            .try_get::<f64, _>("exchange_rate")
+            .ok()
+            .map(|v| format!("{v:.6}")),
         status: row.get("status"),
         display_order: row.try_get("display_order").unwrap_or(0),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
@@ -143,7 +163,7 @@ pub struct PostgresRemittanceBatchRepository {
 }
 
 impl PostgresRemittanceBatchRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -181,11 +201,21 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(batch_number).bind(batch_name)
-        .bind(bank_account_id).bind(bank_account_name).bind(bank_name)
-        .bind(remittance_method).bind(currency_code).bind(batch_date).bind(gl_date)
-        .bind(receipt_currency_code).bind(exchange_rate_type)
-        .bind(format_program).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(batch_number)
+        .bind(batch_name)
+        .bind(bank_account_id)
+        .bind(bank_account_name)
+        .bind(bank_name)
+        .bind(remittance_method)
+        .bind(currency_code)
+        .bind(batch_date)
+        .bind(gl_date)
+        .bind(receipt_currency_code)
+        .bind(exchange_rate_type)
+        .bind(format_program)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -202,7 +232,11 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
         Ok(row.map(|r| row_to_batch(&r)))
     }
 
-    async fn get_batch_by_number(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<RemittanceBatch>> {
+    async fn get_batch_by_number(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<RemittanceBatch>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.remittance_batches WHERE organization_id = $1 AND batch_number = $2"
         )
@@ -230,7 +264,10 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
             ORDER BY batch_date DESC, batch_number DESC
             ",
         )
-        .bind(org_id).bind(status).bind(currency_code).bind(remittance_method)
+        .bind(org_id)
+        .bind(status)
+        .bind(currency_code)
+        .bind(remittance_method)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -260,11 +297,14 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
     }
 
     async fn update_batch_notes(&self, id: Uuid, notes: Option<&str>) -> AtlasResult<()> {
-        sqlx::query("UPDATE _atlas.remittance_batches SET notes = $2, updated_at = now() WHERE id = $1")
-            .bind(id).bind(notes)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "UPDATE _atlas.remittance_batches SET notes = $2, updated_at = now() WHERE id = $1",
+        )
+        .bind(id)
+        .bind(notes)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -277,7 +317,12 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
         Ok(())
     }
 
-    async fn update_batch_totals(&self, id: Uuid, total_amount: f64, receipt_count: i32) -> AtlasResult<()> {
+    async fn update_batch_totals(
+        &self,
+        id: Uuid,
+        total_amount: f64,
+        receipt_count: i32,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.remittance_batches SET total_amount = $2, receipt_count = $3, updated_at = now() WHERE id = $1"
         )
@@ -307,12 +352,10 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
     }
 
     async fn get_next_batch_number(&self, _org_id: Uuid) -> AtlasResult<i32> {
-        let row = sqlx::query(
-            "SELECT nextval('_atlas.remittance_batch_num_seq') as next_num"
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT nextval('_atlas.remittance_batch_num_seq') as next_num")
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         let next_num: i64 = row.try_get("next_num").unwrap_or(1);
         Ok(next_num as i32)
     }
@@ -351,11 +394,21 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(batch_id).bind(receipt_id).bind(receipt_number)
-        .bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(receipt_date).bind(receipt_amount).bind(applied_amount)
-        .bind(receipt_method).bind(currency_code).bind(exchange_rate)
-        .bind(display_order).bind(metadata)
+        .bind(org_id)
+        .bind(batch_id)
+        .bind(receipt_id)
+        .bind(receipt_number)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(receipt_date)
+        .bind(receipt_amount)
+        .bind(applied_amount)
+        .bind(receipt_method)
+        .bind(currency_code)
+        .bind(exchange_rate)
+        .bind(display_order)
+        .bind(metadata)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -363,7 +416,10 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
         Ok(row_to_receipt(&row))
     }
 
-    async fn list_batch_receipts(&self, batch_id: Uuid) -> AtlasResult<Vec<RemittanceBatchReceipt>> {
+    async fn list_batch_receipts(
+        &self,
+        batch_id: Uuid,
+    ) -> AtlasResult<Vec<RemittanceBatchReceipt>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.remittance_batch_receipts WHERE batch_id = $1 ORDER BY display_order, created_at"
         )
@@ -376,16 +432,21 @@ impl RemittanceBatchRepository for PostgresRemittanceBatchRepository {
 
     async fn delete_batch_receipt(&self, batch_id: Uuid, receipt_id: Uuid) -> AtlasResult<()> {
         sqlx::query(
-            "DELETE FROM _atlas.remittance_batch_receipts WHERE batch_id = $1 AND receipt_id = $2"
+            "DELETE FROM _atlas.remittance_batch_receipts WHERE batch_id = $1 AND receipt_id = $2",
         )
-        .bind(batch_id).bind(receipt_id)
+        .bind(batch_id)
+        .bind(receipt_id)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
-    async fn get_batch_receipt_by_receipt_id(&self, batch_id: Uuid, receipt_id: Uuid) -> AtlasResult<Option<RemittanceBatchReceipt>> {
+    async fn get_batch_receipt_by_receipt_id(
+        &self,
+        batch_id: Uuid,
+        receipt_id: Uuid,
+    ) -> AtlasResult<Option<RemittanceBatchReceipt>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.remittance_batch_receipts WHERE batch_id = $1 AND receipt_id = $2"
         )

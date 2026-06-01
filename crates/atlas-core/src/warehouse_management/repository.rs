@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for warehouse management data.
 
-use atlas_shared::{
-    Warehouse, WarehouseZone, PutAwayRule, WarehouseTask, PickWave, WarehouseDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, PickWave, PutAwayRule, Warehouse, WarehouseDashboard, WarehouseTask,
+    WarehouseZone,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -26,8 +26,13 @@ pub trait WarehouseManagementRepository: Send + Sync {
     ) -> AtlasResult<Warehouse>;
 
     async fn get_warehouse(&self, id: Uuid) -> AtlasResult<Option<Warehouse>>;
-    async fn get_warehouse_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<Warehouse>>;
-    async fn list_warehouses(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<Warehouse>>;
+    async fn get_warehouse_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<Warehouse>>;
+    async fn list_warehouses(&self, org_id: Uuid, active_only: bool)
+        -> AtlasResult<Vec<Warehouse>>;
     async fn delete_warehouse(&self, id: Uuid) -> AtlasResult<()>;
 
     // Zones
@@ -87,9 +92,24 @@ pub trait WarehouseManagementRepository: Send + Sync {
     ) -> AtlasResult<WarehouseTask>;
 
     async fn get_task(&self, id: Uuid) -> AtlasResult<Option<WarehouseTask>>;
-    async fn get_task_by_number(&self, org_id: Uuid, task_number: &str) -> AtlasResult<Option<WarehouseTask>>;
-    async fn list_tasks(&self, org_id: Uuid, warehouse_id: Option<Uuid>, status: Option<&str>, task_type: Option<&str>) -> AtlasResult<Vec<WarehouseTask>>;
-    async fn update_task_status(&self, id: Uuid, status: &str, assigned_to: Option<Uuid>) -> AtlasResult<()>;
+    async fn get_task_by_number(
+        &self,
+        org_id: Uuid,
+        task_number: &str,
+    ) -> AtlasResult<Option<WarehouseTask>>;
+    async fn list_tasks(
+        &self,
+        org_id: Uuid,
+        warehouse_id: Option<Uuid>,
+        status: Option<&str>,
+        task_type: Option<&str>,
+    ) -> AtlasResult<Vec<WarehouseTask>>;
+    async fn update_task_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        assigned_to: Option<Uuid>,
+    ) -> AtlasResult<()>;
     async fn delete_task(&self, id: Uuid) -> AtlasResult<()>;
 
     // Pick Waves
@@ -105,10 +125,24 @@ pub trait WarehouseManagementRepository: Send + Sync {
     ) -> AtlasResult<PickWave>;
 
     async fn get_wave(&self, id: Uuid) -> AtlasResult<Option<PickWave>>;
-    async fn get_wave_by_number(&self, org_id: Uuid, wave_number: &str) -> AtlasResult<Option<PickWave>>;
-    async fn list_waves(&self, org_id: Uuid, warehouse_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<PickWave>>;
+    async fn get_wave_by_number(
+        &self,
+        org_id: Uuid,
+        wave_number: &str,
+    ) -> AtlasResult<Option<PickWave>>;
+    async fn list_waves(
+        &self,
+        org_id: Uuid,
+        warehouse_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PickWave>>;
     async fn update_wave_status(&self, id: Uuid, status: &str) -> AtlasResult<()>;
-    async fn update_wave_task_counts(&self, id: Uuid, total: i32, completed: i32) -> AtlasResult<()>;
+    async fn update_wave_task_counts(
+        &self,
+        id: Uuid,
+        total: i32,
+        completed: i32,
+    ) -> AtlasResult<()>;
     async fn delete_wave(&self, id: Uuid) -> AtlasResult<()>;
 
     // Dashboard
@@ -121,7 +155,7 @@ pub struct PostgresWarehouseManagementRepository {
 }
 
 impl PostgresWarehouseManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -176,18 +210,27 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         Ok(row.map(|r| row_to_warehouse(&r)))
     }
 
-    async fn get_warehouse_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<Warehouse>> {
-        let row = sqlx::query("SELECT * FROM _atlas.warehouses WHERE organization_id = $1 AND code = $2")
-            .bind(org_id)
-            .bind(code)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_warehouse_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<Warehouse>> {
+        let row =
+            sqlx::query("SELECT * FROM _atlas.warehouses WHERE organization_id = $1 AND code = $2")
+                .bind(org_id)
+                .bind(code)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_warehouse(&r)))
     }
 
-    async fn list_warehouses(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<Warehouse>> {
+    async fn list_warehouses(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<Warehouse>> {
         let rows = if active_only {
             sqlx::query("SELECT * FROM _atlas.warehouses WHERE organization_id = $1 AND is_active = true ORDER BY name")
                 .bind(org_id)
@@ -448,18 +491,30 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         Ok(row.map(|r| row_to_task(&r)))
     }
 
-    async fn get_task_by_number(&self, org_id: Uuid, task_number: &str) -> AtlasResult<Option<WarehouseTask>> {
-        let row = sqlx::query("SELECT * FROM _atlas.warehouse_tasks WHERE organization_id = $1 AND task_number = $2")
-            .bind(org_id)
-            .bind(task_number)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_task_by_number(
+        &self,
+        org_id: Uuid,
+        task_number: &str,
+    ) -> AtlasResult<Option<WarehouseTask>> {
+        let row = sqlx::query(
+            "SELECT * FROM _atlas.warehouse_tasks WHERE organization_id = $1 AND task_number = $2",
+        )
+        .bind(org_id)
+        .bind(task_number)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_task(&r)))
     }
 
-    async fn list_tasks(&self, org_id: Uuid, warehouse_id: Option<Uuid>, status: Option<&str>, task_type: Option<&str>) -> AtlasResult<Vec<WarehouseTask>> {
+    async fn list_tasks(
+        &self,
+        org_id: Uuid,
+        warehouse_id: Option<Uuid>,
+        status: Option<&str>,
+        task_type: Option<&str>,
+    ) -> AtlasResult<Vec<WarehouseTask>> {
         let rows = match (warehouse_id, status, task_type) {
             (Some(wh), Some(s), Some(t)) => sqlx::query(
                 "SELECT * FROM _atlas.warehouse_tasks WHERE organization_id = $1 AND warehouse_id = $2 AND status = $3 AND task_type = $4 ORDER BY created_at DESC",
@@ -490,7 +545,12 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         Ok(rows.iter().map(row_to_task).collect())
     }
 
-    async fn update_task_status(&self, id: Uuid, status: &str, assigned_to: Option<Uuid>) -> AtlasResult<()> {
+    async fn update_task_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        assigned_to: Option<Uuid>,
+    ) -> AtlasResult<()> {
         let now = chrono::Utc::now();
         let (started_at, completed_at) = match status {
             "in_progress" => (Some(now), None),
@@ -601,18 +661,29 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         Ok(row.map(|r| row_to_wave(&r)))
     }
 
-    async fn get_wave_by_number(&self, org_id: Uuid, wave_number: &str) -> AtlasResult<Option<PickWave>> {
-        let row = sqlx::query("SELECT * FROM _atlas.pick_waves WHERE organization_id = $1 AND wave_number = $2")
-            .bind(org_id)
-            .bind(wave_number)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_wave_by_number(
+        &self,
+        org_id: Uuid,
+        wave_number: &str,
+    ) -> AtlasResult<Option<PickWave>> {
+        let row = sqlx::query(
+            "SELECT * FROM _atlas.pick_waves WHERE organization_id = $1 AND wave_number = $2",
+        )
+        .bind(org_id)
+        .bind(wave_number)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_wave(&r)))
     }
 
-    async fn list_waves(&self, org_id: Uuid, warehouse_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<PickWave>> {
+    async fn list_waves(
+        &self,
+        org_id: Uuid,
+        warehouse_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PickWave>> {
         let rows = match (warehouse_id, status) {
             (Some(wh), Some(s)) => sqlx::query(
                 "SELECT * FROM _atlas.pick_waves WHERE organization_id = $1 AND warehouse_id = $2 AND status = $3 ORDER BY created_at DESC",
@@ -661,7 +732,12 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
         Ok(())
     }
 
-    async fn update_wave_task_counts(&self, id: Uuid, total: i32, completed: i32) -> AtlasResult<()> {
+    async fn update_wave_task_counts(
+        &self,
+        id: Uuid,
+        total: i32,
+        completed: i32,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.pick_waves SET total_tasks = $2, completed_tasks = $3, updated_at = now() WHERE id = $1",
         )
@@ -691,13 +767,12 @@ impl WarehouseManagementRepository for PostgresWarehouseManagementRepository {
     // ─── Dashboard ──────────────────────────────────────────────────────────
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<WarehouseDashboard> {
-        let total_warehouses: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.warehouses WHERE organization_id = $1",
-        )
-        .bind(org_id)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let total_warehouses: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM _atlas.warehouses WHERE organization_id = $1")
+                .bind(org_id)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let active_warehouses: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM _atlas.warehouses WHERE organization_id = $1 AND is_active = true",

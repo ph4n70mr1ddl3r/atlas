@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for absence types, plans, entries, balances, and history.
 
-use atlas_shared::{
-    AbsenceType, AbsencePlan, AbsenceBalance, AbsenceEntry, AbsenceEntryHistory,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AbsenceBalance, AbsenceEntry, AbsenceEntryHistory, AbsencePlan, AbsenceType, AtlasError,
+    AtlasResult,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -32,7 +32,11 @@ pub trait AbsenceRepository: Send + Sync {
     ) -> AtlasResult<AbsenceType>;
 
     async fn get_absence_type(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AbsenceType>>;
-    async fn list_absence_types(&self, org_id: Uuid, category: Option<&str>) -> AtlasResult<Vec<AbsenceType>>;
+    async fn list_absence_types(
+        &self,
+        org_id: Uuid,
+        category: Option<&str>,
+    ) -> AtlasResult<Vec<AbsenceType>>;
     async fn delete_absence_type(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Absence Plans
@@ -56,7 +60,11 @@ pub trait AbsenceRepository: Send + Sync {
 
     async fn get_absence_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AbsencePlan>>;
     async fn get_plan_by_id(&self, id: Uuid) -> AtlasResult<Option<AbsencePlan>>;
-    async fn list_absence_plans(&self, org_id: Uuid, absence_type_id: Option<Uuid>) -> AtlasResult<Vec<AbsencePlan>>;
+    async fn list_absence_plans(
+        &self,
+        org_id: Uuid,
+        absence_type_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AbsencePlan>>;
     async fn delete_absence_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Absence Entries
@@ -133,7 +141,11 @@ pub trait AbsenceRepository: Send + Sync {
         plan_id: Uuid,
         current_period_start: chrono::NaiveDate,
     ) -> AtlasResult<Option<AbsenceBalance>>;
-    async fn list_balances(&self, org_id: Uuid, employee_id: Uuid) -> AtlasResult<Vec<AbsenceBalance>>;
+    async fn list_balances(
+        &self,
+        org_id: Uuid,
+        employee_id: Uuid,
+    ) -> AtlasResult<Vec<AbsenceBalance>>;
     async fn update_balance(
         &self,
         id: Uuid,
@@ -161,7 +173,7 @@ pub struct PostgresAbsenceRepository {
 }
 
 impl PostgresAbsenceRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -316,10 +328,18 @@ impl AbsenceRepository for PostgresAbsenceRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(category)
-        .bind(plan_type).bind(requires_approval).bind(requires_documentation)
-        .bind(auto_approve_below_days).bind(allow_negative_balance)
-        .bind(allow_half_day).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(category)
+        .bind(plan_type)
+        .bind(requires_approval)
+        .bind(requires_documentation)
+        .bind(auto_approve_below_days)
+        .bind(allow_negative_balance)
+        .bind(allow_half_day)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -338,7 +358,11 @@ impl AbsenceRepository for PostgresAbsenceRepository {
         Ok(row.map(|r| self.row_to_absence_type(&r)))
     }
 
-    async fn list_absence_types(&self, org_id: Uuid, category: Option<&str>) -> AtlasResult<Vec<AbsenceType>> {
+    async fn list_absence_types(
+        &self,
+        org_id: Uuid,
+        category: Option<&str>,
+    ) -> AtlasResult<Vec<AbsenceType>> {
         let rows = match category {
             Some(c) => sqlx::query(
                 "SELECT * FROM _atlas.absence_types WHERE organization_id = $1 AND category = $2 AND is_active = true ORDER BY code"
@@ -404,12 +428,20 @@ impl AbsenceRepository for PostgresAbsenceRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(absence_type_id).bind(accrual_frequency).bind(accrual_rate)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(absence_type_id)
+        .bind(accrual_frequency)
+        .bind(accrual_rate)
         .bind(accrual_unit)
-        .bind(carry_over_max.as_deref()).bind(carry_over_expiry_months)
+        .bind(carry_over_max.as_deref())
+        .bind(carry_over_expiry_months)
         .bind(max_balance.as_deref())
-        .bind(probation_period_days).bind(prorate_first_year).bind(created_by)
+        .bind(probation_period_days)
+        .bind(prorate_first_year)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -429,17 +461,19 @@ impl AbsenceRepository for PostgresAbsenceRepository {
     }
 
     async fn get_plan_by_id(&self, id: Uuid) -> AtlasResult<Option<AbsencePlan>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.absence_plans WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.absence_plans WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_absence_plan(&r)))
     }
 
-    async fn list_absence_plans(&self, org_id: Uuid, absence_type_id: Option<Uuid>) -> AtlasResult<Vec<AbsencePlan>> {
+    async fn list_absence_plans(
+        &self,
+        org_id: Uuid,
+        absence_type_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AbsencePlan>> {
         let rows = match absence_type_id {
             Some(tid) => sqlx::query(
                 "SELECT * FROM _atlas.absence_plans WHERE organization_id = $1 AND absence_type_id = $2 AND is_active = true ORDER BY code"
@@ -492,8 +526,13 @@ impl AbsenceRepository for PostgresAbsenceRepository {
         approved_by: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AbsenceEntry> {
-        let approved_by_uuid: Option<Uuid> = approved_by
-            .and_then(|s| if s == "system" { None } else { Uuid::parse_str(s).ok() });
+        let approved_by_uuid: Option<Uuid> = approved_by.and_then(|s| {
+            if s == "system" {
+                None
+            } else {
+                Uuid::parse_str(s).ok()
+            }
+        });
 
         let row = sqlx::query(
             r"
@@ -512,11 +551,24 @@ impl AbsenceRepository for PostgresAbsenceRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(employee_id).bind(employee_name)
-        .bind(absence_type_id).bind(plan_id).bind(entry_number).bind(status)
-        .bind(start_date).bind(end_date).bind(duration_days).bind(duration_hours)
-        .bind(is_half_day).bind(half_day_period).bind(reason).bind(comments)
-        .bind(documentation_provided).bind(approved_by_uuid).bind(created_by)
+        .bind(org_id)
+        .bind(employee_id)
+        .bind(employee_name)
+        .bind(absence_type_id)
+        .bind(plan_id)
+        .bind(entry_number)
+        .bind(status)
+        .bind(start_date)
+        .bind(end_date)
+        .bind(duration_days)
+        .bind(duration_hours)
+        .bind(is_half_day)
+        .bind(half_day_period)
+        .bind(reason)
+        .bind(comments)
+        .bind(documentation_provided)
+        .bind(approved_by_uuid)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -525,13 +577,11 @@ impl AbsenceRepository for PostgresAbsenceRepository {
     }
 
     async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<AbsenceEntry>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.absence_entries WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.absence_entries WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_absence_entry(&r)))
     }
 
@@ -600,8 +650,11 @@ impl AbsenceRepository for PostgresAbsenceRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by)
-        .bind(rejected_reason).bind(cancelled_reason)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(rejected_reason)
+        .bind(cancelled_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -624,7 +677,10 @@ impl AbsenceRepository for PostgresAbsenceRepository {
               AND start_date <= $4 AND end_date >= $3
             ",
         )
-        .bind(org_id).bind(employee_id).bind(start_date).bind(end_date)
+        .bind(org_id)
+        .bind(employee_id)
+        .bind(start_date)
+        .bind(end_date)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -661,9 +717,16 @@ impl AbsenceRepository for PostgresAbsenceRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(employee_id).bind(plan_id)
-        .bind(period_start).bind(period_end)
-        .bind(accrued).bind(taken).bind(adjusted).bind(carried_over).bind(remaining)
+        .bind(org_id)
+        .bind(employee_id)
+        .bind(plan_id)
+        .bind(period_start)
+        .bind(period_end)
+        .bind(accrued)
+        .bind(taken)
+        .bind(adjusted)
+        .bind(carried_over)
+        .bind(remaining)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -701,14 +764,20 @@ impl AbsenceRepository for PostgresAbsenceRepository {
             ORDER BY period_end DESC LIMIT 1
             ",
         )
-        .bind(employee_id).bind(plan_id).bind(current_period_start)
+        .bind(employee_id)
+        .bind(plan_id)
+        .bind(current_period_start)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_absence_balance(&r)))
     }
 
-    async fn list_balances(&self, org_id: Uuid, employee_id: Uuid) -> AtlasResult<Vec<AbsenceBalance>> {
+    async fn list_balances(
+        &self,
+        org_id: Uuid,
+        employee_id: Uuid,
+    ) -> AtlasResult<Vec<AbsenceBalance>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.absence_balances WHERE organization_id = $1 AND employee_id = $2 ORDER BY period_start DESC"
         )
@@ -716,7 +785,10 @@ impl AbsenceRepository for PostgresAbsenceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_absence_balance(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_absence_balance(r))
+            .collect())
     }
 
     async fn update_balance(
@@ -756,8 +828,12 @@ impl AbsenceRepository for PostgresAbsenceRepository {
             VALUES ($1, $2, $3, $4, $5, $6)
             ",
         )
-        .bind(entry_id).bind(action).bind(from_status).bind(to_status)
-        .bind(performed_by).bind(comment)
+        .bind(entry_id)
+        .bind(action)
+        .bind(from_status)
+        .bind(to_status)
+        .bind(performed_by)
+        .bind(comment)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

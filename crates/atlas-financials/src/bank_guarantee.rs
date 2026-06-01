@@ -1,8 +1,8 @@
+use chrono::NaiveDate;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
-use rust_decimal::Decimal;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BankGuarantee {
@@ -58,7 +58,10 @@ impl BankGuaranteeService {
         expiry: Option<NaiveDate>,
     ) -> Result<BankGuarantee, String> {
         let mut guarantees = self.guarantees.write().unwrap();
-        if guarantees.iter().any(|g| g.org_id == org_id && g.guarantee_number == number) {
+        if guarantees
+            .iter()
+            .any(|g| g.org_id == org_id && g.guarantee_number == number)
+        {
             return Err("Bank guarantee with this number already exists".to_string());
         }
 
@@ -80,9 +83,11 @@ impl BankGuaranteeService {
 
     pub fn activate_guarantee(&self, id: Uuid) -> Result<(), String> {
         let mut guarantees = self.guarantees.write().unwrap();
-        let bg = guarantees.iter_mut().find(|g| g.id == id)
+        let bg = guarantees
+            .iter_mut()
+            .find(|g| g.id == id)
             .ok_or_else(|| "Bank guarantee not found".to_string())?;
-        
+
         if bg.status != "draft" {
             return Err("Only draft guarantees can be activated".to_string());
         }
@@ -98,7 +103,9 @@ impl BankGuaranteeService {
         new_amount: Option<Decimal>,
     ) -> Result<BankGuaranteeAmendment, String> {
         let mut guarantees = self.guarantees.write().unwrap();
-        let bg = guarantees.iter_mut().find(|g| g.id == guarantee_id)
+        let bg = guarantees
+            .iter_mut()
+            .find(|g| g.id == guarantee_id)
             .ok_or_else(|| "Bank guarantee not found".to_string())?;
 
         if bg.status != "active" {
@@ -106,7 +113,11 @@ impl BankGuaranteeService {
         }
 
         let mut amendments = self.amendments.write().unwrap();
-        let count = amendments.iter().filter(|a| a.guarantee_id == guarantee_id).count() + 1;
+        let count = amendments
+            .iter()
+            .filter(|a| a.guarantee_id == guarantee_id)
+            .count()
+            + 1;
         let number = format!("{}-AMD-{}", bg.guarantee_number, count);
 
         let amd = BankGuaranteeAmendment {
@@ -133,21 +144,23 @@ mod tests {
     fn test_create_and_activate_guarantee() {
         let service = BankGuaranteeService::new();
         let org_id = Uuid::new_v4();
-        
-        let bg = service.create_guarantee(
-            org_id,
-            "BG-2026-001".to_string(),
-            "performance".to_string(),
-            "Global Build LLC".to_string(),
-            dec!(50000),
-            "USD".to_string(),
-            None,
-        ).unwrap();
+
+        let bg = service
+            .create_guarantee(
+                org_id,
+                "BG-2026-001".to_string(),
+                "performance".to_string(),
+                "Global Build LLC".to_string(),
+                dec!(50000),
+                "USD".to_string(),
+                None,
+            )
+            .unwrap();
 
         assert_eq!(bg.status, "draft");
-        
+
         service.activate_guarantee(bg.id).unwrap();
-        
+
         let guarantees = service.guarantees.read().unwrap();
         assert_eq!(guarantees[0].status, "active");
     }
@@ -156,10 +169,18 @@ mod tests {
     fn test_add_amendment() {
         let service = BankGuaranteeService::new();
         let org_id = Uuid::new_v4();
-        
-        let bg = service.create_guarantee(
-            org_id, "BG-1".to_string(), "bid".to_string(), "B".to_string(), dec!(1000), "USD".to_string(), None
-        ).unwrap();
+
+        let bg = service
+            .create_guarantee(
+                org_id,
+                "BG-1".to_string(),
+                "bid".to_string(),
+                "B".to_string(),
+                dec!(1000),
+                "USD".to_string(),
+                None,
+            )
+            .unwrap();
 
         // Error: not active
         let err = service.add_amendment(bg.id, "increase".to_string(), Some(dec!(2000)));
@@ -167,7 +188,9 @@ mod tests {
 
         service.activate_guarantee(bg.id).unwrap();
 
-        let amd = service.add_amendment(bg.id, "increase".to_string(), Some(dec!(2000))).unwrap();
+        let amd = service
+            .add_amendment(bg.id, "increase".to_string(), Some(dec!(2000)))
+            .unwrap();
         assert_eq!(amd.previous_amount, Some(dec!(1000)));
         assert_eq!(amd.new_amount, Some(dec!(2000)));
     }

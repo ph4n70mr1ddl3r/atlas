@@ -16,4 +16,4 @@ mod engine;
 mod repository;
 
 pub use engine::ProductInformationEngine;
-pub use repository::{ProductInformationRepository, PostgresProductInformationRepository};
+pub use repository::{PostgresProductInformationRepository, ProductInformationRepository};

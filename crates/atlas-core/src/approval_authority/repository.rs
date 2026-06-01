@@ -2,12 +2,11 @@
 //!
 //! `PostgreSQL` storage for approval authority limits and check audit trail.
 
-use atlas_shared::{
-    ApprovalAuthorityLimit, AuthorityCheckAudit,
-    ApprovalAuthorityDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    ApprovalAuthorityDashboard, ApprovalAuthorityLimit, AtlasError, AtlasResult,
+    AuthorityCheckAudit,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -36,7 +35,11 @@ pub trait ApprovalAuthorityRepository: Send + Sync {
     ) -> AtlasResult<ApprovalAuthorityLimit>;
 
     async fn get_limit(&self, id: Uuid) -> AtlasResult<Option<ApprovalAuthorityLimit>>;
-    async fn get_limit_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ApprovalAuthorityLimit>>;
+    async fn get_limit_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ApprovalAuthorityLimit>>;
     async fn list_limits(
         &self,
         org_id: Uuid,
@@ -46,7 +49,11 @@ pub trait ApprovalAuthorityRepository: Send + Sync {
         user_id: Option<Uuid>,
         role_name: Option<&str>,
     ) -> AtlasResult<Vec<ApprovalAuthorityLimit>>;
-    async fn update_limit_status(&self, id: Uuid, status: &str) -> AtlasResult<ApprovalAuthorityLimit>;
+    async fn update_limit_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<ApprovalAuthorityLimit>;
     async fn delete_limit(&self, id: Uuid) -> AtlasResult<()>;
 
     /// Find applicable limits matching the given criteria (used by engine for resolution).
@@ -97,7 +104,7 @@ pub struct PostgresApprovalAuthorityRepository {
 }
 
 impl PostgresApprovalAuthorityRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -176,29 +183,43 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
             RETURNING *",
         )
-        .bind(org_id).bind(limit_code).bind(name).bind(description)
-        .bind(owner_type).bind(user_id).bind(role_name)
-        .bind(document_type).bind(approval_limit_amount).bind(currency_code)
-        .bind(business_unit_id).bind(cost_center)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(limit_code)
+        .bind(name)
+        .bind(description)
+        .bind(owner_type)
+        .bind(user_id)
+        .bind(role_name)
+        .bind(document_type)
+        .bind(approval_limit_amount)
+        .bind(currency_code)
+        .bind(business_unit_id)
+        .bind(cost_center)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_limit(&row))
     }
 
     async fn get_limit(&self, id: Uuid) -> AtlasResult<Option<ApprovalAuthorityLimit>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.approval_authority_limits WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.approval_authority_limits WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_limit(&r)))
     }
 
-    async fn get_limit_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ApprovalAuthorityLimit>> {
+    async fn get_limit_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ApprovalAuthorityLimit>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.approval_authority_limits WHERE organization_id = $1 AND limit_code = $2"
         )
@@ -228,23 +249,34 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
               AND ($6::text IS NULL OR role_name = $6)
             ORDER BY limit_code",
         )
-        .bind(org_id).bind(status).bind(owner_type)
-        .bind(document_type).bind(user_id).bind(role_name)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .bind(owner_type)
+        .bind(document_type)
+        .bind(user_id)
+        .bind(role_name)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_limit).collect())
     }
 
-    async fn update_limit_status(&self, id: Uuid, status: &str) -> AtlasResult<ApprovalAuthorityLimit> {
+    async fn update_limit_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<ApprovalAuthorityLimit> {
         let row = sqlx::query(
             r"UPDATE _atlas.approval_authority_limits
             SET status = $2, updated_at = now()
             WHERE id = $1
             RETURNING *",
         )
-        .bind(id).bind(status)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_limit(&row))
@@ -253,7 +285,8 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
     async fn delete_limit(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.approval_authority_limits WHERE id = $1")
             .bind(id)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -290,10 +323,15 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
               )
             ORDER BY approval_limit_amount DESC",
         )
-        .bind(org_id).bind(owner_type)
-        .bind(user_id).bind(role_name)
-        .bind(document_type).bind(business_unit_id).bind(cost_center)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(owner_type)
+        .bind(user_id)
+        .bind(role_name)
+        .bind(document_type)
+        .bind(business_unit_id)
+        .bind(cost_center)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_limit).collect())
@@ -320,10 +358,18 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
             RETURNING *",
         )
-        .bind(org_id).bind(limit_id).bind(checked_user_id).bind(checked_role)
-        .bind(document_type).bind(document_id).bind(requested_amount)
-        .bind(applicable_limit).bind(result).bind(reason)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(limit_id)
+        .bind(checked_user_id)
+        .bind(checked_role)
+        .bind(document_type)
+        .bind(document_id)
+        .bind(requested_amount)
+        .bind(applicable_limit)
+        .bind(result)
+        .bind(reason)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_audit(&row))
@@ -347,9 +393,13 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
             ORDER BY created_at DESC
             LIMIT $5",
         )
-        .bind(org_id).bind(user_id).bind(document_type).bind(result)
+        .bind(org_id)
+        .bind(user_id)
+        .bind(document_type)
+        .bind(result)
         .bind(limit_val)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_audit).collect())
@@ -365,7 +415,8 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
             FROM _atlas.approval_authority_limits WHERE organization_id = $1",
         )
         .bind(org_id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total: i64 = row.try_get("total").unwrap_or(0);
@@ -379,7 +430,8 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
             GROUP BY document_type",
         )
         .bind(org_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut by_doc_type = serde_json::Map::new();
@@ -397,7 +449,8 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
             GROUP BY owner_type",
         )
         .bind(org_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut by_owner = serde_json::Map::new();
@@ -416,7 +469,8 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
             FROM _atlas.approval_authority_check_audit WHERE organization_id = $1",
         )
         .bind(org_id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_checks: i64 = audit_row.try_get("total_checks").unwrap_or(0);
@@ -430,7 +484,8 @@ impl ApprovalAuthorityRepository for PostgresApprovalAuthorityRepository {
             ORDER BY created_at DESC LIMIT 10",
         )
         .bind(org_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(ApprovalAuthorityDashboard {

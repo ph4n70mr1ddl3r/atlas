@@ -8,11 +8,11 @@
 //! - Dashboard summary
 //! - Validation edge cases
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 use uuid::Uuid;
 
 async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
@@ -20,17 +20,28 @@ async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router)
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
     // Clean PPR test data
-    sqlx::query("DELETE FROM _atlas.ppr_activities").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ppr_selected_documents").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.payment_process_requests").execute(&state.db_pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ppr_activities")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ppr_selected_documents")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.payment_process_requests")
+        .execute(&state.db_pool)
+        .await
+        .ok();
     sqlx::query("CREATE SCHEMA IF NOT EXISTS _atlas")
         .execute(&state.db_pool)
         .await
         .ok();
-    sqlx::raw_sql(include_str!("../../../../migrations/132_payment_process_request.sql"))
-        .execute(&state.db_pool)
-        .await
-        .expect("Failed to run PPR migration");
+    sqlx::raw_sql(include_str!(
+        "../../../../migrations/132_payment_process_request.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .expect("Failed to run PPR migration");
     let app = build_router(state.clone());
     (state, app)
 }
@@ -51,18 +62,31 @@ async fn create_ppr(
         "paymentMethod": payment_method,
         "selectionCriteria": selection_criteria,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/payment-process-requests")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/payment-process-requests")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("CREATE PPR status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create PPR: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create PPR: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -89,18 +113,34 @@ async fn add_document(
         "liabilityAccount": "2000",
         "discountAccount": "6500",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/documents", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/documents",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("ADD DOCUMENT status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to add document: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to add document: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -140,16 +180,24 @@ async fn test_create_ppr_with_due_date_criteria() {
         "takeDiscount": true,
         "payOnlyDue": true,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/payment-process-requests")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/payment-process-requests")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["paymentMethod"], "ach");
     assert_eq!(body["selectionCriteria"], "due_date");
     assert_eq!(body["currencyCode"], "EUR");
@@ -165,14 +213,22 @@ async fn test_get_ppr() {
     let ppr_id: Uuid = ppr["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/payment-process-requests/{}", ppr_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/payment-process-requests/{}", ppr_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["id"], ppr["id"]);
     assert_eq!(body["requestName"], "Test PPR");
 }
@@ -185,14 +241,25 @@ async fn test_get_ppr_by_number() {
     let number = ppr["requestNumber"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/payment-process-requests/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/number/{}",
+                    number
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["requestNumber"], number);
 }
 
@@ -204,14 +271,22 @@ async fn test_list_pprs() {
     create_ppr(&app, "PPR 2", "wire", "due_date").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/payment-process-requests")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/payment-process-requests")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -228,33 +303,57 @@ async fn test_list_pprs_filter_by_status() {
     add_document(&app, ppr_id, "INV-001", 5000.0, "Supplier A").await;
 
     // Submit the PPR
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/submit", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/submit",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Filter by draft - should not include the submitted one
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/payment-process-requests?status=draft")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/payment-process-requests?status=draft")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(data.iter().all(|b| b["status"] == "draft"));
 
     // Filter by submitted
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/payment-process-requests?status=submitted")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/payment-process-requests?status=submitted")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(data.iter().all(|b| b["status"] == "submitted"));
     assert!(data.len() >= 1);
@@ -268,11 +367,21 @@ async fn test_delete_draft_ppr() {
     let number = ppr["requestNumber"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/payment-process-requests/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/number/{}",
+                    number
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -294,55 +403,99 @@ async fn test_full_lifecycle_confirmed() {
     add_document(&app, ppr_id, "INV-002", 3000.0, "Beta Inc").await;
 
     // Submit
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/submit", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/submit",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "submitted");
 
     // Complete Selection
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/complete-selection", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/complete-selection",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "selection_complete");
 
     // Format
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/format", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/format",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "formatted");
 
     // Confirm
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/confirm", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/confirm",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "confirmed");
     assert!(body["confirmedAt"].is_string());
 }
@@ -355,18 +508,32 @@ async fn test_cancel_from_draft() {
     let ppr_id: Uuid = ppr["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/cancel", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "reason": "No longer needed"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/cancel",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "reason": "No longer needed"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "cancelled");
     assert_eq!(body["cancelReason"], "No longer needed");
 }
@@ -382,25 +549,46 @@ async fn test_cancel_from_submitted() {
     add_document(&app, ppr_id, "INV-010", 1000.0, "Test").await;
 
     // Submit first
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/submit", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/submit",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Cancel from submitted
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/cancel", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"reason": "Budget cut"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/cancel",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"reason": "Budget cut"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "cancelled");
 }
 
@@ -417,26 +605,44 @@ async fn test_cancel_from_selection_complete() {
     // Submit and complete selection
     for endpoint in &["submit", "complete-selection"] {
         let uri = format!("/api/v1/payment-process-requests/{}/{}", ppr_id, endpoint);
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&uri)
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from("{}"))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&uri)
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from("{}"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Cancel from selection_complete
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/cancel", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"reason": "Error in selection"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/cancel",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"reason": "Error in selection"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "cancelled");
 }
 
@@ -448,13 +654,22 @@ async fn test_invalid_transition_confirm_from_draft() {
     let ppr_id: Uuid = ppr["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/confirm", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/confirm",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -466,13 +681,22 @@ async fn test_submit_without_documents_fails() {
     let ppr_id: Uuid = ppr["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/submit", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/submit",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -485,22 +709,41 @@ async fn test_cannot_confirm_cancelled() {
 
     let (k, v) = auth_header(&admin_claims());
     // Cancel from draft
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/cancel", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"reason": "test"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/cancel",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"reason": "test"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to confirm cancelled
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/confirm", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/confirm",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -516,20 +759,38 @@ async fn test_delete_non_draft_fails() {
     add_document(&app, ppr_id, "INV-030", 1000.0, "Test").await;
 
     // Submit
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/submit", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/submit",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to delete submitted PPR
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/payment-process-requests/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/number/{}",
+                    number
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -549,17 +810,29 @@ async fn test_add_documents_and_totals() {
 
     // Verify PPR totals
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/payment-process-requests/{}", ppr_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/payment-process-requests/{}", ppr_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert_eq!(body["totalDocuments"], 2);
     let total_payment: f64 = body["totalPaymentAmount"].as_f64().unwrap();
-    assert!((total_payment - 8000.0).abs() < 0.01, "Expected 8000, got {}", total_payment);
+    assert!(
+        (total_payment - 8000.0).abs() < 0.01,
+        "Expected 8000, got {}",
+        total_payment
+    );
 }
 
 #[tokio::test]
@@ -576,25 +849,47 @@ async fn test_remove_document_and_recalc() {
 
     // Remove first document
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/payment-process-requests/{}/documents/{}", ppr_id, doc1_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/documents/{}",
+                    ppr_id, doc1_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 
     // Verify totals recalculated
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/payment-process-requests/{}", ppr_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/payment-process-requests/{}", ppr_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert_eq!(body["totalDocuments"], 1);
     let total: f64 = body["totalPaymentAmount"].as_f64().unwrap();
-    assert!((total - 3000.0).abs() < 0.01, "Expected 3000 after removal, got {}", total);
+    assert!(
+        (total - 3000.0).abs() < 0.01,
+        "Expected 3000 after removal, got {}",
+        total
+    );
 }
 
 #[tokio::test]
@@ -609,14 +904,25 @@ async fn test_list_documents() {
     add_document(&app, ppr_id, "INV-302", 3000.0, "Supplier Z").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/payment-process-requests/{}/documents", ppr_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/documents",
+                    ppr_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["data"].as_array().unwrap().len(), 3);
 }
 
@@ -631,13 +937,21 @@ async fn test_add_document_to_submitted_ppr_fails() {
     add_document(&app, ppr_id, "INV-400", 1000.0, "Test").await;
 
     // Submit
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/submit", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from("{}"))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/submit",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to add document to submitted PPR
     let payload = json!({
@@ -645,13 +959,22 @@ async fn test_add_document_to_submitted_ppr_fails() {
         "originalAmount": 500, "amountDue": 500, "amountToPay": 500,
         "invoiceAmount": 500,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/documents", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/documents",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -668,13 +991,22 @@ async fn test_add_document_zero_amount_fails() {
         "originalAmount": 0, "amountDue": 0, "amountToPay": 0,
         "invoiceAmount": 0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/documents", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/documents",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -691,13 +1023,22 @@ async fn test_add_document_exceeds_due_fails() {
         "originalAmount": 1000, "amountDue": 1000, "amountToPay": 2000,
         "invoiceAmount": 1000,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/documents", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/documents",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -719,40 +1060,69 @@ async fn test_activity_trail() {
 
     for endpoint in &["submit", "complete-selection", "format", "confirm"] {
         let uri = format!("/api/v1/payment-process-requests/{}/{}", ppr_id, endpoint);
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&uri)
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from("{}"))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&uri)
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from("{}"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Check activities
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/payment-process-requests/{}/activities", ppr_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/activities",
+                    ppr_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     let activities = body["data"].as_array().unwrap();
     // Should have: created + document_added + submitted + selection_complete + formatted + confirmed = 6+
-    assert!(activities.len() >= 5, "Expected at least 5 activities, got {}", activities.len());
+    assert!(
+        activities.len() >= 5,
+        "Expected at least 5 activities, got {}",
+        activities.len()
+    );
 
     // Verify created activity
-    let created = activities.iter().find(|a| a["activityType"] == "created").unwrap();
+    let created = activities
+        .iter()
+        .find(|a| a["activityType"] == "created")
+        .unwrap();
     assert_eq!(created["newStatus"], "draft");
 
     // Verify submitted activity
-    let submitted = activities.iter().find(|a| a["activityType"] == "submitted").unwrap();
+    let submitted = activities
+        .iter()
+        .find(|a| a["activityType"] == "submitted")
+        .unwrap();
     assert_eq!(submitted["oldStatus"], "draft");
     assert_eq!(submitted["newStatus"], "submitted");
 
     // Verify confirmed activity
-    let confirmed = activities.iter().find(|a| a["activityType"] == "confirmed").unwrap();
+    let confirmed = activities
+        .iter()
+        .find(|a| a["activityType"] == "confirmed")
+        .unwrap();
     assert_eq!(confirmed["oldStatus"], "formatted");
     assert_eq!(confirmed["newStatus"], "confirmed");
 }
@@ -777,23 +1147,36 @@ async fn test_dashboard() {
     add_document(&app, ppr3_id, "INV-600", 10000.0, "Big Corp").await;
     for endpoint in &["submit", "complete-selection", "format", "confirm"] {
         let uri = format!("/api/v1/payment-process-requests/{}/{}", ppr3_id, endpoint);
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&uri)
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from("{}"))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&uri)
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from("{}"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/payment-process-requests/dashboard")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/payment-process-requests/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert!(body.get("totalRequests").is_some());
     assert!(body.get("draftCount").is_some());
@@ -828,13 +1211,19 @@ async fn test_create_ppr_invalid_payment_method() {
         "paymentMethod": "crypto",
         "selectionCriteria": "all_open",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/payment-process-requests")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/payment-process-requests")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -850,13 +1239,19 @@ async fn test_create_ppr_invalid_selection_criteria() {
         "paymentMethod": "electronic",
         "selectionCriteria": "unknown",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/payment-process-requests")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/payment-process-requests")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -872,13 +1267,19 @@ async fn test_create_ppr_due_date_criteria_without_range() {
         "paymentMethod": "electronic",
         "selectionCriteria": "due_date",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/payment-process-requests")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/payment-process-requests")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -894,13 +1295,19 @@ async fn test_create_ppr_gl_date_after_payment_date() {
         "paymentMethod": "electronic",
         "selectionCriteria": "all_open",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/payment-process-requests")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/payment-process-requests")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -909,11 +1316,20 @@ async fn test_create_ppr_gl_date_after_payment_date() {
 async fn test_get_ppr_not_found() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/payment-process-requests/{}", Uuid::new_v4()))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}",
+                    Uuid::new_v4()
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -922,11 +1338,17 @@ async fn test_get_ppr_not_found() {
 async fn test_invalid_status_filter() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/payment-process-requests?status=nonexistent")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/payment-process-requests?status=nonexistent")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -958,20 +1380,35 @@ async fn test_add_document_with_discount() {
         "liabilityAccount": "2000",
         "discountAccount": "6500",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/documents", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/documents",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let discount: f64 = body["discountTaken"].as_f64().unwrap();
     assert!((discount - 200.0).abs() < 0.01);
     let net: f64 = body["netPayment"].as_f64().unwrap();
-    assert!((net - 9800.0).abs() < 0.01, "Net should be 9800 (10000 - 200 discount), got {}", net);
+    assert!(
+        (net - 9800.0).abs() < 0.01,
+        "Net should be 9800 (10000 - 200 discount), got {}",
+        net
+    );
 }
 
 #[tokio::test]
@@ -987,13 +1424,22 @@ async fn test_discount_exceeds_available_fails() {
         "originalAmount": 1000, "amountDue": 1000, "amountToPay": 1000,
         "invoiceAmount": 1000, "discountAvailable": 50, "discountTaken": 100,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/payment-process-requests/{}/documents", ppr_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/documents",
+                    ppr_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -1016,25 +1462,44 @@ async fn test_confirm_marks_documents_paid() {
     // Full lifecycle
     for endpoint in &["submit", "complete-selection", "format", "confirm"] {
         let uri = format!("/api/v1/payment-process-requests/{}/{}", ppr_id, endpoint);
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&uri)
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from("{}"))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&uri)
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from("{}"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Check documents are paid
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/payment-process-requests/{}/documents", ppr_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/payment-process-requests/{}/documents",
+                    ppr_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     let docs = body["data"].as_array().unwrap();
-    assert!(docs.iter().all(|d| d["status"] == "paid"), "All documents should be paid after confirmation");
+    assert!(
+        docs.iter().all(|d| d["status"] == "paid"),
+        "All documents should be paid after confirmation"
+    );
     assert_eq!(docs.len(), 2);
 }

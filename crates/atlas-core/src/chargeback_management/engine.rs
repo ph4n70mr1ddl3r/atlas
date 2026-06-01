@@ -5,43 +5,57 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Receivables > Chargebacks
 
-use atlas_shared::{AtlasError, AtlasResult};
 use super::repository::{
-    ChargebackManagementRepository,
-    Chargeback, ChargebackLine, ChargebackActivity, ChargebackSummary,
-    ChargebackCreateParams, ChargebackLineCreateParams,
+    Chargeback, ChargebackActivity, ChargebackCreateParams, ChargebackLine,
+    ChargebackLineCreateParams, ChargebackManagementRepository, ChargebackSummary,
 };
+use atlas_shared::{AtlasError, AtlasResult};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 // Valid reason codes for chargebacks
 const VALID_REASON_CODES: &[&str] = &[
-    "damaged_goods", "pricing_dispute", "promotional_allowance",
-    "short_shipment", "quality_issue", "return_not_credited",
-    "duplicate_charge", "late_delivery", "contract_discount",
-    "volume_rebate", "advertising_allowance", "freight_dispute",
+    "damaged_goods",
+    "pricing_dispute",
+    "promotional_allowance",
+    "short_shipment",
+    "quality_issue",
+    "return_not_credited",
+    "duplicate_charge",
+    "late_delivery",
+    "contract_discount",
+    "volume_rebate",
+    "advertising_allowance",
+    "freight_dispute",
     "other",
 ];
 
 // Valid categories
 const VALID_CATEGORIES: &[&str] = &[
-    "pricing", "quality", "delivery", "promotion",
-    "returns", "freight", "other",
+    "pricing",
+    "quality",
+    "delivery",
+    "promotion",
+    "returns",
+    "freight",
+    "other",
 ];
 
 // Valid statuses
 const VALID_STATUSES: &[&str] = &[
-    "open", "under_review", "accepted", "rejected", "written_off",
+    "open",
+    "under_review",
+    "accepted",
+    "rejected",
+    "written_off",
 ];
 
 // Valid priorities
 const VALID_PRIORITIES: &[&str] = &["low", "medium", "high", "critical"];
 
 // Valid line types
-const VALID_LINE_TYPES: &[&str] = &[
-    "chargeback", "tax", "freight", "discount", "adjustment",
-];
+const VALID_LINE_TYPES: &[&str] = &["chargeback", "tax", "freight", "discount", "adjustment"];
 
 /// Chargeback Management Engine
 pub struct ChargebackManagementEngine {
@@ -60,7 +74,9 @@ impl ChargebackManagementEngine {
     fn validate_reason_code(reason_code: &str) -> AtlasResult<()> {
         if !VALID_REASON_CODES.contains(&reason_code) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid reason_code '{}'. Must be one of: {}", reason_code, VALID_REASON_CODES.join(", ")
+                "Invalid reason_code '{}'. Must be one of: {}",
+                reason_code,
+                VALID_REASON_CODES.join(", ")
             )));
         }
         Ok(())
@@ -69,7 +85,9 @@ impl ChargebackManagementEngine {
     fn validate_category(category: &str) -> AtlasResult<()> {
         if !VALID_CATEGORIES.contains(&category) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid category '{}'. Must be one of: {}", category, VALID_CATEGORIES.join(", ")
+                "Invalid category '{}'. Must be one of: {}",
+                category,
+                VALID_CATEGORIES.join(", ")
             )));
         }
         Ok(())
@@ -78,7 +96,9 @@ impl ChargebackManagementEngine {
     fn validate_status(status: &str) -> AtlasResult<()> {
         if !VALID_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid status '{}'. Must be one of: {}", status, VALID_STATUSES.join(", ")
+                "Invalid status '{}'. Must be one of: {}",
+                status,
+                VALID_STATUSES.join(", ")
             )));
         }
         Ok(())
@@ -87,7 +107,9 @@ impl ChargebackManagementEngine {
     fn validate_priority(priority: &str) -> AtlasResult<()> {
         if !VALID_PRIORITIES.contains(&priority) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid priority '{}'. Must be one of: {}", priority, VALID_PRIORITIES.join(", ")
+                "Invalid priority '{}'. Must be one of: {}",
+                priority,
+                VALID_PRIORITIES.join(", ")
             )));
         }
         Ok(())
@@ -96,7 +118,9 @@ impl ChargebackManagementEngine {
     fn validate_line_type(line_type: &str) -> AtlasResult<()> {
         if !VALID_LINE_TYPES.contains(&line_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid line_type '{}'. Must be one of: {}", line_type, VALID_LINE_TYPES.join(", ")
+                "Invalid line_type '{}'. Must be one of: {}",
+                line_type,
+                VALID_LINE_TYPES.join(", ")
             )));
         }
         Ok(())
@@ -159,7 +183,10 @@ impl ChargebackManagementEngine {
         notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<Chargeback> {
-        info!("Creating chargeback for org {} customer {:?}", org_id, customer_name);
+        info!(
+            "Creating chargeback for org {} customer {:?}",
+            org_id, customer_name
+        );
 
         Self::validate_reason_code(reason_code)?;
         if let Some(cat) = category {
@@ -171,7 +198,7 @@ impl ChargebackManagementEngine {
 
         if amount <= 0.0 {
             return Err(AtlasError::ValidationFailed(
-                "Chargeback amount must be greater than zero".to_string()
+                "Chargeback amount must be greater than zero".to_string(),
             ));
         }
 
@@ -211,16 +238,20 @@ impl ChargebackManagementEngine {
         let chargeback = self.repo.create_chargeback(&params).await?;
 
         // Log activity
-        let _ = self.repo.create_activity(
-            org_id, chargeback.id,
-            "created",
-            Some("Chargeback created"),
-            None,
-            Some("open"),
-            created_by,
-            None,
-            None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                org_id,
+                chargeback.id,
+                "created",
+                Some("Chargeback created"),
+                None,
+                Some("open"),
+                created_by,
+                None,
+                None,
+            )
+            .await;
 
         Ok(chargeback)
     }
@@ -231,8 +262,14 @@ impl ChargebackManagementEngine {
     }
 
     /// Get a chargeback by number
-    pub async fn get_chargeback_by_number(&self, org_id: Uuid, chargeback_number: &str) -> AtlasResult<Option<Chargeback>> {
-        self.repo.get_chargeback_by_number(org_id, chargeback_number).await
+    pub async fn get_chargeback_by_number(
+        &self,
+        org_id: Uuid,
+        chargeback_number: &str,
+    ) -> AtlasResult<Option<Chargeback>> {
+        self.repo
+            .get_chargeback_by_number(org_id, chargeback_number)
+            .await
     }
 
     /// List chargebacks with optional filters
@@ -245,19 +282,31 @@ impl ChargebackManagementEngine {
         category: Option<&str>,
         priority: Option<&str>,
     ) -> AtlasResult<Vec<Chargeback>> {
-        self.repo.list_chargebacks(org_id, status, customer_id, reason_code, category, priority).await
+        self.repo
+            .list_chargebacks(org_id, status, customer_id, reason_code, category, priority)
+            .await
     }
 
     /// Delete a chargeback (only allowed in open status)
-    pub async fn delete_chargeback(&self, org_id: Uuid, chargeback_number: &str) -> AtlasResult<()> {
-        info!("Deleting chargeback '{}' for org {}", chargeback_number, org_id);
+    pub async fn delete_chargeback(
+        &self,
+        org_id: Uuid,
+        chargeback_number: &str,
+    ) -> AtlasResult<()> {
+        info!(
+            "Deleting chargeback '{}' for org {}",
+            chargeback_number, org_id
+        );
 
-        let cb = self.repo.get_chargeback_by_number(org_id, chargeback_number).await?
+        let cb = self
+            .repo
+            .get_chargeback_by_number(org_id, chargeback_number)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Chargeback not found".to_string()))?;
 
         if cb.status != "open" {
             return Err(AtlasError::ValidationFailed(
-                "Only chargebacks in 'open' status can be deleted".to_string()
+                "Only chargebacks in 'open' status can be deleted".to_string(),
             ));
         }
 
@@ -280,34 +329,50 @@ impl ChargebackManagementEngine {
         info!("Transitioning chargeback {} to status '{}'", id, new_status);
         Self::validate_status(new_status)?;
 
-        let current = self.repo.get_chargeback(id).await?
+        let current = self
+            .repo
+            .get_chargeback(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Chargeback not found".to_string()))?;
 
         Self::validate_status_transition(&current.status, new_status)?;
 
-        let chargeback = self.repo.update_chargeback_status(
-            id,
-            new_status,
-            if new_status == "accepted" || new_status == "rejected" || new_status == "written_off" {
-                Some(chrono::Utc::now().naive_utc().date())
-            } else {
-                None
-            },
-            resolution_notes,
-            resolved_by,
-        ).await?;
+        let chargeback = self
+            .repo
+            .update_chargeback_status(
+                id,
+                new_status,
+                if new_status == "accepted"
+                    || new_status == "rejected"
+                    || new_status == "written_off"
+                {
+                    Some(chrono::Utc::now().naive_utc().date())
+                } else {
+                    None
+                },
+                resolution_notes,
+                resolved_by,
+            )
+            .await?;
 
         // Log activity
-        let _ = self.repo.create_activity(
-            current.organization_id, id,
-            &format!("status_change_{new_status}"),
-            Some(&format!("Status changed from '{}' to '{}'", current.status, new_status)),
-            Some(&current.status),
-            Some(new_status),
-            resolved_by,
-            resolved_by_name,
-            resolution_notes,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                current.organization_id,
+                id,
+                &format!("status_change_{new_status}"),
+                Some(&format!(
+                    "Status changed from '{}' to '{}'",
+                    current.status, new_status
+                )),
+                Some(&current.status),
+                Some(new_status),
+                resolved_by,
+                resolved_by_name,
+                resolution_notes,
+            )
+            .await;
 
         Ok(chargeback)
     }
@@ -319,16 +384,33 @@ impl ChargebackManagementEngine {
         assigned_to: Option<&str>,
         assigned_team: Option<&str>,
     ) -> AtlasResult<Chargeback> {
-        info!("Assigning chargeback {} to {:?}/{:?}", id, assigned_to, assigned_team);
-        let cb = self.repo.assign_chargeback(id, assigned_to, assigned_team).await?;
+        info!(
+            "Assigning chargeback {} to {:?}/{:?}",
+            id, assigned_to, assigned_team
+        );
+        let cb = self
+            .repo
+            .assign_chargeback(id, assigned_to, assigned_team)
+            .await?;
 
-        let _ = self.repo.create_activity(
-            cb.organization_id, id,
-            "assigned",
-            Some(&format!("Assigned to {} / {}", assigned_to.unwrap_or("N/A"), assigned_team.unwrap_or("N/A"))),
-            None, None, None, None,
-            None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                cb.organization_id,
+                id,
+                "assigned",
+                Some(&format!(
+                    "Assigned to {} / {}",
+                    assigned_to.unwrap_or("N/A"),
+                    assigned_team.unwrap_or("N/A")
+                )),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
 
         Ok(cb)
     }
@@ -365,12 +447,16 @@ impl ChargebackManagementEngine {
         Self::validate_line_type(line_type)?;
 
         // Verify chargeback exists and is in editable status
-        let cb = self.repo.get_chargeback(chargeback_id).await?
+        let cb = self
+            .repo
+            .get_chargeback(chargeback_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Chargeback not found".to_string()))?;
 
         if cb.status != "open" && cb.status != "under_review" {
             return Err(AtlasError::ValidationFailed(
-                "Lines can only be added to chargebacks in 'open' or 'under_review' status".to_string()
+                "Lines can only be added to chargebacks in 'open' or 'under_review' status"
+                    .to_string(),
             ));
         }
 
@@ -400,36 +486,60 @@ impl ChargebackManagementEngine {
         self.recalculate_totals(chargeback_id).await?;
 
         // Log activity
-        let _ = self.repo.create_activity(
-            org_id, chargeback_id,
-            "line_added",
-            Some(&format!("Line added: {line_type} ({amount})")),
-            None, None, None, None, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                org_id,
+                chargeback_id,
+                "line_added",
+                Some(&format!("Line added: {line_type} ({amount})")),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
 
         Ok(line)
     }
 
     /// List lines for a chargeback
-    pub async fn list_chargeback_lines(&self, chargeback_id: Uuid) -> AtlasResult<Vec<ChargebackLine>> {
+    pub async fn list_chargeback_lines(
+        &self,
+        chargeback_id: Uuid,
+    ) -> AtlasResult<Vec<ChargebackLine>> {
         self.repo.list_chargeback_lines(chargeback_id).await
     }
 
     /// Remove a line from a chargeback
-    pub async fn remove_chargeback_line(&self, chargeback_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
-        info!("Removing line {} from chargeback {}", line_id, chargeback_id);
+    pub async fn remove_chargeback_line(
+        &self,
+        chargeback_id: Uuid,
+        line_id: Uuid,
+    ) -> AtlasResult<()> {
+        info!(
+            "Removing line {} from chargeback {}",
+            line_id, chargeback_id
+        );
 
         // Verify chargeback is in editable status
-        let cb = self.repo.get_chargeback(chargeback_id).await?
+        let cb = self
+            .repo
+            .get_chargeback(chargeback_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Chargeback not found".to_string()))?;
 
         if cb.status != "open" && cb.status != "under_review" {
             return Err(AtlasError::ValidationFailed(
-                "Lines can only be removed from chargebacks in 'open' or 'under_review' status".to_string()
+                "Lines can only be removed from chargebacks in 'open' or 'under_review' status"
+                    .to_string(),
             ));
         }
 
-        self.repo.delete_chargeback_line(chargeback_id, line_id).await?;
+        self.repo
+            .delete_chargeback_line(chargeback_id, line_id)
+            .await?;
 
         // Recalculate totals
         self.recalculate_totals(chargeback_id).await?;
@@ -443,7 +553,15 @@ impl ChargebackManagementEngine {
         let total_amount: f64 = lines.iter().map(|l| l.total_amount).sum();
         let amount: f64 = lines.iter().map(|l| l.amount).sum();
         let tax_amount: f64 = lines.iter().map(|l| l.tax_amount).sum();
-        self.repo.update_chargeback_totals(chargeback_id, amount, tax_amount, total_amount, total_amount).await?;
+        self.repo
+            .update_chargeback_totals(
+                chargeback_id,
+                amount,
+                tax_amount,
+                total_amount,
+                total_amount,
+            )
+            .await?;
         Ok(())
     }
 
@@ -452,7 +570,10 @@ impl ChargebackManagementEngine {
     // ========================================================================
 
     /// List activities for a chargeback
-    pub async fn list_activities(&self, chargeback_id: Uuid) -> AtlasResult<Vec<ChargebackActivity>> {
+    pub async fn list_activities(
+        &self,
+        chargeback_id: Uuid,
+    ) -> AtlasResult<Vec<ChargebackActivity>> {
         self.repo.list_activities(chargeback_id).await
     }
 
@@ -469,14 +590,24 @@ impl ChargebackManagementEngine {
     // Exported validation functions for handler use
     // ========================================================================
 
-    #[must_use] 
-    pub const fn valid_reason_codes() -> &'static [&'static str] { VALID_REASON_CODES }
-    #[must_use] 
-    pub const fn valid_categories() -> &'static [&'static str] { VALID_CATEGORIES }
-    #[must_use] 
-    pub const fn valid_statuses() -> &'static [&'static str] { VALID_STATUSES }
-    #[must_use] 
-    pub const fn valid_priorities() -> &'static [&'static str] { VALID_PRIORITIES }
-    #[must_use] 
-    pub const fn valid_line_types() -> &'static [&'static str] { VALID_LINE_TYPES }
+    #[must_use]
+    pub const fn valid_reason_codes() -> &'static [&'static str] {
+        VALID_REASON_CODES
+    }
+    #[must_use]
+    pub const fn valid_categories() -> &'static [&'static str] {
+        VALID_CATEGORIES
+    }
+    #[must_use]
+    pub const fn valid_statuses() -> &'static [&'static str] {
+        VALID_STATUSES
+    }
+    #[must_use]
+    pub const fn valid_priorities() -> &'static [&'static str] {
+        VALID_PRIORITIES
+    }
+    #[must_use]
+    pub const fn valid_line_types() -> &'static [&'static str] {
+        VALID_LINE_TYPES
+    }
 }

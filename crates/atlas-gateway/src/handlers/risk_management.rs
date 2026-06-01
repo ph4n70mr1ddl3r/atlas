@@ -9,15 +9,14 @@
 //! - Issue/remediation tracking
 //! - Risk dashboard summary
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -43,19 +42,32 @@ pub async fn create_category(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let cat = state.shared.risk_management_engine.create_category(
-        org_id, &payload.code, &payload.name, payload.description.as_deref(),
-        payload.parent_category_id, payload.sort_order, Some(user_id),
-    ).await.map_err(|e| {
-        tracing::error!("Create category error: {}", e);
-        match e {
-            atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
-            atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    let cat = state
+        .shared
+        .risk_management_engine
+        .create_category(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            payload.parent_category_id,
+            payload.sort_order,
+            Some(user_id),
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Create category error: {}", e);
+            match e {
+                atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(cat))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(cat)),
+    ))
 }
 
 pub async fn list_categories(
@@ -63,7 +75,11 @@ pub async fn list_categories(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let cats = state.shared.risk_management_engine.list_categories(org_id).await
+    let cats = state
+        .shared
+        .risk_management_engine
+        .list_categories(org_id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": cats })))
 }
@@ -72,7 +88,11 @@ pub async fn get_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let cat = state.shared.risk_management_engine.get_category(id).await
+    let cat = state
+        .shared
+        .risk_management_engine
+        .get_category(id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match cat {
         Some(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
@@ -86,12 +106,15 @@ pub async fn delete_category(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.shared.risk_management_engine.delete_category(org_id, &code).await.map_err(|e| {
-        match e {
+    state
+        .shared
+        .risk_management_engine
+        .delete_category(org_id, &code)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -125,31 +148,51 @@ pub async fn create_risk(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let risk = state.shared.risk_management_engine.create_risk(
-        org_id, &payload.risk_number, &payload.title, payload.description.as_deref(),
-        payload.category_id, payload.risk_source.as_deref().unwrap_or("operational"),
-        payload.likelihood.unwrap_or(3), payload.impact.unwrap_or(3),
-        payload.owner_id, payload.owner_name.as_deref(),
-        payload.response_strategy.as_deref(), payload.business_units,
-        payload.related_entity_type.as_deref(), payload.related_entity_id,
-        Some(user_id),
-    ).await.map_err(|e| {
-        tracing::error!("Create risk error: {}", e);
-        match e {
-            atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
-            atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    let risk = state
+        .shared
+        .risk_management_engine
+        .create_risk(
+            org_id,
+            &payload.risk_number,
+            &payload.title,
+            payload.description.as_deref(),
+            payload.category_id,
+            payload.risk_source.as_deref().unwrap_or("operational"),
+            payload.likelihood.unwrap_or(3),
+            payload.impact.unwrap_or(3),
+            payload.owner_id,
+            payload.owner_name.as_deref(),
+            payload.response_strategy.as_deref(),
+            payload.business_units,
+            payload.related_entity_type.as_deref(),
+            payload.related_entity_id,
+            Some(user_id),
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Create risk error: {}", e);
+            match e {
+                atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(risk))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(risk)),
+    ))
 }
 
 pub async fn get_risk(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let risk = state.shared.risk_management_engine.get_risk(id).await
+    let risk = state
+        .shared
+        .risk_management_engine
+        .get_risk(id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match risk {
         Some(r) => Ok(Json(crate::handlers::records::to_json_or_null(r))),
@@ -170,9 +213,17 @@ pub async fn list_risks(
     Query(params): Query<ListRisksParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let risks = state.shared.risk_management_engine.list_risks(
-        org_id, params.status.as_deref(), params.risk_level.as_deref(), params.risk_source.as_deref(),
-    ).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let risks = state
+        .shared
+        .risk_management_engine
+        .list_risks(
+            org_id,
+            params.status.as_deref(),
+            params.risk_level.as_deref(),
+            params.risk_source.as_deref(),
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": risks })))
 }
 
@@ -187,13 +238,16 @@ pub async fn update_risk_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateRiskStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let risk = state.shared.risk_management_engine.update_risk_status(id, &payload.status).await.map_err(|e| {
-        match e {
+    let risk = state
+        .shared
+        .risk_management_engine
+        .update_risk_status(id, &payload.status)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(Json(crate::handlers::records::to_json_or_null(risk)))
 }
 
@@ -211,16 +265,22 @@ pub async fn assess_risk(
     Path(id): Path<Uuid>,
     Json(payload): Json<AssessRiskRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let risk = state.shared.risk_management_engine.assess_risk(
-        id, payload.likelihood, payload.impact,
-        payload.residual_likelihood, payload.residual_impact,
-    ).await.map_err(|e| {
-        match e {
+    let risk = state
+        .shared
+        .risk_management_engine
+        .assess_risk(
+            id,
+            payload.likelihood,
+            payload.impact,
+            payload.residual_likelihood,
+            payload.residual_impact,
+        )
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(Json(crate::handlers::records::to_json_or_null(risk)))
 }
 
@@ -230,12 +290,15 @@ pub async fn delete_risk(
     Path(risk_number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.shared.risk_management_engine.delete_risk(org_id, &risk_number).await.map_err(|e| {
-        match e {
+    state
+        .shared
+        .risk_management_engine
+        .delete_risk(org_id, &risk_number)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -269,33 +332,51 @@ pub async fn create_control(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let ctrl = state.shared.risk_management_engine.create_control(
-        org_id, &payload.control_number, &payload.title, payload.description.as_deref(),
-        payload.control_type.as_deref().unwrap_or("preventive"),
-        payload.control_nature.as_deref().unwrap_or("manual"),
-        payload.frequency.as_deref().unwrap_or("monthly"),
-        payload.objective.as_deref(), payload.test_procedures.as_deref(),
-        payload.owner_id, payload.owner_name.as_deref(),
-        payload.is_key_control.unwrap_or(false),
-        payload.business_processes, payload.regulatory_frameworks,
-        Some(user_id),
-    ).await.map_err(|e| {
-        tracing::error!("Create control error: {}", e);
-        match e {
-            atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
-            atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    let ctrl = state
+        .shared
+        .risk_management_engine
+        .create_control(
+            org_id,
+            &payload.control_number,
+            &payload.title,
+            payload.description.as_deref(),
+            payload.control_type.as_deref().unwrap_or("preventive"),
+            payload.control_nature.as_deref().unwrap_or("manual"),
+            payload.frequency.as_deref().unwrap_or("monthly"),
+            payload.objective.as_deref(),
+            payload.test_procedures.as_deref(),
+            payload.owner_id,
+            payload.owner_name.as_deref(),
+            payload.is_key_control.unwrap_or(false),
+            payload.business_processes,
+            payload.regulatory_frameworks,
+            Some(user_id),
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Create control error: {}", e);
+            match e {
+                atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ctrl))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(ctrl)),
+    ))
 }
 
 pub async fn get_control(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let ctrl = state.shared.risk_management_engine.get_control(id).await
+    let ctrl = state
+        .shared
+        .risk_management_engine
+        .get_control(id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match ctrl {
         Some(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
@@ -315,9 +396,16 @@ pub async fn list_controls(
     Query(params): Query<ListControlsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let ctrls = state.shared.risk_management_engine.list_controls(
-        org_id, params.status.as_deref(), params.control_type.as_deref(),
-    ).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let ctrls = state
+        .shared
+        .risk_management_engine
+        .list_controls(
+            org_id,
+            params.status.as_deref(),
+            params.control_type.as_deref(),
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": ctrls })))
 }
 
@@ -332,13 +420,16 @@ pub async fn update_control_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateControlStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let ctrl = state.shared.risk_management_engine.update_control_status(id, &payload.status).await.map_err(|e| {
-        match e {
+    let ctrl = state
+        .shared
+        .risk_management_engine
+        .update_control_status(id, &payload.status)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(Json(crate::handlers::records::to_json_or_null(ctrl)))
 }
 
@@ -353,13 +444,16 @@ pub async fn update_control_effectiveness(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateEffectivenessRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let ctrl = state.shared.risk_management_engine.update_control_effectiveness(id, &payload.effectiveness).await.map_err(|e| {
-        match e {
+    let ctrl = state
+        .shared
+        .risk_management_engine
+        .update_control_effectiveness(id, &payload.effectiveness)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(Json(crate::handlers::records::to_json_or_null(ctrl)))
 }
 
@@ -369,12 +463,15 @@ pub async fn delete_control(
     Path(control_number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.shared.risk_management_engine.delete_control(org_id, &control_number).await.map_err(|e| {
-        match e {
+    state
+        .shared
+        .risk_management_engine
+        .delete_control(org_id, &control_number)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -399,27 +496,45 @@ pub async fn create_mapping(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let mapping = state.shared.risk_management_engine.create_risk_control_mapping(
-        org_id, payload.risk_id, payload.control_id,
-        payload.mitigation_effectiveness.as_deref().unwrap_or("partial"),
-        payload.description.as_deref(), Some(user_id),
-    ).await.map_err(|e| {
-        tracing::error!("Create mapping error: {}", e);
-        match e {
-            atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
-            atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    let mapping = state
+        .shared
+        .risk_management_engine
+        .create_risk_control_mapping(
+            org_id,
+            payload.risk_id,
+            payload.control_id,
+            payload
+                .mitigation_effectiveness
+                .as_deref()
+                .unwrap_or("partial"),
+            payload.description.as_deref(),
+            Some(user_id),
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Create mapping error: {}", e);
+            match e {
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(mapping))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(mapping)),
+    ))
 }
 
 pub async fn list_risk_mappings(
     State(state): State<Arc<AppState>>,
     Path(risk_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let mappings = state.shared.risk_management_engine.list_risk_mappings(risk_id).await
+    let mappings = state
+        .shared
+        .risk_management_engine
+        .list_risk_mappings(risk_id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": mappings })))
 }
@@ -428,7 +543,11 @@ pub async fn list_control_mappings(
     State(state): State<Arc<AppState>>,
     Path(control_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let mappings = state.shared.risk_management_engine.list_control_mappings(control_id).await
+    let mappings = state
+        .shared
+        .risk_management_engine
+        .list_control_mappings(control_id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": mappings })))
 }
@@ -437,12 +556,15 @@ pub async fn delete_mapping(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.shared.risk_management_engine.delete_mapping(id).await.map_err(|e| {
-        match e {
+    state
+        .shared
+        .risk_management_engine
+        .delete_mapping(id)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -470,28 +592,46 @@ pub async fn create_control_test(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let test = state.shared.risk_management_engine.create_control_test(
-        org_id, payload.control_id, &payload.test_number, &payload.test_plan,
-        payload.test_period_start, payload.test_period_end,
-        payload.tester_id, payload.tester_name.as_deref(), Some(user_id),
-    ).await.map_err(|e| {
-        tracing::error!("Create control test error: {}", e);
-        match e {
-            atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
-            atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
-            atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    let test = state
+        .shared
+        .risk_management_engine
+        .create_control_test(
+            org_id,
+            payload.control_id,
+            &payload.test_number,
+            &payload.test_plan,
+            payload.test_period_start,
+            payload.test_period_end,
+            payload.tester_id,
+            payload.tester_name.as_deref(),
+            Some(user_id),
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Create control test error: {}", e);
+            match e {
+                atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(test))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(test)),
+    ))
 }
 
 pub async fn get_control_test(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let test = state.shared.risk_management_engine.get_control_test(id).await
+    let test = state
+        .shared
+        .risk_management_engine
+        .get_control_test(id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match test {
         Some(t) => Ok(Json(crate::handlers::records::to_json_or_null(t))),
@@ -503,7 +643,11 @@ pub async fn list_control_tests(
     State(state): State<Arc<AppState>>,
     Path(control_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let tests = state.shared.risk_management_engine.list_control_tests(control_id).await
+    let tests = state
+        .shared
+        .risk_management_engine
+        .list_control_tests(control_id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": tests })))
 }
@@ -512,12 +656,15 @@ pub async fn start_control_test(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let test = state.shared.risk_management_engine.start_control_test(id).await.map_err(|e| {
-        match e {
+    let test = state
+        .shared
+        .risk_management_engine
+        .start_control_test(id)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(Json(crate::handlers::records::to_json_or_null(test)))
 }
 
@@ -536,16 +683,23 @@ pub async fn complete_control_test(
     Path(id): Path<Uuid>,
     Json(payload): Json<CompleteControlTestRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let test = state.shared.risk_management_engine.complete_control_test(
-        id, &payload.result, payload.findings.as_deref(),
-        payload.deficiency_severity.as_deref(), payload.sample_size, payload.sample_exceptions,
-    ).await.map_err(|e| {
-        match e {
+    let test = state
+        .shared
+        .risk_management_engine
+        .complete_control_test(
+            id,
+            &payload.result,
+            payload.findings.as_deref(),
+            payload.deficiency_severity.as_deref(),
+            payload.sample_size,
+            payload.sample_exceptions,
+        )
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(Json(crate::handlers::records::to_json_or_null(test)))
 }
 
@@ -555,12 +709,15 @@ pub async fn delete_control_test(
     Path(test_number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.shared.risk_management_engine.delete_control_test(org_id, &test_number).await.map_err(|e| {
-        match e {
+    state
+        .shared
+        .risk_management_engine
+        .delete_control_test(org_id, &test_number)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -594,32 +751,51 @@ pub async fn create_issue(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let issue = state.shared.risk_management_engine.create_issue(
-        org_id, &payload.issue_number, &payload.title, &payload.description,
-        payload.source.as_deref().unwrap_or("self_identified"),
-        payload.risk_id, payload.control_id, payload.control_test_id,
-        payload.severity.as_deref().unwrap_or("medium"),
-        payload.priority.as_deref().unwrap_or("normal"),
-        payload.owner_id, payload.owner_name.as_deref(),
-        payload.remediation_plan.as_deref(), payload.remediation_due_date,
-        Some(user_id),
-    ).await.map_err(|e| {
-        tracing::error!("Create issue error: {}", e);
-        match e {
-            atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
-            atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    let issue = state
+        .shared
+        .risk_management_engine
+        .create_issue(
+            org_id,
+            &payload.issue_number,
+            &payload.title,
+            &payload.description,
+            payload.source.as_deref().unwrap_or("self_identified"),
+            payload.risk_id,
+            payload.control_id,
+            payload.control_test_id,
+            payload.severity.as_deref().unwrap_or("medium"),
+            payload.priority.as_deref().unwrap_or("normal"),
+            payload.owner_id,
+            payload.owner_name.as_deref(),
+            payload.remediation_plan.as_deref(),
+            payload.remediation_due_date,
+            Some(user_id),
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Create issue error: {}", e);
+            match e {
+                atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(issue))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(issue)),
+    ))
 }
 
 pub async fn get_issue(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let issue = state.shared.risk_management_engine.get_issue(id).await
+    let issue = state
+        .shared
+        .risk_management_engine
+        .get_issue(id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match issue {
         Some(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
@@ -639,9 +815,12 @@ pub async fn list_issues(
     Query(params): Query<ListIssuesParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let issues = state.shared.risk_management_engine.list_issues(
-        org_id, params.status.as_deref(), params.severity.as_deref(),
-    ).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let issues = state
+        .shared
+        .risk_management_engine
+        .list_issues(org_id, params.status.as_deref(), params.severity.as_deref())
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({ "data": issues })))
 }
 
@@ -656,13 +835,16 @@ pub async fn update_issue_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateIssueStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let issue = state.shared.risk_management_engine.update_issue_status(id, &payload.status).await.map_err(|e| {
-        match e {
+    let issue = state
+        .shared
+        .risk_management_engine
+        .update_issue_status(id, &payload.status)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(Json(crate::handlers::records::to_json_or_null(issue)))
 }
 
@@ -678,14 +860,19 @@ pub async fn resolve_issue(
     Path(id): Path<Uuid>,
     Json(payload): Json<ResolveIssueRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let issue = state.shared.risk_management_engine.resolve_issue(
-        id, payload.root_cause.as_deref(), payload.corrective_actions.as_deref(),
-    ).await.map_err(|e| {
-        match e {
+    let issue = state
+        .shared
+        .risk_management_engine
+        .resolve_issue(
+            id,
+            payload.root_cause.as_deref(),
+            payload.corrective_actions.as_deref(),
+        )
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(Json(crate::handlers::records::to_json_or_null(issue)))
 }
 
@@ -695,12 +882,15 @@ pub async fn delete_issue(
     Path(issue_number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.shared.risk_management_engine.delete_issue(org_id, &issue_number).await.map_err(|e| {
-        match e {
+    state
+        .shared
+        .risk_management_engine
+        .delete_issue(org_id, &issue_number)
+        .await
+        .map_err(|e| match e {
             atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+        })?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -713,7 +903,11 @@ pub async fn get_risk_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let dashboard = state.shared.risk_management_engine.get_dashboard(org_id).await
+    let dashboard = state
+        .shared
+        .risk_management_engine
+        .get_dashboard(org_id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(crate::handlers::records::to_json_or_null(dashboard)))
 }

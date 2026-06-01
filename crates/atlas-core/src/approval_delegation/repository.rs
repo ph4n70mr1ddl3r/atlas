@@ -2,11 +2,10 @@
 //!
 //! `PostgreSQL` storage for delegation rules and history.
 
-use atlas_shared::{
-    ApprovalDelegationRule, DelegationHistoryEntry, DelegationDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    ApprovalDelegationRule, AtlasError, AtlasResult, DelegationDashboard, DelegationHistoryEntry,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -35,14 +34,34 @@ pub trait ApprovalDelegationRepository: Send + Sync {
     ) -> AtlasResult<ApprovalDelegationRule>;
 
     async fn get_rule(&self, id: Uuid) -> AtlasResult<Option<ApprovalDelegationRule>>;
-    async fn list_rules_for_delegator(&self, org_id: Uuid, delegator_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ApprovalDelegationRule>>;
-    async fn list_rules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ApprovalDelegationRule>>;
-    async fn cancel_rule(&self, id: Uuid, cancelled_by: Uuid, reason: Option<&str>) -> AtlasResult<()>;
+    async fn list_rules_for_delegator(
+        &self,
+        org_id: Uuid,
+        delegator_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ApprovalDelegationRule>>;
+    async fn list_rules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ApprovalDelegationRule>>;
+    async fn cancel_rule(
+        &self,
+        id: Uuid,
+        cancelled_by: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<()>;
     async fn activate_rule(&self, id: Uuid) -> AtlasResult<()>;
     async fn delete_rule(&self, id: Uuid) -> AtlasResult<()>;
     async fn activate_due_rules(&self) -> AtlasResult<Vec<Uuid>>;
     async fn expire_due_rules(&self) -> AtlasResult<Vec<Uuid>>;
-    async fn find_active_delegate(&self, org_id: Uuid, approver_id: Uuid, entity_type: Option<&str>, approver_role: Option<&str>) -> AtlasResult<Option<Uuid>>;
+    async fn find_active_delegate(
+        &self,
+        org_id: Uuid,
+        approver_id: Uuid,
+        entity_type: Option<&str>,
+        approver_role: Option<&str>,
+    ) -> AtlasResult<Option<Uuid>>;
     #[allow(clippy::too_many_arguments)]
     async fn record_delegation(
         &self,
@@ -55,7 +74,12 @@ pub trait ApprovalDelegationRepository: Send + Sync {
         entity_type: Option<&str>,
         entity_id: Option<Uuid>,
     ) -> AtlasResult<DelegationHistoryEntry>;
-    async fn list_delegation_history(&self, org_id: Uuid, user_id: Uuid, limit: i64) -> AtlasResult<Vec<DelegationHistoryEntry>>;
+    async fn list_delegation_history(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+        limit: i64,
+    ) -> AtlasResult<Vec<DelegationHistoryEntry>>;
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<DelegationDashboard>;
 }
 
@@ -65,7 +89,7 @@ pub struct PostgresApprovalDelegationRepository {
 }
 
 impl PostgresApprovalDelegationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -148,7 +172,7 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
                  start_date, end_date, auto_activate, auto_expire, status, activated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
-            "
+            ",
         )
         .bind(org_id)
         .bind(delegator_id)
@@ -179,18 +203,21 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
     }
 
     async fn get_rule(&self, id: Uuid) -> AtlasResult<Option<ApprovalDelegationRule>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.approval_delegation_rules WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.approval_delegation_rules WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| self.row_to_rule(&r)))
     }
 
-    async fn list_rules_for_delegator(&self, org_id: Uuid, delegator_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ApprovalDelegationRule>> {
+    async fn list_rules_for_delegator(
+        &self,
+        org_id: Uuid,
+        delegator_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ApprovalDelegationRule>> {
         let rows = match status {
             Some(s) => sqlx::query(
                 "SELECT * FROM _atlas.approval_delegation_rules WHERE organization_id = $1 AND delegator_id = $2 AND status = $3 ORDER BY created_at DESC"
@@ -207,7 +234,11 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
         Ok(rows.iter().map(|r| self.row_to_rule(r)).collect())
     }
 
-    async fn list_rules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ApprovalDelegationRule>> {
+    async fn list_rules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ApprovalDelegationRule>> {
         let rows = match status {
             Some(s) => sqlx::query(
                 "SELECT * FROM _atlas.approval_delegation_rules WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC"
@@ -224,17 +255,25 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
         Ok(rows.iter().map(|r| self.row_to_rule(r)).collect())
     }
 
-    async fn cancel_rule(&self, id: Uuid, cancelled_by: Uuid, reason: Option<&str>) -> AtlasResult<()> {
+    async fn cancel_rule(
+        &self,
+        id: Uuid,
+        cancelled_by: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"
             UPDATE _atlas.approval_delegation_rules 
             SET status = 'cancelled', is_active = false, cancelled_by = $2, 
                 cancellation_reason = $3, cancelled_at = now(), updated_at = now()
             WHERE id = $1
-            "
+            ",
         )
-        .bind(id).bind(cancelled_by).bind(reason)
-        .execute(&self.pool).await
+        .bind(id)
+        .bind(cancelled_by)
+        .bind(reason)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -252,7 +291,8 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
     async fn delete_rule(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.approval_delegation_rules WHERE id = $1")
             .bind(id)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -266,9 +306,10 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
               AND auto_activate = true 
               AND start_date <= CURRENT_DATE
             RETURNING id
-            "
+            ",
         )
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(|r| r.get::<Uuid, _>("id")).collect())
@@ -283,9 +324,10 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
               AND auto_expire = true 
               AND end_date < CURRENT_DATE
             RETURNING id
-            "
+            ",
         )
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(|r| r.get::<Uuid, _>("id")).collect())
@@ -309,10 +351,12 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
               AND CURRENT_DATE BETWEEN start_date AND end_date
               AND delegation_type = 'all'
             LIMIT 1
-            "
+            ",
         )
-        .bind(org_id).bind(approver_id)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(approver_id)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         if let Some(r) = &row {
@@ -332,11 +376,13 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
                   AND delegation_type = 'by_entity'
                   AND entity_types @> $3::jsonb
                 LIMIT 1
-                "
+                ",
             )
-            .bind(org_id).bind(approver_id)
+            .bind(org_id)
+            .bind(approver_id)
             .bind(serde_json::json!([et]))
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
             if let Some(r) = &row {
@@ -357,11 +403,13 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
                   AND delegation_type = 'by_role'
                   AND roles @> $3::jsonb
                 LIMIT 1
-                "
+                ",
             )
-            .bind(org_id).bind(approver_id)
+            .bind(org_id)
+            .bind(approver_id)
             .bind(serde_json::json!([role]))
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
             if let Some(r) = &row {
@@ -391,27 +439,42 @@ impl ApprovalDelegationRepository for PostgresApprovalDelegationRepository {
                  approval_step_id, approval_request_id, entity_type, entity_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(rule_id).bind(original_approver_id).bind(delegated_to_id)
-        .bind(approval_step_id).bind(approval_request_id).bind(entity_type).bind(entity_id)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(rule_id)
+        .bind(original_approver_id)
+        .bind(delegated_to_id)
+        .bind(approval_step_id)
+        .bind(approval_request_id)
+        .bind(entity_type)
+        .bind(entity_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_history(&row))
     }
 
-    async fn list_delegation_history(&self, org_id: Uuid, user_id: Uuid, limit: i64) -> AtlasResult<Vec<DelegationHistoryEntry>> {
+    async fn list_delegation_history(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+        limit: i64,
+    ) -> AtlasResult<Vec<DelegationHistoryEntry>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.approval_delegation_history
             WHERE organization_id = $1 AND (original_approver_id = $2 OR delegated_to_id = $2)
             ORDER BY created_at DESC
             LIMIT $3
-            "
+            ",
         )
-        .bind(org_id).bind(user_id).bind(limit)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(user_id)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(|r| self.row_to_history(r)).collect())

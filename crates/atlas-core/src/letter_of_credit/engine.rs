@@ -6,62 +6,101 @@
 //!
 //! Oracle Fusion equivalent: Treasury > Trade Finance > Letters of Credit
 
-use atlas_shared::{
-    LetterOfCredit, LcAmendment, LcRequiredDocument, LcShipment,
-    LcPresentation, LcPresentationDocument, LcDashboard,
-    AtlasError, AtlasResult,
-};
 use super::LetterOfCreditRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, LcAmendment, LcDashboard, LcPresentation, LcPresentationDocument,
+    LcRequiredDocument, LcShipment, LetterOfCredit,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid LC types
 const VALID_LC_TYPES: &[&str] = &[
-    "import", "export", "back_to_back", "transferable",
-    "standby", "revolving", "red_clause", "green_clause",
+    "import",
+    "export",
+    "back_to_back",
+    "transferable",
+    "standby",
+    "revolving",
+    "red_clause",
+    "green_clause",
 ];
 
 /// Valid LC forms
 const VALID_LC_FORMS: &[&str] = &[
-    "irrevocable", "revocable", "irrevocable_confirmed", "irrevocable_unconfirmed",
+    "irrevocable",
+    "revocable",
+    "irrevocable_confirmed",
+    "irrevocable_unconfirmed",
 ];
 
 /// Valid LC statuses
 #[allow(dead_code)]
 const VALID_STATUSES: &[&str] = &[
-    "draft", "issued", "advised", "confirmed", "accepted",
-    "paid", "expired", "cancelled",
+    "draft",
+    "issued",
+    "advised",
+    "confirmed",
+    "accepted",
+    "paid",
+    "expired",
+    "cancelled",
 ];
 
 /// Valid amendment types
 const VALID_AMENDMENT_TYPES: &[&str] = &[
-    "amount_increase", "amount_decrease", "expiry_extension",
-    "expiry_reduction", "terms_change", "beneficiary_change",
-    "document_change", "shipment_change", "other",
+    "amount_increase",
+    "amount_decrease",
+    "expiry_extension",
+    "expiry_reduction",
+    "terms_change",
+    "beneficiary_change",
+    "document_change",
+    "shipment_change",
+    "other",
 ];
 
 /// Valid amendment statuses
 #[allow(dead_code)]
 const VALID_AMENDMENT_STATUSES: &[&str] = &[
-    "draft", "pending_approval", "approved", "rejected", "applied",
+    "draft",
+    "pending_approval",
+    "approved",
+    "rejected",
+    "applied",
 ];
 
 /// Valid shipment statuses
 const VALID_SHIPMENT_STATUSES: &[&str] = &[
-    "pending", "shipped", "in_transit", "arrived", "delivered", "cancelled",
+    "pending",
+    "shipped",
+    "in_transit",
+    "arrived",
+    "delivered",
+    "cancelled",
 ];
 
 /// Valid presentation statuses
 #[allow(dead_code)]
 const VALID_PRESENTATION_STATUSES: &[&str] = &[
-    "submitted", "under_review", "compliant", "discrepant",
-    "accepted", "paid", "rejected", "returned",
+    "submitted",
+    "under_review",
+    "compliant",
+    "discrepant",
+    "accepted",
+    "paid",
+    "rejected",
+    "returned",
 ];
 
 /// Valid `available_by` values
 const VALID_AVAILABLE_BY: &[&str] = &[
-    "payment", "acceptance", "negotiation", "deferred_payment", "mixed",
+    "payment",
+    "acceptance",
+    "negotiation",
+    "deferred_payment",
+    "mixed",
 ];
 
 /// Letter of Credit engine
@@ -124,35 +163,59 @@ impl LetterOfCreditEngine {
     ) -> AtlasResult<LetterOfCredit> {
         // Validate
         if lc_number.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("LC number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "LC number is required".to_string(),
+            ));
         }
         if !VALID_LC_TYPES.contains(&lc_type) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid LC type: {lc_type}")));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid LC type: {lc_type}"
+            )));
         }
         if !VALID_LC_FORMS.contains(&lc_form) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid LC form: {lc_form}")));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid LC form: {lc_form}"
+            )));
         }
         if !VALID_AVAILABLE_BY.contains(&available_by) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid available_by: {available_by}")));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid available_by: {available_by}"
+            )));
         }
-        let amount_val: f64 = lc_amount.parse()
+        let amount_val: f64 = lc_amount
+            .parse()
             .map_err(|_| AtlasError::ValidationFailed("Invalid LC amount".to_string()))?;
         if amount_val <= 0.0 {
-            return Err(AtlasError::ValidationFailed("LC amount must be positive".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "LC amount must be positive".to_string(),
+            ));
         }
         if applicant_name.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Applicant name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Applicant name is required".to_string(),
+            ));
         }
         if applicant_bank_name.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Applicant bank name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Applicant bank name is required".to_string(),
+            ));
         }
         if beneficiary_name.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Beneficiary name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Beneficiary name is required".to_string(),
+            ));
         }
 
         // Check uniqueness
-        if self.repository.get_lc_by_number(org_id, lc_number).await?.is_some() {
-            return Err(AtlasError::ValidationFailed(format!("LC number already exists: {lc_number}")));
+        if self
+            .repository
+            .get_lc_by_number(org_id, lc_number)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::ValidationFailed(format!(
+                "LC number already exists: {lc_number}"
+            )));
         }
 
         let lc = LetterOfCredit {
@@ -198,7 +261,8 @@ impl LetterOfCreditEngine {
             amendment_count: 0,
             latest_amendment_number: None,
             reference_po_number: reference_po_number.map(std::string::ToString::to_string),
-            reference_contract_number: reference_contract_number.map(std::string::ToString::to_string),
+            reference_contract_number: reference_contract_number
+                .map(std::string::ToString::to_string),
             notes: notes.map(std::string::ToString::to_string),
             created_by_id: created_by,
             approved_by_id: None,
@@ -211,7 +275,11 @@ impl LetterOfCreditEngine {
     }
 
     /// Get LC by number
-    pub async fn get_lc_by_number(&self, org_id: Uuid, lc_number: &str) -> AtlasResult<Option<LetterOfCredit>> {
+    pub async fn get_lc_by_number(
+        &self,
+        org_id: Uuid,
+        lc_number: &str,
+    ) -> AtlasResult<Option<LetterOfCredit>> {
         self.repository.get_lc_by_number(org_id, lc_number).await
     }
 
@@ -221,7 +289,12 @@ impl LetterOfCreditEngine {
     }
 
     /// List LCs with optional filters
-    pub async fn list_lcs(&self, org_id: Uuid, status: Option<&str>, lc_type: Option<&str>) -> AtlasResult<Vec<LetterOfCredit>> {
+    pub async fn list_lcs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        lc_type: Option<&str>,
+    ) -> AtlasResult<Vec<LetterOfCredit>> {
         self.repository.list_lcs(org_id, status, lc_type).await
     }
 
@@ -235,12 +308,21 @@ impl LetterOfCreditEngine {
     // ========================================================================
 
     /// Issue a draft LC (set issue date, move to issued status)
-    pub async fn issue_lc(&self, id: Uuid, issue_date: chrono::NaiveDate) -> AtlasResult<LetterOfCredit> {
-        let lc = self.repository.get_lc_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Letter of credit not found".to_string()))?;
+    pub async fn issue_lc(
+        &self,
+        id: Uuid,
+        issue_date: chrono::NaiveDate,
+    ) -> AtlasResult<LetterOfCredit> {
+        let lc =
+            self.repository.get_lc_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Letter of credit not found".to_string())
+            })?;
 
         if lc.status != "draft" {
-            return Err(AtlasError::ValidationFailed(format!("Cannot issue LC in status '{}'. Must be in 'draft' status.", lc.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot issue LC in status '{}'. Must be in 'draft' status.",
+                lc.status
+            )));
         }
 
         self.repository.update_lc_issue(id, issue_date).await?;
@@ -251,53 +333,82 @@ impl LetterOfCreditEngine {
 
     /// Advise an issued LC
     pub async fn advise_lc(&self, id: Uuid) -> AtlasResult<LetterOfCredit> {
-        let lc = self.repository.get_lc_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Letter of credit not found".to_string()))?;
+        let lc =
+            self.repository.get_lc_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Letter of credit not found".to_string())
+            })?;
 
         if lc.status != "issued" {
-            return Err(AtlasError::ValidationFailed(format!("Cannot advise LC in status '{}'. Must be in 'issued' status.", lc.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot advise LC in status '{}'. Must be in 'issued' status.",
+                lc.status
+            )));
         }
 
-        let updated = self.repository.update_lc_status(id, "advised", None).await?;
+        let updated = self
+            .repository
+            .update_lc_status(id, "advised", None)
+            .await?;
         info!("Advised letter of credit {}", lc.lc_number);
         Ok(updated)
     }
 
     /// Confirm an advised LC
     pub async fn confirm_lc(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<LetterOfCredit> {
-        let lc = self.repository.get_lc_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Letter of credit not found".to_string()))?;
+        let lc =
+            self.repository.get_lc_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Letter of credit not found".to_string())
+            })?;
 
         if lc.status != "advised" {
-            return Err(AtlasError::ValidationFailed(format!("Cannot confirm LC in status '{}'. Must be in 'advised' status.", lc.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot confirm LC in status '{}'. Must be in 'advised' status.",
+                lc.status
+            )));
         }
 
-        let updated = self.repository.update_lc_status(id, "confirmed", Some(approved_by)).await?;
+        let updated = self
+            .repository
+            .update_lc_status(id, "confirmed", Some(approved_by))
+            .await?;
         info!("Confirmed letter of credit {}", lc.lc_number);
         Ok(updated)
     }
 
     /// Accept an LC presentation
     pub async fn accept_lc(&self, id: Uuid) -> AtlasResult<LetterOfCredit> {
-        let lc = self.repository.get_lc_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Letter of credit not found".to_string()))?;
+        let lc =
+            self.repository.get_lc_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Letter of credit not found".to_string())
+            })?;
 
         if !["issued", "advised", "confirmed"].contains(&lc.status.as_str()) {
-            return Err(AtlasError::ValidationFailed(format!("Cannot accept LC in status '{}'.", lc.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot accept LC in status '{}'.",
+                lc.status
+            )));
         }
 
-        let updated = self.repository.update_lc_status(id, "accepted", None).await?;
+        let updated = self
+            .repository
+            .update_lc_status(id, "accepted", None)
+            .await?;
         info!("Accepted letter of credit {}", lc.lc_number);
         Ok(updated)
     }
 
     /// Pay an accepted LC
     pub async fn pay_lc(&self, id: Uuid) -> AtlasResult<LetterOfCredit> {
-        let lc = self.repository.get_lc_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Letter of credit not found".to_string()))?;
+        let lc =
+            self.repository.get_lc_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Letter of credit not found".to_string())
+            })?;
 
         if lc.status != "accepted" {
-            return Err(AtlasError::ValidationFailed(format!("Cannot pay LC in status '{}'. Must be in 'accepted' status.", lc.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot pay LC in status '{}'. Must be in 'accepted' status.",
+                lc.status
+            )));
         }
 
         let updated = self.repository.update_lc_status(id, "paid", None).await?;
@@ -307,25 +418,42 @@ impl LetterOfCreditEngine {
 
     /// Cancel a draft LC
     pub async fn cancel_lc(&self, id: Uuid) -> AtlasResult<LetterOfCredit> {
-        let lc = self.repository.get_lc_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Letter of credit not found".to_string()))?;
+        let lc =
+            self.repository.get_lc_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Letter of credit not found".to_string())
+            })?;
 
         if ["paid", "expired", "cancelled"].contains(&lc.status.as_str()) {
-            return Err(AtlasError::ValidationFailed(format!("Cannot cancel LC in terminal status '{}'.", lc.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot cancel LC in terminal status '{}'.",
+                lc.status
+            )));
         }
 
-        let updated = self.repository.update_lc_status(id, "cancelled", None).await?;
+        let updated = self
+            .repository
+            .update_lc_status(id, "cancelled", None)
+            .await?;
         info!("Cancelled letter of credit {}", lc.lc_number);
         Ok(updated)
     }
 
     /// Process expired LCs
-    pub async fn process_expired(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<LetterOfCredit>> {
+    pub async fn process_expired(
+        &self,
+        org_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<LetterOfCredit>> {
         let lcs = self.repository.list_lcs(org_id, None, None).await?;
         let mut expired = Vec::new();
         for lc in lcs {
-            if lc.expiry_date <= as_of_date && !["paid", "expired", "cancelled", "draft"].contains(&lc.status.as_str()) {
-                let updated = self.repository.update_lc_status(lc.id, "expired", None).await?;
+            if lc.expiry_date <= as_of_date
+                && !["paid", "expired", "cancelled", "draft"].contains(&lc.status.as_str())
+            {
+                let updated = self
+                    .repository
+                    .update_lc_status(lc.id, "expired", None)
+                    .await?;
                 expired.push(updated);
             }
         }
@@ -356,15 +484,22 @@ impl LetterOfCreditEngine {
         effective_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<LcAmendment> {
-        let lc = self.repository.get_lc_by_id(lc_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Letter of credit not found".to_string()))?;
+        let lc =
+            self.repository.get_lc_by_id(lc_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Letter of credit not found".to_string())
+            })?;
 
         if ["draft", "cancelled", "expired", "paid"].contains(&lc.status.as_str()) {
-            return Err(AtlasError::ValidationFailed(format!("Cannot amend LC in status '{}'.", lc.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot amend LC in status '{}'.",
+                lc.status
+            )));
         }
 
         if !VALID_AMENDMENT_TYPES.contains(&amendment_type) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid amendment type: {amendment_type}")));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid amendment type: {amendment_type}"
+            )));
         }
 
         let amendment_number = format!("AMD-{:03}", lc.amendment_count + 1);
@@ -393,46 +528,81 @@ impl LetterOfCreditEngine {
         };
 
         let created = self.repository.create_amendment(&amendment).await?;
-        info!("Created amendment {} for LC {}", amendment_number, lc.lc_number);
+        info!(
+            "Created amendment {} for LC {}",
+            amendment_number, lc.lc_number
+        );
         Ok(created)
     }
 
     /// Approve an amendment (applies changes to the LC)
-    pub async fn approve_amendment(&self, amendment_id: Uuid, approved_by: Uuid) -> AtlasResult<LcAmendment> {
-        let amendment = self.repository.get_amendment_by_id(amendment_id).await?
+    pub async fn approve_amendment(
+        &self,
+        amendment_id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<LcAmendment> {
+        let amendment = self
+            .repository
+            .get_amendment_by_id(amendment_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Amendment not found".to_string()))?;
 
         if amendment.status != "draft" {
-            return Err(AtlasError::ValidationFailed(format!("Cannot approve amendment in status '{}'.", amendment.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot approve amendment in status '{}'.",
+                amendment.status
+            )));
         }
 
         // Update amendment status
-        let updated = self.repository.update_amendment_status(amendment_id, "approved", Some(approved_by)).await?;
+        let updated = self
+            .repository
+            .update_amendment_status(amendment_id, "approved", Some(approved_by))
+            .await?;
 
         // Apply amendment to LC
-        self.repository.update_lc_from_amendment(
-            amendment.lc_id,
-            amendment.new_amount.as_deref(),
-            amendment.new_expiry_date,
-        ).await?;
+        self.repository
+            .update_lc_from_amendment(
+                amendment.lc_id,
+                amendment.new_amount.as_deref(),
+                amendment.new_expiry_date,
+            )
+            .await?;
 
-        self.repository.increment_amendment_count(amendment.lc_id, &amendment.amendment_number).await?;
+        self.repository
+            .increment_amendment_count(amendment.lc_id, &amendment.amendment_number)
+            .await?;
 
-        info!("Approved amendment {} for LC {}", amendment.amendment_number, amendment.lc_number);
+        info!(
+            "Approved amendment {} for LC {}",
+            amendment.amendment_number, amendment.lc_number
+        );
         Ok(updated)
     }
 
     /// Reject an amendment
     pub async fn reject_amendment(&self, amendment_id: Uuid) -> AtlasResult<LcAmendment> {
-        let amendment = self.repository.get_amendment_by_id(amendment_id).await?
+        let amendment = self
+            .repository
+            .get_amendment_by_id(amendment_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Amendment not found".to_string()))?;
 
         if amendment.status != "draft" {
-            return Err(AtlasError::ValidationFailed(format!("Cannot reject amendment in status '{}'.", amendment.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot reject amendment in status '{}'.",
+                amendment.status
+            )));
         }
 
-        let updated = self.repository.update_amendment_status(amendment_id, "rejected", None).await?;
-        info!("Rejected amendment {} for LC {}", amendment.amendment_number, amendment.lc_number);
+        let updated = self
+            .repository
+            .update_amendment_status(amendment_id, "rejected", None)
+            .await?;
+        info!(
+            "Rejected amendment {} for LC {}",
+            amendment.amendment_number, amendment.lc_number
+        );
         Ok(updated)
     }
 
@@ -458,11 +628,15 @@ impl LetterOfCreditEngine {
         is_mandatory: bool,
         special_instructions: Option<&str>,
     ) -> AtlasResult<LcRequiredDocument> {
-        let _lc = self.repository.get_lc_by_id(lc_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Letter of credit not found".to_string()))?;
+        let _lc =
+            self.repository.get_lc_by_id(lc_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Letter of credit not found".to_string())
+            })?;
 
         if document_type.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Document type is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Document type is required".to_string(),
+            ));
         }
 
         let doc = LcRequiredDocument {
@@ -484,7 +658,10 @@ impl LetterOfCreditEngine {
     }
 
     /// List required documents for an LC
-    pub async fn list_required_documents(&self, lc_id: Uuid) -> AtlasResult<Vec<LcRequiredDocument>> {
+    pub async fn list_required_documents(
+        &self,
+        lc_id: Uuid,
+    ) -> AtlasResult<Vec<LcRequiredDocument>> {
         self.repository.list_required_documents(lc_id).await
     }
 
@@ -518,16 +695,23 @@ impl LetterOfCreditEngine {
         currency_code: &str,
         notes: Option<&str>,
     ) -> AtlasResult<LcShipment> {
-        let _lc = self.repository.get_lc_by_id(lc_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Letter of credit not found".to_string()))?;
+        let _lc =
+            self.repository.get_lc_by_id(lc_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Letter of credit not found".to_string())
+            })?;
 
         if shipment_number.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Shipment number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Shipment number is required".to_string(),
+            ));
         }
-        let amt: f64 = shipment_amount.parse()
+        let amt: f64 = shipment_amount
+            .parse()
             .map_err(|_| AtlasError::ValidationFailed("Invalid shipment amount".to_string()))?;
         if amt <= 0.0 {
-            return Err(AtlasError::ValidationFailed("Shipment amount must be positive".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Shipment amount must be positive".to_string(),
+            ));
         }
 
         let shipment = LcShipment {
@@ -567,13 +751,23 @@ impl LetterOfCreditEngine {
     }
 
     /// Update shipment status
-    pub async fn update_shipment_status(&self, shipment_id: Uuid, status: &str) -> AtlasResult<LcShipment> {
+    pub async fn update_shipment_status(
+        &self,
+        shipment_id: Uuid,
+        status: &str,
+    ) -> AtlasResult<LcShipment> {
         if !VALID_SHIPMENT_STATUSES.contains(&status) {
-            return Err(AtlasError::ValidationFailed(format!("Invalid shipment status: {status}")));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid shipment status: {status}"
+            )));
         }
-        self.repository.get_shipment_by_id(shipment_id).await?
+        self.repository
+            .get_shipment_by_id(shipment_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Shipment not found".to_string()))?;
-        self.repository.update_shipment_status(shipment_id, status).await
+        self.repository
+            .update_shipment_status(shipment_id, status)
+            .await
     }
 
     // ========================================================================
@@ -596,20 +790,30 @@ impl LetterOfCreditEngine {
         notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<LcPresentation> {
-        let lc = self.repository.get_lc_by_id(lc_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Letter of credit not found".to_string()))?;
+        let lc =
+            self.repository.get_lc_by_id(lc_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Letter of credit not found".to_string())
+            })?;
 
         if ["draft", "cancelled", "expired", "paid"].contains(&lc.status.as_str()) {
-            return Err(AtlasError::ValidationFailed(format!("Cannot create presentation for LC in status '{}'.", lc.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot create presentation for LC in status '{}'.",
+                lc.status
+            )));
         }
 
         if presentation_number.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Presentation number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Presentation number is required".to_string(),
+            ));
         }
-        let amt: f64 = total_amount.parse()
+        let amt: f64 = total_amount
+            .parse()
             .map_err(|_| AtlasError::ValidationFailed("Invalid presentation amount".to_string()))?;
         if amt <= 0.0 {
-            return Err(AtlasError::ValidationFailed("Presentation amount must be positive".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Presentation amount must be positive".to_string(),
+            ));
         }
 
         let presentation = LcPresentation {
@@ -637,7 +841,10 @@ impl LetterOfCreditEngine {
             updated_at: chrono::Utc::now(),
         };
 
-        info!("Creating presentation {} for LC {}", presentation_number, lc.lc_number);
+        info!(
+            "Creating presentation {} for LC {}",
+            presentation_number, lc.lc_number
+        );
         self.repository.create_presentation(&presentation).await
     }
 
@@ -648,43 +855,80 @@ impl LetterOfCreditEngine {
 
     /// Accept a presentation (compliant documents)
     pub async fn accept_presentation(&self, id: Uuid) -> AtlasResult<LcPresentation> {
-        let pres = self.repository.get_presentation_by_id(id).await?
+        let pres = self
+            .repository
+            .get_presentation_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Presentation not found".to_string()))?;
 
         if pres.status != "submitted" && pres.status != "under_review" {
-            return Err(AtlasError::ValidationFailed(format!("Cannot accept presentation in status '{}'.", pres.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot accept presentation in status '{}'.",
+                pres.status
+            )));
         }
 
-        let updated = self.repository.update_presentation_status(id, "accepted").await?;
+        let updated = self
+            .repository
+            .update_presentation_status(id, "accepted")
+            .await?;
         info!("Accepted presentation {} for LC", pres.presentation_number);
         Ok(updated)
     }
 
     /// Pay a presentation
-    pub async fn pay_presentation(&self, id: Uuid, paid_amount: &str, payment_date: chrono::NaiveDate) -> AtlasResult<LcPresentation> {
-        let pres = self.repository.get_presentation_by_id(id).await?
+    pub async fn pay_presentation(
+        &self,
+        id: Uuid,
+        paid_amount: &str,
+        payment_date: chrono::NaiveDate,
+    ) -> AtlasResult<LcPresentation> {
+        let pres = self
+            .repository
+            .get_presentation_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Presentation not found".to_string()))?;
 
         if pres.status != "accepted" {
-            return Err(AtlasError::ValidationFailed(format!("Cannot pay presentation in status '{}'. Must be 'accepted'.", pres.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot pay presentation in status '{}'. Must be 'accepted'.",
+                pres.status
+            )));
         }
 
-        self.repository.update_presentation_payment(id, paid_amount, payment_date).await?;
-        let updated = self.repository.update_presentation_status(id, "paid").await?;
-        info!("Paid presentation {} amount {}", pres.presentation_number, paid_amount);
+        self.repository
+            .update_presentation_payment(id, paid_amount, payment_date)
+            .await?;
+        let updated = self
+            .repository
+            .update_presentation_status(id, "paid")
+            .await?;
+        info!(
+            "Paid presentation {} amount {}",
+            pres.presentation_number, paid_amount
+        );
         Ok(updated)
     }
 
     /// Reject a presentation
     pub async fn reject_presentation(&self, id: Uuid) -> AtlasResult<LcPresentation> {
-        let pres = self.repository.get_presentation_by_id(id).await?
+        let pres = self
+            .repository
+            .get_presentation_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Presentation not found".to_string()))?;
 
         if pres.status != "submitted" && pres.status != "under_review" {
-            return Err(AtlasError::ValidationFailed(format!("Cannot reject presentation in status '{}'.", pres.status)));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot reject presentation in status '{}'.",
+                pres.status
+            )));
         }
 
-        let updated = self.repository.update_presentation_status(id, "rejected").await?;
+        let updated = self
+            .repository
+            .update_presentation_status(id, "rejected")
+            .await?;
         info!("Rejected presentation {}", pres.presentation_number);
         Ok(updated)
     }
@@ -707,11 +951,16 @@ impl LetterOfCreditEngine {
         is_compliant: bool,
         discrepancies: Option<&str>,
     ) -> AtlasResult<LcPresentationDocument> {
-        let _pres = self.repository.get_presentation_by_id(presentation_id).await?
+        let _pres = self
+            .repository
+            .get_presentation_by_id(presentation_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Presentation not found".to_string()))?;
 
         if document_type.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Document type is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Document type is required".to_string(),
+            ));
         }
 
         let doc = LcPresentationDocument {
@@ -734,8 +983,13 @@ impl LetterOfCreditEngine {
     }
 
     /// List documents for a presentation
-    pub async fn list_presentation_documents(&self, presentation_id: Uuid) -> AtlasResult<Vec<LcPresentationDocument>> {
-        self.repository.list_presentation_documents(presentation_id).await
+    pub async fn list_presentation_documents(
+        &self,
+        presentation_id: Uuid,
+    ) -> AtlasResult<Vec<LcPresentationDocument>> {
+        self.repository
+            .list_presentation_documents(presentation_id)
+            .await
     }
 
     // ========================================================================

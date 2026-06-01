@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion Cloud equivalent: CX > Channel Revenue Management
 
-use atlas_shared::{
-    TradePromotion, TradePromotionLine, PromotionFund,
-    TradeClaim, TradeSettlement, ChannelRevenueDashboard,
-    AtlasError, AtlasResult,
-};
 use super::ChannelRevenueRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ChannelRevenueDashboard, PromotionFund, TradeClaim, TradePromotion,
+    TradePromotionLine, TradeSettlement,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -20,75 +19,86 @@ use uuid::Uuid;
 // ============================================================================
 
 const VALID_PROMOTION_TYPES: &[&str] = &[
-    "billback", "off_invoice", "lump_sum", "volume_tier", "fixed_amount",
+    "billback",
+    "off_invoice",
+    "lump_sum",
+    "volume_tier",
+    "fixed_amount",
 ];
 
 const VALID_PROMOTION_STATUSES: &[&str] = &[
-    "draft", "submitted", "active", "completed", "cancelled", "closed",
+    "draft",
+    "submitted",
+    "active",
+    "completed",
+    "cancelled",
+    "closed",
 ];
 
-const VALID_PROMOTION_PRIORITIES: &[&str] = &[
-    "high", "medium", "low",
-];
-
-#[allow(dead_code)]
-const VALID_APPROVAL_STATUSES: &[&str] = &[
-    "not_submitted", "pending_approval", "approved", "rejected",
-];
+const VALID_PROMOTION_PRIORITIES: &[&str] = &["high", "medium", "low"];
 
 #[allow(dead_code)]
-const VALID_LINE_DISCOUNT_TYPES: &[&str] = &[
-    "percentage", "fixed_amount", "buy_x_get_y",
-];
+const VALID_APPROVAL_STATUSES: &[&str] =
+    &["not_submitted", "pending_approval", "approved", "rejected"];
 
 #[allow(dead_code)]
-const VALID_LINE_STATUSES: &[&str] = &[
-    "active", "completed", "cancelled",
-];
+const VALID_LINE_DISCOUNT_TYPES: &[&str] = &["percentage", "fixed_amount", "buy_x_get_y"];
+
+#[allow(dead_code)]
+const VALID_LINE_STATUSES: &[&str] = &["active", "completed", "cancelled"];
 
 const VALID_FUND_TYPES: &[&str] = &[
-    "marketing_development", "cooperative", "market_growth", "discretionary",
+    "marketing_development",
+    "cooperative",
+    "market_growth",
+    "discretionary",
 ];
 
-const VALID_FUND_STATUSES: &[&str] = &[
-    "active", "inactive", "closed", "expired",
-];
+const VALID_FUND_STATUSES: &[&str] = &["active", "inactive", "closed", "expired"];
 
 const VALID_CLAIM_TYPES: &[&str] = &[
-    "billback", "proof_of_performance", "lump_sum", "accrual_adjustment",
+    "billback",
+    "proof_of_performance",
+    "lump_sum",
+    "accrual_adjustment",
 ];
 
 const VALID_CLAIM_STATUSES: &[&str] = &[
-    "draft", "submitted", "under_review", "approved",
-    "partially_approved", "rejected", "paid", "cancelled",
+    "draft",
+    "submitted",
+    "under_review",
+    "approved",
+    "partially_approved",
+    "rejected",
+    "paid",
+    "cancelled",
 ];
 
-const VALID_CLAIM_PRIORITIES: &[&str] = &[
-    "high", "medium", "low",
-];
+const VALID_CLAIM_PRIORITIES: &[&str] = &["high", "medium", "low"];
 
-const VALID_SETTLEMENT_TYPES: &[&str] = &[
-    "payment", "credit_memo", "offset", "write_off",
-];
+const VALID_SETTLEMENT_TYPES: &[&str] = &["payment", "credit_memo", "offset", "write_off"];
 
 const VALID_SETTLEMENT_STATUSES: &[&str] = &[
-    "pending", "approved", "processing", "completed", "cancelled",
+    "pending",
+    "approved",
+    "processing",
+    "completed",
+    "cancelled",
 ];
 
-const VALID_PAYMENT_METHODS: &[&str] = &[
-    "check", "wire", "ach", "credit_note",
-];
+const VALID_PAYMENT_METHODS: &[&str] = &["check", "wire", "ach", "credit_note"];
 
 /// Helper to validate a value against allowed set
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
-        return Err(AtlasError::ValidationFailed(format!(
-            "{field} is required"
-        )));
+        return Err(AtlasError::ValidationFailed(format!("{field} is required")));
     }
     if !allowed.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field, value, allowed.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field,
+            value,
+            allowed.join(", ")
         )));
     }
     Ok(())
@@ -152,17 +162,23 @@ impl ChannelRevenueEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TradePromotion> {
         if promotion_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Promotion number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Promotion number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Promotion name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Promotion name is required".to_string(),
+            ));
         }
         validate_enum("promotion_type", promotion_type, VALID_PROMOTION_TYPES)?;
         if let Some(p) = priority {
             validate_enum("priority", p, VALID_PROMOTION_PRIORITIES)?;
         }
         if currency_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Currency code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
         }
         if start_date > end_date {
             return Err(AtlasError::ValidationFailed(
@@ -191,40 +207,72 @@ impl ChannelRevenueEngine {
 
         // Verify fund exists if specified
         if let Some(f_id) = fund_id {
-            self.repository.get_fund(f_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Fund {f_id} not found"
-                )))?;
+            self.repository
+                .get_fund(f_id)
+                .await?
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Fund {f_id} not found")))?;
         }
 
-        if self.repository.get_promotion_by_number(org_id, promotion_number).await?.is_some() {
+        if self
+            .repository
+            .get_promotion_by_number(org_id, promotion_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Promotion '{promotion_number}' already exists"
             )));
         }
 
-        info!("Creating trade promotion '{}' ({}) for org {} [type={}, budget={:.2}]",
-              promotion_number, name, org_id, promotion_type, planned_budget);
+        info!(
+            "Creating trade promotion '{}' ({}) for org {} [type={}, budget={:.2}]",
+            promotion_number, name, org_id, promotion_type, planned_budget
+        );
 
-        self.repository.create_promotion(
-            org_id, promotion_number, name, description,
-            promotion_type, "draft", priority, category,
-            partner_id, partner_number, partner_name, fund_id,
-            start_date, end_date,
-            sell_in_start_date, sell_in_end_date,
-            sell_out_start_date, sell_out_end_date,
-            product_category, product_id, product_number, product_name,
-            customer_segment, territory,
-            expected_revenue, planned_budget, currency_code,
-            discount_pct, discount_amount,
-            volume_threshold, volume_uom,
-            tier_config.unwrap_or(serde_json::json!({})),
-            objectives, terms_and_conditions,
-            "not_submitted",
-            owner_id, owner_name,
-            effective_from, effective_to,
-            created_by,
-        ).await
+        self.repository
+            .create_promotion(
+                org_id,
+                promotion_number,
+                name,
+                description,
+                promotion_type,
+                "draft",
+                priority,
+                category,
+                partner_id,
+                partner_number,
+                partner_name,
+                fund_id,
+                start_date,
+                end_date,
+                sell_in_start_date,
+                sell_in_end_date,
+                sell_out_start_date,
+                sell_out_end_date,
+                product_category,
+                product_id,
+                product_number,
+                product_name,
+                customer_segment,
+                territory,
+                expected_revenue,
+                planned_budget,
+                currency_code,
+                discount_pct,
+                discount_amount,
+                volume_threshold,
+                volume_uom,
+                tier_config.unwrap_or(serde_json::json!({})),
+                objectives,
+                terms_and_conditions,
+                "not_submitted",
+                owner_id,
+                owner_name,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a promotion by ID
@@ -233,8 +281,14 @@ impl ChannelRevenueEngine {
     }
 
     /// Get a promotion by number
-    pub async fn get_promotion_by_number(&self, org_id: Uuid, promotion_number: &str) -> AtlasResult<Option<TradePromotion>> {
-        self.repository.get_promotion_by_number(org_id, promotion_number).await
+    pub async fn get_promotion_by_number(
+        &self,
+        org_id: Uuid,
+        promotion_number: &str,
+    ) -> AtlasResult<Option<TradePromotion>> {
+        self.repository
+            .get_promotion_by_number(org_id, promotion_number)
+            .await
     }
 
     /// List promotions with optional filters
@@ -251,114 +305,178 @@ impl ChannelRevenueEngine {
         if let Some(t) = promotion_type {
             validate_enum("promotion_type", t, VALID_PROMOTION_TYPES)?;
         }
-        self.repository.list_promotions(org_id, status, promotion_type, partner_id).await
+        self.repository
+            .list_promotions(org_id, status, promotion_type, partner_id)
+            .await
     }
 
     /// Submit a promotion for approval
     pub async fn submit_promotion(&self, id: Uuid) -> AtlasResult<TradePromotion> {
-        let promo = self.repository.get_promotion(id).await?
+        let promo = self
+            .repository
+            .get_promotion(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         if promo.status != "draft" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot submit promotion in '{}' status. Must be 'draft'.", promo.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot submit promotion in '{}' status. Must be 'draft'.",
+                promo.status
+            )));
         }
 
         info!("Submitting promotion {} for approval", id);
-        self.repository.update_promotion_status(id, "submitted").await?;
-        self.repository.update_promotion_approval(id, "pending_approval", None).await
+        self.repository
+            .update_promotion_status(id, "submitted")
+            .await?;
+        self.repository
+            .update_promotion_approval(id, "pending_approval", None)
+            .await
     }
 
     /// Approve a promotion
-    pub async fn approve_promotion(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<TradePromotion> {
-        let promo = self.repository.get_promotion(id).await?
+    pub async fn approve_promotion(
+        &self,
+        id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<TradePromotion> {
+        let promo = self
+            .repository
+            .get_promotion(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         if promo.approval_status != "pending_approval" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot approve promotion with approval_status '{}'. Must be 'pending_approval'.", promo.approval_status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot approve promotion with approval_status '{}'. Must be 'pending_approval'.",
+                promo.approval_status
+            )));
         }
 
         info!("Approving promotion {} by {:?}", id, approved_by);
-        self.repository.update_promotion_approval(id, "approved", approved_by).await?;
+        self.repository
+            .update_promotion_approval(id, "approved", approved_by)
+            .await?;
         self.repository.update_promotion_status(id, "active").await
     }
 
     /// Reject a promotion
-    pub async fn reject_promotion(&self, id: Uuid, rejected_by: Option<Uuid>) -> AtlasResult<TradePromotion> {
-        let promo = self.repository.get_promotion(id).await?
+    pub async fn reject_promotion(
+        &self,
+        id: Uuid,
+        rejected_by: Option<Uuid>,
+    ) -> AtlasResult<TradePromotion> {
+        let promo = self
+            .repository
+            .get_promotion(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         if promo.approval_status != "pending_approval" {
             return Err(AtlasError::ValidationFailed(
-                "Can only reject promotions pending approval".to_string()
+                "Can only reject promotions pending approval".to_string(),
             ));
         }
 
         info!("Rejecting promotion {} by {:?}", id, rejected_by);
-        self.repository.update_promotion_approval(id, "rejected", rejected_by).await?;
-        self.repository.update_promotion_status(id, "cancelled").await
+        self.repository
+            .update_promotion_approval(id, "rejected", rejected_by)
+            .await?;
+        self.repository
+            .update_promotion_status(id, "cancelled")
+            .await
     }
 
     /// Complete a promotion
     pub async fn complete_promotion(&self, id: Uuid) -> AtlasResult<TradePromotion> {
-        let promo = self.repository.get_promotion(id).await?
+        let promo = self
+            .repository
+            .get_promotion(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         if promo.status != "active" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot complete promotion in '{}' status. Must be 'active'.", promo.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot complete promotion in '{}' status. Must be 'active'.",
+                promo.status
+            )));
         }
 
         info!("Completing promotion {}", id);
-        self.repository.update_promotion_status(id, "completed").await
+        self.repository
+            .update_promotion_status(id, "completed")
+            .await
     }
 
     /// Cancel a promotion
     pub async fn cancel_promotion(&self, id: Uuid) -> AtlasResult<TradePromotion> {
-        let promo = self.repository.get_promotion(id).await?
+        let promo = self
+            .repository
+            .get_promotion(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {id} not found")))?;
 
         if promo.status == "completed" || promo.status == "cancelled" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot cancel promotion in '{}' status.", promo.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot cancel promotion in '{}' status.",
+                promo.status
+            )));
         }
 
         info!("Cancelling promotion {}", id);
-        self.repository.update_promotion_status(id, "cancelled").await
+        self.repository
+            .update_promotion_status(id, "cancelled")
+            .await
     }
 
     /// Update promotion spend
     pub async fn update_promotion_spend(
-        &self, id: Uuid, actual_spend: f64, accrued_amount: f64,
+        &self,
+        id: Uuid,
+        actual_spend: f64,
+        accrued_amount: f64,
     ) -> AtlasResult<TradePromotion> {
         if actual_spend < 0.0 {
-            return Err(AtlasError::ValidationFailed("Actual spend cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Actual spend cannot be negative".to_string(),
+            ));
         }
         if accrued_amount < 0.0 {
-            return Err(AtlasError::ValidationFailed("Accrued amount cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Accrued amount cannot be negative".to_string(),
+            ));
         }
 
-        info!("Updating promotion {} spend: actual={:.2}, accrued={:.2}", id, actual_spend, accrued_amount);
-        self.repository.update_promotion_spend(id, actual_spend, accrued_amount).await
+        info!(
+            "Updating promotion {} spend: actual={:.2}, accrued={:.2}",
+            id, actual_spend, accrued_amount
+        );
+        self.repository
+            .update_promotion_spend(id, actual_spend, accrued_amount)
+            .await
     }
 
     /// Delete a promotion by number
     pub async fn delete_promotion(&self, org_id: Uuid, promotion_number: &str) -> AtlasResult<()> {
         // Only draft promotions can be deleted
-        if let Some(promo) = self.repository.get_promotion_by_number(org_id, promotion_number).await? {
+        if let Some(promo) = self
+            .repository
+            .get_promotion_by_number(org_id, promotion_number)
+            .await?
+        {
             if promo.status != "draft" {
                 return Err(AtlasError::ValidationFailed(
-                    "Only draft promotions can be deleted".to_string()
+                    "Only draft promotions can be deleted".to_string(),
                 ));
             }
         }
-        info!("Deleting promotion '{}' for org {}", promotion_number, org_id);
-        self.repository.delete_promotion(org_id, promotion_number).await
+        info!(
+            "Deleting promotion '{}' for org {}",
+            promotion_number, org_id
+        );
+        self.repository
+            .delete_promotion(org_id, promotion_number)
+            .await
     }
 
     // ========================================================================
@@ -386,15 +504,19 @@ impl ChannelRevenueEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TradePromotionLine> {
         // Verify promotion exists
-        let promo = self.repository.get_promotion(promotion_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Promotion {promotion_id} not found"
-            )))?;
+        let promo = self
+            .repository
+            .get_promotion(promotion_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Promotion {promotion_id} not found"))
+            })?;
 
         if promo.status != "draft" && promo.status != "active" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot add lines to promotion in '{}' status", promo.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot add lines to promotion in '{}' status",
+                promo.status
+            )));
         }
 
         validate_enum("discount_type", discount_type, VALID_LINE_DISCOUNT_TYPES)?;
@@ -404,16 +526,30 @@ impl ChannelRevenueEngine {
             ));
         }
 
-        info!("Creating promotion line {} for promotion {}", line_number, promotion_id);
+        info!(
+            "Creating promotion line {} for promotion {}",
+            line_number, promotion_id
+        );
 
-        self.repository.create_promotion_line(
-            org_id, promotion_id, line_number,
-            product_id, product_number, product_name, product_category,
-            discount_type, discount_value, unit_of_measure,
-            quantity_from, quantity_to,
-            planned_quantity, planned_amount,
-            created_by,
-        ).await
+        self.repository
+            .create_promotion_line(
+                org_id,
+                promotion_id,
+                line_number,
+                product_id,
+                product_number,
+                product_name,
+                product_category,
+                discount_type,
+                discount_value,
+                unit_of_measure,
+                quantity_from,
+                quantity_to,
+                planned_quantity,
+                planned_amount,
+                created_by,
+            )
+            .await
     }
 
     /// Get a promotion line by ID
@@ -422,22 +558,35 @@ impl ChannelRevenueEngine {
     }
 
     /// List promotion lines
-    pub async fn list_promotion_lines(&self, promotion_id: Uuid) -> AtlasResult<Vec<TradePromotionLine>> {
+    pub async fn list_promotion_lines(
+        &self,
+        promotion_id: Uuid,
+    ) -> AtlasResult<Vec<TradePromotionLine>> {
         self.repository.list_promotion_lines(promotion_id).await
     }
 
     /// Update promotion line actuals
     pub async fn update_promotion_line_actuals(
-        &self, id: Uuid, actual_quantity: f64, actual_amount: f64, accrual_amount: f64,
+        &self,
+        id: Uuid,
+        actual_quantity: f64,
+        actual_amount: f64,
+        accrual_amount: f64,
     ) -> AtlasResult<TradePromotionLine> {
         if actual_quantity < 0.0 {
-            return Err(AtlasError::ValidationFailed("Actual quantity cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Actual quantity cannot be negative".to_string(),
+            ));
         }
         if actual_amount < 0.0 {
-            return Err(AtlasError::ValidationFailed("Actual amount cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Actual amount cannot be negative".to_string(),
+            ));
         }
         info!("Updating promotion line {} actuals", id);
-        self.repository.update_promotion_line_actuals(id, actual_quantity, actual_amount, accrual_amount).await
+        self.repository
+            .update_promotion_line_actuals(id, actual_quantity, actual_amount, accrual_amount)
+            .await
     }
 
     /// Delete a promotion line
@@ -473,10 +622,14 @@ impl ChannelRevenueEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PromotionFund> {
         if fund_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Fund number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Fund number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Fund name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Fund name is required".to_string(),
+            ));
         }
         validate_enum("fund_type", fund_type, VALID_FUND_TYPES)?;
         if total_budget < 0.0 {
@@ -485,7 +638,9 @@ impl ChannelRevenueEngine {
             ));
         }
         if currency_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Currency code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
         }
         if let (Some(s), Some(e)) = (start_date, end_date) {
             if s > e {
@@ -502,25 +657,44 @@ impl ChannelRevenueEngine {
             }
         }
 
-        if self.repository.get_fund_by_number(org_id, fund_number).await?.is_some() {
+        if self
+            .repository
+            .get_fund_by_number(org_id, fund_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Fund '{fund_number}' already exists"
             )));
         }
 
-        info!("Creating promotion fund '{}' ({}) for org {} [type={}, budget={:.2}]",
-              fund_number, name, org_id, fund_type, total_budget);
+        info!(
+            "Creating promotion fund '{}' ({}) for org {} [type={}, budget={:.2}]",
+            fund_number, name, org_id, fund_type, total_budget
+        );
 
-        self.repository.create_fund(
-            org_id, fund_number, name, description,
-            fund_type, "active",
-            partner_id, partner_number, partner_name,
-            total_budget, currency_code,
-            fund_year, fund_quarter,
-            start_date, end_date,
-            owner_id, owner_name,
-            created_by,
-        ).await
+        self.repository
+            .create_fund(
+                org_id,
+                fund_number,
+                name,
+                description,
+                fund_type,
+                "active",
+                partner_id,
+                partner_number,
+                partner_name,
+                total_budget,
+                currency_code,
+                fund_year,
+                fund_quarter,
+                start_date,
+                end_date,
+                owner_id,
+                owner_name,
+                created_by,
+            )
+            .await
     }
 
     /// Get a fund by ID
@@ -529,8 +703,14 @@ impl ChannelRevenueEngine {
     }
 
     /// Get a fund by number
-    pub async fn get_fund_by_number(&self, org_id: Uuid, fund_number: &str) -> AtlasResult<Option<PromotionFund>> {
-        self.repository.get_fund_by_number(org_id, fund_number).await
+    pub async fn get_fund_by_number(
+        &self,
+        org_id: Uuid,
+        fund_number: &str,
+    ) -> AtlasResult<Option<PromotionFund>> {
+        self.repository
+            .get_fund_by_number(org_id, fund_number)
+            .await
     }
 
     /// List funds with optional filters
@@ -550,9 +730,15 @@ impl ChannelRevenueEngine {
     }
 
     /// Update fund budget
-    pub async fn update_fund_budget(&self, id: Uuid, total_budget: f64) -> AtlasResult<PromotionFund> {
+    pub async fn update_fund_budget(
+        &self,
+        id: Uuid,
+        total_budget: f64,
+    ) -> AtlasResult<PromotionFund> {
         if total_budget < 0.0 {
-            return Err(AtlasError::ValidationFailed("Budget cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Budget cannot be negative".to_string(),
+            ));
         }
         info!("Updating fund {} budget to {:.2}", id, total_budget);
         self.repository.update_fund_budget(id, total_budget).await
@@ -560,13 +746,17 @@ impl ChannelRevenueEngine {
 
     /// Close a fund
     pub async fn close_fund(&self, id: Uuid) -> AtlasResult<PromotionFund> {
-        let fund = self.repository.get_fund(id).await?
+        let fund = self
+            .repository
+            .get_fund(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Fund {id} not found")))?;
 
         if fund.status != "active" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot close fund in '{}' status. Must be 'active'.", fund.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot close fund in '{}' status. Must be 'active'.",
+                fund.status
+            )));
         }
 
         info!("Closing fund {}", id);
@@ -575,10 +765,14 @@ impl ChannelRevenueEngine {
 
     /// Delete a fund by number
     pub async fn delete_fund(&self, org_id: Uuid, fund_number: &str) -> AtlasResult<()> {
-        if let Some(fund) = self.repository.get_fund_by_number(org_id, fund_number).await? {
+        if let Some(fund) = self
+            .repository
+            .get_fund_by_number(org_id, fund_number)
+            .await?
+        {
             if fund.status != "active" && fund.status != "inactive" {
                 return Err(AtlasError::ValidationFailed(
-                    "Can only delete active or inactive funds".to_string()
+                    "Can only delete active or inactive funds".to_string(),
                 ));
             }
         }
@@ -625,7 +819,9 @@ impl ChannelRevenueEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TradeClaim> {
         if claim_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Claim number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Claim number is required".to_string(),
+            ));
         }
         validate_enum("claim_type", claim_type, VALID_CLAIM_TYPES)?;
         if let Some(p) = priority {
@@ -637,7 +833,9 @@ impl ChannelRevenueEngine {
             ));
         }
         if currency_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Currency code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
         }
         if let (Some(from), Some(to)) = (sell_in_from, sell_in_to) {
             if from > to {
@@ -649,51 +847,77 @@ impl ChannelRevenueEngine {
 
         // Verify promotion exists if specified
         if let Some(p_id) = promotion_id {
-            let promo = self.repository.get_promotion(p_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Promotion {p_id} not found"
-                )))?;
+            let promo =
+                self.repository.get_promotion(p_id).await?.ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Promotion {p_id} not found"))
+                })?;
             // Claims can only be filed against active or completed promotions
             if promo.status != "active" && promo.status != "completed" {
-                return Err(AtlasError::ValidationFailed(
-                    format!("Cannot file claims against promotion in '{}' status", promo.status)
-                ));
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Cannot file claims against promotion in '{}' status",
+                    promo.status
+                )));
             }
         }
 
         // Verify fund exists if specified
         if let Some(f_id) = fund_id {
-            self.repository.get_fund(f_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Fund {f_id} not found"
-                )))?;
+            self.repository
+                .get_fund(f_id)
+                .await?
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Fund {f_id} not found")))?;
         }
 
-        if self.repository.get_claim_by_number(org_id, claim_number).await?.is_some() {
+        if self
+            .repository
+            .get_claim_by_number(org_id, claim_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Claim '{claim_number}' already exists"
             )));
         }
 
-        info!("Creating trade claim '{}' for org {} [type={}, amount={:.2}]",
-              claim_number, org_id, claim_type, claimed_amount);
+        info!(
+            "Creating trade claim '{}' for org {} [type={}, amount={:.2}]",
+            claim_number, org_id, claim_type, claimed_amount
+        );
 
-        self.repository.create_claim(
-            org_id, claim_number,
-            promotion_id, promotion_number,
-            fund_id, fund_number,
-            claim_type, "draft", priority,
-            partner_id, partner_number, partner_name,
-            claim_date, sell_in_from, sell_in_to,
-            product_id, product_number, product_name,
-            quantity, unit_of_measure, unit_price,
-            claimed_amount, currency_code,
-            invoice_number, invoice_date,
-            reference_document,
-            proof_of_performance.unwrap_or(serde_json::json!({})),
-            assigned_to, assigned_to_name,
-            created_by,
-        ).await
+        self.repository
+            .create_claim(
+                org_id,
+                claim_number,
+                promotion_id,
+                promotion_number,
+                fund_id,
+                fund_number,
+                claim_type,
+                "draft",
+                priority,
+                partner_id,
+                partner_number,
+                partner_name,
+                claim_date,
+                sell_in_from,
+                sell_in_to,
+                product_id,
+                product_number,
+                product_name,
+                quantity,
+                unit_of_measure,
+                unit_price,
+                claimed_amount,
+                currency_code,
+                invoice_number,
+                invoice_date,
+                reference_document,
+                proof_of_performance.unwrap_or(serde_json::json!({})),
+                assigned_to,
+                assigned_to_name,
+                created_by,
+            )
+            .await
     }
 
     /// Get a claim by ID
@@ -702,8 +926,14 @@ impl ChannelRevenueEngine {
     }
 
     /// Get a claim by number
-    pub async fn get_claim_by_number(&self, org_id: Uuid, claim_number: &str) -> AtlasResult<Option<TradeClaim>> {
-        self.repository.get_claim_by_number(org_id, claim_number).await
+    pub async fn get_claim_by_number(
+        &self,
+        org_id: Uuid,
+        claim_number: &str,
+    ) -> AtlasResult<Option<TradeClaim>> {
+        self.repository
+            .get_claim_by_number(org_id, claim_number)
+            .await
     }
 
     /// List claims with optional filters
@@ -720,33 +950,49 @@ impl ChannelRevenueEngine {
         if let Some(t) = claim_type {
             validate_enum("claim_type", t, VALID_CLAIM_TYPES)?;
         }
-        self.repository.list_claims(org_id, status, claim_type, promotion_id).await
+        self.repository
+            .list_claims(org_id, status, claim_type, promotion_id)
+            .await
     }
 
     /// Submit a claim
     pub async fn submit_claim(&self, id: Uuid) -> AtlasResult<TradeClaim> {
-        let claim = self.repository.get_claim(id).await?
+        let claim = self
+            .repository
+            .get_claim(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
 
         if claim.status != "draft" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot submit claim in '{}' status. Must be 'draft'.", claim.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot submit claim in '{}' status. Must be 'draft'.",
+                claim.status
+            )));
         }
 
         info!("Submitting claim {} for review", id);
-        self.repository.update_claim_status(id, "submitted", None, None, None).await
+        self.repository
+            .update_claim_status(id, "submitted", None, None, None)
+            .await
     }
 
     /// Approve a claim
-    pub async fn approve_claim(&self, id: Uuid, approved_amount: Option<f64>) -> AtlasResult<TradeClaim> {
-        let claim = self.repository.get_claim(id).await?
+    pub async fn approve_claim(
+        &self,
+        id: Uuid,
+        approved_amount: Option<f64>,
+    ) -> AtlasResult<TradeClaim> {
+        let claim = self
+            .repository
+            .get_claim(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
 
         if claim.status != "submitted" && claim.status != "under_review" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot approve claim in '{}' status.", claim.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot approve claim in '{}' status.",
+                claim.status
+            )));
         }
 
         let final_approved = approved_amount.unwrap_or(claim.claimed_amount);
@@ -767,8 +1013,13 @@ impl ChannelRevenueEngine {
             "approved"
         };
 
-        info!("Approving claim {} for {:.2} [status={}]", id, final_approved, new_status);
-        self.repository.update_claim_status(id, new_status, Some(final_approved), None, None).await
+        info!(
+            "Approving claim {} for {:.2} [status={}]",
+            id, final_approved, new_status
+        );
+        self.repository
+            .update_claim_status(id, new_status, Some(final_approved), None, None)
+            .await
     }
 
     /// Reject a claim
@@ -779,32 +1030,44 @@ impl ChannelRevenueEngine {
             ));
         }
 
-        let claim = self.repository.get_claim(id).await?
+        let claim = self
+            .repository
+            .get_claim(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
 
         if claim.status != "submitted" && claim.status != "under_review" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot reject claim in '{}' status.", claim.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot reject claim in '{}' status.",
+                claim.status
+            )));
         }
 
         info!("Rejecting claim {} with reason: {}", id, rejection_reason);
-        self.repository.update_claim_status(id, "rejected", None, Some(rejection_reason), None).await
+        self.repository
+            .update_claim_status(id, "rejected", None, Some(rejection_reason), None)
+            .await
     }
 
     /// Record a payment against a claim
     pub async fn pay_claim(&self, id: Uuid, paid_amount: f64) -> AtlasResult<TradeClaim> {
         if paid_amount <= 0.0 {
-            return Err(AtlasError::ValidationFailed("Paid amount must be positive".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Paid amount must be positive".to_string(),
+            ));
         }
 
-        let claim = self.repository.get_claim(id).await?
+        let claim = self
+            .repository
+            .get_claim(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {id} not found")))?;
 
         if claim.status != "approved" && claim.status != "partially_approved" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot pay claim in '{}' status.", claim.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot pay claim in '{}' status.",
+                claim.status
+            )));
         }
 
         let total_paid = claim.paid_amount + paid_amount;
@@ -814,16 +1077,23 @@ impl ChannelRevenueEngine {
             ));
         }
 
-        info!("Recording payment of {:.2} against claim {}", paid_amount, id);
+        info!(
+            "Recording payment of {:.2} against claim {}",
+            paid_amount, id
+        );
         self.repository.update_claim_payment(id, total_paid).await
     }
 
     /// Delete a claim by number
     pub async fn delete_claim(&self, org_id: Uuid, claim_number: &str) -> AtlasResult<()> {
-        if let Some(claim) = self.repository.get_claim_by_number(org_id, claim_number).await? {
+        if let Some(claim) = self
+            .repository
+            .get_claim_by_number(org_id, claim_number)
+            .await?
+        {
             if claim.status != "draft" {
                 return Err(AtlasError::ValidationFailed(
-                    "Only draft claims can be deleted".to_string()
+                    "Only draft claims can be deleted".to_string(),
                 ));
             }
         }
@@ -861,7 +1131,9 @@ impl ChannelRevenueEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TradeSettlement> {
         if settlement_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Settlement number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Settlement number is required".to_string(),
+            ));
         }
         validate_enum("settlement_type", settlement_type, VALID_SETTLEMENT_TYPES)?;
         if let Some(pm) = payment_method {
@@ -873,50 +1145,75 @@ impl ChannelRevenueEngine {
             ));
         }
         if currency_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Currency code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
         }
 
         // Verify claim exists if specified
         if let Some(c_id) = claim_id {
-            let claim = self.repository.get_claim(c_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Claim {c_id} not found"
-                )))?;
+            let claim = self
+                .repository
+                .get_claim(c_id)
+                .await?
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Claim {c_id} not found")))?;
             if claim.status != "approved" && claim.status != "partially_approved" {
-                return Err(AtlasError::ValidationFailed(
-                    format!("Cannot settle claim in '{}' status", claim.status)
-                ));
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Cannot settle claim in '{}' status",
+                    claim.status
+                )));
             }
         }
 
         // Verify promotion if specified
         if let Some(p_id) = promotion_id {
-            self.repository.get_promotion(p_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Promotion {p_id} not found"
-                )))?;
+            self.repository
+                .get_promotion(p_id)
+                .await?
+                .ok_or_else(|| AtlasError::EntityNotFound(format!("Promotion {p_id} not found")))?;
         }
 
-        if self.repository.get_settlement_by_number(org_id, settlement_number).await?.is_some() {
+        if self
+            .repository
+            .get_settlement_by_number(org_id, settlement_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Settlement '{settlement_number}' already exists"
             )));
         }
 
-        info!("Creating settlement '{}' [type={}, amount={:.2}]",
-              settlement_number, settlement_type, settlement_amount);
+        info!(
+            "Creating settlement '{}' [type={}, amount={:.2}]",
+            settlement_number, settlement_type, settlement_amount
+        );
 
-        self.repository.create_settlement(
-            org_id, settlement_number,
-            claim_id, claim_number,
-            promotion_id, promotion_number,
-            partner_id, partner_number, partner_name,
-            settlement_type, "pending",
-            settlement_date, settlement_amount, currency_code,
-            payment_method, payment_reference,
-            bank_account, gl_account, cost_center,
-            notes, created_by,
-        ).await
+        self.repository
+            .create_settlement(
+                org_id,
+                settlement_number,
+                claim_id,
+                claim_number,
+                promotion_id,
+                promotion_number,
+                partner_id,
+                partner_number,
+                partner_name,
+                settlement_type,
+                "pending",
+                settlement_date,
+                settlement_amount,
+                currency_code,
+                payment_method,
+                payment_reference,
+                bank_account,
+                gl_account,
+                cost_center,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a settlement by ID
@@ -925,8 +1222,14 @@ impl ChannelRevenueEngine {
     }
 
     /// Get a settlement by number
-    pub async fn get_settlement_by_number(&self, org_id: Uuid, settlement_number: &str) -> AtlasResult<Option<TradeSettlement>> {
-        self.repository.get_settlement_by_number(org_id, settlement_number).await
+    pub async fn get_settlement_by_number(
+        &self,
+        org_id: Uuid,
+        settlement_number: &str,
+    ) -> AtlasResult<Option<TradeSettlement>> {
+        self.repository
+            .get_settlement_by_number(org_id, settlement_number)
+            .await
     }
 
     /// List settlements with optional filters
@@ -942,65 +1245,101 @@ impl ChannelRevenueEngine {
         if let Some(t) = settlement_type {
             validate_enum("settlement_type", t, VALID_SETTLEMENT_TYPES)?;
         }
-        self.repository.list_settlements(org_id, status, settlement_type).await
+        self.repository
+            .list_settlements(org_id, status, settlement_type)
+            .await
     }
 
     /// Approve a settlement
-    pub async fn approve_settlement(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<TradeSettlement> {
-        let settlement = self.repository.get_settlement(id).await?
+    pub async fn approve_settlement(
+        &self,
+        id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<TradeSettlement> {
+        let settlement = self
+            .repository
+            .get_settlement(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Settlement {id} not found")))?;
 
         if settlement.status != "pending" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot approve settlement in '{}' status. Must be 'pending'.", settlement.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot approve settlement in '{}' status. Must be 'pending'.",
+                settlement.status
+            )));
         }
 
         info!("Approving settlement {} by {:?}", id, approved_by);
-        self.repository.update_settlement_status(id, "approved", approved_by).await
+        self.repository
+            .update_settlement_status(id, "approved", approved_by)
+            .await
     }
 
     /// Complete a settlement (mark as paid)
     pub async fn complete_settlement(&self, id: Uuid) -> AtlasResult<TradeSettlement> {
-        let settlement = self.repository.get_settlement(id).await?
+        let settlement = self
+            .repository
+            .get_settlement(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Settlement {id} not found")))?;
 
         if settlement.status != "approved" && settlement.status != "processing" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot complete settlement in '{}' status.", settlement.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot complete settlement in '{}' status.",
+                settlement.status
+            )));
         }
 
         info!("Completing settlement {}", id);
-        self.repository.update_settlement_status(id, "completed", None).await
+        self.repository
+            .update_settlement_status(id, "completed", None)
+            .await
     }
 
     /// Cancel a settlement
     pub async fn cancel_settlement(&self, id: Uuid) -> AtlasResult<TradeSettlement> {
-        let settlement = self.repository.get_settlement(id).await?
+        let settlement = self
+            .repository
+            .get_settlement(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Settlement {id} not found")))?;
 
         if settlement.status == "completed" {
             return Err(AtlasError::ValidationFailed(
-                "Cannot cancel a completed settlement".to_string()
+                "Cannot cancel a completed settlement".to_string(),
             ));
         }
 
         info!("Cancelling settlement {}", id);
-        self.repository.update_settlement_status(id, "cancelled", None).await
+        self.repository
+            .update_settlement_status(id, "cancelled", None)
+            .await
     }
 
     /// Delete a settlement by number
-    pub async fn delete_settlement(&self, org_id: Uuid, settlement_number: &str) -> AtlasResult<()> {
-        if let Some(settlement) = self.repository.get_settlement_by_number(org_id, settlement_number).await? {
+    pub async fn delete_settlement(
+        &self,
+        org_id: Uuid,
+        settlement_number: &str,
+    ) -> AtlasResult<()> {
+        if let Some(settlement) = self
+            .repository
+            .get_settlement_by_number(org_id, settlement_number)
+            .await?
+        {
             if settlement.status != "pending" {
                 return Err(AtlasError::ValidationFailed(
-                    "Only pending settlements can be deleted".to_string()
+                    "Only pending settlements can be deleted".to_string(),
                 ));
             }
         }
-        info!("Deleting settlement '{}' for org {}", settlement_number, org_id);
-        self.repository.delete_settlement(org_id, settlement_number).await
+        info!(
+            "Deleting settlement '{}' for org {}",
+            settlement_number, org_id
+        );
+        self.repository
+            .delete_settlement(org_id, settlement_number)
+            .await
     }
 
     // ========================================================================
@@ -1163,16 +1502,48 @@ mod tests {
     #[tokio::test]
     async fn test_create_promotion_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_promotion(
-            test_org_id(), "", "Q1 Promo", None,
-            "billback", None, None, None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
-            None, None, None, None, None, None, None, None,
-            None, None, 100000.0, 50000.0, "USD",
-            None, None, None, None, None,
-            None, None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_promotion(
+                test_org_id(),
+                "",
+                "Q1 Promo",
+                None,
+                "billback",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                100000.0,
+                50000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -1183,16 +1554,48 @@ mod tests {
     #[tokio::test]
     async fn test_create_promotion_validation_empty_name() {
         let engine = create_engine();
-        let result = engine.create_promotion(
-            test_org_id(), "PROMO-001", "", None,
-            "billback", None, None, None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
-            None, None, None, None, None, None, None, None,
-            None, None, 100000.0, 50000.0, "USD",
-            None, None, None, None, None,
-            None, None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_promotion(
+                test_org_id(),
+                "PROMO-001",
+                "",
+                None,
+                "billback",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                100000.0,
+                50000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("name")),
@@ -1203,16 +1606,48 @@ mod tests {
     #[tokio::test]
     async fn test_create_promotion_validation_bad_type() {
         let engine = create_engine();
-        let result = engine.create_promotion(
-            test_org_id(), "PROMO-001", "Q1 Promo", None,
-            "invalid_type", None, None, None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
-            None, None, None, None, None, None, None, None,
-            None, None, 100000.0, 50000.0, "USD",
-            None, None, None, None, None,
-            None, None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_promotion(
+                test_org_id(),
+                "PROMO-001",
+                "Q1 Promo",
+                None,
+                "invalid_type",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                100000.0,
+                50000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("promotion_type")),
@@ -1223,16 +1658,48 @@ mod tests {
     #[tokio::test]
     async fn test_create_promotion_validation_bad_priority() {
         let engine = create_engine();
-        let result = engine.create_promotion(
-            test_org_id(), "PROMO-001", "Q1 Promo", None,
-            "billback", Some("urgent"), None, None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
-            None, None, None, None, None, None, None, None,
-            None, None, 100000.0, 50000.0, "USD",
-            None, None, None, None, None,
-            None, None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_promotion(
+                test_org_id(),
+                "PROMO-001",
+                "Q1 Promo",
+                None,
+                "billback",
+                Some("urgent"),
+                None,
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                100000.0,
+                50000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("priority")),
@@ -1243,16 +1710,48 @@ mod tests {
     #[tokio::test]
     async fn test_create_promotion_validation_dates_inverted() {
         let engine = create_engine();
-        let result = engine.create_promotion(
-            test_org_id(), "PROMO-001", "Q1 Promo", None,
-            "billback", None, None, None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
-            None, None, None, None, None, None, None, None,
-            None, None, 100000.0, 50000.0, "USD",
-            None, None, None, None, None,
-            None, None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_promotion(
+                test_org_id(),
+                "PROMO-001",
+                "Q1 Promo",
+                None,
+                "billback",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                100000.0,
+                50000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Start date")),
@@ -1263,16 +1762,48 @@ mod tests {
     #[tokio::test]
     async fn test_create_promotion_validation_negative_budget() {
         let engine = create_engine();
-        let result = engine.create_promotion(
-            test_org_id(), "PROMO-001", "Q1 Promo", None,
-            "billback", None, None, None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
-            None, None, None, None, None, None, None, None,
-            None, None, 100000.0, -50000.0, "USD",
-            None, None, None, None, None,
-            None, None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_promotion(
+                test_org_id(),
+                "PROMO-001",
+                "Q1 Promo",
+                None,
+                "billback",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                100000.0,
+                -50000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("budget")),
@@ -1283,16 +1814,48 @@ mod tests {
     #[tokio::test]
     async fn test_create_promotion_validation_discount_pct_range() {
         let engine = create_engine();
-        let result = engine.create_promotion(
-            test_org_id(), "PROMO-001", "Q1 Promo", None,
-            "billback", None, None, None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
-            None, None, None, None, None, None, None, None,
-            None, None, 100000.0, 50000.0, "USD",
-            Some(150.0), None, None, None, None,
-            None, None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_promotion(
+                test_org_id(),
+                "PROMO-001",
+                "Q1 Promo",
+                None,
+                "billback",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 3, 31).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                100000.0,
+                50000.0,
+                "USD",
+                Some(150.0),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("percentage")),
@@ -1303,28 +1866,48 @@ mod tests {
     #[tokio::test]
     async fn test_create_promotion_success() {
         let engine = create_engine();
-        let result = engine.create_promotion(
-            test_org_id(), "PROMO-001", "Q1 Spring Promotion", Some("Spring season trade deal"),
-            "billback", Some("high"), Some("seasonal"),
-            None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
-            NaiveDate::from_ymd_opt(2024, 5, 31).unwrap(),
-            Some(NaiveDate::from_ymd_opt(2024, 3, 1).unwrap()),
-            Some(NaiveDate::from_ymd_opt(2024, 5, 31).unwrap()),
-            Some(NaiveDate::from_ymd_opt(2024, 4, 1).unwrap()),
-            Some(NaiveDate::from_ymd_opt(2024, 6, 30).unwrap()),
-            Some("Electronics"), None, Some("SKU-1001"), Some("Widget Pro"),
-            Some("retail"), Some("northeast"),
-            250000.0, 50000.0, "USD",
-            Some(15.0), None, Some(1000.0), Some("units"),
-            Some(serde_json::json!([{"tier": "silver", "threshold": 500, "discount": 10}])),
-            Some("Increase market share in NE region"),
-            Some("Standard terms apply"),
-            Some(test_user_id()), Some("Trade Manager"),
-            Some(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
-            Some(NaiveDate::from_ymd_opt(2024, 12, 31).unwrap()),
-            Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_promotion(
+                test_org_id(),
+                "PROMO-001",
+                "Q1 Spring Promotion",
+                Some("Spring season trade deal"),
+                "billback",
+                Some("high"),
+                Some("seasonal"),
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 5, 31).unwrap(),
+                Some(NaiveDate::from_ymd_opt(2024, 3, 1).unwrap()),
+                Some(NaiveDate::from_ymd_opt(2024, 5, 31).unwrap()),
+                Some(NaiveDate::from_ymd_opt(2024, 4, 1).unwrap()),
+                Some(NaiveDate::from_ymd_opt(2024, 6, 30).unwrap()),
+                Some("Electronics"),
+                None,
+                Some("SKU-1001"),
+                Some("Widget Pro"),
+                Some("retail"),
+                Some("northeast"),
+                250000.0,
+                50000.0,
+                "USD",
+                Some(15.0),
+                None,
+                Some(1000.0),
+                Some("units"),
+                Some(serde_json::json!([{"tier": "silver", "threshold": 500, "discount": 10}])),
+                Some("Increase market share in NE region"),
+                Some("Standard terms apply"),
+                Some(test_user_id()),
+                Some("Trade Manager"),
+                Some(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+                Some(NaiveDate::from_ymd_opt(2024, 12, 31).unwrap()),
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let promo = result.unwrap();
         assert_eq!(promo.promotion_number, "PROMO-001");
@@ -1336,7 +1919,9 @@ mod tests {
     #[tokio::test]
     async fn test_update_promotion_spend_negative() {
         let engine = create_engine();
-        let result = engine.update_promotion_spend(Uuid::new_v4(), -100.0, 50.0).await;
+        let result = engine
+            .update_promotion_spend(Uuid::new_v4(), -100.0, 50.0)
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("spend")),
@@ -1349,12 +1934,27 @@ mod tests {
     #[tokio::test]
     async fn test_create_fund_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_fund(
-            test_org_id(), "", "MDF 2024", None,
-            "marketing_development", None, None, None,
-            100000.0, "USD", Some(2024), Some("Q1"),
-            None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_fund(
+                test_org_id(),
+                "",
+                "MDF 2024",
+                None,
+                "marketing_development",
+                None,
+                None,
+                None,
+                100000.0,
+                "USD",
+                Some(2024),
+                Some("Q1"),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -1365,24 +1965,54 @@ mod tests {
     #[tokio::test]
     async fn test_create_fund_validation_empty_name() {
         let engine = create_engine();
-        let result = engine.create_fund(
-            test_org_id(), "FUND-001", "", None,
-            "marketing_development", None, None, None,
-            100000.0, "USD", Some(2024), Some("Q1"),
-            None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_fund(
+                test_org_id(),
+                "FUND-001",
+                "",
+                None,
+                "marketing_development",
+                None,
+                None,
+                None,
+                100000.0,
+                "USD",
+                Some(2024),
+                Some("Q1"),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_create_fund_validation_bad_type() {
         let engine = create_engine();
-        let result = engine.create_fund(
-            test_org_id(), "FUND-001", "MDF 2024", None,
-            "slush_fund", None, None, None,
-            100000.0, "USD", None, None,
-            None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_fund(
+                test_org_id(),
+                "FUND-001",
+                "MDF 2024",
+                None,
+                "slush_fund",
+                None,
+                None,
+                None,
+                100000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("fund_type")),
@@ -1393,12 +2023,27 @@ mod tests {
     #[tokio::test]
     async fn test_create_fund_validation_negative_budget() {
         let engine = create_engine();
-        let result = engine.create_fund(
-            test_org_id(), "FUND-001", "MDF 2024", None,
-            "marketing_development", None, None, None,
-            -50000.0, "USD", None, None,
-            None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_fund(
+                test_org_id(),
+                "FUND-001",
+                "MDF 2024",
+                None,
+                "marketing_development",
+                None,
+                None,
+                None,
+                -50000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("budget")),
@@ -1409,12 +2054,27 @@ mod tests {
     #[tokio::test]
     async fn test_create_fund_validation_bad_year() {
         let engine = create_engine();
-        let result = engine.create_fund(
-            test_org_id(), "FUND-001", "MDF 2024", None,
-            "marketing_development", None, None, None,
-            100000.0, "USD", Some(1990), None,
-            None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_fund(
+                test_org_id(),
+                "FUND-001",
+                "MDF 2024",
+                None,
+                "marketing_development",
+                None,
+                None,
+                None,
+                100000.0,
+                "USD",
+                Some(1990),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("year")),
@@ -1425,15 +2085,27 @@ mod tests {
     #[tokio::test]
     async fn test_create_fund_success() {
         let engine = create_engine();
-        let result = engine.create_fund(
-            test_org_id(), "FUND-001", "MDF Q1 2024", Some("Marketing development fund for Q1"),
-            "marketing_development", None, Some("Partner-001"), Some("Acme Corp"),
-            100000.0, "USD", Some(2024), Some("Q1"),
-            Some(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
-            Some(NaiveDate::from_ymd_opt(2024, 3, 31).unwrap()),
-            Some(test_user_id()), Some("Fund Manager"),
-            Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_fund(
+                test_org_id(),
+                "FUND-001",
+                "MDF Q1 2024",
+                Some("Marketing development fund for Q1"),
+                "marketing_development",
+                None,
+                Some("Partner-001"),
+                Some("Acme Corp"),
+                100000.0,
+                "USD",
+                Some(2024),
+                Some("Q1"),
+                Some(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+                Some(NaiveDate::from_ymd_opt(2024, 3, 31).unwrap()),
+                Some(test_user_id()),
+                Some("Fund Manager"),
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let fund = result.unwrap();
         assert_eq!(fund.fund_number, "FUND-001");
@@ -1446,15 +2118,39 @@ mod tests {
     #[tokio::test]
     async fn test_create_claim_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_claim(
-            test_org_id(), "", None, None, None, None,
-            "billback", None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
-            None, None, None, None, None,
-            100.0, None, Some(10.0), 1000.0, "USD",
-            None, None, None, None,
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_claim(
+                test_org_id(),
+                "",
+                None,
+                None,
+                None,
+                None,
+                "billback",
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                100.0,
+                None,
+                Some(10.0),
+                1000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -1465,15 +2161,39 @@ mod tests {
     #[tokio::test]
     async fn test_create_claim_validation_bad_type() {
         let engine = create_engine();
-        let result = engine.create_claim(
-            test_org_id(), "CLM-001", None, None, None, None,
-            "refund", None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
-            None, None, None, None, None,
-            100.0, None, Some(10.0), 1000.0, "USD",
-            None, None, None, None,
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_claim(
+                test_org_id(),
+                "CLM-001",
+                None,
+                None,
+                None,
+                None,
+                "refund",
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                100.0,
+                None,
+                Some(10.0),
+                1000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("claim_type")),
@@ -1484,15 +2204,39 @@ mod tests {
     #[tokio::test]
     async fn test_create_claim_validation_zero_amount() {
         let engine = create_engine();
-        let result = engine.create_claim(
-            test_org_id(), "CLM-001", None, None, None, None,
-            "billback", None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
-            None, None, None, None, None,
-            100.0, None, Some(10.0), 0.0, "USD",
-            None, None, None, None,
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_claim(
+                test_org_id(),
+                "CLM-001",
+                None,
+                None,
+                None,
+                None,
+                "billback",
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                100.0,
+                None,
+                Some(10.0),
+                0.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("positive")),
@@ -1503,17 +2247,39 @@ mod tests {
     #[tokio::test]
     async fn test_create_claim_validation_dates_inverted() {
         let engine = create_engine();
-        let result = engine.create_claim(
-            test_org_id(), "CLM-001", None, None, None, None,
-            "billback", None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
-            Some(NaiveDate::from_ymd_opt(2024, 5, 1).unwrap()),
-            Some(NaiveDate::from_ymd_opt(2024, 3, 1).unwrap()),
-            None, None, None,
-            100.0, None, Some(10.0), 1000.0, "USD",
-            None, None, None, None,
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_claim(
+                test_org_id(),
+                "CLM-001",
+                None,
+                None,
+                None,
+                None,
+                "billback",
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
+                Some(NaiveDate::from_ymd_opt(2024, 5, 1).unwrap()),
+                Some(NaiveDate::from_ymd_opt(2024, 3, 1).unwrap()),
+                None,
+                None,
+                None,
+                100.0,
+                None,
+                Some(10.0),
+                1000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Sell-in")),
@@ -1524,19 +2290,39 @@ mod tests {
     #[tokio::test]
     async fn test_create_claim_success() {
         let engine = create_engine();
-        let result = engine.create_claim(
-            test_org_id(), "CLM-001", None, None, None, None,
-            "billback", Some("high"), None, None, None,
-            NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
-            Some(NaiveDate::from_ymd_opt(2024, 3, 1).unwrap()),
-            Some(NaiveDate::from_ymd_opt(2024, 3, 31).unwrap()),
-            None, None, None,
-            500.0, Some("units"), Some(12.50), 6250.0, "USD",
-            Some("INV-2024-001"), Some(NaiveDate::from_ymd_opt(2024, 3, 20).unwrap()),
-            Some("PO-12345"), None,
-            None, Some("Claims Analyst"),
-            Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_claim(
+                test_org_id(),
+                "CLM-001",
+                None,
+                None,
+                None,
+                None,
+                "billback",
+                Some("high"),
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
+                Some(NaiveDate::from_ymd_opt(2024, 3, 1).unwrap()),
+                Some(NaiveDate::from_ymd_opt(2024, 3, 31).unwrap()),
+                None,
+                None,
+                None,
+                500.0,
+                Some("units"),
+                Some(12.50),
+                6250.0,
+                "USD",
+                Some("INV-2024-001"),
+                Some(NaiveDate::from_ymd_opt(2024, 3, 20).unwrap()),
+                Some("PO-12345"),
+                None,
+                None,
+                Some("Claims Analyst"),
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let claim = result.unwrap();
         assert_eq!(claim.claim_number, "CLM-001");
@@ -1550,12 +2336,30 @@ mod tests {
     #[tokio::test]
     async fn test_create_settlement_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_settlement(
-            test_org_id(), "", None, None, None, None,
-            None, None, None, "payment",
-            NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
-            5000.0, "USD", None, None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_settlement(
+                test_org_id(),
+                "",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "payment",
+                NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
+                5000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -1566,12 +2370,30 @@ mod tests {
     #[tokio::test]
     async fn test_create_settlement_validation_bad_type() {
         let engine = create_engine();
-        let result = engine.create_settlement(
-            test_org_id(), "SETTLE-001", None, None, None, None,
-            None, None, None, "wire_transfer",
-            NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
-            5000.0, "USD", None, None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_settlement(
+                test_org_id(),
+                "SETTLE-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "wire_transfer",
+                NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
+                5000.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("settlement_type")),
@@ -1582,12 +2404,30 @@ mod tests {
     #[tokio::test]
     async fn test_create_settlement_validation_zero_amount() {
         let engine = create_engine();
-        let result = engine.create_settlement(
-            test_org_id(), "SETTLE-001", None, None, None, None,
-            None, None, None, "payment",
-            NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
-            0.0, "USD", None, None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_settlement(
+                test_org_id(),
+                "SETTLE-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "payment",
+                NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
+                0.0,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("positive")),
@@ -1598,12 +2438,30 @@ mod tests {
     #[tokio::test]
     async fn test_create_settlement_bad_payment_method() {
         let engine = create_engine();
-        let result = engine.create_settlement(
-            test_org_id(), "SETTLE-001", None, None, None, None,
-            None, None, None, "payment",
-            NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
-            5000.0, "USD", Some("crypto"), None, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_settlement(
+                test_org_id(),
+                "SETTLE-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "payment",
+                NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
+                5000.0,
+                "USD",
+                Some("crypto"),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("payment_method")),
@@ -1614,18 +2472,30 @@ mod tests {
     #[tokio::test]
     async fn test_create_settlement_success() {
         let engine = create_engine();
-        let result = engine.create_settlement(
-            test_org_id(), "SETTLE-001", None, Some("CLM-001"),
-            None, Some("PROMO-001"),
-            None, Some("PART-001"), Some("Acme Corp"),
-            "payment",
-            NaiveDate::from_ymd_opt(2024, 4, 15).unwrap(),
-            5000.0, "USD",
-            Some("ach"), Some("PAYREF-001"),
-            Some("ACC-12345"), Some("4200-Trade-Payable"), Some("MKT-NE"),
-            Some("Full payment for Q1 billback claim"),
-            Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_settlement(
+                test_org_id(),
+                "SETTLE-001",
+                None,
+                Some("CLM-001"),
+                None,
+                Some("PROMO-001"),
+                None,
+                Some("PART-001"),
+                Some("Acme Corp"),
+                "payment",
+                NaiveDate::from_ymd_opt(2024, 4, 15).unwrap(),
+                5000.0,
+                "USD",
+                Some("ach"),
+                Some("PAYREF-001"),
+                Some("ACC-12345"),
+                Some("4200-Trade-Payable"),
+                Some("MKT-NE"),
+                Some("Full payment for Q1 billback claim"),
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let settlement = result.unwrap();
         assert_eq!(settlement.settlement_number, "SETTLE-001");
@@ -1644,12 +2514,25 @@ mod tests {
         // The discount_type validation is tested implicitly through create_promotion
         // type validation. Here we verify the full flow protects against invalid data.
         let engine = create_engine();
-        let result = engine.create_promotion_line(
-            test_org_id(), Uuid::new_v4(), 1,
-            None, None, None, None,
-            "free_item", 10.0, None, None, None,
-            100.0, 1000.0, None,
-        ).await;
+        let result = engine
+            .create_promotion_line(
+                test_org_id(),
+                Uuid::new_v4(),
+                1,
+                None,
+                None,
+                None,
+                None,
+                "free_item",
+                10.0,
+                None,
+                None,
+                None,
+                100.0,
+                1000.0,
+                None,
+            )
+            .await;
         // The promotion doesn't exist, so we get EntityNotFound first
         assert!(result.is_err());
     }

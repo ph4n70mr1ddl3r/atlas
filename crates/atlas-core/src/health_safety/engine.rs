@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion Cloud equivalent: Environment, Health, and Safety (EHS)
 
-use atlas_shared::{
-    SafetyIncident, Hazard, SafetyInspection, SafetyCorrectiveAction,
-    HealthSafetyDashboard,
-    AtlasError, AtlasResult,
-};
 use super::HealthSafetyRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, Hazard, HealthSafetyDashboard, SafetyCorrectiveAction, SafetyIncident,
+    SafetyInspection,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -21,96 +20,133 @@ use uuid::Uuid;
 
 #[allow(dead_code)]
 const VALID_INCIDENT_TYPES: &[&str] = &[
-    "injury", "illness", "near_miss", "property_damage",
-    "environmental_release", "fire", "vehicle_incident", "other",
+    "injury",
+    "illness",
+    "near_miss",
+    "property_damage",
+    "environmental_release",
+    "fire",
+    "vehicle_incident",
+    "other",
 ];
 
 #[allow(dead_code)]
-const VALID_SEVERITIES: &[&str] = &[
-    "low", "medium", "high", "critical",
-];
+const VALID_SEVERITIES: &[&str] = &["low", "medium", "high", "critical"];
 
 #[allow(dead_code)]
 const VALID_INCIDENT_STATUSES: &[&str] = &[
-    "reported", "under_investigation", "corrective_action",
-    "resolved", "closed",
+    "reported",
+    "under_investigation",
+    "corrective_action",
+    "resolved",
+    "closed",
 ];
 
 #[allow(dead_code)]
-const VALID_PRIORITIES: &[&str] = &[
-    "low", "medium", "high", "urgent",
-];
+const VALID_PRIORITIES: &[&str] = &["low", "medium", "high", "urgent"];
 
 #[allow(dead_code)]
 const VALID_OSHA_CLASSIFICATIONS: &[&str] = &[
-    "death", "days_away_from_work", "job_transfer_restriction",
-    "other_recordable", "first_aid_only",
+    "death",
+    "days_away_from_work",
+    "job_transfer_restriction",
+    "other_recordable",
+    "first_aid_only",
 ];
 
 #[allow(dead_code)]
 const VALID_HAZARD_CATEGORIES: &[&str] = &[
-    "physical", "chemical", "biological", "ergonomic",
-    "psychosocial", "electrical", "mechanical", "thermal",
-    "radiation", "noise", "vibration", "other",
+    "physical",
+    "chemical",
+    "biological",
+    "ergonomic",
+    "psychosocial",
+    "electrical",
+    "mechanical",
+    "thermal",
+    "radiation",
+    "noise",
+    "vibration",
+    "other",
 ];
 
 #[allow(dead_code)]
 const VALID_RISK_LEVELS: &[&str] = &[
-    "negligible", "low", "medium", "high", "very_high", "extreme",
+    "negligible",
+    "low",
+    "medium",
+    "high",
+    "very_high",
+    "extreme",
 ];
 
 #[allow(dead_code)]
-const VALID_LIKELIHOODS: &[&str] = &[
-    "rare", "unlikely", "possible", "likely", "almost_certain",
-];
+const VALID_LIKELIHOODS: &[&str] = &["rare", "unlikely", "possible", "likely", "almost_certain"];
 
 #[allow(dead_code)]
 const VALID_CONSEQUENCES: &[&str] = &[
-    "insignificant", "minor", "moderate", "major", "catastrophic",
+    "insignificant",
+    "minor",
+    "moderate",
+    "major",
+    "catastrophic",
 ];
 
 #[allow(dead_code)]
 const VALID_HAZARD_STATUSES: &[&str] = &[
-    "identified", "assessed", "mitigated", "closed", "transferred",
+    "identified",
+    "assessed",
+    "mitigated",
+    "closed",
+    "transferred",
 ];
 
 #[allow(dead_code)]
 const VALID_INSPECTION_TYPES: &[&str] = &[
-    "routine", "periodic", "pre_use", "post_incident",
-    "regulatory", "internal_audit", "external_audit",
+    "routine",
+    "periodic",
+    "pre_use",
+    "post_incident",
+    "regulatory",
+    "internal_audit",
+    "external_audit",
 ];
 
 #[allow(dead_code)]
-const VALID_INSPECTION_STATUSES: &[&str] = &[
-    "scheduled", "in_progress", "completed", "cancelled",
-];
+const VALID_INSPECTION_STATUSES: &[&str] = &["scheduled", "in_progress", "completed", "cancelled"];
 
 #[allow(dead_code)]
-const VALID_ACTION_TYPES: &[&str] = &[
-    "corrective", "preventive", "corrective_and_preventive",
-];
+const VALID_ACTION_TYPES: &[&str] = &["corrective", "preventive", "corrective_and_preventive"];
 
 #[allow(dead_code)]
 const VALID_CAPA_STATUSES: &[&str] = &[
-    "open", "in_progress", "pending_verification",
-    "completed", "closed", "cancelled",
+    "open",
+    "in_progress",
+    "pending_verification",
+    "completed",
+    "closed",
+    "cancelled",
 ];
 
 #[allow(dead_code)]
 const VALID_EFFECTIVENESS: &[&str] = &[
-    "not_effective", "partially_effective", "effective", "highly_effective",
+    "not_effective",
+    "partially_effective",
+    "effective",
+    "highly_effective",
 ];
 
 /// Helper to validate a value against allowed set
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
-        return Err(AtlasError::ValidationFailed(format!(
-            "{field} is required"
-        )));
+        return Err(AtlasError::ValidationFailed(format!("{field} is required")));
     }
     if !allowed.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field, value, allowed.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field,
+            value,
+            allowed.join(", ")
         )));
     }
     Ok(())
@@ -191,10 +227,14 @@ impl HealthSafetyEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SafetyIncident> {
         if incident_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Incident number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Incident number is required".to_string(),
+            ));
         }
         if title.is_empty() {
-            return Err(AtlasError::ValidationFailed("Incident title is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Incident title is required".to_string(),
+            ));
         }
         validate_enum("incident_type", incident_type, VALID_INCIDENT_TYPES)?;
         validate_enum("severity", severity, VALID_SEVERITIES)?;
@@ -203,31 +243,61 @@ impl HealthSafetyEngine {
             validate_enum("osha_classification", osha, VALID_OSHA_CLASSIFICATIONS)?;
         }
 
-        if self.repository.get_incident_by_number(org_id, incident_number).await?.is_some() {
+        if self
+            .repository
+            .get_incident_by_number(org_id, incident_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Incident '{incident_number}' already exists"
             )));
         }
 
-        info!("Creating safety incident '{}' ({}) for org {} [type={}, severity={}]",
-              incident_number, title, org_id, incident_type, severity);
+        info!(
+            "Creating safety incident '{}' ({}) for org {} [type={}, severity={}]",
+            incident_number, title, org_id, incident_type, severity
+        );
 
-        self.repository.create_incident(
-            org_id, incident_number, title, description,
-            incident_type, severity, "reported", priority,
-            incident_date, incident_time, location,
-            facility_id, department_id,
-            reported_by_id, reported_by_name,
-            assigned_to_id, assigned_to_name,
-            None, None, // root_cause, immediate_action
-            osha_recordable, osha_classification,
-            0, 0, // days_away, days_restricted
-            body_part, injury_source, event_type, environment_factor,
-            serde_json::json!([]), serde_json::json!([]), serde_json::json!([]),
-            None, None, None, // resolution_date, closed_date, closed_by
-            serde_json::json!({}),
-            created_by,
-        ).await
+        self.repository
+            .create_incident(
+                org_id,
+                incident_number,
+                title,
+                description,
+                incident_type,
+                severity,
+                "reported",
+                priority,
+                incident_date,
+                incident_time,
+                location,
+                facility_id,
+                department_id,
+                reported_by_id,
+                reported_by_name,
+                assigned_to_id,
+                assigned_to_name,
+                None,
+                None, // root_cause, immediate_action
+                osha_recordable,
+                osha_classification,
+                0,
+                0, // days_away, days_restricted
+                body_part,
+                injury_source,
+                event_type,
+                environment_factor,
+                serde_json::json!([]),
+                serde_json::json!([]),
+                serde_json::json!([]),
+                None,
+                None,
+                None, // resolution_date, closed_date, closed_by
+                serde_json::json!({}),
+                created_by,
+            )
+            .await
     }
 
     /// Get an incident by ID
@@ -236,8 +306,14 @@ impl HealthSafetyEngine {
     }
 
     /// Get an incident by number
-    pub async fn get_incident_by_number(&self, org_id: Uuid, incident_number: &str) -> AtlasResult<Option<SafetyIncident>> {
-        self.repository.get_incident_by_number(org_id, incident_number).await
+    pub async fn get_incident_by_number(
+        &self,
+        org_id: Uuid,
+        incident_number: &str,
+    ) -> AtlasResult<Option<SafetyIncident>> {
+        self.repository
+            .get_incident_by_number(org_id, incident_number)
+            .await
     }
 
     /// List incidents with optional filters
@@ -249,7 +325,9 @@ impl HealthSafetyEngine {
         incident_type: Option<&str>,
         facility_id: Option<&Uuid>,
     ) -> AtlasResult<Vec<SafetyIncident>> {
-        self.repository.list_incidents(org_id, status, severity, incident_type, facility_id).await
+        self.repository
+            .list_incidents(org_id, status, severity, incident_type, facility_id)
+            .await
     }
 
     /// Update incident status
@@ -276,11 +354,17 @@ impl HealthSafetyEngine {
         days_restricted: Option<i32>,
     ) -> AtlasResult<SafetyIncident> {
         info!("Updating investigation for incident {}", id);
-        self.repository.update_incident_investigation(
-            id, root_cause, immediate_action,
-            assigned_to_id, assigned_to_name,
-            days_away_from_work, days_restricted,
-        ).await
+        self.repository
+            .update_incident_investigation(
+                id,
+                root_cause,
+                immediate_action,
+                assigned_to_id,
+                assigned_to_name,
+                days_away_from_work,
+                days_restricted,
+            )
+            .await
     }
 
     /// Close an incident
@@ -296,7 +380,9 @@ impl HealthSafetyEngine {
     /// Delete an incident by number
     pub async fn delete_incident(&self, org_id: Uuid, incident_number: &str) -> AtlasResult<()> {
         info!("Deleting incident '{}' for org {}", incident_number, org_id);
-        self.repository.delete_incident(org_id, incident_number).await
+        self.repository
+            .delete_incident(org_id, incident_number)
+            .await
     }
 
     // ========================================================================
@@ -327,10 +413,14 @@ impl HealthSafetyEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Hazard> {
         if hazard_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Hazard code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Hazard code is required".to_string(),
+            ));
         }
         if title.is_empty() {
-            return Err(AtlasError::ValidationFailed("Hazard title is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Hazard title is required".to_string(),
+            ));
         }
         validate_enum("hazard_category", hazard_category, VALID_HAZARD_CATEGORIES)?;
         validate_enum("likelihood", likelihood, VALID_LIKELIHOODS)?;
@@ -339,28 +429,50 @@ impl HealthSafetyEngine {
         let risk_score = compute_risk_score(likelihood, consequence);
         let risk_level = risk_level_from_score(risk_score).to_string();
 
-        if self.repository.get_hazard_by_code(org_id, hazard_code).await?.is_some() {
+        if self
+            .repository
+            .get_hazard_by_code(org_id, hazard_code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Hazard '{hazard_code}' already exists"
             )));
         }
 
-        info!("Creating hazard '{}' ({}) for org {} [category={}, risk={}, score={}]",
-              hazard_code, title, org_id, hazard_category, risk_level, risk_score);
+        info!(
+            "Creating hazard '{}' ({}) for org {} [category={}, risk={}, score={}]",
+            hazard_code, title, org_id, hazard_category, risk_level, risk_score
+        );
 
-        self.repository.create_hazard(
-            org_id, hazard_code, title, description,
-            hazard_category, &risk_level, likelihood, consequence,
-            risk_score, "identified",
-            location, facility_id, department_id,
-            identified_by_id, identified_by_name, identified_date,
-            mitigation_measures.unwrap_or(serde_json::json!([])),
-            None, None, // residual_risk_level, residual_risk_score
-            review_date,
-            owner_id, owner_name,
-            serde_json::json!({}),
-            created_by,
-        ).await
+        self.repository
+            .create_hazard(
+                org_id,
+                hazard_code,
+                title,
+                description,
+                hazard_category,
+                &risk_level,
+                likelihood,
+                consequence,
+                risk_score,
+                "identified",
+                location,
+                facility_id,
+                department_id,
+                identified_by_id,
+                identified_by_name,
+                identified_date,
+                mitigation_measures.unwrap_or(serde_json::json!([])),
+                None,
+                None, // residual_risk_level, residual_risk_score
+                review_date,
+                owner_id,
+                owner_name,
+                serde_json::json!({}),
+                created_by,
+            )
+            .await
     }
 
     /// Get a hazard by ID
@@ -369,8 +481,14 @@ impl HealthSafetyEngine {
     }
 
     /// Get a hazard by code
-    pub async fn get_hazard_by_code(&self, org_id: Uuid, hazard_code: &str) -> AtlasResult<Option<Hazard>> {
-        self.repository.get_hazard_by_code(org_id, hazard_code).await
+    pub async fn get_hazard_by_code(
+        &self,
+        org_id: Uuid,
+        hazard_code: &str,
+    ) -> AtlasResult<Option<Hazard>> {
+        self.repository
+            .get_hazard_by_code(org_id, hazard_code)
+            .await
     }
 
     /// List hazards with optional filters
@@ -382,7 +500,9 @@ impl HealthSafetyEngine {
         hazard_category: Option<&str>,
         facility_id: Option<&Uuid>,
     ) -> AtlasResult<Vec<Hazard>> {
-        self.repository.list_hazards(org_id, status, risk_level, hazard_category, facility_id).await
+        self.repository
+            .list_hazards(org_id, status, risk_level, hazard_category, facility_id)
+            .await
     }
 
     /// Update hazard status
@@ -399,14 +519,27 @@ impl HealthSafetyEngine {
         residual_likelihood: &str,
         residual_consequence: &str,
     ) -> AtlasResult<Hazard> {
-        validate_enum("residual_likelihood", residual_likelihood, VALID_LIKELIHOODS)?;
-        validate_enum("residual_consequence", residual_consequence, VALID_CONSEQUENCES)?;
+        validate_enum(
+            "residual_likelihood",
+            residual_likelihood,
+            VALID_LIKELIHOODS,
+        )?;
+        validate_enum(
+            "residual_consequence",
+            residual_consequence,
+            VALID_CONSEQUENCES,
+        )?;
 
         let score = compute_risk_score(residual_likelihood, residual_consequence);
         let level = risk_level_from_score(score).to_string();
 
-        info!("Assessing residual risk for hazard {} [level={}, score={}]", id, level, score);
-        self.repository.update_residual_risk(id, &level, score).await
+        info!(
+            "Assessing residual risk for hazard {} [level={}, score={}]",
+            id, level, score
+        );
+        self.repository
+            .update_residual_risk(id, &level, score)
+            .await
     }
 
     /// Delete a hazard by code
@@ -438,35 +571,64 @@ impl HealthSafetyEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SafetyInspection> {
         if inspection_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Inspection number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Inspection number is required".to_string(),
+            ));
         }
         if title.is_empty() {
-            return Err(AtlasError::ValidationFailed("Inspection title is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Inspection title is required".to_string(),
+            ));
         }
         validate_enum("inspection_type", inspection_type, VALID_INSPECTION_TYPES)?;
         validate_enum("priority", priority, VALID_PRIORITIES)?;
 
-        if self.repository.get_inspection_by_number(org_id, inspection_number).await?.is_some() {
+        if self
+            .repository
+            .get_inspection_by_number(org_id, inspection_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Inspection '{inspection_number}' already exists"
             )));
         }
 
-        info!("Creating safety inspection '{}' ({}) for org {} [type={}, scheduled={}]",
-              inspection_number, title, org_id, inspection_type, scheduled_date);
+        info!(
+            "Creating safety inspection '{}' ({}) for org {} [type={}, scheduled={}]",
+            inspection_number, title, org_id, inspection_type, scheduled_date
+        );
 
-        self.repository.create_inspection(
-            org_id, inspection_number, title, description,
-            inspection_type, "scheduled", priority,
-            scheduled_date, None, // completed_date
-            location, facility_id, department_id,
-            inspector_id, inspector_name,
-            None, 0, 0, 0, 0, // findings_summary, counts
-            None, None, None, // score, max_score, score_pct
-            serde_json::json!([]), serde_json::json!([]),
-            serde_json::json!({}),
-            created_by,
-        ).await
+        self.repository
+            .create_inspection(
+                org_id,
+                inspection_number,
+                title,
+                description,
+                inspection_type,
+                "scheduled",
+                priority,
+                scheduled_date,
+                None, // completed_date
+                location,
+                facility_id,
+                department_id,
+                inspector_id,
+                inspector_name,
+                None,
+                0,
+                0,
+                0,
+                0, // findings_summary, counts
+                None,
+                None,
+                None, // score, max_score, score_pct
+                serde_json::json!([]),
+                serde_json::json!([]),
+                serde_json::json!({}),
+                created_by,
+            )
+            .await
     }
 
     /// Get an inspection by ID
@@ -475,8 +637,14 @@ impl HealthSafetyEngine {
     }
 
     /// Get an inspection by number
-    pub async fn get_inspection_by_number(&self, org_id: Uuid, inspection_number: &str) -> AtlasResult<Option<SafetyInspection>> {
-        self.repository.get_inspection_by_number(org_id, inspection_number).await
+    pub async fn get_inspection_by_number(
+        &self,
+        org_id: Uuid,
+        inspection_number: &str,
+    ) -> AtlasResult<Option<SafetyInspection>> {
+        self.repository
+            .get_inspection_by_number(org_id, inspection_number)
+            .await
     }
 
     /// List inspections with optional filters
@@ -487,7 +655,9 @@ impl HealthSafetyEngine {
         inspection_type: Option<&str>,
         facility_id: Option<&Uuid>,
     ) -> AtlasResult<Vec<SafetyInspection>> {
-        self.repository.list_inspections(org_id, status, inspection_type, facility_id).await
+        self.repository
+            .list_inspections(org_id, status, inspection_type, facility_id)
+            .await
     }
 
     /// Complete an inspection with findings
@@ -508,28 +678,51 @@ impl HealthSafetyEngine {
             _ => None,
         };
 
-        info!("Completing inspection {} [findings={}, critical={}, score={:?}]",
-              id, total_findings, critical_findings, score);
+        info!(
+            "Completing inspection {} [findings={}, critical={}, score={:?}]",
+            id, total_findings, critical_findings, score
+        );
 
-        self.repository.complete_inspection(
-            id, findings_summary,
-            total_findings, critical_findings, non_conformities, observations,
-            score, max_score, score_pct,
-            findings,
-        ).await
+        self.repository
+            .complete_inspection(
+                id,
+                findings_summary,
+                total_findings,
+                critical_findings,
+                non_conformities,
+                observations,
+                score,
+                max_score,
+                score_pct,
+                findings,
+            )
+            .await
     }
 
     /// Update inspection status
-    pub async fn update_inspection_status(&self, id: Uuid, status: &str) -> AtlasResult<SafetyInspection> {
+    pub async fn update_inspection_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<SafetyInspection> {
         validate_enum("inspection status", status, VALID_INSPECTION_STATUSES)?;
         info!("Updating inspection {} status to {}", id, status);
         self.repository.update_inspection_status(id, status).await
     }
 
     /// Delete an inspection by number
-    pub async fn delete_inspection(&self, org_id: Uuid, inspection_number: &str) -> AtlasResult<()> {
-        info!("Deleting inspection '{}' for org {}", inspection_number, org_id);
-        self.repository.delete_inspection(org_id, inspection_number).await
+    pub async fn delete_inspection(
+        &self,
+        org_id: Uuid,
+        inspection_number: &str,
+    ) -> AtlasResult<()> {
+        info!(
+            "Deleting inspection '{}' for org {}",
+            inspection_number, org_id
+        );
+        self.repository
+            .delete_inspection(org_id, inspection_number)
+            .await
     }
 
     // ========================================================================
@@ -562,10 +755,14 @@ impl HealthSafetyEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SafetyCorrectiveAction> {
         if action_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Action number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Action number is required".to_string(),
+            ));
         }
         if title.is_empty() {
-            return Err(AtlasError::ValidationFailed("Action title is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Action title is required".to_string(),
+            ));
         }
         validate_enum("action_type", action_type, VALID_ACTION_TYPES)?;
         validate_enum("priority", priority, VALID_PRIORITIES)?;
@@ -578,39 +775,74 @@ impl HealthSafetyEngine {
             }
         }
 
-        if self.repository.get_corrective_action_by_number(org_id, action_number).await?.is_some() {
+        if self
+            .repository
+            .get_corrective_action_by_number(org_id, action_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Corrective action '{action_number}' already exists"
             )));
         }
 
-        info!("Creating corrective action '{}' ({}) for org {} [type={}, priority={}]",
-              action_number, title, org_id, action_type, priority);
+        info!(
+            "Creating corrective action '{}' ({}) for org {} [type={}, priority={}]",
+            action_number, title, org_id, action_type, priority
+        );
 
-        self.repository.create_corrective_action(
-            org_id, action_number, title, description,
-            action_type, "open", priority,
-            source_type, source_id, source_number,
-            root_cause, corrective_action_plan, preventive_action_plan,
-            assigned_to_id, assigned_to_name,
-            due_date, None, // completed_date
-            None, None, None, // verified_by, verified_date, effectiveness
-            facility_id, department_id,
-            estimated_cost, None, currency_code, // actual_cost
-            None, // notes
-            serde_json::json!([]), serde_json::json!({}),
-            created_by,
-        ).await
+        self.repository
+            .create_corrective_action(
+                org_id,
+                action_number,
+                title,
+                description,
+                action_type,
+                "open",
+                priority,
+                source_type,
+                source_id,
+                source_number,
+                root_cause,
+                corrective_action_plan,
+                preventive_action_plan,
+                assigned_to_id,
+                assigned_to_name,
+                due_date,
+                None, // completed_date
+                None,
+                None,
+                None, // verified_by, verified_date, effectiveness
+                facility_id,
+                department_id,
+                estimated_cost,
+                None,
+                currency_code, // actual_cost
+                None,          // notes
+                serde_json::json!([]),
+                serde_json::json!({}),
+                created_by,
+            )
+            .await
     }
 
     /// Get a corrective action by ID
-    pub async fn get_corrective_action(&self, id: Uuid) -> AtlasResult<Option<SafetyCorrectiveAction>> {
+    pub async fn get_corrective_action(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<SafetyCorrectiveAction>> {
         self.repository.get_corrective_action(id).await
     }
 
     /// Get a corrective action by number
-    pub async fn get_corrective_action_by_number(&self, org_id: Uuid, action_number: &str) -> AtlasResult<Option<SafetyCorrectiveAction>> {
-        self.repository.get_corrective_action_by_number(org_id, action_number).await
+    pub async fn get_corrective_action_by_number(
+        &self,
+        org_id: Uuid,
+        action_number: &str,
+    ) -> AtlasResult<Option<SafetyCorrectiveAction>> {
+        self.repository
+            .get_corrective_action_by_number(org_id, action_number)
+            .await
     }
 
     /// List corrective actions with optional filters
@@ -621,14 +853,22 @@ impl HealthSafetyEngine {
         action_type: Option<&str>,
         source_type: Option<&str>,
     ) -> AtlasResult<Vec<SafetyCorrectiveAction>> {
-        self.repository.list_corrective_actions(org_id, status, action_type, source_type).await
+        self.repository
+            .list_corrective_actions(org_id, status, action_type, source_type)
+            .await
     }
 
     /// Update corrective action status
-    pub async fn update_corrective_action_status(&self, id: Uuid, status: &str) -> AtlasResult<SafetyCorrectiveAction> {
+    pub async fn update_corrective_action_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<SafetyCorrectiveAction> {
         validate_enum("CAPA status", status, VALID_CAPA_STATUSES)?;
         info!("Updating corrective action {} status to {}", id, status);
-        self.repository.update_corrective_action_status(id, status).await
+        self.repository
+            .update_corrective_action_status(id, status)
+            .await
     }
 
     /// Complete a corrective action with verification
@@ -647,14 +887,28 @@ impl HealthSafetyEngine {
                 ));
             }
         }
-        info!("Completing corrective action {} [effectiveness={}]", id, effectiveness);
-        self.repository.complete_corrective_action(id, effectiveness, actual_cost, verified_by).await
+        info!(
+            "Completing corrective action {} [effectiveness={}]",
+            id, effectiveness
+        );
+        self.repository
+            .complete_corrective_action(id, effectiveness, actual_cost, verified_by)
+            .await
     }
 
     /// Delete a corrective action by number
-    pub async fn delete_corrective_action(&self, org_id: Uuid, action_number: &str) -> AtlasResult<()> {
-        info!("Deleting corrective action '{}' for org {}", action_number, org_id);
-        self.repository.delete_corrective_action(org_id, action_number).await
+    pub async fn delete_corrective_action(
+        &self,
+        org_id: Uuid,
+        action_number: &str,
+    ) -> AtlasResult<()> {
+        info!(
+            "Deleting corrective action '{}' for org {}",
+            action_number, org_id
+        );
+        self.repository
+            .delete_corrective_action(org_id, action_number)
+            .await
     }
 
     // ========================================================================
@@ -822,15 +1076,33 @@ mod tests {
     #[tokio::test]
     async fn test_create_incident_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_incident(
-            test_org_id(), "", "Slip and Fall", None,
-            "injury", "medium", "high",
-            NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(), None,
-            Some("Building A"), None, None, None, None,
-            None, None,
-            false, None, Some("back"), Some("wet_floor"), None, None,
-            None,
-        ).await;
+        let result = engine
+            .create_incident(
+                test_org_id(),
+                "",
+                "Slip and Fall",
+                None,
+                "injury",
+                "medium",
+                "high",
+                NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(),
+                None,
+                Some("Building A"),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                false,
+                None,
+                Some("back"),
+                Some("wet_floor"),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -841,15 +1113,33 @@ mod tests {
     #[tokio::test]
     async fn test_create_incident_validation_empty_title() {
         let engine = create_engine();
-        let result = engine.create_incident(
-            test_org_id(), "INC-001", "", None,
-            "injury", "medium", "high",
-            NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(), None,
-            None, None, None, None, None,
-            None, None,
-            false, None, None, None, None, None,
-            None,
-        ).await;
+        let result = engine
+            .create_incident(
+                test_org_id(),
+                "INC-001",
+                "",
+                None,
+                "injury",
+                "medium",
+                "high",
+                NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                false,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("title")),
@@ -860,15 +1150,33 @@ mod tests {
     #[tokio::test]
     async fn test_create_incident_validation_bad_type() {
         let engine = create_engine();
-        let result = engine.create_incident(
-            test_org_id(), "INC-001", "Test", None,
-            "explosion", "medium", "high",
-            NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(), None,
-            None, None, None, None, None,
-            None, None,
-            false, None, None, None, None, None,
-            None,
-        ).await;
+        let result = engine
+            .create_incident(
+                test_org_id(),
+                "INC-001",
+                "Test",
+                None,
+                "explosion",
+                "medium",
+                "high",
+                NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                false,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("incident_type")),
@@ -879,15 +1187,33 @@ mod tests {
     #[tokio::test]
     async fn test_create_incident_validation_bad_severity() {
         let engine = create_engine();
-        let result = engine.create_incident(
-            test_org_id(), "INC-001", "Test", None,
-            "injury", "extreme", "high",
-            NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(), None,
-            None, None, None, None, None,
-            None, None,
-            false, None, None, None, None, None,
-            None,
-        ).await;
+        let result = engine
+            .create_incident(
+                test_org_id(),
+                "INC-001",
+                "Test",
+                None,
+                "injury",
+                "extreme",
+                "high",
+                NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                false,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("severity")),
@@ -898,15 +1224,33 @@ mod tests {
     #[tokio::test]
     async fn test_create_incident_validation_bad_priority() {
         let engine = create_engine();
-        let result = engine.create_incident(
-            test_org_id(), "INC-001", "Test", None,
-            "injury", "medium", "critical",
-            NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(), None,
-            None, None, None, None, None,
-            None, None,
-            false, None, None, None, None, None,
-            None,
-        ).await;
+        let result = engine
+            .create_incident(
+                test_org_id(),
+                "INC-001",
+                "Test",
+                None,
+                "injury",
+                "medium",
+                "critical",
+                NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                false,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("priority")),
@@ -917,17 +1261,33 @@ mod tests {
     #[tokio::test]
     async fn test_create_incident_success() {
         let engine = create_engine();
-        let result = engine.create_incident(
-            test_org_id(), "INC-001", "Slip and Fall in Building A", Some("Employee slipped on wet floor"),
-            "injury", "medium", "high",
-            NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(), Some("09:30"),
-            Some("Building A, Floor 2"), None, None,
-            Some(test_user_id()), Some("John Smith"),
-            None, None,
-            true, Some("other_recordable"),
-            Some("back"), Some("wet_floor"), Some("slip_trip_fall"), None,
-            Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_incident(
+                test_org_id(),
+                "INC-001",
+                "Slip and Fall in Building A",
+                Some("Employee slipped on wet floor"),
+                "injury",
+                "medium",
+                "high",
+                NaiveDate::from_ymd_opt(2024, 6, 15).unwrap(),
+                Some("09:30"),
+                Some("Building A, Floor 2"),
+                None,
+                None,
+                Some(test_user_id()),
+                Some("John Smith"),
+                None,
+                None,
+                true,
+                Some("other_recordable"),
+                Some("back"),
+                Some("wet_floor"),
+                Some("slip_trip_fall"),
+                None,
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let inc = result.unwrap();
         assert_eq!(inc.incident_number, "INC-001");
@@ -940,14 +1300,18 @@ mod tests {
     #[tokio::test]
     async fn test_update_incident_status_bad_status() {
         let engine = create_engine();
-        let result = engine.update_incident_status(Uuid::new_v4(), "deleted").await;
+        let result = engine
+            .update_incident_status(Uuid::new_v4(), "deleted")
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_update_incident_status_valid() {
         let engine = create_engine();
-        let result = engine.update_incident_status(Uuid::new_v4(), "under_investigation").await;
+        let result = engine
+            .update_incident_status(Uuid::new_v4(), "under_investigation")
+            .await;
         // Mock returns error for non-existent, but validation passes
         assert!(result.is_ok());
     }
@@ -957,13 +1321,28 @@ mod tests {
     #[tokio::test]
     async fn test_create_hazard_validation_empty_code() {
         let engine = create_engine();
-        let result = engine.create_hazard(
-            test_org_id(), "", "Chemical Spill Risk", None,
-            "chemical", "possible", "major",
-            None, None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
-            None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_hazard(
+                test_org_id(),
+                "",
+                "Chemical Spill Risk",
+                None,
+                "chemical",
+                "possible",
+                "major",
+                None,
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("code")),
@@ -974,13 +1353,28 @@ mod tests {
     #[tokio::test]
     async fn test_create_hazard_validation_bad_category() {
         let engine = create_engine();
-        let result = engine.create_hazard(
-            test_org_id(), "HAZ-001", "Test", None,
-            "nuclear", "possible", "major",
-            None, None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
-            None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_hazard(
+                test_org_id(),
+                "HAZ-001",
+                "Test",
+                None,
+                "nuclear",
+                "possible",
+                "major",
+                None,
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("hazard_category")),
@@ -991,13 +1385,28 @@ mod tests {
     #[tokio::test]
     async fn test_create_hazard_validation_bad_likelihood() {
         let engine = create_engine();
-        let result = engine.create_hazard(
-            test_org_id(), "HAZ-001", "Test", None,
-            "chemical", "frequent", "major",
-            None, None, None, None, None,
-            NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
-            None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_hazard(
+                test_org_id(),
+                "HAZ-001",
+                "Test",
+                None,
+                "chemical",
+                "frequent",
+                "major",
+                None,
+                None,
+                None,
+                None,
+                None,
+                NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("likelihood")),
@@ -1008,17 +1417,28 @@ mod tests {
     #[tokio::test]
     async fn test_create_hazard_success() {
         let engine = create_engine();
-        let result = engine.create_hazard(
-            test_org_id(), "HAZ-001", "Chemical Storage Area", Some("Improper chemical storage"),
-            "chemical", "likely", "major",
-            Some("Chemical Storage Room"), None, None,
-            Some(test_user_id()), Some("Jane Safety"),
-            NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
-            Some(serde_json::json!([{"measure": "Install ventilation", "status": "planned"}])),
-            Some(NaiveDate::from_ymd_opt(2024, 9, 1).unwrap()),
-            Some(test_user_id()), Some("Safety Manager"),
-            Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_hazard(
+                test_org_id(),
+                "HAZ-001",
+                "Chemical Storage Area",
+                Some("Improper chemical storage"),
+                "chemical",
+                "likely",
+                "major",
+                Some("Chemical Storage Room"),
+                None,
+                None,
+                Some(test_user_id()),
+                Some("Jane Safety"),
+                NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
+                Some(serde_json::json!([{"measure": "Install ventilation", "status": "planned"}])),
+                Some(NaiveDate::from_ymd_opt(2024, 9, 1).unwrap()),
+                Some(test_user_id()),
+                Some("Safety Manager"),
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let haz = result.unwrap();
         assert_eq!(haz.hazard_code, "HAZ-001");
@@ -1040,13 +1460,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_inspection_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_inspection(
-            test_org_id(), "", "Monthly Fire Safety", None,
-            "routine", "medium",
-            NaiveDate::from_ymd_opt(2024, 7, 1).unwrap(),
-            None, None, None, None, None,
-            None,
-        ).await;
+        let result = engine
+            .create_inspection(
+                test_org_id(),
+                "",
+                "Monthly Fire Safety",
+                None,
+                "routine",
+                "medium",
+                NaiveDate::from_ymd_opt(2024, 7, 1).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -1057,13 +1487,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_inspection_validation_bad_type() {
         let engine = create_engine();
-        let result = engine.create_inspection(
-            test_org_id(), "INS-001", "Test", None,
-            "surprise", "medium",
-            NaiveDate::from_ymd_opt(2024, 7, 1).unwrap(),
-            None, None, None, None, None,
-            None,
-        ).await;
+        let result = engine
+            .create_inspection(
+                test_org_id(),
+                "INS-001",
+                "Test",
+                None,
+                "surprise",
+                "medium",
+                NaiveDate::from_ymd_opt(2024, 7, 1).unwrap(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("inspection_type")),
@@ -1074,14 +1514,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_inspection_success() {
         let engine = create_engine();
-        let result = engine.create_inspection(
-            test_org_id(), "INS-001", "Q2 Fire Safety Audit", Some("Quarterly fire safety inspection"),
-            "periodic", "high",
-            NaiveDate::from_ymd_opt(2024, 7, 1).unwrap(),
-            Some("All Buildings"), None, None,
-            Some(test_user_id()), Some("Inspector Bob"),
-            Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_inspection(
+                test_org_id(),
+                "INS-001",
+                "Q2 Fire Safety Audit",
+                Some("Quarterly fire safety inspection"),
+                "periodic",
+                "high",
+                NaiveDate::from_ymd_opt(2024, 7, 1).unwrap(),
+                Some("All Buildings"),
+                None,
+                None,
+                Some(test_user_id()),
+                Some("Inspector Bob"),
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let ins = result.unwrap();
         assert_eq!(ins.inspection_number, "INS-001");
@@ -1092,7 +1541,9 @@ mod tests {
     #[tokio::test]
     async fn test_update_inspection_status_bad_status() {
         let engine = create_engine();
-        let result = engine.update_inspection_status(Uuid::new_v4(), "approved").await;
+        let result = engine
+            .update_inspection_status(Uuid::new_v4(), "approved")
+            .await;
         assert!(result.is_err());
     }
 
@@ -1101,14 +1552,30 @@ mod tests {
     #[tokio::test]
     async fn test_create_capa_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_corrective_action(
-            test_org_id(), "", "Fix Wet Floor", None,
-            "corrective", "high", Some("incident"), None, None,
-            None, None, None, None, None,
-            Some(NaiveDate::from_ymd_opt(2024, 7, 15).unwrap()),
-            None, None, None, None,
-            None,
-        ).await;
+        let result = engine
+            .create_corrective_action(
+                test_org_id(),
+                "",
+                "Fix Wet Floor",
+                None,
+                "corrective",
+                "high",
+                Some("incident"),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(NaiveDate::from_ymd_opt(2024, 7, 15).unwrap()),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -1119,13 +1586,30 @@ mod tests {
     #[tokio::test]
     async fn test_create_capa_validation_bad_type() {
         let engine = create_engine();
-        let result = engine.create_corrective_action(
-            test_org_id(), "CAPA-001", "Test", None,
-            "emergency", "high", None, None, None,
-            None, None, None, None, None,
-            None, None, None, None, None,
-            None,
-        ).await;
+        let result = engine
+            .create_corrective_action(
+                test_org_id(),
+                "CAPA-001",
+                "Test",
+                None,
+                "emergency",
+                "high",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("action_type")),
@@ -1136,13 +1620,30 @@ mod tests {
     #[tokio::test]
     async fn test_create_capa_validation_negative_cost() {
         let engine = create_engine();
-        let result = engine.create_corrective_action(
-            test_org_id(), "CAPA-001", "Test", None,
-            "corrective", "high", None, None, None,
-            None, None, None, None, None,
-            None, None, None, Some(-100.0), Some("USD"),
-            None,
-        ).await;
+        let result = engine
+            .create_corrective_action(
+                test_org_id(),
+                "CAPA-001",
+                "Test",
+                None,
+                "corrective",
+                "high",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(-100.0),
+                Some("USD"),
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("cost")),
@@ -1153,15 +1654,30 @@ mod tests {
     #[tokio::test]
     async fn test_create_capa_success() {
         let engine = create_engine();
-        let result = engine.create_corrective_action(
-            test_org_id(), "CAPA-001", "Install Non-Slip Mats", Some("Install non-slip mats in all wet areas"),
-            "corrective", "high", Some("incident"), None, Some("INC-001"),
-            Some("Wet floor without warning signs"), Some("Install mats and warning signs"), None,
-            Some(test_user_id()), Some("Facilities Manager"),
-            Some(NaiveDate::from_ymd_opt(2024, 7, 15).unwrap()),
-            None, None, Some(5000.0), Some("USD"),
-            Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_corrective_action(
+                test_org_id(),
+                "CAPA-001",
+                "Install Non-Slip Mats",
+                Some("Install non-slip mats in all wet areas"),
+                "corrective",
+                "high",
+                Some("incident"),
+                None,
+                Some("INC-001"),
+                Some("Wet floor without warning signs"),
+                Some("Install mats and warning signs"),
+                None,
+                Some(test_user_id()),
+                Some("Facilities Manager"),
+                Some(NaiveDate::from_ymd_opt(2024, 7, 15).unwrap()),
+                None,
+                None,
+                Some(5000.0),
+                Some("USD"),
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let capa = result.unwrap();
         assert_eq!(capa.action_number, "CAPA-001");
@@ -1172,16 +1688,18 @@ mod tests {
     #[tokio::test]
     async fn test_update_capa_status_bad_status() {
         let engine = create_engine();
-        let result = engine.update_corrective_action_status(Uuid::new_v4(), "rejected").await;
+        let result = engine
+            .update_corrective_action_status(Uuid::new_v4(), "rejected")
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_complete_capa_validation_bad_effectiveness() {
         let engine = create_engine();
-        let result = engine.complete_corrective_action(
-            Uuid::new_v4(), "perfect", None, None,
-        ).await;
+        let result = engine
+            .complete_corrective_action(Uuid::new_v4(), "perfect", None, None)
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("effectiveness")),
@@ -1192,9 +1710,9 @@ mod tests {
     #[tokio::test]
     async fn test_complete_capa_validation_negative_cost() {
         let engine = create_engine();
-        let result = engine.complete_corrective_action(
-            Uuid::new_v4(), "effective", Some(-50.0), None,
-        ).await;
+        let result = engine
+            .complete_corrective_action(Uuid::new_v4(), "effective", Some(-50.0), None)
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("cost")),

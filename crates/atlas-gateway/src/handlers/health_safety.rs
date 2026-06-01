@@ -9,7 +9,7 @@
 //! - OSHA compliance reporting
 //! - Health & Safety dashboard
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::{created_json, to_json};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -19,8 +19,8 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::auth::Claims;
+use crate::AppState;
 
 // ============================================================================
 // Incidents
@@ -59,7 +59,9 @@ pub async fn create_incident(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let incident = state.shared.health_safety_engine
+    let incident = state
+        .shared
+        .health_safety_engine
         .create_incident(
             org_id,
             &payload.incident_number,
@@ -112,7 +114,9 @@ pub async fn list_incidents(
     Query(query): Query<ListIncidentsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let incidents = state.shared.health_safety_engine
+    let incidents = state
+        .shared
+        .health_safety_engine
         .list_incidents(
             org_id,
             query.status.as_deref(),
@@ -130,7 +134,9 @@ pub async fn get_incident(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let incident = state.shared.health_safety_engine
+    let incident = state
+        .shared
+        .health_safety_engine
         .get_incident(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -151,7 +157,9 @@ pub async fn update_incident_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let incident = state.shared.health_safety_engine
+    let incident = state
+        .shared
+        .health_safety_engine
         .update_incident_status(id, &payload.status)
         .await
         .map_err(|e| {
@@ -182,7 +190,9 @@ pub async fn update_incident_investigation(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateInvestigationRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let incident = state.shared.health_safety_engine
+    let incident = state
+        .shared
+        .health_safety_engine
         .update_incident_investigation(
             id,
             payload.root_cause.as_deref(),
@@ -217,7 +227,9 @@ pub async fn close_incident(
     Json(_payload): Json<CloseIncidentRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let incident = state.shared.health_safety_engine
+    let incident = state
+        .shared
+        .health_safety_engine
         .close_incident(id, Some(user_id))
         .await
         .map_err(|e| {
@@ -237,7 +249,9 @@ pub async fn delete_incident(
     Path(incident_number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.shared.health_safety_engine
+    state
+        .shared
+        .health_safety_engine
         .delete_incident(org_id, &incident_number)
         .await
         .map_err(|e| {
@@ -282,7 +296,9 @@ pub async fn create_hazard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let hazard = state.shared.health_safety_engine
+    let hazard = state
+        .shared
+        .health_safety_engine
         .create_hazard(
             org_id,
             &payload.hazard_code,
@@ -330,7 +346,9 @@ pub async fn list_hazards(
     Query(query): Query<ListHazardsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let hazards = state.shared.health_safety_engine
+    let hazards = state
+        .shared
+        .health_safety_engine
         .list_hazards(
             org_id,
             query.status.as_deref(),
@@ -348,7 +366,9 @@ pub async fn get_hazard(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let hazard = state.shared.health_safety_engine
+    let hazard = state
+        .shared
+        .health_safety_engine
         .get_hazard(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -364,7 +384,9 @@ pub async fn update_hazard_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let hazard = state.shared.health_safety_engine
+    let hazard = state
+        .shared
+        .health_safety_engine
         .update_hazard_status(id, &payload.status)
         .await
         .map_err(|e| {
@@ -391,8 +413,14 @@ pub async fn assess_hazard_residual_risk(
     Path(id): Path<Uuid>,
     Json(payload): Json<AssessResidualRiskRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let hazard = state.shared.health_safety_engine
-        .assess_residual_risk(id, &payload.residual_likelihood, &payload.residual_consequence)
+    let hazard = state
+        .shared
+        .health_safety_engine
+        .assess_residual_risk(
+            id,
+            &payload.residual_likelihood,
+            &payload.residual_consequence,
+        )
         .await
         .map_err(|e| {
             tracing::error!("Assess residual risk error: {}", e);
@@ -412,7 +440,9 @@ pub async fn delete_hazard(
     Path(hazard_code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.shared.health_safety_engine
+    state
+        .shared
+        .health_safety_engine
         .delete_hazard(org_id, &hazard_code)
         .await
         .map_err(|e| {
@@ -452,7 +482,9 @@ pub async fn create_inspection(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let inspection = state.shared.health_safety_engine
+    let inspection = state
+        .shared
+        .health_safety_engine
         .create_inspection(
             org_id,
             &payload.inspection_number,
@@ -494,7 +526,9 @@ pub async fn list_inspections(
     Query(query): Query<ListInspectionsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let inspections = state.shared.health_safety_engine
+    let inspections = state
+        .shared
+        .health_safety_engine
         .list_inspections(
             org_id,
             query.status.as_deref(),
@@ -511,7 +545,9 @@ pub async fn get_inspection(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let inspection = state.shared.health_safety_engine
+    let inspection = state
+        .shared
+        .health_safety_engine
         .get_inspection(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -539,7 +575,9 @@ pub async fn complete_inspection(
     Path(id): Path<Uuid>,
     Json(payload): Json<CompleteInspectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let inspection = state.shared.health_safety_engine
+    let inspection = state
+        .shared
+        .health_safety_engine
         .complete_inspection(
             id,
             payload.findings_summary.as_deref(),
@@ -567,7 +605,9 @@ pub async fn update_inspection_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let inspection = state.shared.health_safety_engine
+    let inspection = state
+        .shared
+        .health_safety_engine
         .update_inspection_status(id, &payload.status)
         .await
         .map_err(|e| {
@@ -588,7 +628,9 @@ pub async fn delete_inspection(
     Path(inspection_number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.shared.health_safety_engine
+    state
+        .shared
+        .health_safety_engine
         .delete_inspection(org_id, &inspection_number)
         .await
         .map_err(|e| {
@@ -636,7 +678,9 @@ pub async fn create_corrective_action(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let action = state.shared.health_safety_engine
+    let action = state
+        .shared
+        .health_safety_engine
         .create_corrective_action(
             org_id,
             &payload.action_number,
@@ -685,7 +729,9 @@ pub async fn list_corrective_actions(
     Query(query): Query<ListCorrectiveActionsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let actions = state.shared.health_safety_engine
+    let actions = state
+        .shared
+        .health_safety_engine
         .list_corrective_actions(
             org_id,
             query.status.as_deref(),
@@ -702,7 +748,9 @@ pub async fn get_corrective_action(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let action = state.shared.health_safety_engine
+    let action = state
+        .shared
+        .health_safety_engine
         .get_corrective_action(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -718,7 +766,9 @@ pub async fn update_corrective_action_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let action = state.shared.health_safety_engine
+    let action = state
+        .shared
+        .health_safety_engine
         .update_corrective_action_status(id, &payload.status)
         .await
         .map_err(|e| {
@@ -747,8 +797,15 @@ pub async fn complete_corrective_action(
     Json(payload): Json<CompleteCorrectiveActionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let action = state.shared.health_safety_engine
-        .complete_corrective_action(id, &payload.effectiveness, payload.actual_cost, Some(user_id))
+    let action = state
+        .shared
+        .health_safety_engine
+        .complete_corrective_action(
+            id,
+            &payload.effectiveness,
+            payload.actual_cost,
+            Some(user_id),
+        )
         .await
         .map_err(|e| {
             tracing::error!("Complete CAPA error: {}", e);
@@ -768,7 +825,9 @@ pub async fn delete_corrective_action(
     Path(action_number): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.shared.health_safety_engine
+    state
+        .shared
+        .health_safety_engine
         .delete_corrective_action(org_id, &action_number)
         .await
         .map_err(|e| {
@@ -790,7 +849,9 @@ pub async fn get_health_safety_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let dashboard = state.shared.health_safety_engine
+    let dashboard = state
+        .shared
+        .health_safety_engine
         .get_dashboard(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

@@ -5,17 +5,17 @@
 //! open → `under_review` → accepted → rejected → `written_off`
 
 use axum::{
-    extract::{Path, Query, State, Extension},
-    Json,
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
+use crate::handlers::auth::{parse_uuid, Claims};
 use crate::AppState;
-use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Chargeback CRUD Handlers
@@ -58,51 +58,79 @@ pub async fn create_chargeback(
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let chargeback_date = chrono::NaiveDate::parse_from_str(&req.chargeback_date, "%Y-%m-%d")
-        .map_err(|e| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": format!("Invalid chargeback_date: {}", e)}))))?;
-    let gl_date = req.gl_date.as_deref()
+        .map_err(|e| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("Invalid chargeback_date: {}", e)})),
+            )
+        })?;
+    let gl_date = req
+        .gl_date
+        .as_deref()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
-    let due_date = req.due_date.as_deref()
+    let due_date = req
+        .due_date
+        .as_deref()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
-    let customer_id = req.customer_id.as_deref().and_then(|s| s.parse::<Uuid>().ok());
-    let receipt_id = req.receipt_id.as_deref().and_then(|s| s.parse::<Uuid>().ok());
-    let invoice_id = req.invoice_id.as_deref().and_then(|s| s.parse::<Uuid>().ok());
+    let customer_id = req
+        .customer_id
+        .as_deref()
+        .and_then(|s| s.parse::<Uuid>().ok());
+    let receipt_id = req
+        .receipt_id
+        .as_deref()
+        .and_then(|s| s.parse::<Uuid>().ok());
+    let invoice_id = req
+        .invoice_id
+        .as_deref()
+        .and_then(|s| s.parse::<Uuid>().ok());
     let currency = req.currency_code.as_deref().unwrap_or("USD");
     let tax = req.tax_amount.unwrap_or(0.0);
 
-    match state.financials.chargeback_engine.create_chargeback(
-        org_id,
-        customer_id,
-        req.customer_number.as_deref(),
-        req.customer_name.as_deref(),
-        receipt_id,
-        req.receipt_number.as_deref(),
-        invoice_id,
-        req.invoice_number.as_deref(),
-        chargeback_date,
-        gl_date,
-        currency,
-        req.exchange_rate_type.as_deref(),
-        req.exchange_rate,
-        req.amount,
-        tax,
-        &req.reason_code,
-        req.reason_description.as_deref(),
-        req.category.as_deref(),
-        req.priority.as_deref(),
-        req.assigned_to.as_deref(),
-        req.assigned_team.as_deref(),
-        due_date,
-        req.reference.as_deref(),
-        req.customer_reference.as_deref(),
-        req.sales_rep.as_deref(),
-        req.notes.as_deref(),
-        None,
-    ).await {
-        Ok(cb) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cb).unwrap_or(serde_json::Value::Null)))),
+    match state
+        .financials
+        .chargeback_engine
+        .create_chargeback(
+            org_id,
+            customer_id,
+            req.customer_number.as_deref(),
+            req.customer_name.as_deref(),
+            receipt_id,
+            req.receipt_number.as_deref(),
+            invoice_id,
+            req.invoice_number.as_deref(),
+            chargeback_date,
+            gl_date,
+            currency,
+            req.exchange_rate_type.as_deref(),
+            req.exchange_rate,
+            req.amount,
+            tax,
+            &req.reason_code,
+            req.reason_description.as_deref(),
+            req.category.as_deref(),
+            req.priority.as_deref(),
+            req.assigned_to.as_deref(),
+            req.assigned_team.as_deref(),
+            due_date,
+            req.reference.as_deref(),
+            req.customer_reference.as_deref(),
+            req.sales_rep.as_deref(),
+            req.notes.as_deref(),
+            None,
+        )
+        .await
+    {
+        Ok(cb) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(cb).unwrap_or(serde_json::Value::Null)),
+        )),
         Err(e) => {
             error!("Failed to create chargeback: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -122,21 +150,31 @@ pub async fn list_chargebacks(
     Query(query): Query<ListChargebacksQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    let customer_id = query.customer_id.as_deref().and_then(|s| s.parse::<Uuid>().ok());
+    let customer_id = query
+        .customer_id
+        .as_deref()
+        .and_then(|s| s.parse::<Uuid>().ok());
 
-    match state.financials.chargeback_engine.list_chargebacks(
-        org_id,
-        query.status.as_deref(),
-        customer_id,
-        query.reason_code.as_deref(),
-        query.category.as_deref(),
-        query.priority.as_deref(),
-    ).await {
+    match state
+        .financials
+        .chargeback_engine
+        .list_chargebacks(
+            org_id,
+            query.status.as_deref(),
+            customer_id,
+            query.reason_code.as_deref(),
+            query.category.as_deref(),
+            query.priority.as_deref(),
+        )
+        .await
+    {
         Ok(cbs) => Ok(Json(serde_json::json!({"data": cbs}))),
         Err(e) => {
             error!("Failed to list chargebacks: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -147,12 +185,19 @@ pub async fn get_chargeback(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.financials.chargeback_engine.get_chargeback(id).await {
-        Ok(Some(cb)) => Ok(Json(serde_json::to_value(cb).unwrap_or(serde_json::Value::Null))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Chargeback not found"})))),
+        Ok(Some(cb)) => Ok(Json(
+            serde_json::to_value(cb).unwrap_or(serde_json::Value::Null),
+        )),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Chargeback not found"})),
+        )),
         Err(e) => {
             error!("Failed to get chargeback: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -163,13 +208,25 @@ pub async fn get_chargeback_by_number(
     Path(number): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.financials.chargeback_engine.get_chargeback_by_number(org_id, &number).await {
-        Ok(Some(cb)) => Ok(Json(serde_json::to_value(cb).unwrap_or(serde_json::Value::Null))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Chargeback not found"})))),
+    match state
+        .financials
+        .chargeback_engine
+        .get_chargeback_by_number(org_id, &number)
+        .await
+    {
+        Ok(Some(cb)) => Ok(Json(
+            serde_json::to_value(cb).unwrap_or(serde_json::Value::Null),
+        )),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Chargeback not found"})),
+        )),
         Err(e) => {
             error!("Failed to get chargeback: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -180,12 +237,19 @@ pub async fn delete_chargeback(
     Path(number): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.financials.chargeback_engine.delete_chargeback(org_id, &number).await {
+    match state
+        .financials
+        .chargeback_engine
+        .delete_chargeback(org_id, &number)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete chargeback: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -208,18 +272,27 @@ pub async fn transition_chargeback(
     Path(id): Path<Uuid>,
     Json(req): Json<TransitionRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.financials.chargeback_engine.transition_chargeback(
-        id,
-        &req.status,
-        req.resolution_notes.as_deref(),
-        None,
-        req.resolved_by_name.as_deref(),
-    ).await {
-        Ok(cb) => Ok(Json(serde_json::to_value(cb).unwrap_or(serde_json::Value::Null))),
+    match state
+        .financials
+        .chargeback_engine
+        .transition_chargeback(
+            id,
+            &req.status,
+            req.resolution_notes.as_deref(),
+            None,
+            req.resolved_by_name.as_deref(),
+        )
+        .await
+    {
+        Ok(cb) => Ok(Json(
+            serde_json::to_value(cb).unwrap_or(serde_json::Value::Null),
+        )),
         Err(e) => {
             error!("Failed to transition chargeback: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -237,16 +310,21 @@ pub async fn assign_chargeback(
     Path(id): Path<Uuid>,
     Json(req): Json<AssignRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.financials.chargeback_engine.assign_chargeback(
-        id,
-        req.assigned_to.as_deref(),
-        req.assigned_team.as_deref(),
-    ).await {
-        Ok(cb) => Ok(Json(serde_json::to_value(cb).unwrap_or(serde_json::Value::Null))),
+    match state
+        .financials
+        .chargeback_engine
+        .assign_chargeback(id, req.assigned_to.as_deref(), req.assigned_team.as_deref())
+        .await
+    {
+        Ok(cb) => Ok(Json(
+            serde_json::to_value(cb).unwrap_or(serde_json::Value::Null),
+        )),
         Err(e) => {
             error!("Failed to assign chargeback: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -263,12 +341,21 @@ pub async fn update_notes(
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateNotesRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.financials.chargeback_engine.update_notes(id, req.notes.as_deref()).await {
-        Ok(cb) => Ok(Json(serde_json::to_value(cb).unwrap_or(serde_json::Value::Null))),
+    match state
+        .financials
+        .chargeback_engine
+        .update_notes(id, req.notes.as_deref())
+        .await
+    {
+        Ok(cb) => Ok(Json(
+            serde_json::to_value(cb).unwrap_or(serde_json::Value::Null),
+        )),
         Err(e) => {
             error!("Failed to update chargeback notes: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -304,28 +391,38 @@ pub async fn add_line(
     let org_id = parse_uuid(&claims.org_id)?;
     let line_type = req.line_type.as_deref().unwrap_or("chargeback");
 
-    match state.financials.chargeback_engine.add_chargeback_line(
-        org_id,
-        chargeback_id,
-        line_type,
-        req.description.as_deref(),
-        req.quantity,
-        req.unit_price,
-        req.amount,
-        req.tax_amount,
-        req.reason_code.as_deref(),
-        req.reason_description.as_deref(),
-        req.item_number.as_deref(),
-        req.item_description.as_deref(),
-        req.gl_account_code.as_deref(),
-        req.gl_account_name.as_deref(),
-        req.reference.as_deref(),
-    ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or(serde_json::Value::Null)))),
+    match state
+        .financials
+        .chargeback_engine
+        .add_chargeback_line(
+            org_id,
+            chargeback_id,
+            line_type,
+            req.description.as_deref(),
+            req.quantity,
+            req.unit_price,
+            req.amount,
+            req.tax_amount,
+            req.reason_code.as_deref(),
+            req.reason_description.as_deref(),
+            req.item_number.as_deref(),
+            req.item_description.as_deref(),
+            req.gl_account_code.as_deref(),
+            req.gl_account_name.as_deref(),
+            req.reference.as_deref(),
+        )
+        .await
+    {
+        Ok(line) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(line).unwrap_or(serde_json::Value::Null)),
+        )),
         Err(e) => {
             error!("Failed to add chargeback line: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -335,12 +432,19 @@ pub async fn list_lines(
     Extension(_claims): Extension<Claims>,
     Path(chargeback_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.financials.chargeback_engine.list_chargeback_lines(chargeback_id).await {
+    match state
+        .financials
+        .chargeback_engine
+        .list_chargeback_lines(chargeback_id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => {
             error!("Failed to list chargeback lines: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -350,12 +454,19 @@ pub async fn remove_line(
     Extension(_claims): Extension<Claims>,
     Path((chargeback_id, line_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    match state.financials.chargeback_engine.remove_chargeback_line(chargeback_id, line_id).await {
+    match state
+        .financials
+        .chargeback_engine
+        .remove_chargeback_line(chargeback_id, line_id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to remove chargeback line: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -369,12 +480,19 @@ pub async fn list_activities(
     Extension(_claims): Extension<Claims>,
     Path(chargeback_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.financials.chargeback_engine.list_activities(chargeback_id).await {
+    match state
+        .financials
+        .chargeback_engine
+        .list_activities(chargeback_id)
+        .await
+    {
         Ok(activities) => Ok(Json(serde_json::json!({"data": activities}))),
         Err(e) => {
             error!("Failed to list chargeback activities: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -388,12 +506,21 @@ pub async fn get_dashboard(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.financials.chargeback_engine.get_dashboard(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or(serde_json::Value::Null))),
+    match state
+        .financials
+        .chargeback_engine
+        .get_dashboard(org_id)
+        .await
+    {
+        Ok(summary) => Ok(Json(
+            serde_json::to_value(summary).unwrap_or(serde_json::Value::Null),
+        )),
         Err(e) => {
             error!("Failed to get chargeback dashboard: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }

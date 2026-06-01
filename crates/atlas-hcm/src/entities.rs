@@ -1,5 +1,5 @@
 //! HCM Entity Definitions
-//! 
+//!
 //! Entity definitions for the Human Capital Management domain.
 //! These are used to register entities in the schema engine.
 
@@ -7,7 +7,7 @@ use atlas_core::schema::{SchemaBuilder, WorkflowBuilder};
 use atlas_shared::EntityDefinition;
 
 /// Generate the Employee entity definition with lifecycle workflow
-#[must_use] 
+#[must_use]
 pub fn employee_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("employee_lifecycle", "onboarding")
         .initial_state("onboarding", "Onboarding")
@@ -40,17 +40,23 @@ pub fn employee_definition() -> EntityDefinition {
         .reference("department_id", "Department", "departments")
         .reference("position_id", "Position", "positions")
         .reference("manager_id", "Manager", "employees")
-        .enumeration("employment_type", "Employment Type", vec![
-            "full_time", "part_time", "contractor", "intern"
-        ])
-        .enumeration("status", "Status", vec!["active", "inactive", "on_leave", "terminated"])
+        .enumeration(
+            "employment_type",
+            "Employment Type",
+            vec!["full_time", "part_time", "contractor", "intern"],
+        )
+        .enumeration(
+            "status",
+            "Status",
+            vec!["active", "inactive", "on_leave", "terminated"],
+        )
         .address("address", "Address")
         .workflow(workflow)
         .build()
 }
 
 /// Generate the Department entity definition
-#[must_use] 
+#[must_use]
 pub fn department_definition() -> EntityDefinition {
     SchemaBuilder::new("departments", "Department")
         .plural_label("Departments")
@@ -67,7 +73,7 @@ pub fn department_definition() -> EntityDefinition {
 }
 
 /// Generate the Position entity definition
-#[must_use] 
+#[must_use]
 pub fn position_definition() -> EntityDefinition {
     SchemaBuilder::new("positions", "Position")
         .plural_label("Positions")
@@ -77,9 +83,19 @@ pub fn position_definition() -> EntityDefinition {
         .required_string("title", "Job Title")
         .required_string("code", "Code")
         .reference("department_id", "Department", "departments")
-        .enumeration("level", "Job Level", vec![
-            "entry", "mid", "senior", "lead", "manager", "director", "executive"
-        ])
+        .enumeration(
+            "level",
+            "Job Level",
+            vec![
+                "entry",
+                "mid",
+                "senior",
+                "lead",
+                "manager",
+                "director",
+                "executive",
+            ],
+        )
         .currency("min_salary", "Minimum Salary", "USD")
         .currency("max_salary", "Maximum Salary", "USD")
         .boolean_default("is_active", "Active", true)

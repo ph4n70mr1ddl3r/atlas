@@ -2,19 +2,18 @@
 //!
 //! Oracle Fusion: Financials > Treasury > Cash Position
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Query},
-    Json,
+    extract::{Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct RecordPositionRequest {
@@ -40,14 +39,30 @@ pub async fn record_position(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.cash_position_engine.record_position(
-        org_id, payload.bank_account_id,
-        payload.bank_account_number.as_deref(), payload.bank_account_name.as_deref(),
-        &payload.currency_code, &payload.opening_balance, &payload.total_inflows,
-        &payload.total_outflows, &payload.closing_balance, &payload.ledger_balance,
-        &payload.available_balance, &payload.hold_amount, payload.position_date,
-        payload.source_breakdown.clone().unwrap_or(serde_json::json!({})),
-    ).await {
+    match state
+        .financials
+        .cash_position_engine
+        .record_position(
+            org_id,
+            payload.bank_account_id,
+            payload.bank_account_number.as_deref(),
+            payload.bank_account_name.as_deref(),
+            &payload.currency_code,
+            &payload.opening_balance,
+            &payload.total_inflows,
+            &payload.total_outflows,
+            &payload.closing_balance,
+            &payload.ledger_balance,
+            &payload.available_balance,
+            &payload.hold_amount,
+            payload.position_date,
+            payload
+                .source_breakdown
+                .clone()
+                .unwrap_or(serde_json::json!({})),
+        )
+        .await
+    {
         Ok(p) => Ok(created_json(p)),
         Err(e) => {
             error!("Failed to record position: {}", e);
@@ -71,9 +86,17 @@ pub async fn list_positions(
     Query(query): Query<ListPositionsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.cash_position_engine.list_positions(org_id, query.position_date, query.currency_code.as_deref()).await {
+    match state
+        .financials
+        .cash_position_engine
+        .list_positions(org_id, query.position_date, query.currency_code.as_deref())
+        .await
+    {
         Ok(positions) => Ok(Json(serde_json::json!({ "data": positions }))),
-        Err(e) => { error!("Failed to list positions: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list positions: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -82,8 +105,16 @@ pub async fn get_cash_position_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.cash_position_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .cash_position_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(to_json(dashboard)),
-        Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

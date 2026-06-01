@@ -1,5 +1,5 @@
 //! Formula Engine
-//! 
+//!
 //! Expression evaluation for computed fields and formulas.
 
 mod engine;
@@ -67,7 +67,7 @@ pub struct EvaluationContext {
 }
 
 impl EvaluationContext {
-    #[must_use] 
+    #[must_use]
     pub fn new(record: serde_json::Value) -> Self {
         Self {
             record,
@@ -77,19 +77,19 @@ impl EvaluationContext {
             variables: std::collections::HashMap::new(),
         }
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn with_related(mut self, entity: &str, records: Vec<serde_json::Value>) -> Self {
         self.related.insert(entity.to_string(), records);
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn get_field(&self, name: &str) -> Option<&serde_json::Value> {
         self.record.get(name)
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn get_related(&self, entity: &str) -> Option<&Vec<serde_json::Value>> {
         self.related.get(entity)
     }

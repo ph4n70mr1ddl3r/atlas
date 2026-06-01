@@ -70,7 +70,9 @@ impl AutoMatchService {
             }
 
             if !is_match && rule_set.match_by_purchase_order {
-                if let (Some(ref ref_po), Some(ref inv_po)) = (&receipt.reference_po_number, &inv.po_number) {
+                if let (Some(ref ref_po), Some(ref inv_po)) =
+                    (&receipt.reference_po_number, &inv.po_number)
+                {
                     if ref_po == inv_po {
                         is_match = true;
                     }
@@ -183,7 +185,7 @@ mod tests {
                 po_number: None,
                 customer_id: "CUST-100".to_string(),
                 amount_due: 300.0,
-            }
+            },
         ];
 
         let result = AutoMatchService::execute_automatch(&receipt, &open_invoices, &rule_set);
@@ -211,15 +213,13 @@ mod tests {
             reference_po_number: Some("PO-999".to_string()),
         };
 
-        let open_invoices = vec![
-            OpenInvoice {
-                invoice_id: "ID-3".to_string(),
-                invoice_number: "INV-10".to_string(),
-                po_number: Some("PO-999".to_string()),
-                customer_id: "CUST-200".to_string(),
-                amount_due: 1000.0,
-            }
-        ];
+        let open_invoices = vec![OpenInvoice {
+            invoice_id: "ID-3".to_string(),
+            invoice_number: "INV-10".to_string(),
+            po_number: Some("PO-999".to_string()),
+            customer_id: "CUST-200".to_string(),
+            amount_due: 1000.0,
+        }];
 
         let result = AutoMatchService::execute_automatch(&receipt, &open_invoices, &rule_set);
         assert_eq!(result.status, "APPLIED");
@@ -244,15 +244,13 @@ mod tests {
             reference_po_number: None,
         };
 
-        let open_invoices = vec![
-            OpenInvoice {
-                invoice_id: "ID-4".to_string(),
-                invoice_number: "INV-50".to_string(),
-                po_number: None,
-                customer_id: "CUST-300".to_string(),
-                amount_due: 500.0,
-            }
-        ];
+        let open_invoices = vec![OpenInvoice {
+            invoice_id: "ID-4".to_string(),
+            invoice_number: "INV-50".to_string(),
+            po_number: None,
+            customer_id: "CUST-300".to_string(),
+            amount_due: 500.0,
+        }];
 
         let result = AutoMatchService::execute_automatch(&receipt, &open_invoices, &rule_set);
         assert_eq!(result.status, "UNAPPLIED"); // Rejected because 200/500 is 40%, which is < 100%
@@ -278,15 +276,13 @@ mod tests {
             reference_po_number: None,
         };
 
-        let open_invoices = vec![
-            OpenInvoice {
-                invoice_id: "ID-5".to_string(),
-                invoice_number: "INV-60".to_string(),
-                po_number: None,
-                customer_id: "CUST-400".to_string(),
-                amount_due: 500.0,
-            }
-        ];
+        let open_invoices = vec![OpenInvoice {
+            invoice_id: "ID-5".to_string(),
+            invoice_number: "INV-60".to_string(),
+            po_number: None,
+            customer_id: "CUST-400".to_string(),
+            amount_due: 500.0,
+        }];
 
         let result = AutoMatchService::execute_automatch(&receipt, &open_invoices, &rule_set);
         assert_eq!(result.status, "APPLIED_WITH_ON_ACCOUNT");
@@ -308,7 +304,7 @@ mod tests {
         let receipt = CashReceipt {
             receipt_id: "RCPT-005".to_string(),
             customer_id: "CUST-500".to_string(),
-            receipt_amount: 300.0, 
+            receipt_amount: 300.0,
             reference_invoice_number: None,
             reference_po_number: Some("PO-MULTI".to_string()),
         };
@@ -327,7 +323,7 @@ mod tests {
                 po_number: Some("PO-MULTI".to_string()),
                 customer_id: "CUST-500".to_string(),
                 amount_due: 300.0, // This is the exact amount match
-            }
+            },
         ];
 
         let result = AutoMatchService::execute_automatch(&receipt, &open_invoices, &rule_set);

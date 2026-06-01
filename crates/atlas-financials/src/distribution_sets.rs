@@ -60,7 +60,10 @@ impl DistributionSetService {
         }
 
         let mut sets = self.sets.write().unwrap();
-        if sets.iter().any(|s| s.organization_id == organization_id && s.set_code == set_code) {
+        if sets
+            .iter()
+            .any(|s| s.organization_id == organization_id && s.set_code == set_code)
+        {
             return Err("Distribution set with this code already exists".to_string());
         }
 
@@ -89,11 +92,17 @@ impl DistributionSetService {
         amount: Option<Decimal>,
     ) -> Result<DistributionSetLine, String> {
         let mut sets = self.sets.write().unwrap();
-        let set = sets.iter_mut().find(|s| s.id == distribution_set_id)
+        let set = sets
+            .iter_mut()
+            .find(|s| s.id == distribution_set_id)
             .ok_or_else(|| "Distribution set not found".to_string())?;
 
         let mut lines = self.lines.write().unwrap();
-        let line_number = (lines.iter().filter(|l| l.distribution_set_id == distribution_set_id).count() as i32) + 1;
+        let line_number = (lines
+            .iter()
+            .filter(|l| l.distribution_set_id == distribution_set_id)
+            .count() as i32)
+            + 1;
 
         let line = DistributionSetLine {
             id: Uuid::new_v4(),
@@ -118,9 +127,15 @@ impl DistributionSetService {
         Ok(line)
     }
 
-    pub fn apply_to_amount(&self, set_id: Uuid, total_amount: Decimal) -> Result<Vec<(String, Decimal)>, String> {
+    pub fn apply_to_amount(
+        &self,
+        set_id: Uuid,
+        total_amount: Decimal,
+    ) -> Result<Vec<(String, Decimal)>, String> {
         let sets = self.sets.read().unwrap();
-        let set = sets.iter().find(|s| s.id == set_id)
+        let set = sets
+            .iter()
+            .find(|s| s.id == set_id)
             .ok_or_else(|| "Distribution set not found".to_string())?;
 
         if set.status != "active" {
@@ -128,7 +143,8 @@ impl DistributionSetService {
         }
 
         let lines = self.lines.read().unwrap();
-        let set_lines: Vec<&DistributionSetLine> = lines.iter()
+        let set_lines: Vec<&DistributionSetLine> = lines
+            .iter()
             .filter(|l| l.distribution_set_id == set_id && l.is_active)
             .collect();
 
@@ -159,7 +175,7 @@ mod tests {
     fn test_create_distribution_set() {
         let service = DistributionSetService::new();
         let org_id = Uuid::new_v4();
-        
+
         let result = service.create_distribution_set(
             org_id,
             "RENT_DIST".to_string(),
@@ -177,13 +193,23 @@ mod tests {
     fn test_apply_percentage_set() {
         let service = DistributionSetService::new();
         let org_id = Uuid::new_v4();
-        
-        let set = service.create_distribution_set(
-            org_id, "CORP_EXP".to_string(), "Corp Expenses".to_string(), None, "percentage".to_string()
-        ).unwrap();
 
-        service.add_line(set.id, "6010-001".to_string(), dec!(60), None).unwrap();
-        service.add_line(set.id, "6010-002".to_string(), dec!(40), None).unwrap();
+        let set = service
+            .create_distribution_set(
+                org_id,
+                "CORP_EXP".to_string(),
+                "Corp Expenses".to_string(),
+                None,
+                "percentage".to_string(),
+            )
+            .unwrap();
+
+        service
+            .add_line(set.id, "6010-001".to_string(), dec!(60), None)
+            .unwrap();
+        service
+            .add_line(set.id, "6010-002".to_string(), dec!(40), None)
+            .unwrap();
 
         let total = dec!(1000);
         let dists = service.apply_to_amount(set.id, total).unwrap();
@@ -197,10 +223,24 @@ mod tests {
     fn test_duplicate_code() {
         let service = DistributionSetService::new();
         let org_id = Uuid::new_v4();
-        
-        service.create_distribution_set(org_id, "S1".to_string(), "N".to_string(), None, "percentage".to_string()).unwrap();
-        let result = service.create_distribution_set(org_id, "S1".to_string(), "N2".to_string(), None, "percentage".to_string());
-        
+
+        service
+            .create_distribution_set(
+                org_id,
+                "S1".to_string(),
+                "N".to_string(),
+                None,
+                "percentage".to_string(),
+            )
+            .unwrap();
+        let result = service.create_distribution_set(
+            org_id,
+            "S1".to_string(),
+            "N2".to_string(),
+            None,
+            "percentage".to_string(),
+        );
+
         assert!(result.is_err());
     }
 }

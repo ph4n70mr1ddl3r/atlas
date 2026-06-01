@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion Cloud equivalent: Product Development > Engineering Change Management
 
-use atlas_shared::{
-    EngineeringChangeType, EngineeringChange, EngineeringChangeLine,
-    EngineeringChangeAffectedItem, EngineeringChangeApproval, EcmDashboard,
-    AtlasError, AtlasResult,
-};
 use super::EngineeringChangeManagementRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, EcmDashboard, EngineeringChange, EngineeringChangeAffectedItem,
+    EngineeringChangeApproval, EngineeringChangeLine, EngineeringChangeType,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -19,63 +18,73 @@ use uuid::Uuid;
 // Valid enum constants
 // ============================================================================
 
-const VALID_CHANGE_CATEGORIES: &[&str] = &[
-    "ecr", "eco", "ecn",
-];
+const VALID_CHANGE_CATEGORIES: &[&str] = &["ecr", "eco", "ecn"];
 
-const VALID_PRIORITIES: &[&str] = &[
-    "low", "medium", "high", "critical",
-];
+const VALID_PRIORITIES: &[&str] = &["low", "medium", "high", "critical"];
 
 const VALID_CHANGE_STATUSES: &[&str] = &[
-    "draft", "submitted", "in_review", "approved", "rejected",
-    "implemented", "closed", "cancelled",
+    "draft",
+    "submitted",
+    "in_review",
+    "approved",
+    "rejected",
+    "implemented",
+    "closed",
+    "cancelled",
 ];
 
 const VALID_CHANGE_REASONS: &[&str] = &[
-    "design_improvement", "cost_reduction", "quality_issue",
-    "safety_regulatory", "customer_request", "supplier_change",
-    "product_enhancement", "defect_correction", "standardization",
-    "obsolescence", "other",
+    "design_improvement",
+    "cost_reduction",
+    "quality_issue",
+    "safety_regulatory",
+    "customer_request",
+    "supplier_change",
+    "product_enhancement",
+    "defect_correction",
+    "standardization",
+    "obsolescence",
+    "other",
 ];
 
 const VALID_LINE_CATEGORIES: &[&str] = &[
-    "item_update", "bom_add", "bom_remove", "bom_change",
-    "revision_change", "specification_change",
+    "item_update",
+    "bom_add",
+    "bom_remove",
+    "bom_change",
+    "revision_change",
+    "specification_change",
 ];
 
-const VALID_LINE_STATUSES: &[&str] = &[
-    "pending", "in_progress", "completed", "failed", "skipped",
-];
+const VALID_LINE_STATUSES: &[&str] = &["pending", "in_progress", "completed", "failed", "skipped"];
 
-const VALID_IMPACT_TYPES: &[&str] = &[
-    "direct", "indirect", "dependent",
-];
+const VALID_IMPACT_TYPES: &[&str] = &["direct", "indirect", "dependent"];
 
-const VALID_DISPOSITIONS: &[&str] = &[
-    "use_existing", "scrap", "rework", "return_to_supplier",
-];
+const VALID_DISPOSITIONS: &[&str] = &["use_existing", "scrap", "rework", "return_to_supplier"];
 
 #[allow(dead_code)]
-const VALID_APPROVAL_STATUSES: &[&str] = &[
-    "pending", "approved", "rejected", "returned", "delegated",
-];
+const VALID_APPROVAL_STATUSES: &[&str] =
+    &["pending", "approved", "rejected", "returned", "delegated"];
 
 #[allow(dead_code)]
 const VALID_RESOLUTION_CODES: &[&str] = &[
-    "implemented", "partially_implemented", "withdrawn", "superseded",
+    "implemented",
+    "partially_implemented",
+    "withdrawn",
+    "superseded",
 ];
 
 /// Helper to validate a value against allowed set
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
-        return Err(AtlasError::ValidationFailed(format!(
-            "{field} is required"
-        )));
+        return Err(AtlasError::ValidationFailed(format!("{field} is required")));
     }
     if !allowed.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field, value, allowed.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field,
+            value,
+            allowed.join(", ")
         )));
     }
     Ok(())
@@ -111,31 +120,53 @@ impl EngineeringChangeEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EngineeringChangeType> {
         if type_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Type code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Type code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Type name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Type name is required".to_string(),
+            ));
         }
         validate_enum("category", category, VALID_CHANGE_CATEGORIES)?;
         validate_enum("default_priority", default_priority, VALID_PRIORITIES)?;
         if number_prefix.is_empty() {
-            return Err(AtlasError::ValidationFailed("Number prefix is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Number prefix is required".to_string(),
+            ));
         }
 
-        if self.repository.get_change_type_by_code(org_id, type_code).await?.is_some() {
+        if self
+            .repository
+            .get_change_type_by_code(org_id, type_code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Change type '{type_code}' already exists"
             )));
         }
 
-        info!("Creating engineering change type '{}' ({}) for org {}", type_code, name, org_id);
-        self.repository.create_change_type(
-            org_id, type_code, name, description, category,
-            approval_required, default_priority, number_prefix,
-            description_template,
-            serde_json::json!(VALID_CHANGE_STATUSES),
-            created_by,
-        ).await
+        info!(
+            "Creating engineering change type '{}' ({}) for org {}",
+            type_code, name, org_id
+        );
+        self.repository
+            .create_change_type(
+                org_id,
+                type_code,
+                name,
+                description,
+                category,
+                approval_required,
+                default_priority,
+                number_prefix,
+                description_template,
+                serde_json::json!(VALID_CHANGE_STATUSES),
+                created_by,
+            )
+            .await
     }
 
     /// Get a change type by ID
@@ -144,8 +175,14 @@ impl EngineeringChangeEngine {
     }
 
     /// Get a change type by code
-    pub async fn get_change_type_by_code(&self, org_id: Uuid, type_code: &str) -> AtlasResult<Option<EngineeringChangeType>> {
-        self.repository.get_change_type_by_code(org_id, type_code).await
+    pub async fn get_change_type_by_code(
+        &self,
+        org_id: Uuid,
+        type_code: &str,
+    ) -> AtlasResult<Option<EngineeringChangeType>> {
+        self.repository
+            .get_change_type_by_code(org_id, type_code)
+            .await
     }
 
     /// List change types for an organization
@@ -197,10 +234,14 @@ impl EngineeringChangeEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EngineeringChange> {
         if change_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Change number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Change number is required".to_string(),
+            ));
         }
         if title.is_empty() {
-            return Err(AtlasError::ValidationFailed("Title is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Title is required".to_string(),
+            ));
         }
         validate_enum("category", category, VALID_CHANGE_CATEGORIES)?;
         validate_enum("priority", priority, VALID_PRIORITIES)?;
@@ -210,18 +251,19 @@ impl EngineeringChangeEngine {
 
         // Validate change type exists if specified
         if let Some(ct_id) = change_type_id {
-            self.repository.get_change_type(ct_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Change type {ct_id} not found"
-                )))?;
+            self.repository
+                .get_change_type(ct_id)
+                .await?
+                .ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Change type {ct_id} not found"))
+                })?;
         }
 
         // Validate parent change exists if specified
         if let Some(p_id) = parent_change_id {
-            self.repository.get_change(p_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Parent change {p_id} not found"
-                )))?;
+            self.repository.get_change(p_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Parent change {p_id} not found"))
+            })?;
         }
 
         // Validate estimated cost
@@ -241,32 +283,58 @@ impl EngineeringChangeEngine {
             }
         }
 
-        if self.repository.get_change_by_number(org_id, change_number).await?.is_some() {
+        if self
+            .repository
+            .get_change_by_number(org_id, change_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Change '{change_number}' already exists"
             )));
         }
 
-        info!("Creating engineering change '{}' ({}) for org {} [category={}, priority={}]",
-              change_number, title, org_id, category, priority);
+        info!(
+            "Creating engineering change '{}' ({}) for org {} [category={}, priority={}]",
+            change_number, title, org_id, category, priority
+        );
 
-        self.repository.create_change(
-            org_id, change_number, change_type_id, category,
-            title, description, change_reason, change_reason_description,
-            priority, "draft", "A",
-            assigned_to, assigned_to_name,
-            None, None, None, // submitted_at, approved_at, implemented_at
-            target_date, effective_date,
-            None, None, // resolution_code, resolution_notes
-            parent_change_id, None, // superseded_by_id
-            serde_json::json!({}),
-            estimated_cost, None, // actual_cost
-            currency_code.unwrap_or("USD"),
-            estimated_hours, None, // actual_hours
-            regulatory_impact, safety_impact,
-            validation_required,
-            created_by,
-        ).await
+        self.repository
+            .create_change(
+                org_id,
+                change_number,
+                change_type_id,
+                category,
+                title,
+                description,
+                change_reason,
+                change_reason_description,
+                priority,
+                "draft",
+                "A",
+                assigned_to,
+                assigned_to_name,
+                None,
+                None,
+                None, // submitted_at, approved_at, implemented_at
+                target_date,
+                effective_date,
+                None,
+                None, // resolution_code, resolution_notes
+                parent_change_id,
+                None, // superseded_by_id
+                serde_json::json!({}),
+                estimated_cost,
+                None, // actual_cost
+                currency_code.unwrap_or("USD"),
+                estimated_hours,
+                None, // actual_hours
+                regulatory_impact,
+                safety_impact,
+                validation_required,
+                created_by,
+            )
+            .await
     }
 
     /// Get a change by ID
@@ -275,8 +343,14 @@ impl EngineeringChangeEngine {
     }
 
     /// Get a change by number
-    pub async fn get_change_by_number(&self, org_id: Uuid, change_number: &str) -> AtlasResult<Option<EngineeringChange>> {
-        self.repository.get_change_by_number(org_id, change_number).await
+    pub async fn get_change_by_number(
+        &self,
+        org_id: Uuid,
+        change_number: &str,
+    ) -> AtlasResult<Option<EngineeringChange>> {
+        self.repository
+            .get_change_by_number(org_id, change_number)
+            .await
     }
 
     /// List changes with optional filters
@@ -297,19 +371,23 @@ impl EngineeringChangeEngine {
         if let Some(p) = priority {
             validate_enum("priority", p, VALID_PRIORITIES)?;
         }
-        self.repository.list_changes(org_id, status, category, priority, assigned_to).await
+        self.repository
+            .list_changes(org_id, status, category, priority, assigned_to)
+            .await
     }
 
     /// Submit a change for review/approval (draft → submitted)
     pub async fn submit_change(&self, id: Uuid) -> AtlasResult<EngineeringChange> {
-        let change = self.repository.get_change(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {id} not found"
-            )))?;
+        let change = self
+            .repository
+            .get_change(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         if change.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot submit change in '{}' status. Must be 'draft'.", change.status
+                "Cannot submit change in '{}' status. Must be 'draft'.",
+                change.status
             )));
         }
 
@@ -318,31 +396,42 @@ impl EngineeringChangeEngine {
         let items = self.repository.list_affected_items(id).await?;
         if lines.is_empty() && items.is_empty() {
             return Err(AtlasError::ValidationFailed(
-                "Cannot submit change without at least one change line or affected item".to_string(),
+                "Cannot submit change without at least one change line or affected item"
+                    .to_string(),
             ));
         }
 
-        info!("Submitting engineering change '{}' for review", change.change_number);
-        self.repository.update_change_status(
-            id, "submitted", Some(chrono::Utc::now()), None, None,
-        ).await
+        info!(
+            "Submitting engineering change '{}' for review",
+            change.change_number
+        );
+        self.repository
+            .update_change_status(id, "submitted", Some(chrono::Utc::now()), None, None)
+            .await
     }
 
     /// Start review of a change (submitted → `in_review`)
     pub async fn start_review(&self, id: Uuid) -> AtlasResult<EngineeringChange> {
-        let change = self.repository.get_change(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {id} not found"
-            )))?;
+        let change = self
+            .repository
+            .get_change(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         if change.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot start review for change in '{}' status. Must be 'submitted'.", change.status
+                "Cannot start review for change in '{}' status. Must be 'submitted'.",
+                change.status
             )));
         }
 
-        info!("Starting review of engineering change '{}'", change.change_number);
-        self.repository.update_change_status(id, "in_review", None, None, None).await
+        info!(
+            "Starting review of engineering change '{}'",
+            change.change_number
+        );
+        self.repository
+            .update_change_status(id, "in_review", None, None, None)
+            .await
     }
 
     /// Approve a change (`submitted/in_review` → approved)
@@ -353,30 +442,41 @@ impl EngineeringChangeEngine {
         approver_name: Option<&str>,
         comments: Option<&str>,
     ) -> AtlasResult<EngineeringChange> {
-        let change = self.repository.get_change(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {id} not found"
-            )))?;
+        let change = self
+            .repository
+            .get_change(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         if change.status != "submitted" && change.status != "in_review" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot approve change in '{}' status. Must be 'submitted' or 'in_review'.", change.status
+                "Cannot approve change in '{}' status. Must be 'submitted' or 'in_review'.",
+                change.status
             )));
         }
 
         // Create approval record
-        self.repository.create_approval(
-            change.organization_id, id, 1,
-            approver_id, approver_name, None,
-            "approved", Some(chrono::Utc::now()),
-            comments, None, None,
-            approver_id,
-        ).await?;
+        self.repository
+            .create_approval(
+                change.organization_id,
+                id,
+                1,
+                approver_id,
+                approver_name,
+                None,
+                "approved",
+                Some(chrono::Utc::now()),
+                comments,
+                None,
+                None,
+                approver_id,
+            )
+            .await?;
 
         info!("Approving engineering change '{}'", change.change_number);
-        self.repository.update_change_status(
-            id, "approved", None, Some(chrono::Utc::now()), None,
-        ).await
+        self.repository
+            .update_change_status(id, "approved", None, Some(chrono::Utc::now()), None)
+            .await
     }
 
     /// Reject a change (`submitted/in_review` → rejected)
@@ -388,30 +488,41 @@ impl EngineeringChangeEngine {
         comments: Option<&str>,
         resolution_notes: Option<&str>,
     ) -> AtlasResult<EngineeringChange> {
-        let change = self.repository.get_change(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {id} not found"
-            )))?;
+        let change = self
+            .repository
+            .get_change(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         if change.status != "submitted" && change.status != "in_review" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot reject change in '{}' status. Must be 'submitted' or 'in_review'.", change.status
+                "Cannot reject change in '{}' status. Must be 'submitted' or 'in_review'.",
+                change.status
             )));
         }
 
         // Create rejection approval record
-        self.repository.create_approval(
-            change.organization_id, id, 1,
-            approver_id, approver_name, None,
-            "rejected", Some(chrono::Utc::now()),
-            comments, None, None,
-            approver_id,
-        ).await?;
+        self.repository
+            .create_approval(
+                change.organization_id,
+                id,
+                1,
+                approver_id,
+                approver_name,
+                None,
+                "rejected",
+                Some(chrono::Utc::now()),
+                comments,
+                None,
+                None,
+                approver_id,
+            )
+            .await?;
 
         info!("Rejecting engineering change '{}'", change.change_number);
-        self.repository.update_change_with_resolution(
-            id, "rejected", resolution_notes, Some("withdrawn"),
-        ).await
+        self.repository
+            .update_change_with_resolution(id, "rejected", resolution_notes, Some("withdrawn"))
+            .await
     }
 
     /// Implement an approved change (approved → implemented)
@@ -421,44 +532,53 @@ impl EngineeringChangeEngine {
         actual_cost: Option<f64>,
         actual_hours: Option<f64>,
     ) -> AtlasResult<EngineeringChange> {
-        let change = self.repository.get_change(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {id} not found"
-            )))?;
+        let change = self
+            .repository
+            .get_change(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         if change.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot implement change in '{}' status. Must be 'approved'.", change.status
+                "Cannot implement change in '{}' status. Must be 'approved'.",
+                change.status
             )));
         }
 
         info!("Implementing engineering change '{}'", change.change_number);
-        self.repository.implement_change(id, actual_cost, actual_hours, Some(chrono::Utc::now())).await
+        self.repository
+            .implement_change(id, actual_cost, actual_hours, Some(chrono::Utc::now()))
+            .await
     }
 
     /// Close an implemented change (implemented → closed)
     pub async fn close_change(&self, id: Uuid) -> AtlasResult<EngineeringChange> {
-        let change = self.repository.get_change(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {id} not found"
-            )))?;
+        let change = self
+            .repository
+            .get_change(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         if change.status != "implemented" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot close change in '{}' status. Must be 'implemented'.", change.status
+                "Cannot close change in '{}' status. Must be 'implemented'.",
+                change.status
             )));
         }
 
         info!("Closing engineering change '{}'", change.change_number);
-        self.repository.update_change_status(id, "closed", None, None, None).await
+        self.repository
+            .update_change_status(id, "closed", None, None, None)
+            .await
     }
 
     /// Cancel a draft or submitted change
     pub async fn cancel_change(&self, id: Uuid) -> AtlasResult<EngineeringChange> {
-        let change = self.repository.get_change(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {id} not found"
-            )))?;
+        let change = self
+            .repository
+            .get_change(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         if change.status != "draft" && change.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -467,32 +587,46 @@ impl EngineeringChangeEngine {
         }
 
         info!("Cancelling engineering change '{}'", change.change_number);
-        self.repository.update_change_status(id, "cancelled", None, None, None).await
+        self.repository
+            .update_change_status(id, "cancelled", None, None, None)
+            .await
     }
 
     /// Return a change to draft (submitted → draft) for rework
-    pub async fn return_for_rework(&self, id: Uuid, comments: Option<&str>) -> AtlasResult<EngineeringChange> {
-        let change = self.repository.get_change(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {id} not found"
-            )))?;
+    pub async fn return_for_rework(
+        &self,
+        id: Uuid,
+        comments: Option<&str>,
+    ) -> AtlasResult<EngineeringChange> {
+        let change = self
+            .repository
+            .get_change(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Change {id} not found")))?;
 
         if change.status != "submitted" && change.status != "in_review" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot return change in '{}' status. Must be 'submitted' or 'in_review'.", change.status
+                "Cannot return change in '{}' status. Must be 'submitted' or 'in_review'.",
+                change.status
             )));
         }
 
-        info!("Returning engineering change '{}' for rework", change.change_number);
+        info!(
+            "Returning engineering change '{}' for rework",
+            change.change_number
+        );
         self.repository.return_for_rework(id, comments).await
     }
 
     /// Delete a change by number (only draft or cancelled)
     pub async fn delete_change(&self, org_id: Uuid, change_number: &str) -> AtlasResult<()> {
-        let change = self.repository.get_change_by_number(org_id, change_number).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change '{change_number}' not found"
-            )))?;
+        let change = self
+            .repository
+            .get_change_by_number(org_id, change_number)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Change '{change_number}' not found"))
+            })?;
 
         if change.status != "draft" && change.status != "cancelled" {
             return Err(AtlasError::ValidationFailed(
@@ -500,7 +634,10 @@ impl EngineeringChangeEngine {
             ));
         }
 
-        info!("Deleting engineering change '{}' for org {}", change_number, org_id);
+        info!(
+            "Deleting engineering change '{}' for org {}",
+            change_number, org_id
+        );
         self.repository.delete_change(org_id, change_number).await
     }
 
@@ -532,10 +669,11 @@ impl EngineeringChangeEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EngineeringChangeLine> {
         // Verify change exists and is in an editable state
-        let change = self.repository.get_change(change_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {change_id} not found"
-            )))?;
+        let change = self
+            .repository
+            .get_change(change_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Change {change_id} not found")))?;
 
         if change.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -574,22 +712,37 @@ impl EngineeringChangeEngine {
         let existing_lines = self.repository.list_change_lines(change_id).await?;
         let line_number = (existing_lines.len() as i32) + 1;
 
-        info!("Adding change line {} to change '{}' [category={}]",
-              line_number, change.change_number, change_category);
+        info!(
+            "Adding change line {} to change '{}' [category={}]",
+            line_number, change.change_number, change_category
+        );
 
-        self.repository.create_change_line(
-            org_id, change_id, line_number,
-            item_id, item_number, item_name,
-            change_category, field_name,
-            old_value, new_value,
-            old_revision, new_revision,
-            component_item_id, component_item_number,
-            bom_quantity_old, bom_quantity_new,
-            effectivity_date, effectivity_end_date,
-            "pending", None,
-            line_number, // sequence_number
-            created_by,
-        ).await
+        self.repository
+            .create_change_line(
+                org_id,
+                change_id,
+                line_number,
+                item_id,
+                item_number,
+                item_name,
+                change_category,
+                field_name,
+                old_value,
+                new_value,
+                old_revision,
+                new_revision,
+                component_item_id,
+                component_item_number,
+                bom_quantity_old,
+                bom_quantity_new,
+                effectivity_date,
+                effectivity_end_date,
+                "pending",
+                None,
+                line_number, // sequence_number
+                created_by,
+            )
+            .await
     }
 
     /// Get a change line by ID
@@ -598,7 +751,10 @@ impl EngineeringChangeEngine {
     }
 
     /// List change lines for a change
-    pub async fn list_change_lines(&self, change_id: Uuid) -> AtlasResult<Vec<EngineeringChangeLine>> {
+    pub async fn list_change_lines(
+        &self,
+        change_id: Uuid,
+    ) -> AtlasResult<Vec<EngineeringChangeLine>> {
         self.repository.list_change_lines(change_id).await
     }
 
@@ -611,7 +767,9 @@ impl EngineeringChangeEngine {
     ) -> AtlasResult<EngineeringChangeLine> {
         validate_enum("line status", status, VALID_LINE_STATUSES)?;
         info!("Updating change line {} status to {}", id, status);
-        self.repository.update_change_line_status(id, status, completion_notes).await
+        self.repository
+            .update_change_line_status(id, status, completion_notes)
+            .await
     }
 
     /// Delete a change line
@@ -643,10 +801,11 @@ impl EngineeringChangeEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EngineeringChangeAffectedItem> {
         // Verify change exists and is in an editable state
-        let change = self.repository.get_change(change_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Change {change_id} not found"
-            )))?;
+        let change = self
+            .repository
+            .get_change(change_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Change {change_id} not found")))?;
 
         if change.status != "draft" && change.status != "submitted" {
             return Err(AtlasError::WorkflowError(
@@ -669,32 +828,56 @@ impl EngineeringChangeEngine {
         }
 
         // Check uniqueness of item within change
-        if self.repository.get_affected_item(change_id, item_id).await?.is_some() {
+        if self
+            .repository
+            .get_affected_item(change_id, item_id)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Item {item_number} is already an affected item on this change"
             )));
         }
 
-        info!("Adding affected item '{}' to change '{}' [impact={}]",
-              item_number, change.change_number, impact_type);
+        info!(
+            "Adding affected item '{}' to change '{}' [impact={}]",
+            item_number, change.change_number, impact_type
+        );
 
-        self.repository.create_affected_item(
-            org_id, change_id, item_id, item_number, item_name,
-            impact_type, impact_description,
-            current_revision, new_revision,
-            disposition, None, None, // old/new item status
-            phase_in_date, phase_out_date,
-            created_by,
-        ).await
+        self.repository
+            .create_affected_item(
+                org_id,
+                change_id,
+                item_id,
+                item_number,
+                item_name,
+                impact_type,
+                impact_description,
+                current_revision,
+                new_revision,
+                disposition,
+                None,
+                None, // old/new item status
+                phase_in_date,
+                phase_out_date,
+                created_by,
+            )
+            .await
     }
 
     /// Get an affected item by ID
-    pub async fn get_affected_item_by_id(&self, id: Uuid) -> AtlasResult<Option<EngineeringChangeAffectedItem>> {
+    pub async fn get_affected_item_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<EngineeringChangeAffectedItem>> {
         self.repository.get_affected_item_by_id(id).await
     }
 
     /// List affected items for a change
-    pub async fn list_affected_items(&self, change_id: Uuid) -> AtlasResult<Vec<EngineeringChangeAffectedItem>> {
+    pub async fn list_affected_items(
+        &self,
+        change_id: Uuid,
+    ) -> AtlasResult<Vec<EngineeringChangeAffectedItem>> {
         self.repository.list_affected_items(change_id).await
     }
 
@@ -709,12 +892,18 @@ impl EngineeringChangeEngine {
     // ========================================================================
 
     /// List approvals for a change
-    pub async fn list_approvals(&self, change_id: Uuid) -> AtlasResult<Vec<EngineeringChangeApproval>> {
+    pub async fn list_approvals(
+        &self,
+        change_id: Uuid,
+    ) -> AtlasResult<Vec<EngineeringChangeApproval>> {
         self.repository.list_approvals(change_id).await
     }
 
     /// Get pending approvals for an approver
-    pub async fn get_pending_approvals(&self, approver_id: Uuid) -> AtlasResult<Vec<EngineeringChangeApproval>> {
+    pub async fn get_pending_approvals(
+        &self,
+        approver_id: Uuid,
+    ) -> AtlasResult<Vec<EngineeringChangeApproval>> {
         self.repository.get_pending_approvals(approver_id).await
     }
 
@@ -1042,12 +1231,28 @@ mod tests {
     // Helper functions for status transition tests
     // ========================================================================
 
-    fn can_submit(status: &str) -> bool { status == "draft" }
-    fn can_start_review(status: &str) -> bool { status == "submitted" }
-    fn can_approve(status: &str) -> bool { status == "submitted" || status == "in_review" }
-    fn can_reject(status: &str) -> bool { status == "submitted" || status == "in_review" }
-    fn can_implement(_status: &str) -> bool { false } // needs mock
-    fn can_close(status: &str) -> bool { status == "implemented" }
-    fn can_cancel(status: &str) -> bool { status == "draft" || status == "submitted" }
-    fn can_return(status: &str) -> bool { status == "submitted" || status == "in_review" }
+    fn can_submit(status: &str) -> bool {
+        status == "draft"
+    }
+    fn can_start_review(status: &str) -> bool {
+        status == "submitted"
+    }
+    fn can_approve(status: &str) -> bool {
+        status == "submitted" || status == "in_review"
+    }
+    fn can_reject(status: &str) -> bool {
+        status == "submitted" || status == "in_review"
+    }
+    fn can_implement(_status: &str) -> bool {
+        false
+    } // needs mock
+    fn can_close(status: &str) -> bool {
+        status == "implemented"
+    }
+    fn can_cancel(status: &str) -> bool {
+        status == "draft" || status == "submitted"
+    }
+    fn can_return(status: &str) -> bool {
+        status == "submitted" || status == "in_review"
+    }
 }

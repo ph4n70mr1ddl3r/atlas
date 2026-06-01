@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Grants Management > Awards
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::GrantManagementEngine;
 pub use repository::{GrantManagementRepository, PostgresGrantManagementRepository};

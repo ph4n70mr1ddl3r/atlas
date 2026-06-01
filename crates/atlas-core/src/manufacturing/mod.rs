@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: SCM > Manufacturing > Work Definitions, Work Orders
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ManufacturingEngine;
 pub use repository::{ManufacturingRepository, PostgresManufacturingRepository};

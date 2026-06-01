@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: Trade Management > Rebates > Agreements, Processing, Settlement
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::RebateManagementEngine;
-pub use repository::{RebateManagementRepository, PostgresRebateManagementRepository};
+pub use repository::{PostgresRebateManagementRepository, RebateManagementRepository};

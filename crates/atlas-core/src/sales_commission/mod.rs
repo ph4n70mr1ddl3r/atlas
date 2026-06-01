@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Incentive Compensation > Compensation Plans > Payouts
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::SalesCommissionEngine;
-pub use repository::{SalesCommissionRepository, PostgresSalesCommissionRepository};
+pub use repository::{PostgresSalesCommissionRepository, SalesCommissionRepository};

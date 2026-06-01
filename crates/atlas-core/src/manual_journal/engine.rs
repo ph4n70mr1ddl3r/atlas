@@ -7,11 +7,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: General Ledger > Journals > New Journal
 
-use atlas_shared::{
-    JournalBatch, JournalEntry, JournalEntryLine, ManualJournalDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::ManualJournalRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, JournalBatch, JournalEntry, JournalEntryLine,
+    ManualJournalDashboardSummary,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -58,10 +58,14 @@ impl ManualJournalEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalBatch> {
         if batch_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Batch number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Batch number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Batch name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Batch name is required".to_string(),
+            ));
         }
 
         let effective_source = source.unwrap_or("manual");
@@ -77,15 +81,27 @@ impl ManualJournalEngine {
 
         self.repository
             .create_batch(
-                org_id, batch_number, name, description, ledger_id,
-                currency_code, accounting_date, period.as_deref(),
-                effective_source, is_automatic_post, created_by,
+                org_id,
+                batch_number,
+                name,
+                description,
+                ledger_id,
+                currency_code,
+                accounting_date,
+                period.as_deref(),
+                effective_source,
+                is_automatic_post,
+                created_by,
             )
             .await
     }
 
     /// Get a batch by number
-    pub async fn get_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<JournalBatch>> {
+    pub async fn get_batch(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<JournalBatch>> {
         self.repository.get_batch(org_id, batch_number).await
     }
 
@@ -95,12 +111,17 @@ impl ManualJournalEngine {
     }
 
     /// List batches with optional status filter
-    pub async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalBatch>> {
+    pub async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JournalBatch>> {
         if let Some(s) = status {
             if !VALID_BATCH_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_BATCH_STATUSES.join(", ")
+                    s,
+                    VALID_BATCH_STATUSES.join(", ")
                 )));
             }
         }
@@ -148,7 +169,9 @@ impl ManualJournalEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalEntry> {
         if entry_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Entry number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Entry number is required".to_string(),
+            ));
         }
 
         let batch = self
@@ -174,12 +197,24 @@ impl ManualJournalEngine {
             entry_number, batch.batch_number
         );
 
-        let entry = self.repository
+        let entry = self
+            .repository
             .create_entry(
-                org_id, batch_id, entry_number, name, description,
-                ledger_id, currency_code, accounting_date, period.as_deref(),
-                category, "manual", reference_number, external_reference,
-                statistical_entry, created_by,
+                org_id,
+                batch_id,
+                entry_number,
+                name,
+                description,
+                ledger_id,
+                currency_code,
+                accounting_date,
+                period.as_deref(),
+                category,
+                "manual",
+                reference_number,
+                external_reference,
+                statistical_entry,
+                created_by,
             )
             .await?;
 
@@ -200,12 +235,17 @@ impl ManualJournalEngine {
     }
 
     /// List all entries with optional status filter
-    pub async fn list_entries(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalEntry>> {
+    pub async fn list_entries(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JournalEntry>> {
         if let Some(s) = status {
             if !VALID_ENTRY_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_ENTRY_STATUSES.join(", ")
+                    s,
+                    VALID_ENTRY_STATUSES.join(", ")
                 )));
             }
         }
@@ -258,18 +298,23 @@ impl ManualJournalEngine {
         if !VALID_LINE_TYPES.contains(&line_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid line type '{}'. Must be one of: {}",
-                line_type, VALID_LINE_TYPES.join(", ")
+                line_type,
+                VALID_LINE_TYPES.join(", ")
             )));
         }
         if account_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Account code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Account code is required".to_string(),
+            ));
         }
 
-        let amt: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amt: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
         if amt < 0.0 {
-            return Err(AtlasError::ValidationFailed("Amount cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Amount cannot be negative".to_string(),
+            ));
         }
 
         let entry = self
@@ -293,12 +338,25 @@ impl ManualJournalEngine {
             line_number, account_code, entry.entry_number
         );
 
-        let line = self.repository
+        let line = self
+            .repository
             .create_line(
-                org_id, entry_id, line_number, line_type, account_code,
-                account_name, description, amount, entered_amount,
-                entered_currency_code, exchange_rate, tax_code, cost_center,
-                department_id, project_id, intercompany_entity_id,
+                org_id,
+                entry_id,
+                line_number,
+                line_type,
+                account_code,
+                account_name,
+                description,
+                amount,
+                entered_amount,
+                entered_currency_code,
+                exchange_rate,
+                tax_code,
+                cost_center,
+                department_id,
+                project_id,
+                intercompany_entity_id,
                 statistical_amount,
             )
             .await?;
@@ -350,7 +408,11 @@ impl ManualJournalEngine {
     // ========================================================================
 
     /// Submit a batch for approval
-    pub async fn submit_batch(&self, batch_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<JournalBatch> {
+    pub async fn submit_batch(
+        &self,
+        batch_id: Uuid,
+        submitted_by: Option<Uuid>,
+    ) -> AtlasResult<JournalBatch> {
         let batch = self
             .repository
             .get_batch_by_id(batch_id)
@@ -396,7 +458,11 @@ impl ManualJournalEngine {
     }
 
     /// Approve a submitted batch
-    pub async fn approve_batch(&self, batch_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<JournalBatch> {
+    pub async fn approve_batch(
+        &self,
+        batch_id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<JournalBatch> {
         let batch = self
             .repository
             .get_batch_by_id(batch_id)
@@ -425,7 +491,11 @@ impl ManualJournalEngine {
     }
 
     /// Reject a submitted batch
-    pub async fn reject_batch(&self, batch_id: Uuid, rejection_reason: Option<&str>) -> AtlasResult<JournalBatch> {
+    pub async fn reject_batch(
+        &self,
+        batch_id: Uuid,
+        rejection_reason: Option<&str>,
+    ) -> AtlasResult<JournalBatch> {
         let batch = self
             .repository
             .get_batch_by_id(batch_id)
@@ -454,7 +524,11 @@ impl ManualJournalEngine {
     }
 
     /// Post an approved batch to the General Ledger
-    pub async fn post_batch(&self, batch_id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<JournalBatch> {
+    pub async fn post_batch(
+        &self,
+        batch_id: Uuid,
+        posted_by: Option<Uuid>,
+    ) -> AtlasResult<JournalBatch> {
         let batch = self
             .repository
             .get_batch_by_id(batch_id)
@@ -484,7 +558,11 @@ impl ManualJournalEngine {
     }
 
     /// Reverse a posted batch, creating reversal entries
-    pub async fn reverse_batch(&self, batch_id: Uuid, reversed_by: Option<Uuid>) -> AtlasResult<JournalBatch> {
+    pub async fn reverse_batch(
+        &self,
+        batch_id: Uuid,
+        reversed_by: Option<Uuid>,
+    ) -> AtlasResult<JournalBatch> {
         let batch = self
             .repository
             .get_batch_by_id(batch_id)
@@ -506,15 +584,23 @@ impl ManualJournalEngine {
             }
             // Create reversal entry
             let reversal_number = format!("REV-{}", entry.entry_number);
-            let reversal_entry = self.repository
+            let reversal_entry = self
+                .repository
                 .create_entry(
-                    entry.organization_id, batch_id, &reversal_number,
+                    entry.organization_id,
+                    batch_id,
+                    &reversal_number,
                     Some(&format!("Reversal of {}", entry.entry_number)),
                     Some("System-generated reversal entry"),
-                    entry.ledger_id, &entry.currency_code,
-                    entry.accounting_date, entry.period_name.as_deref(),
-                    &entry.journal_category, "reversal",
-                    None, None, entry.statistical_entry,
+                    entry.ledger_id,
+                    &entry.currency_code,
+                    entry.accounting_date,
+                    entry.period_name.as_deref(),
+                    &entry.journal_category,
+                    "reversal",
+                    None,
+                    None,
+                    entry.statistical_entry,
                     reversed_by,
                 )
                 .await?;
@@ -522,16 +608,30 @@ impl ManualJournalEngine {
             // Copy lines with swapped debits/credits
             let lines = self.repository.list_lines_by_entry(entry.id).await?;
             for line in &lines {
-                let reversed_type = if line.line_type == "debit" { "credit" } else { "debit" };
+                let reversed_type = if line.line_type == "debit" {
+                    "credit"
+                } else {
+                    "debit"
+                };
                 self.repository
                     .create_line(
-                        entry.organization_id, reversal_entry.id, line.line_number,
-                        reversed_type, &line.account_code, line.account_name.as_deref(),
-                        line.description.as_deref(), &line.amount,
-                        line.entered_amount.as_deref(), line.entered_currency_code.as_deref(),
-                        line.exchange_rate.as_deref(), line.tax_code.as_deref(),
-                        line.cost_center.as_deref(), line.department_id, line.project_id,
-                        line.intercompany_entity_id, line.statistical_amount.as_deref(),
+                        entry.organization_id,
+                        reversal_entry.id,
+                        line.line_number,
+                        reversed_type,
+                        &line.account_code,
+                        line.account_name.as_deref(),
+                        line.description.as_deref(),
+                        &line.amount,
+                        line.entered_amount.as_deref(),
+                        line.entered_currency_code.as_deref(),
+                        line.exchange_rate.as_deref(),
+                        line.tax_code.as_deref(),
+                        line.cost_center.as_deref(),
+                        line.department_id,
+                        line.project_id,
+                        line.intercompany_entity_id,
+                        line.statistical_amount.as_deref(),
                     )
                     .await?;
             }
@@ -546,7 +646,12 @@ impl ManualJournalEngine {
 
             // Post the reversal entry
             self.repository
-                .update_entry_status(reversal_entry.id, "posted", reversed_by, Some(chrono::Utc::now()))
+                .update_entry_status(
+                    reversal_entry.id,
+                    "posted",
+                    reversed_by,
+                    Some(chrono::Utc::now()),
+                )
                 .await?;
         }
 
@@ -564,7 +669,10 @@ impl ManualJournalEngine {
     // ========================================================================
 
     /// Get manual journal dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ManualJournalDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ManualJournalDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 
@@ -575,11 +683,13 @@ impl ManualJournalEngine {
     /// Recalculate entry totals from its lines
     async fn recalculate_entry_totals(&self, entry_id: Uuid) -> AtlasResult<()> {
         let lines = self.repository.list_lines_by_entry(entry_id).await?;
-        let total_debit: f64 = lines.iter()
+        let total_debit: f64 = lines
+            .iter()
             .filter(|l| l.line_type == "debit")
             .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_credit: f64 = lines.iter()
+        let total_credit: f64 = lines
+            .iter()
             .filter(|l| l.line_type == "credit")
             .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
             .sum();
@@ -600,10 +710,12 @@ impl ManualJournalEngine {
     /// Recalculate batch totals from its entries
     async fn recalculate_batch_totals(&self, batch_id: Uuid) -> AtlasResult<()> {
         let entries = self.repository.list_entries_by_batch(batch_id).await?;
-        let total_debit: f64 = entries.iter()
+        let total_debit: f64 = entries
+            .iter()
             .map(|e| e.total_debit.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_credit: f64 = entries.iter()
+        let total_credit: f64 = entries
+            .iter()
             .map(|e| e.total_credit.parse::<f64>().unwrap_or(0.0))
             .sum();
 
@@ -672,11 +784,19 @@ mod tests {
     fn test_debit_credit_swapping() {
         // Verify reversal swaps debits and credits
         let line_type = "debit";
-        let reversed = if line_type == "debit" { "credit" } else { "debit" };
+        let reversed = if line_type == "debit" {
+            "credit"
+        } else {
+            "debit"
+        };
         assert_eq!(reversed, "credit");
 
         let line_type = "credit";
-        let reversed = if line_type == "debit" { "credit" } else { "debit" };
+        let reversed = if line_type == "debit" {
+            "credit"
+        } else {
+            "debit"
+        };
         assert_eq!(reversed, "debit");
     }
 

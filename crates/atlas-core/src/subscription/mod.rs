@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Subscription Management > Subscriptions
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::SubscriptionEngine;
-pub use repository::{SubscriptionRepository, PostgresSubscriptionRepository};
+pub use repository::{PostgresSubscriptionRepository, SubscriptionRepository};

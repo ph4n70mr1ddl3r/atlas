@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for control monitor rules, violations, and dashboards.
 
-use atlas_shared::{
-    ControlMonitorRule, ControlViolation, FinancialControlsDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, ControlMonitorRule, ControlViolation,
+    FinancialControlsDashboardSummary,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -17,49 +17,99 @@ pub trait FinancialControlsRepository: Send + Sync {
     // Monitor Rules
     async fn create_rule(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        category: &str, risk_level: &str, control_type: &str,
-        conditions: serde_json::Value, threshold_value: Option<&str>,
-        target_entity: &str, target_fields: serde_json::Value,
-        actions: serde_json::Value, auto_resolve: bool,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        category: &str,
+        risk_level: &str,
+        control_type: &str,
+        conditions: serde_json::Value,
+        threshold_value: Option<&str>,
+        target_entity: &str,
+        target_fields: serde_json::Value,
+        actions: serde_json::Value,
+        auto_resolve: bool,
         check_schedule: &str,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ControlMonitorRule>;
 
     async fn get_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ControlMonitorRule>>;
     async fn get_rule_by_id(&self, id: Uuid) -> AtlasResult<Option<ControlMonitorRule>>;
-    async fn list_rules(&self, org_id: Uuid, category: Option<&str>, risk_level: Option<&str>) -> AtlasResult<Vec<ControlMonitorRule>>;
-    async fn list_active_rules(&self, org_id: Uuid, check_schedule: Option<&str>) -> AtlasResult<Vec<ControlMonitorRule>>;
+    async fn list_rules(
+        &self,
+        org_id: Uuid,
+        category: Option<&str>,
+        risk_level: Option<&str>,
+    ) -> AtlasResult<Vec<ControlMonitorRule>>;
+    async fn list_active_rules(
+        &self,
+        org_id: Uuid,
+        check_schedule: Option<&str>,
+    ) -> AtlasResult<Vec<ControlMonitorRule>>;
     async fn delete_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
-    async fn update_rule_stats(&self, id: Uuid, total_violations: i32, total_resolved: i32, last_violation_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<()>;
+    async fn update_rule_stats(
+        &self,
+        id: Uuid,
+        total_violations: i32,
+        total_resolved: i32,
+        last_violation_at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> AtlasResult<()>;
 
     // Violations
     async fn create_violation(
         &self,
-        org_id: Uuid, rule_id: Uuid, rule_code: Option<&str>, rule_name: Option<&str>,
-        violation_number: &str, entity_type: &str, entity_id: Option<Uuid>,
-        description: &str, findings: serde_json::Value, risk_level: &str,
-        status: &str, related_entities: serde_json::Value,
+        org_id: Uuid,
+        rule_id: Uuid,
+        rule_code: Option<&str>,
+        rule_name: Option<&str>,
+        violation_number: &str,
+        entity_type: &str,
+        entity_id: Option<Uuid>,
+        description: &str,
+        findings: serde_json::Value,
+        risk_level: &str,
+        status: &str,
+        related_entities: serde_json::Value,
     ) -> AtlasResult<ControlViolation>;
 
     async fn get_violation(&self, id: Uuid) -> AtlasResult<Option<ControlViolation>>;
-    async fn get_violation_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<ControlViolation>>;
+    async fn get_violation_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<ControlViolation>>;
     async fn list_violations(
-        &self, org_id: Uuid, status: Option<&str>, risk_level: Option<&str>,
-        rule_id: Option<Uuid>, assigned_to: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        risk_level: Option<&str>,
+        rule_id: Option<Uuid>,
+        assigned_to: Option<Uuid>,
     ) -> AtlasResult<Vec<ControlViolation>>;
     async fn update_violation_status(
-        &self, id: Uuid, status: &str, assigned_to: Option<Uuid>,
-        assigned_to_name: Option<&str>, resolution_notes: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        assigned_to: Option<Uuid>,
+        assigned_to_name: Option<&str>,
+        resolution_notes: Option<&str>,
         resolved_by: Option<Uuid>,
     ) -> AtlasResult<ControlViolation>;
     async fn escalate_violation(
-        &self, id: Uuid, escalated_to: Option<Uuid>, escalated_at: Option<chrono::DateTime<chrono::Utc>>,
+        &self,
+        id: Uuid,
+        escalated_to: Option<Uuid>,
+        escalated_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<ControlViolation>;
 
     // Dashboard
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<FinancialControlsDashboardSummary>;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<FinancialControlsDashboardSummary>;
 }
 
 /// `PostgreSQL` implementation
@@ -68,7 +118,7 @@ pub struct PostgresFinancialControlsRepository {
 }
 
 impl PostgresFinancialControlsRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -142,13 +192,22 @@ macro_rules! row_to_violation {
 impl FinancialControlsRepository for PostgresFinancialControlsRepository {
     async fn create_rule(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        category: &str, risk_level: &str, control_type: &str,
-        conditions: serde_json::Value, threshold_value: Option<&str>,
-        target_entity: &str, target_fields: serde_json::Value,
-        actions: serde_json::Value, auto_resolve: bool,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        category: &str,
+        risk_level: &str,
+        control_type: &str,
+        conditions: serde_json::Value,
+        threshold_value: Option<&str>,
+        target_entity: &str,
+        target_fields: serde_json::Value,
+        actions: serde_json::Value,
+        auto_resolve: bool,
         check_schedule: &str,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ControlMonitorRule> {
         let row = sqlx::query(
@@ -159,11 +218,23 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(category).bind(risk_level).bind(control_type)
-        .bind(&conditions).bind(threshold_value).bind(target_entity)
-        .bind(&target_fields).bind(&actions).bind(auto_resolve)
-        .bind(check_schedule).bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(category)
+        .bind(risk_level)
+        .bind(control_type)
+        .bind(&conditions)
+        .bind(threshold_value)
+        .bind(target_entity)
+        .bind(&target_fields)
+        .bind(&actions)
+        .bind(auto_resolve)
+        .bind(check_schedule)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -190,23 +261,43 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
         Ok(row.map(|r| row_to_rule!(r)))
     }
 
-    async fn list_rules(&self, org_id: Uuid, category: Option<&str>, risk_level: Option<&str>) -> AtlasResult<Vec<ControlMonitorRule>> {
+    async fn list_rules(
+        &self,
+        org_id: Uuid,
+        category: Option<&str>,
+        risk_level: Option<&str>,
+    ) -> AtlasResult<Vec<ControlMonitorRule>> {
         let mut query = String::from("SELECT * FROM _atlas.control_monitor_rules WHERE organization_id = $1 AND is_active = true");
         let mut param_idx = 2;
-        if category.is_some() { query.push_str(&format!(" AND category = ${param_idx}")); param_idx += 1; }
-        if risk_level.is_some() { query.push_str(&format!(" AND risk_level = ${param_idx}")); }
+        if category.is_some() {
+            query.push_str(&format!(" AND category = ${param_idx}"));
+            param_idx += 1;
+        }
+        if risk_level.is_some() {
+            query.push_str(&format!(" AND risk_level = ${param_idx}"));
+        }
         query.push_str(" ORDER BY risk_level, code");
 
         let mut q = sqlx::query(&query).bind(org_id);
-        if let Some(c) = category { q = q.bind(c); }
-        if let Some(r) = risk_level { q = q.bind(r); }
+        if let Some(c) = category {
+            q = q.bind(c);
+        }
+        if let Some(r) = risk_level {
+            q = q.bind(r);
+        }
 
-        let rows = q.fetch_all(&self.pool).await
+        let rows = q
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| row_to_rule!(r)).collect())
     }
 
-    async fn list_active_rules(&self, org_id: Uuid, check_schedule: Option<&str>) -> AtlasResult<Vec<ControlMonitorRule>> {
+    async fn list_active_rules(
+        &self,
+        org_id: Uuid,
+        check_schedule: Option<&str>,
+    ) -> AtlasResult<Vec<ControlMonitorRule>> {
         let rows = if let Some(schedule) = check_schedule {
             sqlx::query(
                 r"SELECT * FROM _atlas.control_monitor_rules
@@ -215,8 +306,10 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
                   AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
                 ORDER BY risk_level, code",
             )
-            .bind(org_id).bind(schedule)
-            .fetch_all(&self.pool).await
+            .bind(org_id)
+            .bind(schedule)
+            .fetch_all(&self.pool)
+            .await
         } else {
             sqlx::query(
                 r"SELECT * FROM _atlas.control_monitor_rules
@@ -226,8 +319,10 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
                 ORDER BY risk_level, code",
             )
             .bind(org_id)
-            .fetch_all(&self.pool).await
-        }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .fetch_all(&self.pool)
+            .await
+        }
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| row_to_rule!(r)).collect())
     }
 
@@ -242,7 +337,13 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
         Ok(())
     }
 
-    async fn update_rule_stats(&self, id: Uuid, total_violations: i32, total_resolved: i32, last_violation_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<()> {
+    async fn update_rule_stats(
+        &self,
+        id: Uuid,
+        total_violations: i32,
+        total_resolved: i32,
+        last_violation_at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.control_monitor_rules
             SET total_violations = $1, total_resolved = $2, last_violation_at = $3, updated_at = now()
@@ -257,10 +358,18 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
 
     async fn create_violation(
         &self,
-        org_id: Uuid, rule_id: Uuid, rule_code: Option<&str>, rule_name: Option<&str>,
-        violation_number: &str, entity_type: &str, entity_id: Option<Uuid>,
-        description: &str, findings: serde_json::Value, risk_level: &str,
-        status: &str, related_entities: serde_json::Value,
+        org_id: Uuid,
+        rule_id: Uuid,
+        rule_code: Option<&str>,
+        rule_name: Option<&str>,
+        violation_number: &str,
+        entity_type: &str,
+        entity_id: Option<Uuid>,
+        description: &str,
+        findings: serde_json::Value,
+        risk_level: &str,
+        status: &str,
+        related_entities: serde_json::Value,
     ) -> AtlasResult<ControlViolation> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.control_violations
@@ -270,9 +379,18 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *",
         )
-        .bind(org_id).bind(rule_id).bind(rule_code).bind(rule_name).bind(violation_number)
-        .bind(entity_type).bind(entity_id).bind(description).bind(&findings).bind(risk_level)
-        .bind(status).bind(&related_entities)
+        .bind(org_id)
+        .bind(rule_id)
+        .bind(rule_code)
+        .bind(rule_name)
+        .bind(violation_number)
+        .bind(entity_type)
+        .bind(entity_id)
+        .bind(description)
+        .bind(&findings)
+        .bind(risk_level)
+        .bind(status)
+        .bind(&related_entities)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -288,7 +406,11 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
         Ok(row.map(|r| row_to_violation!(r)))
     }
 
-    async fn get_violation_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<ControlViolation>> {
+    async fn get_violation_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<ControlViolation>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.control_violations WHERE organization_id = $1 AND violation_number = $2"
         )
@@ -300,31 +422,61 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
     }
 
     async fn list_violations(
-        &self, org_id: Uuid, status: Option<&str>, risk_level: Option<&str>,
-        rule_id: Option<Uuid>, assigned_to: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        risk_level: Option<&str>,
+        rule_id: Option<Uuid>,
+        assigned_to: Option<Uuid>,
     ) -> AtlasResult<Vec<ControlViolation>> {
-        let mut query = String::from("SELECT * FROM _atlas.control_violations WHERE organization_id = $1");
+        let mut query =
+            String::from("SELECT * FROM _atlas.control_violations WHERE organization_id = $1");
         let mut param_idx = 2;
-        if status.is_some() { query.push_str(&format!(" AND status = ${param_idx}")); param_idx += 1; }
-        if risk_level.is_some() { query.push_str(&format!(" AND risk_level = ${param_idx}")); param_idx += 1; }
-        if rule_id.is_some() { query.push_str(&format!(" AND rule_id = ${param_idx}")); param_idx += 1; }
-        if assigned_to.is_some() { query.push_str(&format!(" AND assigned_to = ${param_idx}")); }
+        if status.is_some() {
+            query.push_str(&format!(" AND status = ${param_idx}"));
+            param_idx += 1;
+        }
+        if risk_level.is_some() {
+            query.push_str(&format!(" AND risk_level = ${param_idx}"));
+            param_idx += 1;
+        }
+        if rule_id.is_some() {
+            query.push_str(&format!(" AND rule_id = ${param_idx}"));
+            param_idx += 1;
+        }
+        if assigned_to.is_some() {
+            query.push_str(&format!(" AND assigned_to = ${param_idx}"));
+        }
         query.push_str(" ORDER BY detected_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
-        if let Some(s) = status { q = q.bind(s); }
-        if let Some(r) = risk_level { q = q.bind(r); }
-        if let Some(r) = rule_id { q = q.bind(r); }
-        if let Some(a) = assigned_to { q = q.bind(a); }
+        if let Some(s) = status {
+            q = q.bind(s);
+        }
+        if let Some(r) = risk_level {
+            q = q.bind(r);
+        }
+        if let Some(r) = rule_id {
+            q = q.bind(r);
+        }
+        if let Some(a) = assigned_to {
+            q = q.bind(a);
+        }
 
-        let rows = q.fetch_all(&self.pool).await
+        let rows = q
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| row_to_violation!(r)).collect())
     }
 
     async fn update_violation_status(
-        &self, id: Uuid, status: &str, assigned_to: Option<Uuid>,
-        assigned_to_name: Option<&str>, resolution_notes: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        assigned_to: Option<Uuid>,
+        assigned_to_name: Option<&str>,
+        resolution_notes: Option<&str>,
         resolved_by: Option<Uuid>,
     ) -> AtlasResult<ControlViolation> {
         let row = sqlx::query(
@@ -347,7 +499,10 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
     }
 
     async fn escalate_violation(
-        &self, id: Uuid, escalated_to: Option<Uuid>, escalated_at: Option<chrono::DateTime<chrono::Utc>>,
+        &self,
+        id: Uuid,
+        escalated_to: Option<Uuid>,
+        escalated_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<ControlViolation> {
         let row = sqlx::query(
             r"UPDATE _atlas.control_violations
@@ -355,62 +510,103 @@ impl FinancialControlsRepository for PostgresFinancialControlsRepository {
             WHERE id = $3
             RETURNING *",
         )
-        .bind(escalated_to).bind(escalated_at).bind(id)
+        .bind(escalated_to)
+        .bind(escalated_at)
+        .bind(id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_violation!(row))
     }
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<FinancialControlsDashboardSummary> {
-        let rules = sqlx::query(
-            "SELECT * FROM _atlas.control_monitor_rules WHERE organization_id = $1"
-        )
-        .bind(org_id)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<FinancialControlsDashboardSummary> {
+        let rules =
+            sqlx::query("SELECT * FROM _atlas.control_monitor_rules WHERE organization_id = $1")
+                .bind(org_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let violations = sqlx::query(
-            "SELECT * FROM _atlas.control_violations WHERE organization_id = $1"
-        )
-        .bind(org_id)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let violations =
+            sqlx::query("SELECT * FROM _atlas.control_violations WHERE organization_id = $1")
+                .bind(org_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_rules = rules.len() as i32;
-        let active_rules = rules.iter().filter(|r| r.get::<bool, _>("is_active")).count() as i32;
+        let active_rules = rules
+            .iter()
+            .filter(|r| r.get::<bool, _>("is_active"))
+            .count() as i32;
         let total_violations = violations.len() as i32;
-        let open_violations = violations.iter().filter(|v| v.get::<String, _>("status") == "open").count() as i32;
-        let resolved_violations = violations.iter().filter(|v| v.get::<String, _>("status") == "resolved").count() as i32;
-        let escalated_violations = violations.iter().filter(|v| v.get::<String, _>("status") == "escalated").count() as i32;
-        let false_positive = violations.iter().filter(|v| v.get::<String, _>("status") == "false_positive").count() as i32;
-        let critical = violations.iter().filter(|v| v.get::<String, _>("risk_level") == "critical").count() as i32;
-        let high = violations.iter().filter(|v| v.get::<String, _>("risk_level") == "high").count() as i32;
-        let medium = violations.iter().filter(|v| v.get::<String, _>("risk_level") == "medium").count() as i32;
-        let low = violations.iter().filter(|v| v.get::<String, _>("risk_level") == "low").count() as i32;
+        let open_violations = violations
+            .iter()
+            .filter(|v| v.get::<String, _>("status") == "open")
+            .count() as i32;
+        let resolved_violations = violations
+            .iter()
+            .filter(|v| v.get::<String, _>("status") == "resolved")
+            .count() as i32;
+        let escalated_violations = violations
+            .iter()
+            .filter(|v| v.get::<String, _>("status") == "escalated")
+            .count() as i32;
+        let false_positive = violations
+            .iter()
+            .filter(|v| v.get::<String, _>("status") == "false_positive")
+            .count() as i32;
+        let critical = violations
+            .iter()
+            .filter(|v| v.get::<String, _>("risk_level") == "critical")
+            .count() as i32;
+        let high = violations
+            .iter()
+            .filter(|v| v.get::<String, _>("risk_level") == "high")
+            .count() as i32;
+        let medium = violations
+            .iter()
+            .filter(|v| v.get::<String, _>("risk_level") == "medium")
+            .count() as i32;
+        let low = violations
+            .iter()
+            .filter(|v| v.get::<String, _>("risk_level") == "low")
+            .count() as i32;
 
-        let by_category: serde_json::Value = violations.iter()
+        let by_category: serde_json::Value = violations
+            .iter()
             .map(|v| {
                 let rule_id: Uuid = v.get("rule_id");
-                let cat = rules.iter().find(|r| r.get::<Uuid, _>("id") == rule_id).map_or_else(|| "unknown".to_string(), |r| r.get::<String, _>("category"));
+                let cat = rules
+                    .iter()
+                    .find(|r| r.get::<Uuid, _>("id") == rule_id)
+                    .map_or_else(|| "unknown".to_string(), |r| r.get::<String, _>("category"));
                 (cat, 1)
             })
-            .fold(std::collections::HashMap::<String, i32>::new(), |mut acc, (k, v)| {
-                *acc.entry(k).or_insert(0) += v;
-                acc
-            })
+            .fold(
+                std::collections::HashMap::<String, i32>::new(),
+                |mut acc, (k, v)| {
+                    *acc.entry(k).or_insert(0) += v;
+                    acc
+                },
+            )
             .into_iter()
             .map(|(k, v)| serde_json::json!({"category": k, "count": v}))
             .collect();
 
-        let by_rule: serde_json::Value = violations.iter()
+        let by_rule: serde_json::Value = violations
+            .iter()
             .map(|v| v.get::<String, _>("rule_code"))
-            .fold(std::collections::HashMap::<String, i32>::new(), |mut acc, code| {
-                *acc.entry(code).or_insert(0) += 1;
-                acc
-            })
+            .fold(
+                std::collections::HashMap::<String, i32>::new(),
+                |mut acc, code| {
+                    *acc.entry(code).or_insert(0) += 1;
+                    acc
+                },
+            )
             .into_iter()
             .map(|(k, v)| serde_json::json!({"rule": k, "count": v}))
             .collect();

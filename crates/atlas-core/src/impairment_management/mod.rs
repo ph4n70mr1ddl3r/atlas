@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Fixed Assets > Impairment Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ImpairmentManagementEngine;
 pub use repository::{ImpairmentManagementRepository, PostgresImpairmentManagementRepository};

@@ -2,12 +2,11 @@
 //!
 //! `PostgreSQL` storage for work definitions, work orders, operations, and materials.
 
-use atlas_shared::{
-    WorkDefinition, WorkDefinitionComponent, WorkDefinitionOperation,
-    WorkOrder, WorkOrderOperation, WorkOrderMaterial,
-    ManufacturingDashboard, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, ManufacturingDashboard, WorkDefinition, WorkDefinitionComponent,
+    WorkDefinitionOperation, WorkOrder, WorkOrderMaterial, WorkOrderOperation,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -16,143 +15,263 @@ use uuid::Uuid;
 pub trait ManufacturingRepository: Send + Sync {
     // Work Definitions
     async fn create_work_definition(
-        &self, org_id: Uuid, definition_number: &str, description: Option<&str>,
-        item_id: Option<Uuid>, item_code: Option<&str>, item_description: Option<&str>,
-        production_type: &str, planning_type: &str,
-        standard_lot_size: &str, unit_of_measure: &str, lead_time_days: i32,
-        cost_type: &str, standard_cost: &str,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        definition_number: &str,
+        description: Option<&str>,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        production_type: &str,
+        planning_type: &str,
+        standard_lot_size: &str,
+        unit_of_measure: &str,
+        lead_time_days: i32,
+        cost_type: &str,
+        standard_cost: &str,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<WorkDefinition>;
-    async fn get_work_definition(&self, org_id: Uuid, definition_number: &str) -> AtlasResult<Option<WorkDefinition>>;
+    async fn get_work_definition(
+        &self,
+        org_id: Uuid,
+        definition_number: &str,
+    ) -> AtlasResult<Option<WorkDefinition>>;
     async fn get_work_definition_by_id(&self, id: Uuid) -> AtlasResult<Option<WorkDefinition>>;
-    async fn list_work_definitions(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<WorkDefinition>>;
-    async fn update_work_definition_status(&self, id: Uuid, status: &str) -> AtlasResult<WorkDefinition>;
+    async fn list_work_definitions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<WorkDefinition>>;
+    async fn update_work_definition_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<WorkDefinition>;
     async fn delete_work_definition(&self, id: Uuid) -> AtlasResult<()>;
 
     // Work Definition Components (BOM)
     async fn add_work_definition_component(
-        &self, org_id: Uuid, work_definition_id: Uuid, line_number: i32,
-        component_item_id: Option<Uuid>, component_item_code: &str,
+        &self,
+        org_id: Uuid,
+        work_definition_id: Uuid,
+        line_number: i32,
+        component_item_id: Option<Uuid>,
+        component_item_code: &str,
         component_item_description: Option<&str>,
-        quantity_required: &str, unit_of_measure: &str,
-        component_type: &str, scrap_percent: &str, yield_percent: &str,
-        supply_type: &str, supply_subinventory: Option<&str>,
-        wip_supply_type: &str, operation_sequence: Option<i32>,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        quantity_required: &str,
+        unit_of_measure: &str,
+        component_type: &str,
+        scrap_percent: &str,
+        yield_percent: &str,
+        supply_type: &str,
+        supply_subinventory: Option<&str>,
+        wip_supply_type: &str,
+        operation_sequence: Option<i32>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<WorkDefinitionComponent>;
-    async fn list_work_definition_components(&self, work_definition_id: Uuid) -> AtlasResult<Vec<WorkDefinitionComponent>>;
+    async fn list_work_definition_components(
+        &self,
+        work_definition_id: Uuid,
+    ) -> AtlasResult<Vec<WorkDefinitionComponent>>;
     async fn delete_work_definition_component(&self, id: Uuid) -> AtlasResult<()>;
 
     // Work Definition Operations (Routing)
     async fn add_work_definition_operation(
-        &self, org_id: Uuid, work_definition_id: Uuid, operation_sequence: i32,
-        operation_name: &str, operation_description: Option<&str>,
-        work_center_code: Option<&str>, work_center_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        work_definition_id: Uuid,
+        operation_sequence: i32,
+        operation_name: &str,
+        operation_description: Option<&str>,
+        work_center_code: Option<&str>,
+        work_center_name: Option<&str>,
         department_code: Option<&str>,
-        setup_hours: &str, run_time_hours: &str, run_time_unit: &str,
+        setup_hours: &str,
+        run_time_hours: &str,
+        run_time_unit: &str,
         units_per_run: &str,
-        resource_code: Option<&str>, resource_type: &str, resource_count: i32,
-        standard_labor_cost: &str, standard_overhead_cost: &str,
+        resource_code: Option<&str>,
+        resource_type: &str,
+        resource_count: i32,
+        standard_labor_cost: &str,
+        standard_overhead_cost: &str,
         standard_machine_cost: &str,
-        operation_type: &str, backflush_enabled: bool,
-        count_point_type: &str, yield_percent: &str, scrap_percent: &str,
+        operation_type: &str,
+        backflush_enabled: bool,
+        count_point_type: &str,
+        yield_percent: &str,
+        scrap_percent: &str,
     ) -> AtlasResult<WorkDefinitionOperation>;
-    async fn list_work_definition_operations(&self, work_definition_id: Uuid) -> AtlasResult<Vec<WorkDefinitionOperation>>;
+    async fn list_work_definition_operations(
+        &self,
+        work_definition_id: Uuid,
+    ) -> AtlasResult<Vec<WorkDefinitionOperation>>;
     async fn delete_work_definition_operation(&self, id: Uuid) -> AtlasResult<()>;
 
     // Work Orders
     async fn create_work_order(
-        &self, org_id: Uuid, work_order_number: &str, description: Option<&str>,
+        &self,
+        org_id: Uuid,
+        work_order_number: &str,
+        description: Option<&str>,
         work_definition_id: Option<Uuid>,
-        item_id: Option<Uuid>, item_code: Option<&str>, item_description: Option<&str>,
-        quantity_ordered: &str, unit_of_measure: &str,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        quantity_ordered: &str,
+        unit_of_measure: &str,
         scheduled_start_date: Option<chrono::NaiveDate>,
         scheduled_completion_date: Option<chrono::NaiveDate>,
         due_date: Option<chrono::NaiveDate>,
-        priority: &str, production_line: Option<&str>,
-        work_center_code: Option<&str>, warehouse_code: Option<&str>,
+        priority: &str,
+        production_line: Option<&str>,
+        work_center_code: Option<&str>,
+        warehouse_code: Option<&str>,
         cost_type: &str,
-        estimated_material_cost: &str, estimated_labor_cost: &str,
-        estimated_overhead_cost: &str, estimated_total_cost: &str,
-        source_type: Option<&str>, source_document_number: Option<&str>,
-        firm_planned: bool, company_id: Option<Uuid>, plant_code: Option<&str>,
+        estimated_material_cost: &str,
+        estimated_labor_cost: &str,
+        estimated_overhead_cost: &str,
+        estimated_total_cost: &str,
+        source_type: Option<&str>,
+        source_document_number: Option<&str>,
+        firm_planned: bool,
+        company_id: Option<Uuid>,
+        plant_code: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<WorkOrder>;
-    async fn get_work_order(&self, org_id: Uuid, work_order_number: &str) -> AtlasResult<Option<WorkOrder>>;
+    async fn get_work_order(
+        &self,
+        org_id: Uuid,
+        work_order_number: &str,
+    ) -> AtlasResult<Option<WorkOrder>>;
     async fn get_work_order_by_id(&self, id: Uuid) -> AtlasResult<Option<WorkOrder>>;
-    async fn list_work_orders(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<WorkOrder>>;
+    async fn list_work_orders(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<WorkOrder>>;
     async fn update_work_order_status(&self, id: Uuid, status: &str) -> AtlasResult<WorkOrder>;
     async fn update_work_order_quantities(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         quantity_completed: Option<&str>,
         quantity_scrapped: Option<&str>,
     ) -> AtlasResult<WorkOrder>;
     async fn update_work_order_actual_costs(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_material_cost: Option<&str>,
         actual_labor_cost: Option<&str>,
         actual_overhead_cost: Option<&str>,
         actual_total_cost: Option<&str>,
     ) -> AtlasResult<WorkOrder>;
     async fn update_work_order_dates(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_start_date: Option<chrono::NaiveDate>,
         actual_completion_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<WorkOrder>;
-    async fn update_work_order_cancellation(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<WorkOrder>;
+    async fn update_work_order_cancellation(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<WorkOrder>;
 
     // Work Order Operations
     async fn create_work_order_operation(
-        &self, org_id: Uuid, work_order_id: Uuid, operation_sequence: i32,
-        operation_name: &str, work_center_code: Option<&str>,
-        work_center_name: Option<&str>, department_code: Option<&str>,
+        &self,
+        org_id: Uuid,
+        work_order_id: Uuid,
+        operation_sequence: i32,
+        operation_name: &str,
+        work_center_code: Option<&str>,
+        work_center_name: Option<&str>,
+        department_code: Option<&str>,
         quantity_in_queue: &str,
-        resource_code: Option<&str>, resource_type: &str,
+        resource_code: Option<&str>,
+        resource_type: &str,
     ) -> AtlasResult<WorkOrderOperation>;
     async fn get_work_order_operation(&self, id: Uuid) -> AtlasResult<Option<WorkOrderOperation>>;
-    async fn list_work_order_operations(&self, work_order_id: Uuid) -> AtlasResult<Vec<WorkOrderOperation>>;
-    async fn update_work_order_operation_status(&self, id: Uuid, status: &str) -> AtlasResult<WorkOrderOperation>;
+    async fn list_work_order_operations(
+        &self,
+        work_order_id: Uuid,
+    ) -> AtlasResult<Vec<WorkOrderOperation>>;
+    async fn update_work_order_operation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<WorkOrderOperation>;
     async fn update_work_order_operation_quantities(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         quantity_completed: Option<&str>,
         quantity_scrapped: Option<&str>,
         quantity_rejected: Option<&str>,
     ) -> AtlasResult<WorkOrderOperation>;
     async fn update_work_order_operation_time(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_setup_hours: Option<&str>,
         actual_run_hours: Option<&str>,
     ) -> AtlasResult<WorkOrderOperation>;
     async fn update_work_order_operation_costs(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_labor_cost: Option<&str>,
         actual_overhead_cost: Option<&str>,
         actual_machine_cost: Option<&str>,
     ) -> AtlasResult<WorkOrderOperation>;
     async fn update_work_order_operation_dates(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_start_date: Option<chrono::NaiveDate>,
         actual_completion_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<WorkOrderOperation>;
 
     // Work Order Materials
     async fn create_work_order_material(
-        &self, org_id: Uuid, work_order_id: Uuid, operation_sequence: Option<i32>,
-        component_item_id: Option<Uuid>, component_item_code: &str,
+        &self,
+        org_id: Uuid,
+        work_order_id: Uuid,
+        operation_sequence: Option<i32>,
+        component_item_id: Option<Uuid>,
+        component_item_code: &str,
         component_item_description: Option<&str>,
-        quantity_required: &str, unit_of_measure: &str,
-        supply_type: &str, supply_subinventory: Option<&str>,
+        quantity_required: &str,
+        unit_of_measure: &str,
+        supply_type: &str,
+        supply_subinventory: Option<&str>,
         wip_supply_type: &str,
     ) -> AtlasResult<WorkOrderMaterial>;
     async fn get_work_order_material(&self, id: Uuid) -> AtlasResult<Option<WorkOrderMaterial>>;
-    async fn list_work_order_materials(&self, work_order_id: Uuid) -> AtlasResult<Vec<WorkOrderMaterial>>;
-    async fn update_work_order_material_issue(&self, id: Uuid, quantity_issued: &str) -> AtlasResult<WorkOrderMaterial>;
-    async fn update_work_order_material_return(&self, id: Uuid, quantity_returned: &str) -> AtlasResult<WorkOrderMaterial>;
-    async fn update_work_order_material_status(&self, id: Uuid, status: &str) -> AtlasResult<WorkOrderMaterial>;
+    async fn list_work_order_materials(
+        &self,
+        work_order_id: Uuid,
+    ) -> AtlasResult<Vec<WorkOrderMaterial>>;
+    async fn update_work_order_material_issue(
+        &self,
+        id: Uuid,
+        quantity_issued: &str,
+    ) -> AtlasResult<WorkOrderMaterial>;
+    async fn update_work_order_material_return(
+        &self,
+        id: Uuid,
+        quantity_returned: &str,
+    ) -> AtlasResult<WorkOrderMaterial>;
+    async fn update_work_order_material_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<WorkOrderMaterial>;
 
     // Dashboard
-    async fn get_manufacturing_dashboard(&self, org_id: Uuid) -> AtlasResult<ManufacturingDashboard>;
+    async fn get_manufacturing_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ManufacturingDashboard>;
 }
 
 /// `PostgreSQL` implementation
@@ -161,7 +280,7 @@ pub struct PostgresManufacturingRepository {
 }
 
 impl PostgresManufacturingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -377,12 +496,22 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     // ========================================================================
 
     async fn create_work_definition(
-        &self, org_id: Uuid, definition_number: &str, description: Option<&str>,
-        item_id: Option<Uuid>, item_code: Option<&str>, item_description: Option<&str>,
-        production_type: &str, planning_type: &str,
-        standard_lot_size: &str, unit_of_measure: &str, lead_time_days: i32,
-        cost_type: &str, standard_cost: &str,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        definition_number: &str,
+        description: Option<&str>,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        production_type: &str,
+        planning_type: &str,
+        standard_lot_size: &str,
+        unit_of_measure: &str,
+        lead_time_days: i32,
+        cost_type: &str,
+        standard_cost: &str,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<WorkDefinition> {
         let row = sqlx::query(
@@ -395,18 +524,34 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::numeric,$10,$11,$12,$13::numeric,$14,$15,$16)
             RETURNING *",
         )
-        .bind(org_id).bind(definition_number).bind(description)
-        .bind(item_id).bind(item_code).bind(item_description)
-        .bind(production_type).bind(planning_type).bind(standard_lot_size)
-        .bind(unit_of_measure).bind(lead_time_days).bind(cost_type).bind(standard_cost)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(definition_number)
+        .bind(description)
+        .bind(item_id)
+        .bind(item_code)
+        .bind(item_description)
+        .bind(production_type)
+        .bind(planning_type)
+        .bind(standard_lot_size)
+        .bind(unit_of_measure)
+        .bind(lead_time_days)
+        .bind(cost_type)
+        .bind(standard_cost)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_work_definition(&row))
     }
 
-    async fn get_work_definition(&self, org_id: Uuid, definition_number: &str) -> AtlasResult<Option<WorkDefinition>> {
+    async fn get_work_definition(
+        &self,
+        org_id: Uuid,
+        definition_number: &str,
+    ) -> AtlasResult<Option<WorkDefinition>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.work_definitions WHERE organization_id=$1 AND definition_number=$2"
         )
@@ -420,26 +565,37 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     async fn get_work_definition_by_id(&self, id: Uuid) -> AtlasResult<Option<WorkDefinition>> {
         let row = sqlx::query("SELECT * FROM _atlas.work_definitions WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_work_definition(&r)))
     }
 
-    async fn list_work_definitions(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<WorkDefinition>> {
+    async fn list_work_definitions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<WorkDefinition>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.work_definitions
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             ORDER BY created_at DESC",
         )
-        .bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_work_definition).collect())
     }
 
-    async fn update_work_definition_status(&self, id: Uuid, status: &str) -> AtlasResult<WorkDefinition> {
+    async fn update_work_definition_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<WorkDefinition> {
         let row = sqlx::query(
             "UPDATE _atlas.work_definitions SET status=$2, updated_at=now() WHERE id=$1 RETURNING *",
         )
@@ -453,7 +609,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     async fn delete_work_definition(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.work_definitions WHERE id=$1")
             .bind(id)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -463,14 +620,24 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     // ========================================================================
 
     async fn add_work_definition_component(
-        &self, org_id: Uuid, work_definition_id: Uuid, line_number: i32,
-        component_item_id: Option<Uuid>, component_item_code: &str,
+        &self,
+        org_id: Uuid,
+        work_definition_id: Uuid,
+        line_number: i32,
+        component_item_id: Option<Uuid>,
+        component_item_code: &str,
         component_item_description: Option<&str>,
-        quantity_required: &str, unit_of_measure: &str,
-        component_type: &str, scrap_percent: &str, yield_percent: &str,
-        supply_type: &str, supply_subinventory: Option<&str>,
-        wip_supply_type: &str, operation_sequence: Option<i32>,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        quantity_required: &str,
+        unit_of_measure: &str,
+        component_type: &str,
+        scrap_percent: &str,
+        yield_percent: &str,
+        supply_type: &str,
+        supply_subinventory: Option<&str>,
+        wip_supply_type: &str,
+        operation_sequence: Option<i32>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<WorkDefinitionComponent> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.work_definition_components
@@ -495,7 +662,10 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         Ok(row_to_wd_component(&row))
     }
 
-    async fn list_work_definition_components(&self, work_definition_id: Uuid) -> AtlasResult<Vec<WorkDefinitionComponent>> {
+    async fn list_work_definition_components(
+        &self,
+        work_definition_id: Uuid,
+    ) -> AtlasResult<Vec<WorkDefinitionComponent>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.work_definition_components WHERE work_definition_id=$1 ORDER BY line_number"
         )
@@ -509,7 +679,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     async fn delete_work_definition_component(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.work_definition_components WHERE id=$1")
             .bind(id)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -519,17 +690,30 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     // ========================================================================
 
     async fn add_work_definition_operation(
-        &self, org_id: Uuid, work_definition_id: Uuid, operation_sequence: i32,
-        operation_name: &str, operation_description: Option<&str>,
-        work_center_code: Option<&str>, work_center_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        work_definition_id: Uuid,
+        operation_sequence: i32,
+        operation_name: &str,
+        operation_description: Option<&str>,
+        work_center_code: Option<&str>,
+        work_center_name: Option<&str>,
         department_code: Option<&str>,
-        setup_hours: &str, run_time_hours: &str, run_time_unit: &str,
+        setup_hours: &str,
+        run_time_hours: &str,
+        run_time_unit: &str,
         units_per_run: &str,
-        resource_code: Option<&str>, resource_type: &str, resource_count: i32,
-        standard_labor_cost: &str, standard_overhead_cost: &str,
+        resource_code: Option<&str>,
+        resource_type: &str,
+        resource_count: i32,
+        standard_labor_cost: &str,
+        standard_overhead_cost: &str,
         standard_machine_cost: &str,
-        operation_type: &str, backflush_enabled: bool,
-        count_point_type: &str, yield_percent: &str, scrap_percent: &str,
+        operation_type: &str,
+        backflush_enabled: bool,
+        count_point_type: &str,
+        yield_percent: &str,
+        scrap_percent: &str,
     ) -> AtlasResult<WorkDefinitionOperation> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.work_definition_operations
@@ -559,7 +743,10 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         Ok(row_to_wd_operation(&row))
     }
 
-    async fn list_work_definition_operations(&self, work_definition_id: Uuid) -> AtlasResult<Vec<WorkDefinitionOperation>> {
+    async fn list_work_definition_operations(
+        &self,
+        work_definition_id: Uuid,
+    ) -> AtlasResult<Vec<WorkDefinitionOperation>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.work_definition_operations WHERE work_definition_id=$1 ORDER BY operation_sequence"
         )
@@ -573,7 +760,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     async fn delete_work_definition_operation(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.work_definition_operations WHERE id=$1")
             .bind(id)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -583,20 +771,33 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     // ========================================================================
 
     async fn create_work_order(
-        &self, org_id: Uuid, work_order_number: &str, description: Option<&str>,
+        &self,
+        org_id: Uuid,
+        work_order_number: &str,
+        description: Option<&str>,
         work_definition_id: Option<Uuid>,
-        item_id: Option<Uuid>, item_code: Option<&str>, item_description: Option<&str>,
-        quantity_ordered: &str, unit_of_measure: &str,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        quantity_ordered: &str,
+        unit_of_measure: &str,
         scheduled_start_date: Option<chrono::NaiveDate>,
         scheduled_completion_date: Option<chrono::NaiveDate>,
         due_date: Option<chrono::NaiveDate>,
-        priority: &str, production_line: Option<&str>,
-        work_center_code: Option<&str>, warehouse_code: Option<&str>,
+        priority: &str,
+        production_line: Option<&str>,
+        work_center_code: Option<&str>,
+        warehouse_code: Option<&str>,
         cost_type: &str,
-        estimated_material_cost: &str, estimated_labor_cost: &str,
-        estimated_overhead_cost: &str, estimated_total_cost: &str,
-        source_type: Option<&str>, source_document_number: Option<&str>,
-        firm_planned: bool, company_id: Option<Uuid>, plant_code: Option<&str>,
+        estimated_material_cost: &str,
+        estimated_labor_cost: &str,
+        estimated_overhead_cost: &str,
+        estimated_total_cost: &str,
+        source_type: Option<&str>,
+        source_document_number: Option<&str>,
+        firm_planned: bool,
+        company_id: Option<Uuid>,
+        plant_code: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<WorkOrder> {
         let row = sqlx::query(
@@ -614,27 +815,52 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
                     $17,$18::numeric,$19::numeric,$20::numeric,$21::numeric,$22,$23,$24,$25,$26,$27)
             RETURNING *",
         )
-        .bind(org_id).bind(work_order_number).bind(description)
-        .bind(work_definition_id).bind(item_id).bind(item_code).bind(item_description)
-        .bind(quantity_ordered).bind(unit_of_measure)
-        .bind(scheduled_start_date).bind(scheduled_completion_date).bind(due_date)
-        .bind(priority).bind(production_line).bind(work_center_code).bind(warehouse_code)
-        .bind(cost_type).bind(estimated_material_cost).bind(estimated_labor_cost)
-        .bind(estimated_overhead_cost).bind(estimated_total_cost)
-        .bind(source_type).bind(source_document_number)
-        .bind(firm_planned).bind(company_id).bind(plant_code).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(work_order_number)
+        .bind(description)
+        .bind(work_definition_id)
+        .bind(item_id)
+        .bind(item_code)
+        .bind(item_description)
+        .bind(quantity_ordered)
+        .bind(unit_of_measure)
+        .bind(scheduled_start_date)
+        .bind(scheduled_completion_date)
+        .bind(due_date)
+        .bind(priority)
+        .bind(production_line)
+        .bind(work_center_code)
+        .bind(warehouse_code)
+        .bind(cost_type)
+        .bind(estimated_material_cost)
+        .bind(estimated_labor_cost)
+        .bind(estimated_overhead_cost)
+        .bind(estimated_total_cost)
+        .bind(source_type)
+        .bind(source_document_number)
+        .bind(firm_planned)
+        .bind(company_id)
+        .bind(plant_code)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_work_order(&row))
     }
 
-    async fn get_work_order(&self, org_id: Uuid, work_order_number: &str) -> AtlasResult<Option<WorkOrder>> {
+    async fn get_work_order(
+        &self,
+        org_id: Uuid,
+        work_order_number: &str,
+    ) -> AtlasResult<Option<WorkOrder>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.work_orders WHERE organization_id=$1 AND work_order_number=$2"
+            "SELECT * FROM _atlas.work_orders WHERE organization_id=$1 AND work_order_number=$2",
         )
-        .bind(org_id).bind(work_order_number)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(work_order_number)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_work_order(&r)))
@@ -643,20 +869,27 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     async fn get_work_order_by_id(&self, id: Uuid) -> AtlasResult<Option<WorkOrder>> {
         let row = sqlx::query("SELECT * FROM _atlas.work_orders WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_work_order(&r)))
     }
 
-    async fn list_work_orders(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<WorkOrder>> {
+    async fn list_work_orders(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<WorkOrder>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.work_orders
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             ORDER BY created_at DESC",
         )
-        .bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_work_order).collect())
@@ -682,7 +915,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     }
 
     async fn update_work_order_quantities(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         quantity_completed: Option<&str>,
         quantity_scrapped: Option<&str>,
     ) -> AtlasResult<WorkOrder> {
@@ -701,7 +935,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     }
 
     async fn update_work_order_actual_costs(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_material_cost: Option<&str>,
         actual_labor_cost: Option<&str>,
         actual_overhead_cost: Option<&str>,
@@ -725,7 +960,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     }
 
     async fn update_work_order_dates(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_start_date: Option<chrono::NaiveDate>,
         actual_completion_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<WorkOrder> {
@@ -736,14 +972,21 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
                 updated_at = now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(actual_start_date).bind(actual_completion_date)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(actual_start_date)
+        .bind(actual_completion_date)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_work_order(&row))
     }
 
-    async fn update_work_order_cancellation(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<WorkOrder> {
+    async fn update_work_order_cancellation(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<WorkOrder> {
         let row = sqlx::query(
             "UPDATE _atlas.work_orders SET cancellation_reason=$2, updated_at=now() WHERE id=$1 RETURNING *",
         )
@@ -759,11 +1002,17 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     // ========================================================================
 
     async fn create_work_order_operation(
-        &self, org_id: Uuid, work_order_id: Uuid, operation_sequence: i32,
-        operation_name: &str, work_center_code: Option<&str>,
-        work_center_name: Option<&str>, department_code: Option<&str>,
+        &self,
+        org_id: Uuid,
+        work_order_id: Uuid,
+        operation_sequence: i32,
+        operation_name: &str,
+        work_center_code: Option<&str>,
+        work_center_name: Option<&str>,
+        department_code: Option<&str>,
         quantity_in_queue: &str,
-        resource_code: Option<&str>, resource_type: &str,
+        resource_code: Option<&str>,
+        resource_type: &str,
     ) -> AtlasResult<WorkOrderOperation> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.work_order_operations
@@ -773,10 +1022,18 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric,$9,$10)
             RETURNING *",
         )
-        .bind(org_id).bind(work_order_id).bind(operation_sequence)
-        .bind(operation_name).bind(work_center_code).bind(work_center_name).bind(department_code)
-        .bind(quantity_in_queue).bind(resource_code).bind(resource_type)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(work_order_id)
+        .bind(operation_sequence)
+        .bind(operation_name)
+        .bind(work_center_code)
+        .bind(work_center_name)
+        .bind(department_code)
+        .bind(quantity_in_queue)
+        .bind(resource_code)
+        .bind(resource_type)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_wo_operation(&row))
@@ -785,13 +1042,17 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     async fn get_work_order_operation(&self, id: Uuid) -> AtlasResult<Option<WorkOrderOperation>> {
         let row = sqlx::query("SELECT * FROM _atlas.work_order_operations WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_wo_operation(&r)))
     }
 
-    async fn list_work_order_operations(&self, work_order_id: Uuid) -> AtlasResult<Vec<WorkOrderOperation>> {
+    async fn list_work_order_operations(
+        &self,
+        work_order_id: Uuid,
+    ) -> AtlasResult<Vec<WorkOrderOperation>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.work_order_operations WHERE work_order_id=$1 ORDER BY operation_sequence"
         )
@@ -802,7 +1063,11 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         Ok(rows.iter().map(row_to_wo_operation).collect())
     }
 
-    async fn update_work_order_operation_status(&self, id: Uuid, status: &str) -> AtlasResult<WorkOrderOperation> {
+    async fn update_work_order_operation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<WorkOrderOperation> {
         let row = sqlx::query(
             r"UPDATE _atlas.work_order_operations SET status=$2,
                 actual_start_date=CASE WHEN $2='running' AND actual_start_date IS NULL THEN now()::date ELSE actual_start_date END,
@@ -818,7 +1083,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     }
 
     async fn update_work_order_operation_quantities(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         quantity_completed: Option<&str>,
         quantity_scrapped: Option<&str>,
         quantity_rejected: Option<&str>,
@@ -839,7 +1105,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     }
 
     async fn update_work_order_operation_time(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_setup_hours: Option<&str>,
         actual_run_hours: Option<&str>,
     ) -> AtlasResult<WorkOrderOperation> {
@@ -858,7 +1125,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     }
 
     async fn update_work_order_operation_costs(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_labor_cost: Option<&str>,
         actual_overhead_cost: Option<&str>,
         actual_machine_cost: Option<&str>,
@@ -879,7 +1147,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     }
 
     async fn update_work_order_operation_dates(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         actual_start_date: Option<chrono::NaiveDate>,
         actual_completion_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<WorkOrderOperation> {
@@ -890,8 +1159,11 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
                 updated_at = now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(actual_start_date).bind(actual_completion_date)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(actual_start_date)
+        .bind(actual_completion_date)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_wo_operation(&row))
@@ -902,11 +1174,17 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     // ========================================================================
 
     async fn create_work_order_material(
-        &self, org_id: Uuid, work_order_id: Uuid, operation_sequence: Option<i32>,
-        component_item_id: Option<Uuid>, component_item_code: &str,
+        &self,
+        org_id: Uuid,
+        work_order_id: Uuid,
+        operation_sequence: Option<i32>,
+        component_item_id: Option<Uuid>,
+        component_item_code: &str,
         component_item_description: Option<&str>,
-        quantity_required: &str, unit_of_measure: &str,
-        supply_type: &str, supply_subinventory: Option<&str>,
+        quantity_required: &str,
+        unit_of_measure: &str,
+        supply_type: &str,
+        supply_subinventory: Option<&str>,
         wip_supply_type: &str,
     ) -> AtlasResult<WorkOrderMaterial> {
         let row = sqlx::query(
@@ -918,11 +1196,19 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8,$9,$10,$11)
             RETURNING *",
         )
-        .bind(org_id).bind(work_order_id).bind(operation_sequence)
-        .bind(component_item_id).bind(component_item_code).bind(component_item_description)
-        .bind(quantity_required).bind(unit_of_measure)
-        .bind(supply_type).bind(supply_subinventory).bind(wip_supply_type)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(work_order_id)
+        .bind(operation_sequence)
+        .bind(component_item_id)
+        .bind(component_item_code)
+        .bind(component_item_description)
+        .bind(quantity_required)
+        .bind(unit_of_measure)
+        .bind(supply_type)
+        .bind(supply_subinventory)
+        .bind(wip_supply_type)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_wo_material(&row))
@@ -931,24 +1217,33 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     async fn get_work_order_material(&self, id: Uuid) -> AtlasResult<Option<WorkOrderMaterial>> {
         let row = sqlx::query("SELECT * FROM _atlas.work_order_materials WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_wo_material(&r)))
     }
 
-    async fn list_work_order_materials(&self, work_order_id: Uuid) -> AtlasResult<Vec<WorkOrderMaterial>> {
+    async fn list_work_order_materials(
+        &self,
+        work_order_id: Uuid,
+    ) -> AtlasResult<Vec<WorkOrderMaterial>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.work_order_materials WHERE work_order_id=$1 ORDER BY created_at"
+            "SELECT * FROM _atlas.work_order_materials WHERE work_order_id=$1 ORDER BY created_at",
         )
         .bind(work_order_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_wo_material).collect())
     }
 
-    async fn update_work_order_material_issue(&self, id: Uuid, quantity_issued: &str) -> AtlasResult<WorkOrderMaterial> {
+    async fn update_work_order_material_issue(
+        &self,
+        id: Uuid,
+        quantity_issued: &str,
+    ) -> AtlasResult<WorkOrderMaterial> {
         let row = sqlx::query(
             r"UPDATE _atlas.work_order_materials SET
                 quantity_issued = quantity_issued + $2::numeric,
@@ -959,28 +1254,40 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
                 updated_at = now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(quantity_issued)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(quantity_issued)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_wo_material(&row))
     }
 
-    async fn update_work_order_material_return(&self, id: Uuid, quantity_returned: &str) -> AtlasResult<WorkOrderMaterial> {
+    async fn update_work_order_material_return(
+        &self,
+        id: Uuid,
+        quantity_returned: &str,
+    ) -> AtlasResult<WorkOrderMaterial> {
         let row = sqlx::query(
             r"UPDATE _atlas.work_order_materials SET
                 quantity_returned = quantity_returned + $2::numeric,
                 updated_at = now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(quantity_returned)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(quantity_returned)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_wo_material(&row))
     }
 
-    async fn update_work_order_material_status(&self, id: Uuid, status: &str) -> AtlasResult<WorkOrderMaterial> {
+    async fn update_work_order_material_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<WorkOrderMaterial> {
         let row = sqlx::query(
             "UPDATE _atlas.work_order_materials SET status=$2, updated_at=now() WHERE id=$1 RETURNING *",
         )
@@ -995,7 +1302,10 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
     // Dashboard
     // ========================================================================
 
-    async fn get_manufacturing_dashboard(&self, org_id: Uuid) -> AtlasResult<ManufacturingDashboard> {
+    async fn get_manufacturing_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ManufacturingDashboard> {
         let row = sqlx::query(
             r"SELECT
                 (SELECT COUNT(*) FROM _atlas.work_orders WHERE organization_id=$1) as total_work_orders,
@@ -1021,12 +1331,20 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         let total_definitions: i64 = row.try_get("total_definitions").unwrap_or(0);
         let active_definitions: i64 = row.try_get("active_definitions").unwrap_or(0);
         let overdue_orders: i64 = row.try_get("overdue_orders").unwrap_or(0);
-        let total_estimated_cost: serde_json::Value = row.try_get("total_estimated_cost").unwrap_or(serde_json::json!("0"));
-        let total_actual_cost: serde_json::Value = row.try_get("total_actual_cost").unwrap_or(serde_json::json!("0"));
+        let total_estimated_cost: serde_json::Value = row
+            .try_get("total_estimated_cost")
+            .unwrap_or(serde_json::json!("0"));
+        let total_actual_cost: serde_json::Value = row
+            .try_get("total_actual_cost")
+            .unwrap_or(serde_json::json!("0"));
 
         let est: f64 = total_estimated_cost.to_string().parse().unwrap_or(0.0);
         let act: f64 = total_actual_cost.to_string().parse().unwrap_or(0.0);
-        let cost_variance = if est > 0.0 { ((act - est) / est) * 100.0 } else { 0.0 };
+        let cost_variance = if est > 0.0 {
+            ((act - est) / est) * 100.0
+        } else {
+            0.0
+        };
 
         let completion_rate = if total_work_orders > 0 {
             (completed_work_orders as f64 / total_work_orders as f64) * 100.0
@@ -1041,7 +1359,8 @@ impl ManufacturingRepository for PostgresManufacturingRepository {
         let on_time_pct = if completed_work_orders > 0 {
             // If no overdue orders exist, assume all completions were on time
             // Otherwise, we can only say the non-overdue fraction
-            let assumed_on_time = (completed_work_orders - overdue_orders.min(completed_work_orders).max(0)) as f64;
+            let assumed_on_time =
+                (completed_work_orders - overdue_orders.min(completed_work_orders).max(0)) as f64;
             (assumed_on_time / completed_work_orders as f64) * 100.0
         } else {
             100.0

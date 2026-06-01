@@ -3,11 +3,11 @@
 //! `PostgreSQL` storage for accounting books, account mappings,
 //! book journal entries, journal lines, and propagation logs.
 
-use atlas_shared::{
-    AccountingBook, AccountMapping, BookJournalEntry, BookJournalLine,
-    PropagationLog, AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AccountMapping, AccountingBook, AtlasError, AtlasResult, BookJournalEntry, BookJournalLine,
+    PropagationLog,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -153,7 +153,7 @@ pub struct PostgresMultiBookAccountingRepository {
 }
 
 impl PostgresMultiBookAccountingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -299,9 +299,17 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(book_type)
-        .bind(chart_of_accounts_code).bind(calendar_code).bind(currency_code)
-        .bind(auto_propagation_enabled).bind(mapping_level).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(book_type)
+        .bind(chart_of_accounts_code)
+        .bind(calendar_code)
+        .bind(currency_code)
+        .bind(auto_propagation_enabled)
+        .bind(mapping_level)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -311,9 +319,10 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
 
     async fn get_book(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AccountingBook>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.accounting_books WHERE organization_id = $1 AND code = $2"
+            "SELECT * FROM _atlas.accounting_books WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
+        .bind(org_id)
+        .bind(code)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -321,13 +330,11 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
     }
 
     async fn get_book_by_id(&self, id: Uuid) -> AtlasResult<Option<AccountingBook>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.accounting_books WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.accounting_books WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_book(&r)))
     }
 
@@ -362,7 +369,8 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status)
+        .bind(id)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -408,10 +416,16 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(source_book_id).bind(target_book_id)
-        .bind(source_account_code).bind(target_account_code)
-        .bind(segment_mappings).bind(priority)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(source_book_id)
+        .bind(target_book_id)
+        .bind(source_account_code)
+        .bind(target_account_code)
+        .bind(segment_mappings)
+        .bind(priority)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -474,13 +488,18 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             LIMIT 1
             ",
         )
-        .bind(org_id).bind(source_book_id).bind(target_book_id)
-        .bind(source_account_code).bind(today)
+        .bind(org_id)
+        .bind(source_book_id)
+        .bind(target_book_id)
+        .bind(source_account_code)
+        .bind(today)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        if let Some(r) = row { Ok(Some(self.row_to_mapping(&r))) } else {
+        if let Some(r) = row {
+            Ok(Some(self.row_to_mapping(&r)))
+        } else {
             // Try prefix/wildcard match
             let prefix = if source_account_code.len() > 4 {
                 &source_account_code[..4]
@@ -502,8 +521,11 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
                 LIMIT 1
                 ",
             )
-            .bind(org_id).bind(source_book_id).bind(target_book_id)
-            .bind(&pattern).bind(today)
+            .bind(org_id)
+            .bind(source_book_id)
+            .bind(target_book_id)
+            .bind(&pattern)
+            .bind(today)
             .fetch_optional(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -512,13 +534,11 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
     }
 
     async fn delete_account_mapping(&self, id: Uuid) -> AtlasResult<()> {
-        sqlx::query(
-            "UPDATE _atlas.account_mappings SET is_active = false WHERE id = $1"
-        )
-        .bind(id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query("UPDATE _atlas.account_mappings SET is_active = false WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -559,12 +579,23 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(book_id).bind(entry_number).bind(header_description)
-        .bind(source_book_id).bind(source_entry_id).bind(external_reference)
-        .bind(accounting_date).bind(period_name)
-        .bind(total_debit).bind(total_credit).bind(status)
-        .bind(is_auto_propagated).bind(currency_code).bind(conversion_rate)
-        .bind(metadata).bind(created_by)
+        .bind(org_id)
+        .bind(book_id)
+        .bind(entry_number)
+        .bind(header_description)
+        .bind(source_book_id)
+        .bind(source_entry_id)
+        .bind(external_reference)
+        .bind(accounting_date)
+        .bind(period_name)
+        .bind(total_debit)
+        .bind(total_credit)
+        .bind(status)
+        .bind(is_auto_propagated)
+        .bind(currency_code)
+        .bind(conversion_rate)
+        .bind(metadata)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -573,13 +604,11 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
     }
 
     async fn get_journal_entry_by_id(&self, id: Uuid) -> AtlasResult<Option<BookJournalEntry>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.book_journal_entries WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.book_journal_entries WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_entry(&r)))
     }
 
@@ -611,7 +640,11 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
         status: &str,
         posted_by: Option<Uuid>,
     ) -> AtlasResult<BookJournalEntry> {
-        let posted_at_expr = if status == "posted" { "COALESCE(posted_at, now())" } else { "posted_at" };
+        let posted_at_expr = if status == "posted" {
+            "COALESCE(posted_at, now())"
+        } else {
+            "posted_at"
+        };
         let query_str = format!(
             r"UPDATE _atlas.book_journal_entries
             SET status = $2, posted_by = $3, posted_at = {posted_at_expr}, updated_at = now()
@@ -619,7 +652,9 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             RETURNING *"
         );
         let row = sqlx::query(&query_str)
-            .bind(id).bind(status).bind(posted_by)
+            .bind(id)
+            .bind(status)
+            .bind(posted_by)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -654,9 +689,17 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(entry_id).bind(line_number).bind(account_code)
-        .bind(account_name).bind(debit_amount).bind(credit_amount)
-        .bind(description).bind(tax_code).bind(source_line_id).bind(metadata)
+        .bind(org_id)
+        .bind(entry_id)
+        .bind(line_number)
+        .bind(account_code)
+        .bind(account_name)
+        .bind(debit_amount)
+        .bind(credit_amount)
+        .bind(description)
+        .bind(tax_code)
+        .bind(source_line_id)
+        .bind(metadata)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -666,7 +709,7 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
 
     async fn list_journal_lines(&self, entry_id: Uuid) -> AtlasResult<Vec<BookJournalLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.book_journal_lines WHERE entry_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.book_journal_lines WHERE entry_id = $1 ORDER BY line_number",
         )
         .bind(entry_id)
         .fetch_all(&self.pool)
@@ -703,10 +746,16 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(source_book_id).bind(target_book_id)
-        .bind(source_entry_id).bind(target_entry_id)
-        .bind(status).bind(lines_propagated).bind(lines_unmapped)
-        .bind(error_message).bind(metadata)
+        .bind(org_id)
+        .bind(source_book_id)
+        .bind(target_book_id)
+        .bind(source_entry_id)
+        .bind(target_entry_id)
+        .bind(status)
+        .bind(lines_propagated)
+        .bind(lines_unmapped)
+        .bind(error_message)
+        .bind(metadata)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -743,6 +792,9 @@ impl MultiBookAccountingRepository for PostgresMultiBookAccountingRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_propagation_log(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_propagation_log(r))
+            .collect())
     }
 }

@@ -12,16 +12,14 @@
 //! 5. Track responses and conversions
 //! 6. Complete campaigns and analyze ROI
 
-use atlas_shared::{AtlasError, AtlasResult};
 use super::MarketingRepository;
+use atlas_shared::{AtlasError, AtlasResult};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid campaign statuses
-const VALID_CAMPAIGN_STATUSES: &[&str] = &[
-    "draft", "active", "paused", "completed", "cancelled",
-];
+const VALID_CAMPAIGN_STATUSES: &[&str] = &["draft", "active", "paused", "completed", "cancelled"];
 
 /// Valid channels
 const VALID_CHANNELS: &[&str] = &[
@@ -30,13 +28,26 @@ const VALID_CHANNELS: &[&str] = &[
 
 /// Valid member statuses
 const VALID_MEMBER_STATUSES: &[&str] = &[
-    "invited", "responded", "converted", "bounced", "unsubscribed", "removed",
+    "invited",
+    "responded",
+    "converted",
+    "bounced",
+    "unsubscribed",
+    "removed",
 ];
 
 /// Valid response types
 const VALID_RESPONSE_TYPES: &[&str] = &[
-    "opened", "clicked", "registered", "attended", "downloaded",
-    "submitted_form", "replied", "purchased", "referred", "other",
+    "opened",
+    "clicked",
+    "registered",
+    "attended",
+    "downloaded",
+    "submitted_form",
+    "replied",
+    "purchased",
+    "referred",
+    "other",
 ];
 
 /// Marketing Campaign Engine
@@ -70,22 +81,38 @@ impl MarketingEngine {
             ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Campaign type name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Campaign type name is required".to_string(),
+            ));
         }
         if !VALID_CHANNELS.contains(&channel) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid channel '{}'. Must be one of: {}", channel, VALID_CHANNELS.join(", ")
+                "Invalid channel '{}'. Must be one of: {}",
+                channel,
+                VALID_CHANNELS.join(", ")
             )));
         }
-        if self.repository.get_campaign_type_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Campaign type '{code}' already exists")));
+        if self
+            .repository
+            .get_campaign_type_by_code(org_id, &code)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Campaign type '{code}' already exists"
+            )));
         }
         info!("Creating campaign type '{}' for org {}", code, org_id);
-        self.repository.create_campaign_type(org_id, &code, name, description, channel, created_by).await
+        self.repository
+            .create_campaign_type(org_id, &code, name, description, channel, created_by)
+            .await
     }
 
     /// List campaign types
-    pub async fn list_campaign_types(&self, org_id: Uuid) -> AtlasResult<Vec<atlas_shared::CampaignType>> {
+    pub async fn list_campaign_types(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<atlas_shared::CampaignType>> {
         self.repository.list_campaign_types(org_id).await
     }
 
@@ -125,39 +152,77 @@ impl MarketingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::MarketingCampaign> {
         if campaign_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Campaign number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Campaign number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Campaign name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Campaign name is required".to_string(),
+            ));
         }
         if !VALID_CHANNELS.contains(&channel) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid channel '{}'. Must be one of: {}", channel, VALID_CHANNELS.join(", ")
+                "Invalid channel '{}'. Must be one of: {}",
+                channel,
+                VALID_CHANNELS.join(", ")
             )));
         }
         let budget_val: f64 = budget.parse().unwrap_or(0.0);
         if budget_val < 0.0 {
-            return Err(AtlasError::ValidationFailed("Budget cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Budget cannot be negative".to_string(),
+            ));
         }
 
         // Check uniqueness
-        if self.repository.get_campaign_by_number(org_id, campaign_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Campaign '{campaign_number}' already exists")));
+        if self
+            .repository
+            .get_campaign_by_number(org_id, campaign_number)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Campaign '{campaign_number}' already exists"
+            )));
         }
 
-        info!("Creating marketing campaign '{}' for org {}", campaign_number, org_id);
+        info!(
+            "Creating marketing campaign '{}' for org {}",
+            campaign_number, org_id
+        );
 
-        self.repository.create_campaign(
-            org_id, campaign_number, name, description,
-            campaign_type_id, campaign_type_name, channel, budget, currency_code,
-            start_date, end_date, owner_id, owner_name,
-            expected_responses, expected_revenue,
-            parent_campaign_id, parent_campaign_name, tags, notes, created_by,
-        ).await
+        self.repository
+            .create_campaign(
+                org_id,
+                campaign_number,
+                name,
+                description,
+                campaign_type_id,
+                campaign_type_name,
+                channel,
+                budget,
+                currency_code,
+                start_date,
+                end_date,
+                owner_id,
+                owner_name,
+                expected_responses,
+                expected_revenue,
+                parent_campaign_id,
+                parent_campaign_name,
+                tags,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a campaign by ID
-    pub async fn get_campaign(&self, id: Uuid) -> AtlasResult<Option<atlas_shared::MarketingCampaign>> {
+    pub async fn get_campaign(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<atlas_shared::MarketingCampaign>> {
         self.repository.get_campaign(id).await
     }
 
@@ -172,20 +237,31 @@ impl MarketingEngine {
         if let Some(s) = status {
             if !VALID_CAMPAIGN_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid campaign status '{}'. Must be one of: {}", s, VALID_CAMPAIGN_STATUSES.join(", ")
+                    "Invalid campaign status '{}'. Must be one of: {}",
+                    s,
+                    VALID_CAMPAIGN_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_campaigns(org_id, status, channel, owner_id).await
+        self.repository
+            .list_campaigns(org_id, status, channel, owner_id)
+            .await
     }
 
     /// Activate a campaign (draft/paused -> active)
-    pub async fn activate_campaign(&self, id: Uuid) -> AtlasResult<atlas_shared::MarketingCampaign> {
-        let campaign = self.repository.get_campaign(id).await?
+    pub async fn activate_campaign(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<atlas_shared::MarketingCampaign> {
+        let campaign = self
+            .repository
+            .get_campaign(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {id} not found")))?;
         if campaign.status != "draft" && campaign.status != "paused" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot activate campaign in '{}' status. Must be 'draft' or 'paused'.", campaign.status
+                "Cannot activate campaign in '{}' status. Must be 'draft' or 'paused'.",
+                campaign.status
             )));
         }
         info!("Activating campaign {}", campaign.campaign_number);
@@ -194,11 +270,15 @@ impl MarketingEngine {
 
     /// Pause a campaign (active -> paused)
     pub async fn pause_campaign(&self, id: Uuid) -> AtlasResult<atlas_shared::MarketingCampaign> {
-        let campaign = self.repository.get_campaign(id).await?
+        let campaign = self
+            .repository
+            .get_campaign(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {id} not found")))?;
         if campaign.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot pause campaign in '{}' status. Must be 'active'.", campaign.status
+                "Cannot pause campaign in '{}' status. Must be 'active'.",
+                campaign.status
             )));
         }
         info!("Pausing campaign {}", campaign.campaign_number);
@@ -206,12 +286,19 @@ impl MarketingEngine {
     }
 
     /// Complete a campaign (active/paused -> completed)
-    pub async fn complete_campaign(&self, id: Uuid) -> AtlasResult<atlas_shared::MarketingCampaign> {
-        let campaign = self.repository.get_campaign(id).await?
+    pub async fn complete_campaign(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<atlas_shared::MarketingCampaign> {
+        let campaign = self
+            .repository
+            .get_campaign(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {id} not found")))?;
         if campaign.status != "active" && campaign.status != "paused" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot complete campaign in '{}' status. Must be 'active' or 'paused'.", campaign.status
+                "Cannot complete campaign in '{}' status. Must be 'active' or 'paused'.",
+                campaign.status
             )));
         }
         info!("Completing campaign {}", campaign.campaign_number);
@@ -220,11 +307,15 @@ impl MarketingEngine {
 
     /// Cancel a campaign (any -> cancelled)
     pub async fn cancel_campaign(&self, id: Uuid) -> AtlasResult<atlas_shared::MarketingCampaign> {
-        let campaign = self.repository.get_campaign(id).await?
+        let campaign = self
+            .repository
+            .get_campaign(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {id} not found")))?;
         if campaign.status == "completed" || campaign.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot cancel campaign in '{}' status.", campaign.status
+                "Cannot cancel campaign in '{}' status.",
+                campaign.status
             )));
         }
         info!("Cancelling campaign {}", campaign.campaign_number);
@@ -233,7 +324,9 @@ impl MarketingEngine {
 
     /// Delete a campaign
     pub async fn delete_campaign(&self, org_id: Uuid, campaign_number: &str) -> AtlasResult<()> {
-        self.repository.delete_campaign(org_id, campaign_number).await
+        self.repository
+            .delete_campaign(org_id, campaign_number)
+            .await
     }
 
     // ========================================================================
@@ -253,17 +346,32 @@ impl MarketingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::CampaignMember> {
         // Verify campaign exists
-        let campaign = self.repository.get_campaign(campaign_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found")))?;
+        let campaign = self
+            .repository
+            .get_campaign(campaign_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found"))
+            })?;
         if campaign.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Campaign {campaign_id} not found"
+            )));
         }
 
         info!("Adding member to campaign {}", campaign.campaign_number);
-        self.repository.add_campaign_member(
-            org_id, campaign_id, contact_id, contact_name, contact_email,
-            lead_id, lead_number, created_by,
-        ).await
+        self.repository
+            .add_campaign_member(
+                org_id,
+                campaign_id,
+                contact_id,
+                contact_name,
+                contact_email,
+                lead_id,
+                lead_number,
+                created_by,
+            )
+            .await
     }
 
     /// List campaign members
@@ -275,11 +383,15 @@ impl MarketingEngine {
         if let Some(s) = status {
             if !VALID_MEMBER_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid member status '{}'. Must be one of: {}", s, VALID_MEMBER_STATUSES.join(", ")
+                    "Invalid member status '{}'. Must be one of: {}",
+                    s,
+                    VALID_MEMBER_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_campaign_members(campaign_id, status).await
+        self.repository
+            .list_campaign_members(campaign_id, status)
+            .await
     }
 
     /// Update a member's status (mark as responded, converted, etc.)
@@ -291,13 +403,23 @@ impl MarketingEngine {
     ) -> AtlasResult<atlas_shared::CampaignMember> {
         if !VALID_MEMBER_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid member status '{}'. Must be one of: {}", status, VALID_MEMBER_STATUSES.join(", ")
+                "Invalid member status '{}'. Must be one of: {}",
+                status,
+                VALID_MEMBER_STATUSES.join(", ")
             )));
         }
-        let member = self.repository.get_campaign_member(id).await?
+        let member = self
+            .repository
+            .get_campaign_member(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign member {id} not found")))?;
-        info!("Updating member {} status to {} in campaign {}", id, status, member.campaign_id);
-        self.repository.update_member_status(id, status, response).await
+        info!(
+            "Updating member {} status to {} in campaign {}",
+            id, status, member.campaign_id
+        );
+        self.repository
+            .update_member_status(id, status, response)
+            .await
     }
 
     /// Remove a campaign member
@@ -329,41 +451,73 @@ impl MarketingEngine {
     ) -> AtlasResult<atlas_shared::CampaignResponse> {
         if !VALID_RESPONSE_TYPES.contains(&response_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid response type '{}'. Must be one of: {}", response_type, VALID_RESPONSE_TYPES.join(", ")
+                "Invalid response type '{}'. Must be one of: {}",
+                response_type,
+                VALID_RESPONSE_TYPES.join(", ")
             )));
         }
 
         // Verify campaign exists
-        let campaign = self.repository.get_campaign(campaign_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found")))?;
+        let campaign = self
+            .repository
+            .get_campaign(campaign_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found"))
+            })?;
         if campaign.organization_id != org_id {
-            return Err(AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Campaign {campaign_id} not found"
+            )));
         }
 
-        info!("Recording {} response for campaign {}", response_type, campaign.campaign_number);
+        info!(
+            "Recording {} response for campaign {}",
+            response_type, campaign.campaign_number
+        );
 
-        let response = self.repository.create_response(
-            org_id, campaign_id, member_id, response_type,
-            contact_id, contact_name, contact_email, lead_id,
-            description, value, currency_code, source_url, created_by,
-        ).await?;
+        let response = self
+            .repository
+            .create_response(
+                org_id,
+                campaign_id,
+                member_id,
+                response_type,
+                contact_id,
+                contact_name,
+                contact_email,
+                lead_id,
+                description,
+                value,
+                currency_code,
+                source_url,
+                created_by,
+            )
+            .await?;
 
         // Update campaign actuals: increment actual_responses by 1
-        let current = self.repository.get_campaign(campaign_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found")))?;
+        let current = self
+            .repository
+            .get_campaign(campaign_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Campaign {campaign_id} not found"))
+            })?;
         let new_responses = current.actual_responses + 1;
         let value_f64: f64 = value.parse().unwrap_or(0.0);
         let current_revenue: f64 = current.actual_revenue.parse().unwrap_or(0.0);
         let new_revenue = current_revenue + value_f64;
-        self.repository.update_campaign_actuals(
-            campaign_id,
-            &current.actual_cost,
-            new_responses,
-            &format!("{new_revenue:.2}"),
-            current.converted_leads,
-            current.converted_opportunities,
-            current.converted_won,
-        ).await?;
+        self.repository
+            .update_campaign_actuals(
+                campaign_id,
+                &current.actual_cost,
+                new_responses,
+                &format!("{new_revenue:.2}"),
+                current.converted_leads,
+                current.converted_opportunities,
+                current.converted_won,
+            )
+            .await?;
 
         Ok(response)
     }
@@ -374,7 +528,9 @@ impl MarketingEngine {
         campaign_id: Uuid,
         response_type: Option<&str>,
     ) -> AtlasResult<Vec<atlas_shared::CampaignResponse>> {
-        self.repository.list_responses(campaign_id, response_type).await
+        self.repository
+            .list_responses(campaign_id, response_type)
+            .await
     }
 
     /// Delete a campaign response
@@ -387,7 +543,10 @@ impl MarketingEngine {
     // ========================================================================
 
     /// Get the marketing dashboard
-    pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<atlas_shared::MarketingDashboard> {
+    pub async fn get_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<atlas_shared::MarketingDashboard> {
         self.repository.get_dashboard(org_id).await
     }
 }
@@ -447,12 +606,20 @@ mod tests {
     fn test_roi_calculation() {
         let cost = 10000.0_f64;
         let revenue = 50000.0_f64;
-        let roi: f64 = if cost > 0.0 { ((revenue - cost) / cost) * 100.0 } else { 0.0 };
+        let roi: f64 = if cost > 0.0 {
+            ((revenue - cost) / cost) * 100.0
+        } else {
+            0.0
+        };
         assert!((roi - 400.0).abs() < 0.01);
 
         // Zero cost
         let cost = 0.0_f64;
-        let roi: f64 = if cost > 0.0 { ((revenue - cost) / cost) * 100.0 } else { 0.0 };
+        let roi: f64 = if cost > 0.0 {
+            ((revenue - cost) / cost) * 100.0
+        } else {
+            0.0
+        };
         assert!((roi - 0.0).abs() < 0.01);
     }
 

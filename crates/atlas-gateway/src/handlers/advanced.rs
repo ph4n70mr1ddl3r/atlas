@@ -3,20 +3,19 @@
 //! Structured filtering, bulk operations, comments, favorites,
 //! CSV export, effective dating, and related records navigation.
 
+use crate::handlers::auth::Claims;
+use crate::handlers::records::{json_to_text, row_to_json, sanitize_identifier};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::{Deserialize, Serialize};
-use crate::AppState;
-use crate::handlers::auth::Claims;
-use crate::handlers::records::{sanitize_identifier, row_to_json, json_to_text};
-use std::sync::Arc;
-use uuid::Uuid;
-use tracing::{info, debug, error};
 use sqlx::Row;
+use std::sync::Arc;
+use tracing::{debug, error, info};
+use uuid::Uuid;
 
 // ============================================================================
 // Structured / Advanced Filtering
@@ -34,13 +33,9 @@ pub enum FilterExpression {
         value: serde_json::Value,
     },
     /// All children must match
-    And {
-        conditions: Vec<Self>,
-    },
+    And { conditions: Vec<Self> },
     /// Any child must match
-    Or {
-        conditions: Vec<Self>,
-    },
+    Or { conditions: Vec<Self> },
 }
 
 impl FilterExpression {
@@ -48,7 +43,11 @@ impl FilterExpression {
     /// Returns (`sql_fragment`, `bind_params_as_text`).
     fn to_sql(&self, param_idx: &mut usize) -> (String, Vec<Option<String>>) {
         match self {
-            Self::Condition { field, operator, value } => {
+            Self::Condition {
+                field,
+                operator,
+                value,
+            } => {
                 let Ok(safe_field) = sanitize_identifier(field) else {
                     return ("1=0".to_string(), vec![]);
                 };
@@ -57,55 +56,102 @@ impl FilterExpression {
                 match op.as_str() {
                     "eq" | "=" => {
                         *param_idx += 1;
-                        (format!("\"{}\" = ${}::text", safe_field, *param_idx), vec![json_val_to_text(value)])
+                        (
+                            format!("\"{}\" = ${}::text", safe_field, *param_idx),
+                            vec![json_val_to_text(value)],
+                        )
                     }
                     "ne" | "!=" => {
                         *param_idx += 1;
-                        (format!("\"{}\" != ${}::text", safe_field, *param_idx), vec![json_val_to_text(value)])
+                        (
+                            format!("\"{}\" != ${}::text", safe_field, *param_idx),
+                            vec![json_val_to_text(value)],
+                        )
                     }
                     "gt" | ">" => {
                         *param_idx += 1;
-                        (format!("\"{}\" > ${}::text", safe_field, *param_idx), vec![json_val_to_text(value)])
+                        (
+                            format!("\"{}\" > ${}::text", safe_field, *param_idx),
+                            vec![json_val_to_text(value)],
+                        )
                     }
                     "gte" | ">=" => {
                         *param_idx += 1;
-                        (format!("\"{}\" >= ${}::text", safe_field, *param_idx), vec![json_val_to_text(value)])
+                        (
+                            format!("\"{}\" >= ${}::text", safe_field, *param_idx),
+                            vec![json_val_to_text(value)],
+                        )
                     }
                     "lt" | "<" => {
                         *param_idx += 1;
-                        (format!("\"{}\" < ${}::text", safe_field, *param_idx), vec![json_val_to_text(value)])
+                        (
+                            format!("\"{}\" < ${}::text", safe_field, *param_idx),
+                            vec![json_val_to_text(value)],
+                        )
                     }
                     "lte" | "<=" => {
                         *param_idx += 1;
-                        (format!("\"{}\" <= ${}::text", safe_field, *param_idx), vec![json_val_to_text(value)])
+                        (
+                            format!("\"{}\" <= ${}::text", safe_field, *param_idx),
+                            vec![json_val_to_text(value)],
+                        )
                     }
                     "contains" | "like" => {
                         *param_idx += 1;
-                        let pattern = value.as_str()
-                            .map(|s| format!("%{}%", s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")))
+                        let pattern = value
+                            .as_str()
+                            .map(|s| {
+                                format!(
+                                    "%{}%",
+                                    s.replace('\\', "\\\\")
+                                        .replace('%', "\\%")
+                                        .replace('_', "\\_")
+                                )
+                            })
                             .unwrap_or_default();
-                        (format!("\"{}\"::text ILIKE ${}::text", safe_field, *param_idx), vec![Some(pattern)])
+                        (
+                            format!("\"{}\"::text ILIKE ${}::text", safe_field, *param_idx),
+                            vec![Some(pattern)],
+                        )
                     }
                     "starts_with" => {
                         *param_idx += 1;
-                        let pattern = value.as_str()
-                            .map(|s| format!("{}%", s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")))
+                        let pattern = value
+                            .as_str()
+                            .map(|s| {
+                                format!(
+                                    "{}%",
+                                    s.replace('\\', "\\\\")
+                                        .replace('%', "\\%")
+                                        .replace('_', "\\_")
+                                )
+                            })
                             .unwrap_or_default();
-                        (format!("\"{}\"::text ILIKE ${}::text", safe_field, *param_idx), vec![Some(pattern)])
+                        (
+                            format!("\"{}\"::text ILIKE ${}::text", safe_field, *param_idx),
+                            vec![Some(pattern)],
+                        )
                     }
                     "ends_with" => {
                         *param_idx += 1;
-                        let pattern = value.as_str()
-                            .map(|s| format!("%{}", s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")))
+                        let pattern = value
+                            .as_str()
+                            .map(|s| {
+                                format!(
+                                    "%{}",
+                                    s.replace('\\', "\\\\")
+                                        .replace('%', "\\%")
+                                        .replace('_', "\\_")
+                                )
+                            })
                             .unwrap_or_default();
-                        (format!("\"{}\"::text ILIKE ${}::text", safe_field, *param_idx), vec![Some(pattern)])
+                        (
+                            format!("\"{}\"::text ILIKE ${}::text", safe_field, *param_idx),
+                            vec![Some(pattern)],
+                        )
                     }
-                    "is_null" => {
-                        (format!("\"{}\" IS NULL", safe_field), vec![])
-                    }
-                    "is_not_null" => {
-                        (format!("\"{}\" IS NOT NULL", safe_field), vec![])
-                    }
+                    "is_null" => (format!("\"{}\" IS NULL", safe_field), vec![]),
+                    "is_not_null" => (format!("\"{}\" IS NOT NULL", safe_field), vec![]),
                     "in" => {
                         if let Some(arr) = value.as_array() {
                             let mut parts = Vec::new();
@@ -118,7 +164,10 @@ impl FilterExpression {
                             if parts.is_empty() {
                                 ("1=0".to_string(), vec![])
                             } else {
-                                (format!("\"{}\" IN ({})", safe_field, parts.join(", ")), params)
+                                (
+                                    format!("\"{}\" IN ({})", safe_field, parts.join(", ")),
+                                    params,
+                                )
                             }
                         } else {
                             ("1=0".to_string(), vec![])
@@ -136,7 +185,10 @@ impl FilterExpression {
                             if parts.is_empty() {
                                 ("1=1".to_string(), vec![])
                             } else {
-                                (format!("\"{}\" NOT IN ({})", safe_field, parts.join(", ")), params)
+                                (
+                                    format!("\"{}\" NOT IN ({})", safe_field, parts.join(", ")),
+                                    params,
+                                )
                             }
                         } else {
                             ("1=1".to_string(), vec![])
@@ -149,8 +201,10 @@ impl FilterExpression {
                                 let p1 = *param_idx;
                                 *param_idx += 1;
                                 let p2 = *param_idx;
-                                (format!("\"{safe_field}\" BETWEEN ${p1}::text AND ${p2}::text"),
-                                 vec![json_val_to_text(&arr[0]), json_val_to_text(&arr[1])])
+                                (
+                                    format!("\"{safe_field}\" BETWEEN ${p1}::text AND ${p2}::text"),
+                                    vec![json_val_to_text(&arr[0]), json_val_to_text(&arr[1])],
+                                )
                             } else {
                                 ("1=0".to_string(), vec![])
                             }
@@ -226,23 +280,21 @@ pub async fn list_records_advanced(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Advanced listing records for entity: {}", entity);
 
-    let entity_def = state.core.schema_engine.get_entity(&entity)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    let table_name = sanitize_identifier(
-        entity_def.table_name.as_deref().unwrap_or(&entity)
-    )?;
+    let table_name = sanitize_identifier(entity_def.table_name.as_deref().unwrap_or(&entity))?;
 
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let offset = params.offset.unwrap_or(0).max(0);
     let limit = params.limit.unwrap_or(20).clamp(1, 200);
 
     // Build base WHERE with org + soft delete
-    let mut where_parts = vec![
-        "organization_id = $1::uuid".to_string(),
-    ];
+    let mut where_parts = vec!["organization_id = $1::uuid".to_string()];
     if entity_def.is_soft_delete {
         where_parts.push("deleted_at IS NULL".to_string());
     }
@@ -253,20 +305,31 @@ pub async fn list_records_advanced(
     // Add text search if provided
     if let Some(ref search) = params.search {
         if !search.is_empty() {
-            let escaped = search.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+            let escaped = search
+                .replace('\\', "\\\\")
+                .replace('%', "\\%")
+                .replace('_', "\\_");
             let pattern = format!("%{escaped}%");
-            let fields: Vec<String> = entity_def.fields.iter()
-                .filter(|f| f.is_searchable && matches!(
-                    f.field_type,
-                    atlas_shared::FieldType::String { .. } | atlas_shared::FieldType::Email | atlas_shared::FieldType::Phone
-                ))
+            let fields: Vec<String> = entity_def
+                .fields
+                .iter()
+                .filter(|f| {
+                    f.is_searchable
+                        && matches!(
+                            f.field_type,
+                            atlas_shared::FieldType::String { .. }
+                                | atlas_shared::FieldType::Email
+                                | atlas_shared::FieldType::Phone
+                        )
+                })
                 .map(|f| format!("\"{}\"::text ILIKE ", f.name))
                 .collect();
             if !fields.is_empty() {
                 param_idx += 1;
                 where_parts.push(format!(
                     "({})",
-                    fields.iter()
+                    fields
+                        .iter()
                         .map(|f| format!("{f} ${param_idx}::text"))
                         .collect::<Vec<_>>()
                         .join(" OR ")
@@ -305,7 +368,11 @@ pub async fn list_records_advanced(
 
     let sql = format!(
         "SELECT * FROM \"{}\" WHERE {} {} LIMIT ${} OFFSET ${}",
-        table_name, where_clause, order_clause, param_idx + 1, param_idx + 2
+        table_name,
+        where_clause,
+        order_clause,
+        param_idx + 1,
+        param_idx + 2
     );
 
     let mut query = sqlx::query(&sql);
@@ -315,8 +382,10 @@ pub async fn list_records_advanced(
     query = query.bind(limit);
     query = query.bind(offset);
 
-    let rows = query.fetch_all(&state.db_pool).await
-        .map_err(|e| { error!("Advanced query error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let rows = query.fetch_all(&state.db_pool).await.map_err(|e| {
+        error!("Advanced query error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let records: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
 
@@ -326,8 +395,10 @@ pub async fn list_records_advanced(
     for param in &bind_params {
         count_query = count_query.bind(param.as_deref());
     }
-    let total = count_query.fetch_one(&state.db_pool).await
-        .map_err(|e| { error!("Count error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let total = count_query.fetch_one(&state.db_pool).await.map_err(|e| {
+        error!("Count error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     Ok(Json(serde_json::json!({
         "data": records,
@@ -383,19 +454,26 @@ pub async fn execute_bulk_operation(
     claims: Extension<Claims>,
     Json(payload): Json<BulkOperationRequest>,
 ) -> Result<Json<BulkOperationResponse>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let entity_def = state.core.schema_engine.get_entity(&payload.entity_type)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&payload.entity_type)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = sanitize_identifier(
-        entity_def.table_name.as_deref().unwrap_or(&payload.entity_type)
+        entity_def
+            .table_name
+            .as_deref()
+            .unwrap_or(&payload.entity_type),
     )?;
 
-    info!("Bulk {} on {} by {}", payload.operation, payload.entity_type, user_id);
+    info!(
+        "Bulk {} on {} by {}",
+        payload.operation, payload.entity_type, user_id
+    );
 
     // Collect target record IDs
     let record_ids = if let Some(ref ids) = payload.record_ids {
@@ -412,13 +490,19 @@ pub async fn execute_bulk_operation(
         where_parts.push(format!("({filter_sql})"));
         bind_params.extend(filter_params);
 
-        let sql = format!("SELECT id FROM \"{}\" WHERE {}", table_name, where_parts.join(" AND "));
+        let sql = format!(
+            "SELECT id FROM \"{}\" WHERE {}",
+            table_name,
+            where_parts.join(" AND ")
+        );
         let mut query = sqlx::query(&sql);
         for param in &bind_params {
             query = query.bind(param.as_deref());
         }
-        let rows = query.fetch_all(&state.db_pool).await
-            .map_err(|e| { error!("Bulk query error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        let rows = query.fetch_all(&state.db_pool).await.map_err(|e| {
+            error!("Bulk query error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
         rows.iter()
             .filter_map(|r| r.try_get::<Uuid, _>("id").ok())
             .collect()
@@ -447,7 +531,7 @@ pub async fn execute_bulk_operation(
             (organization_id, user_id, entity_type, operation, filter, record_ids,
              payload, status, total_records, is_dry_run)
         VALUES ($1, $2, $3, $4, $5, $6, $7, 'running', $8, $9)
-        RETURNING id"
+        RETURNING id",
     )
     .bind(org_id)
     .bind(user_id)
@@ -460,7 +544,10 @@ pub async fn execute_bulk_operation(
     .bind(payload.dry_run)
     .fetch_one(&state.db_pool)
     .await
-    .map_err(|e| { error!("Bulk job create error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    .map_err(|e| {
+        error!("Bulk job create error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let job_id: Uuid = job_row.try_get("id").unwrap_or_default();
 
@@ -476,21 +563,32 @@ pub async fn execute_bulk_operation(
             } else {
                 format!("DELETE FROM \"{table_name}\" WHERE id = ANY($1) AND organization_id = $2")
             };
-            match sqlx::query(&q).bind(&record_ids).bind(org_id).execute(&state.db_pool).await {
+            match sqlx::query(&q)
+                .bind(&record_ids)
+                .bind(org_id)
+                .execute(&state.db_pool)
+                .await
+            {
                 Ok(r) => succeeded = r.rows_affected() as i32,
                 Err(e) => {
                     failed = total;
-                    errors.push(BulkError { record_id: "*".into(), error: e.to_string() });
+                    errors.push(BulkError {
+                        record_id: "*".into(),
+                        error: e.to_string(),
+                    });
                 }
             }
         }
         "update" => {
-            let values = payload.payload.get("values")
+            let values = payload
+                .payload
+                .get("values")
                 .and_then(|v| v.as_object())
                 .cloned()
                 .unwrap_or_default();
 
-            let non_null: Vec<(String, &serde_json::Value)> = values.iter()
+            let non_null: Vec<(String, &serde_json::Value)> = values
+                .iter()
                 .filter(|(_, v)| !v.is_null())
                 .map(|(k, v)| sanitize_identifier(k).map(|sk| (sk, v)))
                 .collect::<Result<Vec<_>, _>>()
@@ -501,7 +599,8 @@ pub async fn execute_bulk_operation(
             }
 
             // Batch update using ANY() instead of row-by-row loop
-            let set_clauses: Vec<String> = non_null.iter()
+            let set_clauses: Vec<String> = non_null
+                .iter()
                 .enumerate()
                 .map(|(i, (k, _))| format!("\"{}\" = ${}::text", k, i + 1))
                 .collect();
@@ -521,24 +620,38 @@ pub async fn execute_bulk_operation(
                 Ok(r) => succeeded = r.rows_affected() as i32,
                 Err(e) => {
                     failed = total;
-                    errors.push(BulkError { record_id: "*".into(), error: e.to_string() });
+                    errors.push(BulkError {
+                        record_id: "*".into(),
+                        error: e.to_string(),
+                    });
                 }
             }
         }
         "workflow_action" => {
             // Batch workflow update using ANY() instead of row-by-row loop
-            let action = payload.payload.get("action")
+            let action = payload
+                .payload
+                .get("action")
                 .and_then(|a| a.as_str())
                 .unwrap_or("")
                 .to_string();
             let q = format!(
                 "UPDATE \"{table_name}\" SET workflow_state = $1::text, updated_at = now() WHERE id = ANY($2) AND organization_id = $3 AND deleted_at IS NULL"
             );
-            match sqlx::query(&q).bind(&action).bind(&record_ids).bind(org_id).execute(&state.db_pool).await {
+            match sqlx::query(&q)
+                .bind(&action)
+                .bind(&record_ids)
+                .bind(org_id)
+                .execute(&state.db_pool)
+                .await
+            {
                 Ok(r) => succeeded = r.rows_affected() as i32,
                 Err(e) => {
                     failed = total;
-                    errors.push(BulkError { record_id: "*".into(), error: e.to_string() });
+                    errors.push(BulkError {
+                        record_id: "*".into(),
+                        error: e.to_string(),
+                    });
                 }
             }
         }
@@ -546,7 +659,13 @@ pub async fn execute_bulk_operation(
     }
 
     // Update job
-    let status = if failed == 0 { "completed" } else if succeeded == 0 { "failed" } else { "completed" };
+    let status = if failed == 0 {
+        "completed"
+    } else if succeeded == 0 {
+        "failed"
+    } else {
+        "completed"
+    };
     let _ = sqlx::query(
         "UPDATE _atlas.bulk_operations SET status = $1, processed_records = $2, succeeded_records = $3, failed_records = $4, completed_at = now() WHERE id = $5"
     )
@@ -593,8 +712,7 @@ pub async fn list_comments(
     claims: Extension<Claims>,
     Query(params): Query<CommentListParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let offset = params.offset.unwrap_or(0).max(0);
@@ -606,7 +724,7 @@ pub async fn list_comments(
            WHERE c.organization_id = $1 AND c.entity_type = $2 AND c.entity_id = $3
              AND c.deleted_at IS NULL
            ORDER BY c.is_pinned DESC, c.created_at ASC
-           LIMIT $4 OFFSET $5"
+           LIMIT $4 OFFSET $5",
     )
     .bind(org_id)
     .bind(&entity)
@@ -615,7 +733,10 @@ pub async fn list_comments(
     .bind(offset)
     .fetch_all(&state.db_pool)
     .await
-    .map_err(|e| { error!("Comments query error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    .map_err(|e| {
+        error!("Comments query error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let comments: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
 
@@ -647,24 +768,27 @@ pub async fn create_comment(
     claims: Extension<Claims>,
     Json(payload): Json<CreateCommentRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Verify the record exists
-    let entity_def = state.core.schema_engine.get_entity(&entity)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
-    let table_name = sanitize_identifier(
-        entity_def.table_name.as_deref().unwrap_or(&entity)
-    )?;
-    let exists: bool = sqlx::query_scalar(
-        &format!("SELECT EXISTS(SELECT 1 FROM \"{}\" WHERE id = $1 AND organization_id = $2{})",
-            table_name,
-            if entity_def.is_soft_delete { " AND deleted_at IS NULL" } else { "" }
-        )
-    )
-    .bind(id).bind(org_id)
+    let table_name = sanitize_identifier(entity_def.table_name.as_deref().unwrap_or(&entity))?;
+    let exists: bool = sqlx::query_scalar(&format!(
+        "SELECT EXISTS(SELECT 1 FROM \"{}\" WHERE id = $1 AND organization_id = $2{})",
+        table_name,
+        if entity_def.is_soft_delete {
+            " AND deleted_at IS NULL"
+        } else {
+            ""
+        }
+    ))
+    .bind(id)
+    .bind(org_id)
     .fetch_one(&state.db_pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -698,9 +822,12 @@ pub async fn create_comment(
         VALUES ($1, $2, $3, $4, $5, 
                 (SELECT name FROM _atlas.users WHERE id = $5),
                 $6, $7, $8, $9, $10, $11)
-        RETURNING *"
+        RETURNING *",
     )
-    .bind(org_id).bind(&entity).bind(id).bind(payload.parent_id)
+    .bind(org_id)
+    .bind(&entity)
+    .bind(id)
+    .bind(payload.parent_id)
     .bind(user_id)
     .bind(&payload.body)
     .bind(payload.body_format.unwrap_or_else(|| "plain".to_string()))
@@ -710,7 +837,10 @@ pub async fn create_comment(
     .bind(payload.is_internal)
     .fetch_one(&state.db_pool)
     .await
-    .map_err(|e| { error!("Create comment error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    .map_err(|e| {
+        error!("Create comment error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     Ok((StatusCode::CREATED, Json(row_to_json(&row))))
 }
@@ -721,8 +851,7 @@ pub async fn delete_comment(
     Path((_entity, _record_id, comment_id)): Path<(String, Uuid, Uuid)>,
     claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let result = sqlx::query(
         "UPDATE _atlas.comments SET deleted_at = now() WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL"
@@ -745,8 +874,7 @@ pub async fn toggle_pin_comment(
     Path((_entity, _record_id, comment_id)): Path<(String, Uuid, Uuid)>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let row = sqlx::query(
         "UPDATE _atlas.comments SET is_pinned = NOT is_pinned, updated_at = now() WHERE id = $1 RETURNING id, is_pinned"
@@ -781,12 +909,11 @@ pub async fn list_favorites(
     claims: Extension<Claims>,
     Query(params): Query<FavoriteListParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let mut query_str = "SELECT * FROM _atlas.favorites WHERE organization_id = $1 AND user_id = $2".to_string();
+    let mut query_str =
+        "SELECT * FROM _atlas.favorites WHERE organization_id = $1 AND user_id = $2".to_string();
     let mut bind_count = 2;
 
     if let Some(ref _entity_type) = params.entity_type {
@@ -800,8 +927,10 @@ pub async fn list_favorites(
         query = query.bind(et);
     }
 
-    let rows = query.fetch_all(&state.db_pool).await
-        .map_err(|e| { error!("Favorites query error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let rows = query.fetch_all(&state.db_pool).await.map_err(|e| {
+        error!("Favorites query error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let favorites: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
 
@@ -820,10 +949,8 @@ pub async fn add_favorite(
     claims: Extension<Claims>,
     Json(payload): Json<CreateFavoriteRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let row = sqlx::query(
         r"INSERT INTO _atlas.favorites (organization_id, user_id, entity_type, entity_id, label, notes)
@@ -846,14 +973,17 @@ pub async fn remove_favorite(
     Path((entity, id)): Path<(String, Uuid)>,
     claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    sqlx::query("DELETE FROM _atlas.favorites WHERE user_id = $1 AND entity_type = $2 AND entity_id = $3")
-        .bind(user_id).bind(&entity).bind(id)
-        .execute(&state.db_pool)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    sqlx::query(
+        "DELETE FROM _atlas.favorites WHERE user_id = $1 AND entity_type = $2 AND entity_id = $3",
+    )
+    .bind(user_id)
+    .bind(&entity)
+    .bind(id)
+    .execute(&state.db_pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -864,8 +994,7 @@ pub async fn check_favorite(
     Path((entity, id)): Path<(String, Uuid)>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let row = sqlx::query(
         "SELECT id, label, notes FROM _atlas.favorites WHERE user_id = $1 AND entity_type = $2 AND entity_id = $3"
@@ -876,7 +1005,9 @@ pub async fn check_favorite(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match row {
-        Some(r) => Ok(Json(serde_json::json!({ "is_favorite": true, "favorite": row_to_json(&r) }))),
+        Some(r) => Ok(Json(
+            serde_json::json!({ "is_favorite": true, "favorite": row_to_json(&r) }),
+        )),
         None => Ok(Json(serde_json::json!({ "is_favorite": false }))),
     }
 }
@@ -902,26 +1033,33 @@ pub async fn export_csv(
     claims: Extension<Claims>,
     Query(params): Query<CsvExportParams>,
 ) -> Result<axum::response::Response, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let entity_def = state.core.schema_engine.get_entity(&entity)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    let table_name = sanitize_identifier(
-        entity_def.table_name.as_deref().unwrap_or(&entity)
-    )?;
+    let table_name = sanitize_identifier(entity_def.table_name.as_deref().unwrap_or(&entity))?;
 
     // Determine fields to export
     let fields: Vec<String> = if let Some(fields_str) = &params.fields {
-        fields_str.split(',')
+        fields_str
+            .split(',')
             .filter_map(|f| {
                 let f = f.trim().to_string();
-                if f.is_empty() { None } else { Some(f) }
+                if f.is_empty() {
+                    None
+                } else {
+                    Some(f)
+                }
             })
             .collect()
     } else {
-        entity_def.fields.iter()
+        entity_def
+            .fields
+            .iter()
             .filter(|f| f.is_searchable)
             .map(|f| f.name.clone())
             .collect()
@@ -950,7 +1088,8 @@ pub async fn export_csv(
     }
 
     let where_clause = where_parts.join(" AND ");
-    let select_fields = fields.iter()
+    let select_fields = fields
+        .iter()
         .map(|f| format!("\"{}\"", sanitize_identifier(f).unwrap_or_default()))
         .collect::<Vec<_>>()
         .join(", ");
@@ -964,8 +1103,10 @@ pub async fn export_csv(
         query = query.bind(param.as_deref());
     }
 
-    let rows = query.fetch_all(&state.db_pool).await
-        .map_err(|e| { error!("CSV export query error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let rows = query.fetch_all(&state.db_pool).await.map_err(|e| {
+        error!("CSV export query error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     // Build CSV
     let delimiter = params.delimiter.as_deref().unwrap_or(",");
@@ -974,10 +1115,13 @@ pub async fn export_csv(
     // Header
     let mut headers = vec!["id".to_string()];
     headers.extend(fields.iter().cloned());
-    csv_lines.push(headers.iter()
-        .map(|h| csv_escape(h))
-        .collect::<Vec<_>>()
-        .join(delimiter));
+    csv_lines.push(
+        headers
+            .iter()
+            .map(|h| csv_escape(h))
+            .collect::<Vec<_>>()
+            .join(delimiter),
+    );
 
     // Data rows
     for row in &rows {
@@ -985,10 +1129,20 @@ pub async fn export_csv(
         let mut values = vec![csv_escape(&id.to_string())];
         for field in &fields {
             let safe = sanitize_identifier(field).unwrap_or_default();
-            let val = row.try_get::<serde_json::Value, _>(safe.as_str())
-                .or_else(|_| row.try_get::<String, _>(safe.as_str()).map(|s| serde_json::json!(s)))
-                .or_else(|_| row.try_get::<i64, _>(safe.as_str()).map(|n| serde_json::json!(n)))
-                .or_else(|_| row.try_get::<bool, _>(safe.as_str()).map(|b| serde_json::json!(b)))
+            let val = row
+                .try_get::<serde_json::Value, _>(safe.as_str())
+                .or_else(|_| {
+                    row.try_get::<String, _>(safe.as_str())
+                        .map(|s| serde_json::json!(s))
+                })
+                .or_else(|_| {
+                    row.try_get::<i64, _>(safe.as_str())
+                        .map(|n| serde_json::json!(n))
+                })
+                .or_else(|_| {
+                    row.try_get::<bool, _>(safe.as_str())
+                        .map(|b| serde_json::json!(b))
+                })
                 .unwrap_or(serde_json::Value::Null);
             values.push(csv_escape(&json_to_csv_string(&val)));
         }
@@ -996,17 +1150,25 @@ pub async fn export_csv(
     }
 
     let csv_body = csv_lines.join("\n");
-    let filename = format!("{}_export_{}.csv", entity, chrono::Utc::now().format("%Y%m%d_%H%M%S"));
+    let filename = format!(
+        "{}_export_{}.csv",
+        entity,
+        chrono::Utc::now().format("%Y%m%d_%H%M%S")
+    );
 
     use axum::response::IntoResponse;
     Ok((
         axum::http::StatusCode::OK,
         [
             ("content-type", "text/csv".to_string()),
-            ("content-disposition", format!("attachment; filename=\"{filename}\"")),
+            (
+                "content-disposition",
+                format!("attachment; filename=\"{filename}\""),
+            ),
         ],
         csv_body,
-    ).into_response())
+    )
+        .into_response())
 }
 
 fn csv_escape(s: &str) -> String {
@@ -1040,34 +1202,43 @@ pub async fn get_related_records(
     claims: Extension<Claims>,
     Query(params): Query<RelatedRecordsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let entity_def = state.core.schema_engine.get_entity(&entity)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     // Find the relationship field
-    let related_field = entity_def.fields.iter()
-        .find(|f| {
-            match &f.field_type {
-                atlas_shared::FieldType::OneToMany { entity, foreign_key: _ } if entity == &related_entity => true,
-                atlas_shared::FieldType::Reference { entity, field: _ } if entity == &related_entity => true,
-                _ => false,
-            }
-        });
-
-    let (related_table, foreign_key) = if let Some(field) = related_field { match &field.field_type {
-        atlas_shared::FieldType::OneToMany { entity: rel_entity, foreign_key } => {
-            // Look up the related entity definition to get its table name
-            if let Some(rel_def) = state.core.schema_engine.get_entity(rel_entity) {
-                let tbl = rel_def.table_name.as_deref().unwrap_or(rel_entity);
-                (sanitize_identifier(tbl)?, foreign_key.clone())
-            } else {
-                (sanitize_identifier(rel_entity)?, foreign_key.clone())
-            }
+    let related_field = entity_def.fields.iter().find(|f| match &f.field_type {
+        atlas_shared::FieldType::OneToMany {
+            entity,
+            foreign_key: _,
+        } if entity == &related_entity => true,
+        atlas_shared::FieldType::Reference { entity, field: _ } if entity == &related_entity => {
+            true
         }
-        _ => return Err(StatusCode::BAD_REQUEST),
-    } } else {
+        _ => false,
+    });
+
+    let (related_table, foreign_key) = if let Some(field) = related_field {
+        match &field.field_type {
+            atlas_shared::FieldType::OneToMany {
+                entity: rel_entity,
+                foreign_key,
+            } => {
+                // Look up the related entity definition to get its table name
+                if let Some(rel_def) = state.core.schema_engine.get_entity(rel_entity) {
+                    let tbl = rel_def.table_name.as_deref().unwrap_or(rel_entity);
+                    (sanitize_identifier(tbl)?, foreign_key.clone())
+                } else {
+                    (sanitize_identifier(rel_entity)?, foreign_key.clone())
+                }
+            }
+            _ => return Err(StatusCode::BAD_REQUEST),
+        }
+    } else {
         // Try convention: {entity_singular}_id as foreign key
         let fk = format!("{}_id", entity.trim_end_matches('s'));
         if let Some(rel_def) = state.core.schema_engine.get_entity(&related_entity) {
@@ -1147,20 +1318,24 @@ pub async fn get_effective_record(
     claims: Extension<Claims>,
     Query(params): Query<GetEffectiveRecordParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if params.include_history {
         // Return all versions
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.effective_dated_records
             WHERE organization_id = $1 AND entity_type = $2 AND base_record_id = $3
-            ORDER BY effective_from DESC"
+            ORDER BY effective_from DESC",
         )
-        .bind(org_id).bind(&entity).bind(id)
+        .bind(org_id)
+        .bind(&entity)
+        .bind(id)
         .fetch_all(&state.db_pool)
         .await
-        .map_err(|e| { error!("Effective history error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("Effective history error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
         let versions: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
         return Ok(Json(serde_json::json!({
@@ -1171,7 +1346,8 @@ pub async fn get_effective_record(
     }
 
     // Get as-of date version
-    let as_of_date = params.as_of_date
+    let as_of_date = params
+        .as_of_date
         .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string());
 
     let row = sqlx::query(
@@ -1179,12 +1355,18 @@ pub async fn get_effective_record(
         WHERE organization_id = $1 AND entity_type = $2 AND base_record_id = $3
           AND effective_from <= $4::date
           AND (effective_to IS NULL OR effective_to >= $4::date)
-        ORDER BY effective_from DESC LIMIT 1"
+        ORDER BY effective_from DESC LIMIT 1",
     )
-    .bind(org_id).bind(&entity).bind(id).bind(&as_of_date)
+    .bind(org_id)
+    .bind(&entity)
+    .bind(id)
+    .bind(&as_of_date)
     .fetch_optional(&state.db_pool)
     .await
-    .map_err(|e| { error!("Effective record error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    .map_err(|e| {
+        error!("Effective record error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     match row {
         Some(r) => Ok(Json(row_to_json(&r))),
@@ -1207,10 +1389,8 @@ pub async fn create_effective_version(
     claims: Extension<Claims>,
     Json(payload): Json<CreateEffectiveVersionRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Get current max version
     let max_version: i32 = sqlx::query_scalar(
@@ -1240,9 +1420,11 @@ pub async fn create_effective_version(
             (organization_id, entity_type, base_record_id, effective_from, effective_to,
              data, change_reason, changed_by, version, is_current)
         VALUES ($1, $2, $3, $4::date, $5::date, $6, $7, $8, $9, true)
-        RETURNING *"
+        RETURNING *",
     )
-    .bind(org_id).bind(&entity).bind(id)
+    .bind(org_id)
+    .bind(&entity)
+    .bind(id)
     .bind(&payload.effective_from)
     .bind(payload.effective_to.as_deref().unwrap_or("9999-12-31"))
     .bind(&payload.data)
@@ -1251,9 +1433,15 @@ pub async fn create_effective_version(
     .bind(new_version)
     .fetch_one(&state.db_pool)
     .await
-    .map_err(|e| { error!("Create effective version error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    .map_err(|e| {
+        error!("Create effective version error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
-    info!("Created effective version {} for {} {}", new_version, entity, id);
+    info!(
+        "Created effective version {} for {} {}",
+        new_version, entity, id
+    );
 
     Ok((StatusCode::CREATED, Json(row_to_json(&row))))
 }
@@ -1281,7 +1469,9 @@ pub struct CsvImportRequest {
     pub delimiter: char,
 }
 
-const fn default_delimiter() -> char { ',' }
+const fn default_delimiter() -> char {
+    ','
+}
 
 #[derive(Debug, Serialize)]
 pub struct CsvImportResponse {
@@ -1314,15 +1504,16 @@ pub async fn import_csv(
     claims: Extension<Claims>,
     Json(payload): Json<CsvImportRequest>,
 ) -> Result<Json<CsvImportResponse>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let entity_def = state.core.schema_engine.get_entity(&payload.entity)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&payload.entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    let table_name = sanitize_identifier(
-        entity_def.table_name.as_deref().unwrap_or(&payload.entity)
-    )?;
+    let table_name =
+        sanitize_identifier(entity_def.table_name.as_deref().unwrap_or(&payload.entity))?;
 
     // Parse CSV
     let mut reader = csv::ReaderBuilder::new()
@@ -1330,28 +1521,37 @@ pub async fn import_csv(
         .has_headers(true)
         .from_reader(payload.csv_content.as_bytes());
 
-    let headers = reader.headers()
-        .map(|h| h.iter().map(std::string::ToString::to_string).collect::<Vec<_>>())
+    let headers = reader
+        .headers()
+        .map(|h| {
+            h.iter()
+                .map(std::string::ToString::to_string)
+                .collect::<Vec<_>>()
+        })
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
     // Build field mapping
-    let mapping: std::collections::HashMap<String, String> = if let Some(obj) = payload.field_mapping.as_object() {
-        obj.iter()
-            .map(|(k, v)| (k.clone(), v.as_str().unwrap_or(k).to_string()))
-            .collect()
-    } else {
-        // Auto-map: csv header name = field name
-        headers.iter()
-            .map(|h| (h.clone(), h.clone()))
-            .collect()
-    };
+    let mapping: std::collections::HashMap<String, String> =
+        if let Some(obj) = payload.field_mapping.as_object() {
+            obj.iter()
+                .map(|(k, v)| (k.clone(), v.as_str().unwrap_or(k).to_string()))
+                .collect()
+        } else {
+            // Auto-map: csv header name = field name
+            headers.iter().map(|h| (h.clone(), h.clone())).collect()
+        };
 
     // Collect rows
     let mut all_rows: Vec<Vec<String>> = Vec::new();
     for result in reader.records() {
         match result {
             Ok(record) => {
-                all_rows.push(record.iter().map(std::string::ToString::to_string).collect());
+                all_rows.push(
+                    record
+                        .iter()
+                        .map(std::string::ToString::to_string)
+                        .collect(),
+                );
             }
             Err(e) => {
                 return Ok(Json(CsvImportResponse {
@@ -1360,7 +1560,10 @@ pub async fn import_csv(
                     imported: 0,
                     failed: 0,
                     skipped: 0,
-                    errors: vec![CsvImportError { row: 0, errors: vec![format!("CSV parse error: {}", e)] }],
+                    errors: vec![CsvImportError {
+                        row: 0,
+                        errors: vec![format!("CSV parse error: {}", e)],
+                    }],
                     preview: None,
                 }));
             }
@@ -1370,11 +1573,13 @@ pub async fn import_csv(
     let total_rows = all_rows.len();
 
     // Map csv columns to entity fields
-    let mapped_fields: Vec<(String, String)> = headers.iter()
+    let mapped_fields: Vec<(String, String)> = headers
+        .iter()
         .filter_map(|h| mapping.get(h).map(|f| (h.clone(), f.clone())))
         .collect();
 
-    let unmapped: Vec<String> = headers.iter()
+    let unmapped: Vec<String> = headers
+        .iter()
         .filter(|h| !mapping.contains_key(*h))
         .cloned()
         .collect();
@@ -1401,7 +1606,8 @@ pub async fn import_csv(
 
     // Build SQL for insert
     let field_names: Vec<&str> = mapped_fields.iter().map(|(_, f)| f.as_str()).collect();
-    let safe_fields: Vec<String> = field_names.iter()
+    let safe_fields: Vec<String> = field_names
+        .iter()
         .map(|f| sanitize_identifier(f))
         .collect::<Result<Vec<_>, _>>()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -1410,7 +1616,8 @@ pub async fn import_csv(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let col_list = safe_fields.iter()
+    let col_list = safe_fields
+        .iter()
         .map(|f| format!("\"{f}\""))
         .collect::<Vec<_>>()
         .join(", ");
@@ -1438,21 +1645,26 @@ pub async fn import_csv(
                 }
             }
 
-            values.push(if val.is_empty() { None } else { Some(val.clone()) });
+            values.push(if val.is_empty() {
+                None
+            } else {
+                Some(val.clone())
+            });
         }
 
         if !row_errors.is_empty() {
             failed += 1;
-            errors.push(CsvImportError { row: row_idx + 2, errors: row_errors }); // +2 for header + 1-based
+            errors.push(CsvImportError {
+                row: row_idx + 2,
+                errors: row_errors,
+            }); // +2 for header + 1-based
             if payload.stop_on_error {
                 break;
             }
             continue;
         }
 
-        let placeholders: Vec<String> = (1..=values.len())
-            .map(|i| format!("${i}::text"))
-            .collect();
+        let placeholders: Vec<String> = (1..=values.len()).map(|i| format!("${i}::text")).collect();
         let org_placeholder = format!("${}::uuid", values.len() + 1);
 
         let sql = if payload.upsert_mode {
@@ -1463,7 +1675,10 @@ pub async fn import_csv(
         } else {
             format!(
                 "INSERT INTO \"{}\" ({}, id) VALUES ({}, {}, gen_random_uuid())",
-                table_name, col_list_with_org, placeholders.join(", "), org_placeholder
+                table_name,
+                col_list_with_org,
+                placeholders.join(", "),
+                org_placeholder
             )
         };
 
@@ -1478,7 +1693,10 @@ pub async fn import_csv(
             Ok(_) => skipped += 1,
             Err(e) => {
                 failed += 1;
-                errors.push(CsvImportError { row: row_idx + 2, errors: vec![e.to_string()] });
+                errors.push(CsvImportError {
+                    row: row_idx + 2,
+                    errors: vec![e.to_string()],
+                });
                 if payload.stop_on_error {
                     break;
                 }

@@ -4,22 +4,27 @@
 //! API endpoints for sales reps, commission plans, rate tiers, assignments,
 //! quotas, commission transactions, payouts, and dashboard.
 
+use crate::handlers::auth::{parse_uuid, Claims};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::{Claims, parse_uuid};
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
-fn default_usd() -> String { "USD".to_string() }
-fn default_revenue() -> String { "revenue".to_string() }
-fn default_percentage() -> String { "percentage".to_string() }
+fn default_usd() -> String {
+    "USD".to_string()
+}
+fn default_revenue() -> String {
+    "revenue".to_string()
+}
+fn default_percentage() -> String {
+    "percentage".to_string()
+}
 
 // ============================================================================
 // Sales Representatives
@@ -45,18 +50,38 @@ pub async fn create_rep(
     Json(req): Json<CreateRepRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.create_rep(
-        org_id, &req.rep_code, req.employee_id,
-        &req.first_name, &req.last_name,
-        req.email.as_deref(), req.territory_code.as_deref(),
-        req.territory_name.as_deref(), req.manager_id,
-        req.manager_name.as_deref(), req.hire_date, None,
-    ).await {
-        Ok(rep) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rep).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .crm
+        .sales_commission_engine
+        .create_rep(
+            org_id,
+            &req.rep_code,
+            req.employee_id,
+            &req.first_name,
+            &req.last_name,
+            req.email.as_deref(),
+            req.territory_code.as_deref(),
+            req.territory_name.as_deref(),
+            req.manager_id,
+            req.manager_name.as_deref(),
+            req.hire_date,
+            None,
+        )
+        .await
+    {
+        Ok(rep) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(rep).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create rep: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -73,12 +98,19 @@ pub async fn list_reps(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let active_only = query.active_only.unwrap_or(true);
-    match state.crm.sales_commission_engine.list_reps(org_id, active_only).await {
+    match state
+        .crm
+        .sales_commission_engine
+        .list_reps(org_id, active_only)
+        .await
+    {
         Ok(reps) => Ok(Json(serde_json::json!({"data": reps}))),
         Err(e) => {
             error!("Failed to list reps: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -89,13 +121,26 @@ pub async fn get_rep(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.get_rep(org_id, &code).await {
-        Ok(Some(rep)) => Ok(Json(serde_json::to_value(rep).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Rep not found"})))),
+    match state
+        .crm
+        .sales_commission_engine
+        .get_rep(org_id, &code)
+        .await
+    {
+        Ok(Some(rep)) => Ok(Json(serde_json::to_value(rep).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Rep not found"})),
+        )),
         Err(e) => {
             error!("Failed to get rep: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -106,12 +151,19 @@ pub async fn delete_rep(
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.delete_rep(org_id, &code).await {
+    match state
+        .crm
+        .sales_commission_engine
+        .delete_rep(org_id, &code)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete rep: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -142,16 +194,37 @@ pub async fn create_commission_plan(
     Json(req): Json<CreatePlanRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.create_plan(
-        org_id, &req.code, &req.name, req.description.as_deref(),
-        &req.plan_type, &req.basis, &req.calculation_method,
-        &req.default_rate, req.effective_from, req.effective_to, None,
-    ).await {
-        Ok(plan) => Ok((StatusCode::CREATED, Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .crm
+        .sales_commission_engine
+        .create_plan(
+            org_id,
+            &req.code,
+            &req.name,
+            req.description.as_deref(),
+            &req.plan_type,
+            &req.basis,
+            &req.calculation_method,
+            &req.default_rate,
+            req.effective_from,
+            req.effective_to,
+            None,
+        )
+        .await
+    {
+        Ok(plan) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(plan).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create plan: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -163,12 +236,19 @@ pub async fn list_commission_plans(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let status = params.get("status").map(std::string::String::as_str);
-    match state.crm.sales_commission_engine.list_plans(org_id, status).await {
+    match state
+        .crm
+        .sales_commission_engine
+        .list_plans(org_id, status)
+        .await
+    {
         Ok(plans) => Ok(Json(serde_json::json!({"data": plans}))),
         Err(e) => {
             error!("Failed to list plans: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -179,13 +259,26 @@ pub async fn get_commission_plan(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.get_plan(org_id, &code).await {
-        Ok(Some(plan)) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Plan not found"})))),
+    match state
+        .crm
+        .sales_commission_engine
+        .get_plan(org_id, &code)
+        .await
+    {
+        Ok(Some(plan)) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Plan not found"})),
+        )),
         Err(e) => {
             error!("Failed to get plan: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -195,11 +288,16 @@ pub async fn activate_commission_plan(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.crm.sales_commission_engine.activate_plan(id).await {
-        Ok(plan) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(plan) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to activate plan: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -209,11 +307,16 @@ pub async fn deactivate_commission_plan(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.crm.sales_commission_engine.deactivate_plan(id).await {
-        Ok(plan) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(plan) => Ok(Json(serde_json::to_value(plan).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to deactivate plan: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -224,12 +327,19 @@ pub async fn delete_commission_plan(
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.delete_plan(org_id, &code).await {
+    match state
+        .crm
+        .sales_commission_engine
+        .delete_plan(org_id, &code)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete plan: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -253,16 +363,32 @@ pub async fn add_rate_tier(
     Json(req): Json<AddRateTierRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.add_rate_tier(
-        org_id, plan_id,
-        &req.from_amount, req.to_amount.as_deref(),
-        &req.rate_percent, req.flat_amount.as_deref(),
-    ).await {
-        Ok(tier) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tier).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .crm
+        .sales_commission_engine
+        .add_rate_tier(
+            org_id,
+            plan_id,
+            &req.from_amount,
+            req.to_amount.as_deref(),
+            &req.rate_percent,
+            req.flat_amount.as_deref(),
+        )
+        .await
+    {
+        Ok(tier) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(tier).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to add rate tier: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -271,12 +397,19 @@ pub async fn list_rate_tiers(
     State(state): State<Arc<AppState>>,
     Path(plan_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.crm.sales_commission_engine.list_rate_tiers(plan_id).await {
+    match state
+        .crm
+        .sales_commission_engine
+        .list_rate_tiers(plan_id)
+        .await
+    {
         Ok(tiers) => Ok(Json(serde_json::json!({"data": tiers}))),
         Err(e) => {
             error!("Failed to list rate tiers: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -299,15 +432,32 @@ pub async fn assign_plan(
     Json(req): Json<AssignPlanRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.assign_plan(
-        org_id, req.rep_id, req.plan_id,
-        req.effective_from, req.effective_to, None,
-    ).await {
-        Ok(assignment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(assignment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .crm
+        .sales_commission_engine
+        .assign_plan(
+            org_id,
+            req.rep_id,
+            req.plan_id,
+            req.effective_from,
+            req.effective_to,
+            None,
+        )
+        .await
+    {
+        Ok(assignment) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(assignment).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to assign plan: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -323,12 +473,19 @@ pub async fn list_assignments(
     Query(query): Query<ListAssignmentsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.list_assignments(org_id, query.rep_id).await {
+    match state
+        .crm
+        .sales_commission_engine
+        .list_assignments(org_id, query.rep_id)
+        .await
+    {
         Ok(assignments) => Ok(Json(serde_json::json!({"data": assignments}))),
         Err(e) => {
             error!("Failed to list assignments: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -356,16 +513,36 @@ pub async fn create_quota(
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let quota_number = format!("Q-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
-    match state.crm.sales_commission_engine.create_quota(
-        org_id, req.rep_id, req.plan_id, &quota_number,
-        &req.period_name, req.period_start_date, req.period_end_date,
-        &req.quota_type, &req.target_amount, None,
-    ).await {
-        Ok(quota) => Ok((StatusCode::CREATED, Json(serde_json::to_value(quota).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .crm
+        .sales_commission_engine
+        .create_quota(
+            org_id,
+            req.rep_id,
+            req.plan_id,
+            &quota_number,
+            &req.period_name,
+            req.period_start_date,
+            req.period_end_date,
+            &req.quota_type,
+            &req.target_amount,
+            None,
+        )
+        .await
+    {
+        Ok(quota) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(quota).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create quota: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -378,12 +555,19 @@ pub async fn list_quotas(
     let org_id = parse_uuid(&claims.org_id)?;
     let rep_id = params.get("rep_id").and_then(|s| Uuid::parse_str(s).ok());
     let status = params.get("status").map(std::string::String::as_str);
-    match state.crm.sales_commission_engine.list_quotas(org_id, rep_id, status).await {
+    match state
+        .crm
+        .sales_commission_engine
+        .list_quotas(org_id, rep_id, status)
+        .await
+    {
         Ok(quotas) => Ok(Json(serde_json::json!({"data": quotas}))),
         Err(e) => {
             error!("Failed to list quotas: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -393,12 +577,20 @@ pub async fn get_quota(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.crm.sales_commission_engine.get_quota(id).await {
-        Ok(Some(quota)) => Ok(Json(serde_json::to_value(quota).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Quota not found"})))),
+        Ok(Some(quota)) => Ok(Json(serde_json::to_value(quota).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Quota not found"})),
+        )),
         Err(e) => {
             error!("Failed to get quota: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -427,16 +619,37 @@ pub async fn credit_transaction(
     Json(req): Json<CreditTransactionRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.credit_transaction(
-        org_id, req.rep_id, req.plan_id, req.quota_id,
-        &req.source_type, req.source_id, req.source_number.as_deref(),
-        req.transaction_date, &req.sale_amount, &req.currency_code, None,
-    ).await {
-        Ok(tx) => Ok((StatusCode::CREATED, Json(serde_json::to_value(tx).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .crm
+        .sales_commission_engine
+        .credit_transaction(
+            org_id,
+            req.rep_id,
+            req.plan_id,
+            req.quota_id,
+            &req.source_type,
+            req.source_id,
+            req.source_number.as_deref(),
+            req.transaction_date,
+            &req.sale_amount,
+            &req.currency_code,
+            None,
+        )
+        .await
+    {
+        Ok(tx) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(tx).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to credit transaction: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -449,12 +662,19 @@ pub async fn list_commission_transactions(
     let org_id = parse_uuid(&claims.org_id)?;
     let rep_id = params.get("rep_id").and_then(|s| Uuid::parse_str(s).ok());
     let status = params.get("status").map(std::string::String::as_str);
-    match state.crm.sales_commission_engine.list_transactions(org_id, rep_id, status).await {
+    match state
+        .crm
+        .sales_commission_engine
+        .list_transactions(org_id, rep_id, status)
+        .await
+    {
         Ok(txs) => Ok(Json(serde_json::json!({"data": txs}))),
         Err(e) => {
             error!("Failed to list transactions: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -464,12 +684,20 @@ pub async fn get_commission_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.crm.sales_commission_engine.get_transaction(id).await {
-        Ok(Some(tx)) => Ok(Json(serde_json::to_value(tx).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Transaction not found"})))),
+        Ok(Some(tx)) => Ok(Json(serde_json::to_value(tx).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Transaction not found"})),
+        )),
         Err(e) => {
             error!("Failed to get transaction: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -493,15 +721,32 @@ pub async fn process_payout(
     Json(req): Json<ProcessPayoutRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.process_payout(
-        org_id, &req.period_name, req.period_start_date, req.period_end_date,
-        &req.currency_code, None,
-    ).await {
-        Ok(payout) => Ok((StatusCode::CREATED, Json(serde_json::to_value(payout).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .crm
+        .sales_commission_engine
+        .process_payout(
+            org_id,
+            &req.period_name,
+            req.period_start_date,
+            req.period_end_date,
+            &req.currency_code,
+            None,
+        )
+        .await
+    {
+        Ok(payout) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(payout).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to process payout: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -513,12 +758,19 @@ pub async fn list_payouts(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let status = params.get("status").map(std::string::String::as_str);
-    match state.crm.sales_commission_engine.list_payouts(org_id, status).await {
+    match state
+        .crm
+        .sales_commission_engine
+        .list_payouts(org_id, status)
+        .await
+    {
         Ok(payouts) => Ok(Json(serde_json::json!({"data": payouts}))),
         Err(e) => {
             error!("Failed to list payouts: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -528,12 +780,20 @@ pub async fn get_payout(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.crm.sales_commission_engine.get_payout(id).await {
-        Ok(Some(payout)) => Ok(Json(serde_json::to_value(payout).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Payout not found"})))),
+        Ok(Some(payout)) => Ok(Json(serde_json::to_value(payout).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Payout not found"})),
+        )),
         Err(e) => {
             error!("Failed to get payout: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -542,12 +802,19 @@ pub async fn get_payout_lines(
     State(state): State<Arc<AppState>>,
     Path(payout_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.crm.sales_commission_engine.list_payout_lines(payout_id).await {
+    match state
+        .crm
+        .sales_commission_engine
+        .list_payout_lines(payout_id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
         Err(e) => {
             error!("Failed to list payout lines: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -563,12 +830,22 @@ pub async fn approve_payout(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = parse_uuid(&claims.sub).ok();
-    match state.crm.sales_commission_engine.approve_payout(id, user_id).await {
-        Ok(payout) => Ok(Json(serde_json::to_value(payout).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .crm
+        .sales_commission_engine
+        .approve_payout(id, user_id)
+        .await
+    {
+        Ok(payout) => Ok(Json(serde_json::to_value(payout).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to approve payout: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -578,12 +855,22 @@ pub async fn reject_payout(
     Path(id): Path<Uuid>,
     Json(req): Json<ApprovePayoutRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.crm.sales_commission_engine.reject_payout(id, req.rejected_reason.as_deref()).await {
-        Ok(payout) => Ok(Json(serde_json::to_value(payout).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .crm
+        .sales_commission_engine
+        .reject_payout(id, req.rejected_reason.as_deref())
+        .await
+    {
+        Ok(payout) => Ok(Json(serde_json::to_value(payout).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to reject payout: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -597,12 +884,22 @@ pub async fn get_commission_dashboard(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.crm.sales_commission_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .crm
+        .sales_commission_engine
+        .get_dashboard_summary(org_id)
+        .await
+    {
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to get commission dashboard: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }

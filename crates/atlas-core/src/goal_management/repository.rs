@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for goal library categories, templates, plans,
 //! goals, alignments, and notes.
 
-use atlas_shared::{
-    GoalLibraryCategory, GoalLibraryTemplate, GoalPlan, Goal,
-    GoalAlignment, GoalNote, GoalManagementSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, Goal, GoalAlignment, GoalLibraryCategory, GoalLibraryTemplate,
+    GoalManagementSummary, GoalNote, GoalPlan,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -19,11 +18,19 @@ pub trait GoalManagementRepository: Send + Sync {
     // Library Categories
     async fn create_library_category(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        display_order: i32, created_by: Option<Uuid>,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        display_order: i32,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<GoalLibraryCategory>;
     async fn get_library_category(&self, id: Uuid) -> AtlasResult<Option<GoalLibraryCategory>>;
-    async fn get_library_category_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GoalLibraryCategory>>;
+    async fn get_library_category_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<GoalLibraryCategory>>;
     async fn list_library_categories(&self, org_id: Uuid) -> AtlasResult<Vec<GoalLibraryCategory>>;
     async fn delete_library_category(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -31,16 +38,31 @@ pub trait GoalManagementRepository: Send + Sync {
     #[allow(clippy::too_many_arguments)]
     async fn create_library_template(
         &self,
-        org_id: Uuid, category_id: Option<Uuid>, code: &str, name: &str,
-        description: Option<&str>, goal_type: &str, success_criteria: Option<&str>,
-        target_metric: Option<&str>, target_value: Option<&str>, uom: Option<&str>,
-        suggested_weight: Option<&str>, estimated_duration_days: Option<i32>,
+        org_id: Uuid,
+        category_id: Option<Uuid>,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        goal_type: &str,
+        success_criteria: Option<&str>,
+        target_metric: Option<&str>,
+        target_value: Option<&str>,
+        uom: Option<&str>,
+        suggested_weight: Option<&str>,
+        estimated_duration_days: Option<i32>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<GoalLibraryTemplate>;
     async fn get_library_template(&self, id: Uuid) -> AtlasResult<Option<GoalLibraryTemplate>>;
-    async fn get_library_template_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GoalLibraryTemplate>>;
+    async fn get_library_template_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<GoalLibraryTemplate>>;
     async fn list_library_templates(
-        &self, org_id: Uuid, category_id: Option<Uuid>, goal_type: Option<&str>,
+        &self,
+        org_id: Uuid,
+        category_id: Option<Uuid>,
+        goal_type: Option<&str>,
     ) -> AtlasResult<Vec<GoalLibraryTemplate>>;
     async fn delete_library_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -48,16 +70,30 @@ pub trait GoalManagementRepository: Send + Sync {
     #[allow(clippy::too_many_arguments)]
     async fn create_goal_plan(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        plan_type: &str, review_period_start: chrono::NaiveDate,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        plan_type: &str,
+        review_period_start: chrono::NaiveDate,
         review_period_end: chrono::NaiveDate,
         goal_creation_deadline: Option<chrono::NaiveDate>,
-        allow_self_goals: bool, allow_team_goals: bool,
-        max_weight_sum: Option<&str>, created_by: Option<Uuid>,
+        allow_self_goals: bool,
+        allow_team_goals: bool,
+        max_weight_sum: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<GoalPlan>;
     async fn get_goal_plan(&self, id: Uuid) -> AtlasResult<Option<GoalPlan>>;
-    async fn get_goal_plan_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GoalPlan>>;
-    async fn list_goal_plans(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<GoalPlan>>;
+    async fn get_goal_plan_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<GoalPlan>>;
+    async fn list_goal_plans(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<GoalPlan>>;
     async fn update_goal_plan_status(&self, id: Uuid, status: &str) -> AtlasResult<GoalPlan>;
     async fn delete_goal_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -65,39 +101,69 @@ pub trait GoalManagementRepository: Send + Sync {
     #[allow(clippy::too_many_arguments)]
     async fn create_goal(
         &self,
-        org_id: Uuid, plan_id: Option<Uuid>, parent_goal_id: Option<Uuid>,
-        library_template_id: Option<Uuid>, code: Option<&str>,
-        name: &str, description: Option<&str>, goal_type: &str,
-        category: Option<&str>, owner_id: Uuid, owner_type: &str,
-        assigned_by: Option<Uuid>, success_criteria: Option<&str>,
-        target_metric: Option<&str>, target_value: Option<&str>,
-        uom: Option<&str>, weight: Option<&str>, priority: &str,
+        org_id: Uuid,
+        plan_id: Option<Uuid>,
+        parent_goal_id: Option<Uuid>,
+        library_template_id: Option<Uuid>,
+        code: Option<&str>,
+        name: &str,
+        description: Option<&str>,
+        goal_type: &str,
+        category: Option<&str>,
+        owner_id: Uuid,
+        owner_type: &str,
+        assigned_by: Option<Uuid>,
+        success_criteria: Option<&str>,
+        target_metric: Option<&str>,
+        target_value: Option<&str>,
+        uom: Option<&str>,
+        weight: Option<&str>,
+        priority: &str,
         start_date: Option<chrono::NaiveDate>,
-        target_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+        target_date: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<Goal>;
     async fn get_goal(&self, id: Uuid) -> AtlasResult<Option<Goal>>;
     async fn list_goals(
-        &self, org_id: Uuid, plan_id: Option<Uuid>, owner_id: Option<Uuid>,
-        goal_type: Option<&str>, status: Option<&str>, parent_goal_id: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        plan_id: Option<Uuid>,
+        owner_id: Option<Uuid>,
+        goal_type: Option<&str>,
+        status: Option<&str>,
+        parent_goal_id: Option<Uuid>,
     ) -> AtlasResult<Vec<Goal>>;
     async fn update_goal_progress(
-        &self, id: Uuid, actual_value: Option<&str>, progress_pct: Option<&str>,
-        status: Option<&str>, completed_date: Option<chrono::NaiveDate>,
+        &self,
+        id: Uuid,
+        actual_value: Option<&str>,
+        progress_pct: Option<&str>,
+        status: Option<&str>,
+        completed_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Goal>;
     async fn delete_goal(&self, id: Uuid) -> AtlasResult<()>;
 
     // Alignments
     async fn create_goal_alignment(
-        &self, org_id: Uuid, source_goal_id: Uuid, aligned_to_goal_id: Uuid,
-        alignment_type: &str, description: Option<&str>,
+        &self,
+        org_id: Uuid,
+        source_goal_id: Uuid,
+        aligned_to_goal_id: Uuid,
+        alignment_type: &str,
+        description: Option<&str>,
     ) -> AtlasResult<GoalAlignment>;
     async fn list_goal_alignments(&self, goal_id: Uuid) -> AtlasResult<Vec<GoalAlignment>>;
     async fn delete_goal_alignment(&self, id: Uuid) -> AtlasResult<()>;
 
     // Notes
     async fn create_goal_note(
-        &self, org_id: Uuid, goal_id: Uuid, author_id: Uuid,
-        note_type: &str, content: &str, visibility: &str,
+        &self,
+        org_id: Uuid,
+        goal_id: Uuid,
+        author_id: Uuid,
+        note_type: &str,
+        content: &str,
+        visibility: &str,
     ) -> AtlasResult<GoalNote>;
     async fn list_goal_notes(&self, goal_id: Uuid) -> AtlasResult<Vec<GoalNote>>;
     async fn delete_goal_note(&self, id: Uuid) -> AtlasResult<()>;
@@ -112,7 +178,7 @@ pub struct PostgresGoalManagementRepository {
 }
 
 impl PostgresGoalManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -126,7 +192,9 @@ fn row_to_category(row: &sqlx::postgres::PgRow) -> GoalLibraryCategory {
         name: row.try_get("name").unwrap_or_default(),
         description: row.try_get("description").unwrap_or_default(),
         display_order: row.try_get("display_order").unwrap_or(0),
-        status: row.try_get("status").unwrap_or_else(|_| "active".to_string()),
+        status: row
+            .try_get("status")
+            .unwrap_or_else(|_| "active".to_string()),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_at: row.try_get("created_at").unwrap_or(chrono::Utc::now()),
         updated_at: row.try_get("updated_at").unwrap_or(chrono::Utc::now()),
@@ -148,7 +216,9 @@ fn row_to_template(row: &sqlx::postgres::PgRow) -> GoalLibraryTemplate {
         uom: row.try_get("uom").unwrap_or_default(),
         suggested_weight: row.try_get::<String, _>("suggested_weight").ok(),
         estimated_duration_days: row.try_get("estimated_duration_days").unwrap_or_default(),
-        status: row.try_get("status").unwrap_or_else(|_| "active".to_string()),
+        status: row
+            .try_get("status")
+            .unwrap_or_else(|_| "active".to_string()),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_at: row.try_get("created_at").unwrap_or(chrono::Utc::now()),
         updated_at: row.try_get("updated_at").unwrap_or(chrono::Utc::now()),
@@ -166,7 +236,9 @@ fn row_to_plan(row: &sqlx::postgres::PgRow) -> GoalPlan {
         review_period_start: row.try_get("review_period_start").unwrap_or_default(),
         review_period_end: row.try_get("review_period_end").unwrap_or_default(),
         goal_creation_deadline: row.try_get("goal_creation_deadline").unwrap_or_default(),
-        status: row.try_get("status").unwrap_or_else(|_| "draft".to_string()),
+        status: row
+            .try_get("status")
+            .unwrap_or_else(|_| "draft".to_string()),
         allow_self_goals: row.try_get("allow_self_goals").unwrap_or(true),
         allow_team_goals: row.try_get("allow_team_goals").unwrap_or(true),
         max_weight_sum: row.try_get::<String, _>("max_weight_sum").ok(),
@@ -199,8 +271,12 @@ fn row_to_goal(row: &sqlx::postgres::PgRow) -> Goal {
         uom: row.try_get("uom").unwrap_or_default(),
         progress_pct: row.try_get::<String, _>("progress_pct").ok(),
         weight: row.try_get::<String, _>("weight").ok(),
-        status: row.try_get("status").unwrap_or_else(|_| "not_started".to_string()),
-        priority: row.try_get("priority").unwrap_or_else(|_| "medium".to_string()),
+        status: row
+            .try_get("status")
+            .unwrap_or_else(|_| "not_started".to_string()),
+        priority: row
+            .try_get("priority")
+            .unwrap_or_else(|_| "medium".to_string()),
         start_date: row.try_get("start_date").unwrap_or_default(),
         target_date: row.try_get("target_date").unwrap_or_default(),
         completed_date: row.try_get("completed_date").unwrap_or_default(),
@@ -246,8 +322,13 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
     // ========================================================================
 
     async fn create_library_category(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        display_order: i32, _created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        display_order: i32,
+        _created_by: Option<Uuid>,
     ) -> AtlasResult<GoalLibraryCategory> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.goal_library_categories
@@ -255,21 +336,36 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
             VALUES ($1, $2, $3, $4, $5, 'active', '{}'::jsonb)
             RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(display_order)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(display_order)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_category(&row))
     }
 
     async fn get_library_category(&self, id: Uuid) -> AtlasResult<Option<GoalLibraryCategory>> {
         let row = sqlx::query("SELECT * FROM _atlas.goal_library_categories WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_category))
     }
 
-    async fn get_library_category_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GoalLibraryCategory>> {
+    async fn get_library_category_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<GoalLibraryCategory>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.goal_library_categories WHERE organization_id = $1 AND code = $2"
-        ).bind(org_id).bind(code).fetch_optional(&self.pool).await?;
+            "SELECT * FROM _atlas.goal_library_categories WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(row.as_ref().map(row_to_category))
     }
 
@@ -282,10 +378,16 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
 
     async fn delete_library_category(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.goal_library_categories WHERE organization_id = $1 AND code = $2"
-        ).bind(org_id).bind(code).execute(&self.pool).await?;
+            "DELETE FROM _atlas.goal_library_categories WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Category '{code}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Category '{code}' not found"
+            )));
         }
         Ok(())
     }
@@ -296,10 +398,19 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
 
     #[allow(clippy::too_many_arguments)]
     async fn create_library_template(
-        &self, org_id: Uuid, category_id: Option<Uuid>, code: &str, name: &str,
-        description: Option<&str>, goal_type: &str, success_criteria: Option<&str>,
-        target_metric: Option<&str>, target_value: Option<&str>, uom: Option<&str>,
-        suggested_weight: Option<&str>, estimated_duration_days: Option<i32>,
+        &self,
+        org_id: Uuid,
+        category_id: Option<Uuid>,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        goal_type: &str,
+        success_criteria: Option<&str>,
+        target_metric: Option<&str>,
+        target_value: Option<&str>,
+        uom: Option<&str>,
+        suggested_weight: Option<&str>,
+        estimated_duration_days: Option<i32>,
         _created_by: Option<Uuid>,
     ) -> AtlasResult<GoalLibraryTemplate> {
         let row = sqlx::query(
@@ -311,28 +422,51 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
                     $11::NUMERIC, $12, 'active', '{}'::jsonb)
             RETURNING *",
         )
-        .bind(org_id).bind(category_id).bind(code).bind(name).bind(description)
-        .bind(goal_type).bind(success_criteria).bind(target_metric).bind(target_value)
-        .bind(uom).bind(suggested_weight).bind(estimated_duration_days)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(category_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(goal_type)
+        .bind(success_criteria)
+        .bind(target_metric)
+        .bind(target_value)
+        .bind(uom)
+        .bind(suggested_weight)
+        .bind(estimated_duration_days)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_template(&row))
     }
 
     async fn get_library_template(&self, id: Uuid) -> AtlasResult<Option<GoalLibraryTemplate>> {
         let row = sqlx::query("SELECT * FROM _atlas.goal_library_templates WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_template))
     }
 
-    async fn get_library_template_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GoalLibraryTemplate>> {
+    async fn get_library_template_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<GoalLibraryTemplate>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.goal_library_templates WHERE organization_id = $1 AND code = $2"
-        ).bind(org_id).bind(code).fetch_optional(&self.pool).await?;
+            "SELECT * FROM _atlas.goal_library_templates WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(row.as_ref().map(row_to_template))
     }
 
     async fn list_library_templates(
-        &self, org_id: Uuid, category_id: Option<Uuid>, goal_type: Option<&str>,
+        &self,
+        org_id: Uuid,
+        category_id: Option<Uuid>,
+        goal_type: Option<&str>,
     ) -> AtlasResult<Vec<GoalLibraryTemplate>> {
         let rows = if let Some(cat_id) = category_id {
             sqlx::query(
@@ -352,10 +486,16 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
 
     async fn delete_library_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.goal_library_templates WHERE organization_id = $1 AND code = $2"
-        ).bind(org_id).bind(code).execute(&self.pool).await?;
+            "DELETE FROM _atlas.goal_library_templates WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Template '{code}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Template '{code}' not found"
+            )));
         }
         Ok(())
     }
@@ -366,12 +506,19 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
 
     #[allow(clippy::too_many_arguments)]
     async fn create_goal_plan(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        plan_type: &str, review_period_start: chrono::NaiveDate,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        plan_type: &str,
+        review_period_start: chrono::NaiveDate,
         review_period_end: chrono::NaiveDate,
         goal_creation_deadline: Option<chrono::NaiveDate>,
-        allow_self_goals: bool, allow_team_goals: bool,
-        max_weight_sum: Option<&str>, created_by: Option<Uuid>,
+        allow_self_goals: bool,
+        allow_team_goals: bool,
+        max_weight_sum: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<GoalPlan> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.goal_plans
@@ -383,28 +530,50 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
                     $11::NUMERIC, '{}'::jsonb, $12)
             RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(plan_type)
-        .bind(review_period_start).bind(review_period_end).bind(goal_creation_deadline)
-        .bind(allow_self_goals).bind(allow_team_goals).bind(max_weight_sum)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(plan_type)
+        .bind(review_period_start)
+        .bind(review_period_end)
+        .bind(goal_creation_deadline)
+        .bind(allow_self_goals)
+        .bind(allow_team_goals)
+        .bind(max_weight_sum)
         .bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_plan(&row))
     }
 
     async fn get_goal_plan(&self, id: Uuid) -> AtlasResult<Option<GoalPlan>> {
         let row = sqlx::query("SELECT * FROM _atlas.goal_plans WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_plan))
     }
 
-    async fn get_goal_plan_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GoalPlan>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.goal_plans WHERE organization_id = $1 AND code = $2"
-        ).bind(org_id).bind(code).fetch_optional(&self.pool).await?;
+    async fn get_goal_plan_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<GoalPlan>> {
+        let row =
+            sqlx::query("SELECT * FROM _atlas.goal_plans WHERE organization_id = $1 AND code = $2")
+                .bind(org_id)
+                .bind(code)
+                .fetch_optional(&self.pool)
+                .await?;
         Ok(row.as_ref().map(row_to_plan))
     }
 
-    async fn list_goal_plans(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<GoalPlan>> {
+    async fn list_goal_plans(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<GoalPlan>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.goal_plans WHERE organization_id = $1 AND status = $2 ORDER BY review_period_start DESC"
@@ -425,11 +594,16 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
     }
 
     async fn delete_goal_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        let result = sqlx::query(
-            "DELETE FROM _atlas.goal_plans WHERE organization_id = $1 AND code = $2"
-        ).bind(org_id).bind(code).execute(&self.pool).await?;
+        let result =
+            sqlx::query("DELETE FROM _atlas.goal_plans WHERE organization_id = $1 AND code = $2")
+                .bind(org_id)
+                .bind(code)
+                .execute(&self.pool)
+                .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Plan '{code}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Plan '{code}' not found"
+            )));
         }
         Ok(())
     }
@@ -440,15 +614,28 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
 
     #[allow(clippy::too_many_arguments)]
     async fn create_goal(
-        &self, org_id: Uuid, plan_id: Option<Uuid>, parent_goal_id: Option<Uuid>,
-        library_template_id: Option<Uuid>, code: Option<&str>,
-        name: &str, description: Option<&str>, goal_type: &str,
-        category: Option<&str>, owner_id: Uuid, owner_type: &str,
-        assigned_by: Option<Uuid>, success_criteria: Option<&str>,
-        target_metric: Option<&str>, target_value: Option<&str>,
-        uom: Option<&str>, weight: Option<&str>, priority: &str,
+        &self,
+        org_id: Uuid,
+        plan_id: Option<Uuid>,
+        parent_goal_id: Option<Uuid>,
+        library_template_id: Option<Uuid>,
+        code: Option<&str>,
+        name: &str,
+        description: Option<&str>,
+        goal_type: &str,
+        category: Option<&str>,
+        owner_id: Uuid,
+        owner_type: &str,
+        assigned_by: Option<Uuid>,
+        success_criteria: Option<&str>,
+        target_metric: Option<&str>,
+        target_value: Option<&str>,
+        uom: Option<&str>,
+        weight: Option<&str>,
+        priority: &str,
         start_date: Option<chrono::NaiveDate>,
-        target_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+        target_date: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<Goal> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.goals
@@ -464,55 +651,108 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
                     $19, $20, '{}'::jsonb, $21)
             RETURNING *",
         )
-        .bind(org_id).bind(plan_id).bind(parent_goal_id).bind(library_template_id)
-        .bind(code).bind(name).bind(description).bind(goal_type).bind(category)
-        .bind(owner_id).bind(owner_type).bind(assigned_by)
-        .bind(success_criteria).bind(target_metric).bind(target_value).bind(uom)
-        .bind(weight).bind(priority).bind(start_date).bind(target_date).bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(plan_id)
+        .bind(parent_goal_id)
+        .bind(library_template_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(goal_type)
+        .bind(category)
+        .bind(owner_id)
+        .bind(owner_type)
+        .bind(assigned_by)
+        .bind(success_criteria)
+        .bind(target_metric)
+        .bind(target_value)
+        .bind(uom)
+        .bind(weight)
+        .bind(priority)
+        .bind(start_date)
+        .bind(target_date)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_goal(&row))
     }
 
     async fn get_goal(&self, id: Uuid) -> AtlasResult<Option<Goal>> {
         let row = sqlx::query("SELECT * FROM _atlas.goals WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_goal))
     }
 
     async fn list_goals(
-        &self, org_id: Uuid, plan_id: Option<Uuid>, owner_id: Option<Uuid>,
-        goal_type: Option<&str>, status: Option<&str>, parent_goal_id: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        plan_id: Option<Uuid>,
+        owner_id: Option<Uuid>,
+        goal_type: Option<&str>,
+        status: Option<&str>,
+        parent_goal_id: Option<Uuid>,
     ) -> AtlasResult<Vec<Goal>> {
         let mut query = String::from("SELECT * FROM _atlas.goals WHERE organization_id = $1");
         let mut bind_idx = 2u32;
 
         let has_plan = plan_id.is_some();
-        if has_plan { query.push_str(&format!(" AND plan_id = ${bind_idx}")); bind_idx += 1; }
+        if has_plan {
+            query.push_str(&format!(" AND plan_id = ${bind_idx}"));
+            bind_idx += 1;
+        }
         let has_owner = owner_id.is_some();
-        if has_owner { query.push_str(&format!(" AND owner_id = ${bind_idx}")); bind_idx += 1; }
+        if has_owner {
+            query.push_str(&format!(" AND owner_id = ${bind_idx}"));
+            bind_idx += 1;
+        }
         let has_type = goal_type.is_some();
-        if has_type { query.push_str(&format!(" AND goal_type = ${bind_idx}")); bind_idx += 1; }
+        if has_type {
+            query.push_str(&format!(" AND goal_type = ${bind_idx}"));
+            bind_idx += 1;
+        }
         let has_status = status.is_some();
-        if has_status { query.push_str(&format!(" AND status = ${bind_idx}")); bind_idx += 1; }
+        if has_status {
+            query.push_str(&format!(" AND status = ${bind_idx}"));
+            bind_idx += 1;
+        }
         let has_parent = parent_goal_id.is_some();
-        if has_parent { query.push_str(&format!(" AND parent_goal_id = ${bind_idx}")); let _ = bind_idx; }
+        if has_parent {
+            query.push_str(&format!(" AND parent_goal_id = ${bind_idx}"));
+            let _ = bind_idx;
+        }
 
         query.push_str(" ORDER BY created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
-        if let Some(pid) = plan_id { q = q.bind(pid); }
-        if let Some(oid) = owner_id { q = q.bind(oid); }
-        if let Some(gt) = goal_type { q = q.bind(gt); }
-        if let Some(s) = status { q = q.bind(s); }
-        if let Some(pgid) = parent_goal_id { q = q.bind(pgid); }
+        if let Some(pid) = plan_id {
+            q = q.bind(pid);
+        }
+        if let Some(oid) = owner_id {
+            q = q.bind(oid);
+        }
+        if let Some(gt) = goal_type {
+            q = q.bind(gt);
+        }
+        if let Some(s) = status {
+            q = q.bind(s);
+        }
+        if let Some(pgid) = parent_goal_id {
+            q = q.bind(pgid);
+        }
 
         let rows = q.fetch_all(&self.pool).await?;
         Ok(rows.iter().map(row_to_goal).collect())
     }
 
     async fn update_goal_progress(
-        &self, id: Uuid, actual_value: Option<&str>, progress_pct: Option<&str>,
-        status: Option<&str>, completed_date: Option<chrono::NaiveDate>,
+        &self,
+        id: Uuid,
+        actual_value: Option<&str>,
+        progress_pct: Option<&str>,
+        status: Option<&str>,
+        completed_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Goal> {
         let row = sqlx::query(
             r"UPDATE _atlas.goals SET
@@ -523,15 +763,21 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
                 updated_at = now()
             WHERE id = $5 RETURNING *",
         )
-        .bind(actual_value).bind(progress_pct).bind(status)
-        .bind(completed_date).bind(id)
-        .fetch_one(&self.pool).await?;
+        .bind(actual_value)
+        .bind(progress_pct)
+        .bind(status)
+        .bind(completed_date)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_goal(&row))
     }
 
     async fn delete_goal(&self, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query("DELETE FROM _atlas.goals WHERE id = $1")
-            .bind(id).execute(&self.pool).await?;
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound(format!("Goal {id} not found")));
         }
@@ -543,8 +789,12 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
     // ========================================================================
 
     async fn create_goal_alignment(
-        &self, org_id: Uuid, source_goal_id: Uuid, aligned_to_goal_id: Uuid,
-        alignment_type: &str, description: Option<&str>,
+        &self,
+        org_id: Uuid,
+        source_goal_id: Uuid,
+        aligned_to_goal_id: Uuid,
+        alignment_type: &str,
+        description: Option<&str>,
     ) -> AtlasResult<GoalAlignment> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.goal_alignments
@@ -567,9 +817,13 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
 
     async fn delete_goal_alignment(&self, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query("DELETE FROM _atlas.goal_alignments WHERE id = $1")
-            .bind(id).execute(&self.pool).await?;
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Alignment not found".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Alignment not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -579,8 +833,13 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
     // ========================================================================
 
     async fn create_goal_note(
-        &self, org_id: Uuid, goal_id: Uuid, author_id: Uuid,
-        note_type: &str, content: &str, visibility: &str,
+        &self,
+        org_id: Uuid,
+        goal_id: Uuid,
+        author_id: Uuid,
+        note_type: &str,
+        content: &str,
+        visibility: &str,
     ) -> AtlasResult<GoalNote> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.goal_notes
@@ -588,22 +847,31 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, '{}'::jsonb)
             RETURNING *",
         )
-        .bind(org_id).bind(goal_id).bind(author_id).bind(note_type)
-        .bind(content).bind(visibility)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(goal_id)
+        .bind(author_id)
+        .bind(note_type)
+        .bind(content)
+        .bind(visibility)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_note(&row))
     }
 
     async fn list_goal_notes(&self, goal_id: Uuid) -> AtlasResult<Vec<GoalNote>> {
-        let rows = sqlx::query(
-            "SELECT * FROM _atlas.goal_notes WHERE goal_id = $1 ORDER BY created_at"
-        ).bind(goal_id).fetch_all(&self.pool).await?;
+        let rows =
+            sqlx::query("SELECT * FROM _atlas.goal_notes WHERE goal_id = $1 ORDER BY created_at")
+                .bind(goal_id)
+                .fetch_all(&self.pool)
+                .await?;
         Ok(rows.iter().map(row_to_note).collect())
     }
 
     async fn delete_goal_note(&self, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query("DELETE FROM _atlas.goal_notes WHERE id = $1")
-            .bind(id).execute(&self.pool).await?;
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound("Note not found".to_string()));
         }
@@ -643,25 +911,35 @@ impl GoalManagementRepository for PostgresGoalManagementRepository {
 
         // Average progress
         let avg_progress: Option<f64> = sqlx::query_scalar(
-            "SELECT AVG(progress_pct) FROM _atlas.goals WHERE organization_id = $1"
-        ).bind(org_id).fetch_one(&self.pool).await.unwrap_or(None);
+            "SELECT AVG(progress_pct) FROM _atlas.goals WHERE organization_id = $1",
+        )
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(None);
 
         // Plans
         let plan_rows = sqlx::query(
             "SELECT status, COUNT(*) as cnt FROM _atlas.goal_plans WHERE organization_id = $1 GROUP BY status"
         ).bind(org_id).fetch_all(&self.pool).await.unwrap_or_default();
-        let total_plans: i32 = plan_rows.iter()
+        let total_plans: i32 = plan_rows
+            .iter()
             .map(|r| r.try_get::<i64, _>("cnt").unwrap_or(0) as i32)
             .sum();
-        let active_plans = plan_rows.iter()
+        let active_plans = plan_rows
+            .iter()
             .filter(|r| r.try_get::<String, _>("status").unwrap_or_default() == "active")
             .map(|r| r.try_get::<i64, _>("cnt").unwrap_or(0) as i32)
             .sum();
 
         // Alignments count
         let alignment_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.goal_alignments WHERE organization_id = $1"
-        ).bind(org_id).fetch_one(&self.pool).await.unwrap_or(0);
+            "SELECT COUNT(*) FROM _atlas.goal_alignments WHERE organization_id = $1",
+        )
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(0);
 
         Ok(GoalManagementSummary {
             total_goals,

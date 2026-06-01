@@ -2,19 +2,18 @@
 //!
 //! Oracle Fusion Cloud ERP: Financials > General Ledger > Inflation Adjustment
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path},
-    Json,
+    extract::{Path, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateIndexRequest {
@@ -38,12 +37,25 @@ pub async fn create_inflation_index(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.inflation_adjustment_engine.create_index(
-        org_id, &payload.code, &payload.name, payload.description.as_deref(),
-        &payload.country_code, &payload.currency_code, &payload.index_type,
-        payload.is_hyperinflationary, payload.hyperinflationary_start_date,
-        payload.effective_from, payload.effective_to, Some(user_id),
-    ).await {
+    match state
+        .financials
+        .inflation_adjustment_engine
+        .create_index(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.country_code,
+            &payload.currency_code,
+            &payload.index_type,
+            payload.is_hyperinflationary,
+            payload.hyperinflationary_start_date,
+            payload.effective_from,
+            payload.effective_to,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(index) => Ok(created_json(index)),
         Err(e) => {
             error!("Failed to create inflation index: {}", e);
@@ -61,9 +73,17 @@ pub async fn list_inflation_indices(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.inflation_adjustment_engine.list_indices(org_id, None).await {
+    match state
+        .financials
+        .inflation_adjustment_engine
+        .list_indices(org_id, None)
+        .await
+    {
         Ok(indices) => Ok(Json(serde_json::json!({ "data": indices }))),
-        Err(e) => { error!("Failed to list indices: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list indices: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -71,10 +91,18 @@ pub async fn get_inflation_index(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.inflation_adjustment_engine.get_index(id).await {
+    match state
+        .financials
+        .inflation_adjustment_engine
+        .get_index(id)
+        .await
+    {
         Ok(Some(index)) => Ok(to_json(index)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get index: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get index: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -97,13 +125,27 @@ pub async fn add_index_rate(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.inflation_adjustment_engine.add_index_rate(
-        org_id, payload.index_id, payload.period_start, payload.period_end,
-        &payload.index_value, &payload.cumulative_factor, &payload.period_factor,
-        payload.source.as_deref(), Some(user_id),
-    ).await {
+    match state
+        .financials
+        .inflation_adjustment_engine
+        .add_index_rate(
+            org_id,
+            payload.index_id,
+            payload.period_start,
+            payload.period_end,
+            &payload.index_value,
+            &payload.cumulative_factor,
+            &payload.period_factor,
+            payload.source.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(rate) => Ok(created_json(rate)),
-        Err(e) => { error!("Failed to add index rate: {}", e); Err(StatusCode::BAD_REQUEST) }
+        Err(e) => {
+            error!("Failed to add index rate: {}", e);
+            Err(StatusCode::BAD_REQUEST)
+        }
     }
 }
 
@@ -125,13 +167,27 @@ pub async fn create_adjustment_run(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.inflation_adjustment_engine.create_run(
-        org_id, payload.name.as_deref(), payload.description.as_deref(),
-        payload.index_id, None, payload.from_period, payload.to_period,
-        &payload.adjustment_method, Some(user_id),
-    ).await {
+    match state
+        .financials
+        .inflation_adjustment_engine
+        .create_run(
+            org_id,
+            payload.name.as_deref(),
+            payload.description.as_deref(),
+            payload.index_id,
+            None,
+            payload.from_period,
+            payload.to_period,
+            &payload.adjustment_method,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(run) => Ok(created_json(run)),
-        Err(e) => { error!("Failed to create run: {}", e); Err(StatusCode::BAD_REQUEST) }
+        Err(e) => {
+            error!("Failed to create run: {}", e);
+            Err(StatusCode::BAD_REQUEST)
+        }
     }
 }
 
@@ -141,9 +197,17 @@ pub async fn submit_adjustment_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.inflation_adjustment_engine.submit_run(id, Some(user_id)).await {
+    match state
+        .financials
+        .inflation_adjustment_engine
+        .submit_run(id, Some(user_id))
+        .await
+    {
         Ok(run) => Ok(to_json(run)),
-        Err(e) => { error!("Failed to submit run: {}", e); Err(StatusCode::BAD_REQUEST) }
+        Err(e) => {
+            error!("Failed to submit run: {}", e);
+            Err(StatusCode::BAD_REQUEST)
+        }
     }
 }
 
@@ -153,9 +217,17 @@ pub async fn approve_adjustment_run(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.inflation_adjustment_engine.approve_run(id, Some(user_id)).await {
+    match state
+        .financials
+        .inflation_adjustment_engine
+        .approve_run(id, Some(user_id))
+        .await
+    {
         Ok(run) => Ok(to_json(run)),
-        Err(e) => { error!("Failed to approve run: {}", e); Err(StatusCode::BAD_REQUEST) }
+        Err(e) => {
+            error!("Failed to approve run: {}", e);
+            Err(StatusCode::BAD_REQUEST)
+        }
     }
 }
 
@@ -164,8 +236,16 @@ pub async fn get_inflation_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.inflation_adjustment_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .inflation_adjustment_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(to_json(dashboard)),
-        Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

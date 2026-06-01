@@ -5,29 +5,23 @@
 //!
 //! Oracle Fusion equivalent: Analytics > KPI Library, Dashboards
 
-use atlas_shared::{
-    KpiDefinition, KpiDataPoint, Dashboard, DashboardWidget, KpiDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::KpiRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, Dashboard, DashboardWidget, KpiDashboardSummary, KpiDataPoint,
+    KpiDefinition,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid direction values
-const VALID_DIRECTIONS: &[&str] = &[
-    "higher_is_better", "lower_is_better", "target_range",
-];
+const VALID_DIRECTIONS: &[&str] = &["higher_is_better", "lower_is_better", "target_range"];
 
 /// Valid evaluation frequencies
-const VALID_FREQUENCIES: &[&str] = &[
-    "manual", "hourly", "daily", "weekly", "monthly",
-];
+const VALID_FREQUENCIES: &[&str] = &["manual", "hourly", "daily", "weekly", "monthly"];
 
 /// Valid widget types
-const VALID_WIDGET_TYPES: &[&str] = &[
-    "kpi_card", "chart", "table", "gauge", "trend",
-];
+const VALID_WIDGET_TYPES: &[&str] = &["kpi_card", "chart", "table", "gauge", "trend"];
 
 /// Valid units of measure
 const VALID_UNITS: &[&str] = &[
@@ -84,17 +78,23 @@ impl KpiEngine {
         }
         if !VALID_DIRECTIONS.contains(&direction) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid direction '{}'. Must be one of: {}", direction, VALID_DIRECTIONS.join(", ")
+                "Invalid direction '{}'. Must be one of: {}",
+                direction,
+                VALID_DIRECTIONS.join(", ")
             )));
         }
         if !VALID_FREQUENCIES.contains(&evaluation_frequency) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid evaluation_frequency '{}'. Must be one of: {}", evaluation_frequency, VALID_FREQUENCIES.join(", ")
+                "Invalid evaluation_frequency '{}'. Must be one of: {}",
+                evaluation_frequency,
+                VALID_FREQUENCIES.join(", ")
             )));
         }
         if !VALID_UNITS.contains(&unit_of_measure) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid unit_of_measure '{}'. Must be one of: {}", unit_of_measure, VALID_UNITS.join(", ")
+                "Invalid unit_of_measure '{}'. Must be one of: {}",
+                unit_of_measure,
+                VALID_UNITS.join(", ")
             )));
         }
         if target_value.parse::<f64>().is_err() {
@@ -118,19 +118,39 @@ impl KpiEngine {
         }
 
         // Check for duplicate code
-        if self.repository.get_kpi_by_code(org_id, &code_upper).await?.is_some() {
+        if self
+            .repository
+            .get_kpi_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "KPI with code '{code_upper}' already exists"
             )));
         }
 
-        info!("Creating KPI '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating KPI '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_kpi(
-            org_id, &code_upper, name, description, category, unit_of_measure,
-            direction, target_value, warning_threshold, critical_threshold,
-            data_source_query, evaluation_frequency, created_by,
-        ).await
+        self.repository
+            .create_kpi(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                category,
+                unit_of_measure,
+                direction,
+                target_value,
+                warning_threshold,
+                critical_threshold,
+                data_source_query,
+                evaluation_frequency,
+                created_by,
+            )
+            .await
     }
 
     /// Get a KPI definition by ID
@@ -139,12 +159,20 @@ impl KpiEngine {
     }
 
     /// Get a KPI definition by code
-    pub async fn get_kpi_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<KpiDefinition>> {
+    pub async fn get_kpi_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<KpiDefinition>> {
         self.repository.get_kpi_by_code(org_id, code).await
     }
 
     /// List KPIs for an organization, optionally filtered by category
-    pub async fn list_kpis(&self, org_id: Uuid, category: Option<&str>) -> AtlasResult<Vec<KpiDefinition>> {
+    pub async fn list_kpis(
+        &self,
+        org_id: Uuid,
+        category: Option<&str>,
+    ) -> AtlasResult<Vec<KpiDefinition>> {
         self.repository.list_kpis(org_id, category).await
     }
 
@@ -177,7 +205,10 @@ impl KpiEngine {
         }
 
         // Verify KPI exists
-        let kpi = self.repository.get_kpi(kpi_id).await?
+        let kpi = self
+            .repository
+            .get_kpi(kpi_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("KPI {kpi_id} not found")))?;
 
         if !kpi.is_active {
@@ -186,11 +217,22 @@ impl KpiEngine {
             ));
         }
 
-        info!("Recording data point for KPI '{}' ({}): value={}", kpi.code, kpi.name, value);
+        info!(
+            "Recording data point for KPI '{}' ({}): value={}",
+            kpi.code, kpi.name, value
+        );
 
-        self.repository.record_data_point(
-            org_id, kpi_id, value, period_start, period_end, notes, recorded_by,
-        ).await
+        self.repository
+            .record_data_point(
+                org_id,
+                kpi_id,
+                value,
+                period_start,
+                period_end,
+                notes,
+                recorded_by,
+            )
+            .await
     }
 
     /// Get the latest data point for a KPI
@@ -207,7 +249,9 @@ impl KpiEngine {
     ) -> AtlasResult<Vec<KpiDataPoint>> {
         let limit = limit.clamp(1, 200);
         let offset = offset.max(0);
-        self.repository.list_data_points(kpi_id, limit, offset).await
+        self.repository
+            .list_data_points(kpi_id, limit, offset)
+            .await
     }
 
     /// Delete a data point
@@ -246,18 +290,35 @@ impl KpiEngine {
         }
 
         // Check for duplicate code
-        if self.repository.get_dashboard_by_code(org_id, &code_upper).await?.is_some() {
+        if self
+            .repository
+            .get_dashboard_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Dashboard with code '{code_upper}' already exists"
             )));
         }
 
-        info!("Creating dashboard '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating dashboard '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_dashboard(
-            org_id, &code_upper, name, description, owner_id,
-            is_shared, is_default, layout_config, created_by,
-        ).await
+        self.repository
+            .create_dashboard(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                owner_id,
+                is_shared,
+                is_default,
+                layout_config,
+                created_by,
+            )
+            .await
     }
 
     /// Get a dashboard by ID
@@ -300,7 +361,9 @@ impl KpiEngine {
     ) -> AtlasResult<DashboardWidget> {
         if !VALID_WIDGET_TYPES.contains(&widget_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid widget_type '{}'. Must be one of: {}", widget_type, VALID_WIDGET_TYPES.join(", ")
+                "Invalid widget_type '{}'. Must be one of: {}",
+                widget_type,
+                VALID_WIDGET_TYPES.join(", ")
             )));
         }
         if title.is_empty() {
@@ -315,21 +378,41 @@ impl KpiEngine {
         }
 
         // Verify dashboard exists
-        let _dashboard = self.repository.get_dashboard(dashboard_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Dashboard {dashboard_id} not found")))?;
+        let _dashboard = self
+            .repository
+            .get_dashboard(dashboard_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Dashboard {dashboard_id} not found"))
+            })?;
 
         // Verify KPI exists if specified
         if let Some(kid) = kpi_id {
-            let _kpi = self.repository.get_kpi(kid).await?
+            let _kpi = self
+                .repository
+                .get_kpi(kid)
+                .await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("KPI {kid} not found")))?;
         }
 
-        info!("Adding {} widget '{}' to dashboard {}", widget_type, title, dashboard_id);
+        info!(
+            "Adding {} widget '{}' to dashboard {}",
+            widget_type, title, dashboard_id
+        );
 
-        self.repository.add_widget(
-            dashboard_id, kpi_id, widget_type, title,
-            position_row, position_col, width, height, display_config,
-        ).await
+        self.repository
+            .add_widget(
+                dashboard_id,
+                kpi_id,
+                widget_type,
+                title,
+                position_row,
+                position_col,
+                width,
+                height,
+                display_config,
+            )
+            .await
     }
 
     /// List widgets for a dashboard

@@ -9,21 +9,23 @@
 //! - Dashboard summary
 //! - Validation edge cases
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_returns_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
     // Run migration for customer returns tables
-    sqlx::query(include_str!("../../../../migrations/031_customer_returns.sql"))
-        .execute(&state.db_pool)
-        .await
-        .ok(); // Ignore errors if tables already exist
+    sqlx::query(include_str!(
+        "../../../../migrations/031_customer_returns.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .ok(); // Ignore errors if tables already exist
     let app = build_router(state.clone());
     (state, app)
 }
@@ -43,15 +45,27 @@ async fn create_test_return_reason(
         "requires_approval": false,
         "credit_issued_automatically": true,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/returns/reasons")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Failed to create return reason");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/returns/reasons")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Failed to create return reason"
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -70,15 +84,23 @@ async fn create_test_rma(
     if let Some(rc) = reason_code {
         payload["reason_code"] = json!(rc);
     }
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/returns/rmas")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/returns/rmas")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to create RMA");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -99,15 +121,23 @@ async fn add_test_return_line(
         "condition": "defective",
         "disposition": "return_to_stock",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/lines", rma_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/lines", rma_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to add return line");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -121,7 +151,8 @@ async fn test_return_reason_crud() {
     let (_state, app) = setup_returns_test().await;
 
     // Create
-    let reason = create_test_return_reason(&app, "DEFECTIVE", "Defective Product", "standard_return").await;
+    let reason =
+        create_test_return_reason(&app, "DEFECTIVE", "Defective Product", "standard_return").await;
     assert_eq!(reason["code"], "DEFECTIVE");
     assert_eq!(reason["name"], "Defective Product");
     assert_eq!(reason["return_type"], "standard_return");
@@ -129,41 +160,70 @@ async fn test_return_reason_crud() {
 
     // Get
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/returns/reasons/DEFECTIVE")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/returns/reasons/DEFECTIVE")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let got: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let got: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(got["code"], "DEFECTIVE");
 
     // List
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/returns/reasons")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/returns/reasons")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 1);
 
     // Delete
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/returns/reasons/DEFECTIVE")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/returns/reasons/DEFECTIVE")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 
     // Verify deleted
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/returns/reasons/DEFECTIVE")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/returns/reasons/DEFECTIVE")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -174,27 +234,49 @@ async fn test_return_reason_validation() {
     let (k, v) = auth_header(&admin_claims());
 
     // Empty code
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/returns/reasons")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": "",
-            "name": "Test",
-            "return_type": "standard_return",
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/returns/reasons")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": "",
+                        "name": "Test",
+                        "return_type": "standard_return",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 
     // Invalid return type
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/returns/reasons")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": "TEST",
-            "name": "Test",
-            "return_type": "teleport",
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/returns/reasons")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": "TEST",
+                        "name": "Test",
+                        "return_type": "teleport",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -225,62 +307,122 @@ async fn test_rma_full_lifecycle() {
 
     // Verify RMA totals updated
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/returns/rmas/{}", rma_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/returns/rmas/{}", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let updated_rma: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
-    let total_qty: f64 = updated_rma["total_quantity"].as_str().unwrap().parse().unwrap();
-    assert!((total_qty - 10.0).abs() < 0.01, "Expected total_quantity 10, got {}", total_qty);
-    let total_amt: f64 = updated_rma["total_amount"].as_str().unwrap().parse().unwrap();
-    assert!((total_amt - 500.0).abs() < 0.01, "Expected total_amount 500, got {}", total_amt);
+    let updated_rma: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
+    let total_qty: f64 = updated_rma["total_quantity"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert!(
+        (total_qty - 10.0).abs() < 0.01,
+        "Expected total_quantity 10, got {}",
+        total_qty
+    );
+    let total_amt: f64 = updated_rma["total_amount"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert!(
+        (total_amt - 500.0).abs() < 0.01,
+        "Expected total_amount 500, got {}",
+        total_amt
+    );
 
     // Submit RMA
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/submit", rma_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/submit", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let submitted: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let submitted: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(submitted["status"], "submitted");
 
     // Approve RMA
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/approve", rma_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/approve", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let approved: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let approved: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(approved["status"], "approved");
     assert!(approved["approved_by"].is_string());
 
     // Receive the returned item
     let payload = json!({ "received_quantity": "10" });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/lines/{}/receive", line_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/lines/{}/receive", line_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let received: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let received: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(received["received_quantity"], "10");
 
     // Verify RMA status changed to received
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/returns/rmas/{}", rma_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let final_rma: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/returns/rmas/{}", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let final_rma: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(final_rma["status"], "received");
 
     // Inspect the return line
@@ -289,14 +431,24 @@ async fn test_rma_full_lifecycle() {
         "inspection_notes": "Product confirmed defective",
         "disposition": "scrap",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/lines/{}/inspect", line_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/lines/{}/inspect", line_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let inspected: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let inspected: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(inspected["inspection_status"], "passed");
     assert_eq!(inspected["disposition"], "scrap");
 }
@@ -320,65 +472,131 @@ async fn test_credit_memo_generation_and_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     // Submit and approve
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/submit", rma_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/approve", rma_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/submit", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/approve", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Generate credit memo
     let payload = json!({ "gl_account_code": "4100-RETURNS" });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/credit-memo", rma_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/credit-memo", rma_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let memo: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
-    assert!(memo["credit_memo_number"].as_str().unwrap().starts_with("CM-"));
+    let memo: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
+    assert!(memo["credit_memo_number"]
+        .as_str()
+        .unwrap()
+        .starts_with("CM-"));
     assert_eq!(memo["status"], "draft");
     let memo_amount: f64 = memo["amount"].as_str().unwrap().parse().unwrap();
-    assert!((memo_amount - 500.0).abs() < 0.01, "Expected 500, got {}", memo_amount);
+    assert!(
+        (memo_amount - 500.0).abs() < 0.01,
+        "Expected 500, got {}",
+        memo_amount
+    );
     let memo_id = memo["id"].as_str().unwrap().to_string();
 
     // Issue the credit memo
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/credit-memos/{}/issue", memo_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/credit-memos/{}/issue", memo_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let issued: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let issued: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(issued["status"], "issued");
 
     // List credit memos
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/returns/credit-memos")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/returns/credit-memos")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 1);
 
     // Get credit memo by ID
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/returns/credit-memos/{}", memo_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/returns/credit-memos/{}", memo_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Verify RMA has credit memo reference
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/returns/rmas/{}", rma_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let updated_rma: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/returns/rmas/{}", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let updated_rma: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(updated_rma["credit_memo_number"].is_string());
 }
 
@@ -397,10 +615,18 @@ async fn test_cannot_submit_empty_rma() {
 
     // Try to submit without lines
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/submit", rma_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/submit", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -414,10 +640,18 @@ async fn test_cannot_approve_draft_rma() {
     let rma_id = rma["id"].as_str().unwrap().to_string();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/approve", rma_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/approve", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -434,10 +668,17 @@ async fn test_cannot_add_line_to_submitted_rma() {
     add_test_return_line(&app, &rma_id, "ITEM-001", "1", "10.00").await;
 
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/submit", rma_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/submit", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to add another line after submission
     let payload = json!({
@@ -446,11 +687,19 @@ async fn test_cannot_add_line_to_submitted_rma() {
         "return_quantity": "1",
         "unit_price": "10.00",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/lines", rma_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/lines", rma_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -470,13 +719,23 @@ async fn test_rma_cancellation() {
     let (k, v) = auth_header(&admin_claims());
 
     // Cancel the draft RMA
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/cancel", rma_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/cancel", rma_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let cancelled: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let cancelled: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
 
@@ -495,21 +754,39 @@ async fn test_list_return_reasons_by_type() {
     let (k, v) = auth_header(&admin_claims());
 
     // List all
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/returns/reasons")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let all: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/returns/reasons")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let all: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(all["data"].as_array().unwrap().len() >= 2);
 
     // Filter by warranty type
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/returns/reasons?return_type=warranty")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let warranty: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/returns/reasons?return_type=warranty")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let warranty: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let items = warranty["data"].as_array().unwrap();
     assert!(items.len() >= 1);
     assert!(items.iter().all(|r| r["return_type"] == "warranty"));
@@ -526,16 +803,31 @@ async fn test_returns_dashboard() {
 
     // Create some data
     create_test_return_reason(&app, "DASH-REASON", "Dashboard Reason", "standard_return").await;
-    create_test_rma(&app, "00000000-0000-0000-0000-000000000999", "standard_return", None).await;
+    create_test_rma(
+        &app,
+        "00000000-0000-0000-0000-000000000999",
+        "standard_return",
+        None,
+    )
+    .await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/returns/dashboard")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/returns/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let summary: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let summary: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert!(summary["total_rmas"].as_i64().unwrap() >= 1);
     assert!(summary["open_rmas"].as_i64().unwrap() >= 1);
@@ -562,11 +854,19 @@ async fn test_return_quantity_exceeds_original() {
         "return_quantity": "100",
         "unit_price": "10.00",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/lines", rma_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/lines", rma_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -585,11 +885,19 @@ async fn test_receive_exceeds_return_quantity() {
     // Try to receive more than the return quantity
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({ "received_quantity": "100" });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/lines/{}/receive", line_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/lines/{}/receive", line_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -604,10 +912,18 @@ async fn test_cannot_generate_credit_memo_for_draft_rma() {
 
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({});
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/returns/rmas/{}/credit-memo", rma_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/returns/rmas/{}/credit-memo", rma_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }

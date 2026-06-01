@@ -9,12 +9,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Netting
 
-use atlas_shared::{
-    NettingAgreement, NettingBatch, NettingTransactionLine,
-    NettingSettlementSummary, NettingDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::NettingRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, NettingAgreement, NettingBatch, NettingDashboardSummary,
+    NettingSettlementSummary, NettingTransactionLine,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -22,44 +21,41 @@ use uuid::Uuid;
 /// Valid netting directions
 #[allow(dead_code)]
 const VALID_NETTING_DIRECTIONS: &[&str] = &[
-    "payables_to_receivables", "receivables_to_payables", "bi_directional",
+    "payables_to_receivables",
+    "receivables_to_payables",
+    "bi_directional",
 ];
 
 /// Valid settlement methods
 #[allow(dead_code)]
-const VALID_SETTLEMENT_METHODS: &[&str] = &[
-    "automatic", "manual",
-];
+const VALID_SETTLEMENT_METHODS: &[&str] = &["automatic", "manual"];
 
 /// Valid agreement statuses
 #[allow(dead_code)]
-const VALID_AGREEMENT_STATUSES: &[&str] = &[
-    "draft", "active", "inactive", "terminated",
-];
+const VALID_AGREEMENT_STATUSES: &[&str] = &["draft", "active", "inactive", "terminated"];
 
 /// Valid batch statuses
 #[allow(dead_code)]
 const VALID_BATCH_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "settled", "cancelled", "reversed",
+    "draft",
+    "submitted",
+    "approved",
+    "settled",
+    "cancelled",
+    "reversed",
 ];
 
 /// Valid settlement directions
 #[allow(dead_code)]
-const VALID_SETTLEMENT_DIRECTIONS: &[&str] = &[
-    "pay", "receive", "zero",
-];
+const VALID_SETTLEMENT_DIRECTIONS: &[&str] = &["pay", "receive", "zero"];
 
 /// Valid line source types
 #[allow(dead_code)]
-const VALID_LINE_SOURCE_TYPES: &[&str] = &[
-    "payable", "receivable",
-];
+const VALID_LINE_SOURCE_TYPES: &[&str] = &["payable", "receivable"];
 
 /// Valid line statuses
 #[allow(dead_code)]
-const VALID_LINE_STATUSES: &[&str] = &[
-    "selected", "netted", "cancelled",
-];
+const VALID_LINE_STATUSES: &[&str] = &["selected", "netted", "cancelled"];
 
 /// Netting Engine
 pub struct NettingEngine {
@@ -113,27 +109,33 @@ impl NettingEngine {
         if !VALID_NETTING_DIRECTIONS.contains(&netting_direction) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid netting_direction '{}'. Must be one of: {}",
-                netting_direction, VALID_NETTING_DIRECTIONS.join(", ")
+                netting_direction,
+                VALID_NETTING_DIRECTIONS.join(", ")
             )));
         }
         if !VALID_SETTLEMENT_METHODS.contains(&settlement_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid settlement_method '{}'. Must be one of: {}",
-                settlement_method, VALID_SETTLEMENT_METHODS.join(", ")
+                settlement_method,
+                VALID_SETTLEMENT_METHODS.join(", ")
             )));
         }
-        let min_amt: f64 = minimum_netting_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Minimum netting amount must be a valid number".to_string(),
-        ))?;
+        let min_amt: f64 = minimum_netting_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed(
+                "Minimum netting amount must be a valid number".to_string(),
+            )
+        })?;
         if min_amt < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Minimum netting amount must be non-negative".to_string(),
             ));
         }
         if let Some(max_str) = maximum_netting_amount {
-            let max_amt: f64 = max_str.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Maximum netting amount must be a valid number".to_string(),
-            ))?;
+            let max_amt: f64 = max_str.parse().map_err(|_| {
+                AtlasError::ValidationFailed(
+                    "Maximum netting amount must be a valid number".to_string(),
+                )
+            })?;
             if max_amt < 0.0 {
                 return Err(AtlasError::ValidationFailed(
                     "Maximum netting amount must be non-negative".to_string(),
@@ -147,23 +149,47 @@ impl NettingEngine {
         }
 
         // Check uniqueness
-        if self.repository.get_agreement_by_number(org_id, agreement_number).await?.is_some() {
-            return Err(AtlasError::Conflict(
-                format!("Agreement number '{agreement_number}' already exists")
-            ));
+        if self
+            .repository
+            .get_agreement_by_number(org_id, agreement_number)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Agreement number '{agreement_number}' already exists"
+            )));
         }
 
-        info!("Creating netting agreement {} for partner {}", agreement_number, partner_id);
+        info!(
+            "Creating netting agreement {} for partner {}",
+            agreement_number, partner_id
+        );
 
-        self.repository.create_agreement(
-            org_id, agreement_number, name, description,
-            partner_id, partner_number, partner_name,
-            currency_code, netting_direction, settlement_method,
-            minimum_netting_amount, maximum_netting_amount,
-            auto_select_transactions, selection_criteria,
-            netting_clearing_account, ap_clearing_account, ar_clearing_account,
-            approval_required, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_agreement(
+                org_id,
+                agreement_number,
+                name,
+                description,
+                partner_id,
+                partner_number,
+                partner_name,
+                currency_code,
+                netting_direction,
+                settlement_method,
+                minimum_netting_amount,
+                maximum_netting_amount,
+                auto_select_transactions,
+                selection_criteria,
+                netting_clearing_account,
+                ap_clearing_account,
+                ar_clearing_account,
+                approval_required,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get agreement by ID
@@ -172,16 +198,28 @@ impl NettingEngine {
     }
 
     /// Get agreement by number
-    pub async fn get_agreement_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<NettingAgreement>> {
-        self.repository.get_agreement_by_number(org_id, number).await
+    pub async fn get_agreement_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<NettingAgreement>> {
+        self.repository
+            .get_agreement_by_number(org_id, number)
+            .await
     }
 
     /// List agreements
-    pub async fn list_agreements(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<NettingAgreement>> {
+    pub async fn list_agreements(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<NettingAgreement>> {
         if let Some(s) = status {
             if !VALID_AGREEMENT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_AGREEMENT_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_AGREEMENT_STATUSES.join(", ")
                 )));
             }
         }
@@ -190,16 +228,23 @@ impl NettingEngine {
 
     /// Activate a draft agreement
     pub async fn activate_agreement(&self, id: Uuid) -> AtlasResult<NettingAgreement> {
-        let agreement = self.repository.get_agreement(id).await?
+        let agreement = self
+            .repository
+            .get_agreement(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Agreement {id} not found")))?;
 
         if agreement.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot activate agreement in '{}' status. Must be 'draft'.", agreement.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot activate agreement in '{}' status. Must be 'draft'.",
+                agreement.status
+            )));
         }
 
-        info!("Activating netting agreement {}", agreement.agreement_number);
+        info!(
+            "Activating netting agreement {}",
+            agreement.agreement_number
+        );
         self.repository.update_agreement_status(id, "active").await
     }
 
@@ -216,28 +261,41 @@ impl NettingEngine {
         gl_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<NettingBatch> {
-        let agreement = self.repository.get_agreement(agreement_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting agreement {agreement_id} not found")
-            ))?;
+        let agreement = self
+            .repository
+            .get_agreement(agreement_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Netting agreement {agreement_id} not found"))
+            })?;
 
         if agreement.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot create batch for agreement in '{}' status. Must be 'active'.", agreement.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot create batch for agreement in '{}' status. Must be 'active'.",
+                agreement.status
+            )));
         }
 
         let batch_number = format!("NET-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating netting batch {} for agreement {}", batch_number, agreement.agreement_number);
+        info!(
+            "Creating netting batch {} for agreement {}",
+            batch_number, agreement.agreement_number
+        );
 
-        self.repository.create_batch(
-            org_id, &batch_number, agreement_id,
-            netting_date, gl_date,
-            agreement.partner_id, agreement.partner_name.as_deref(),
-            &agreement.currency_code,
-            created_by,
-        ).await
+        self.repository
+            .create_batch(
+                org_id,
+                &batch_number,
+                agreement_id,
+                netting_date,
+                gl_date,
+                agreement.partner_id,
+                agreement.partner_name.as_deref(),
+                &agreement.currency_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get a netting batch by ID
@@ -246,15 +304,24 @@ impl NettingEngine {
     }
 
     /// List batches for an agreement
-    pub async fn list_batches(&self, org_id: Uuid, agreement_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<NettingBatch>> {
+    pub async fn list_batches(
+        &self,
+        org_id: Uuid,
+        agreement_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<NettingBatch>> {
         if let Some(s) = status {
             if !VALID_BATCH_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_BATCH_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_BATCH_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_batches(org_id, agreement_id, status).await
+        self.repository
+            .list_batches(org_id, agreement_id, status)
+            .await
     }
 
     // ========================================================================
@@ -275,29 +342,31 @@ impl NettingEngine {
         currency_code: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<NettingTransactionLine> {
-        let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {batch_id} not found")
-            ))?;
+        let batch = self.repository.get_batch(batch_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Netting batch {batch_id} not found"))
+        })?;
 
         if batch.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot add lines to batch in '{}' status. Must be 'draft'.", batch.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot add lines to batch in '{}' status. Must be 'draft'.",
+                batch.status
+            )));
         }
 
         if !VALID_LINE_SOURCE_TYPES.contains(&source_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid source_type '{}'. Must be one of: {}", source_type, VALID_LINE_SOURCE_TYPES.join(", ")
+                "Invalid source_type '{}'. Must be one of: {}",
+                source_type,
+                VALID_LINE_SOURCE_TYPES.join(", ")
             )));
         }
 
-        let original: f64 = original_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Original amount must be a valid number".to_string(),
-        ))?;
-        let netting: f64 = netting_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Netting amount must be a valid number".to_string(),
-        ))?;
+        let original: f64 = original_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Original amount must be a valid number".to_string())
+        })?;
+        let netting: f64 = netting_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Netting amount must be a valid number".to_string())
+        })?;
 
         if netting <= 0.0 {
             return Err(AtlasError::ValidationFailed(
@@ -314,24 +383,39 @@ impl NettingEngine {
         let lines = self.repository.list_batch_lines(batch_id).await?;
         let line_number = (lines.len() as i32) + 1;
 
-        info!("Adding {} line to batch {}: {} of {}",
-            source_type, batch.batch_number, netting_amount, original_amount);
+        info!(
+            "Adding {} line to batch {}: {} of {}",
+            source_type, batch.batch_number, netting_amount, original_amount
+        );
 
-        self.repository.create_transaction_line(
-            org_id, batch_id, line_number,
-            source_type, source_id, source_number, source_date,
-            original_amount, netting_amount, &format!("{remaining:.2}"),
-            currency_code, created_by,
-        ).await
+        self.repository
+            .create_transaction_line(
+                org_id,
+                batch_id,
+                line_number,
+                source_type,
+                source_id,
+                source_number,
+                source_date,
+                original_amount,
+                netting_amount,
+                &format!("{remaining:.2}"),
+                currency_code,
+                created_by,
+            )
+            .await
     }
 
     /// List transaction lines for a batch
-    pub async fn list_batch_lines(&self, batch_id: Uuid) -> AtlasResult<Vec<NettingTransactionLine>> {
+    pub async fn list_batch_lines(
+        &self,
+        batch_id: Uuid,
+    ) -> AtlasResult<Vec<NettingTransactionLine>> {
         self.repository.list_batch_lines(batch_id).await
     }
 
     /// Calculate net difference for a batch
-    #[must_use] 
+    #[must_use]
     pub fn calculate_net_difference(payables: f64, receivables: f64) -> (f64, String) {
         let diff = payables - receivables;
         let direction = if diff.abs() < 0.01 {
@@ -349,16 +433,20 @@ impl NettingEngine {
     // ========================================================================
 
     /// Submit a draft batch for approval
-    pub async fn submit_batch(&self, batch_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<NettingBatch> {
-        let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {batch_id} not found")
-            ))?;
+    pub async fn submit_batch(
+        &self,
+        batch_id: Uuid,
+        submitted_by: Option<Uuid>,
+    ) -> AtlasResult<NettingBatch> {
+        let batch = self.repository.get_batch(batch_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Netting batch {batch_id} not found"))
+        })?;
 
         if batch.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit batch in '{}' status. Must be 'draft'.", batch.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit batch in '{}' status. Must be 'draft'.",
+                batch.status
+            )));
         }
 
         // Validate batch has at least one payable and one receivable
@@ -368,112 +456,138 @@ impl NettingEngine {
 
         if !has_payables || !has_receivables {
             return Err(AtlasError::ValidationFailed(
-                "Netting batch must contain at least one payable and one receivable transaction".to_string(),
+                "Netting batch must contain at least one payable and one receivable transaction"
+                    .to_string(),
             ));
         }
 
         // Calculate totals
-        let total_payables: f64 = lines.iter()
+        let total_payables: f64 = lines
+            .iter()
             .filter(|l| l.source_type == "payable")
             .map(|l| l.netting_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_receivables: f64 = lines.iter()
+        let total_receivables: f64 = lines
+            .iter()
             .filter(|l| l.source_type == "receivable")
             .map(|l| l.netting_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let (net_diff, settlement_dir) = Self::calculate_net_difference(total_payables, total_receivables);
+        let (net_diff, settlement_dir) =
+            Self::calculate_net_difference(total_payables, total_receivables);
 
         // Update totals
-        self.repository.update_batch_totals(
-            batch_id,
-            &format!("{total_payables:.2}"),
-            &format!("{total_receivables:.2}"),
-            &format!("{net_diff:.2}"),
-            &settlement_dir,
-            lines.iter().filter(|l| l.source_type == "payable").count() as i32,
-            lines.iter().filter(|l| l.source_type == "receivable").count() as i32,
-        ).await?;
+        self.repository
+            .update_batch_totals(
+                batch_id,
+                &format!("{total_payables:.2}"),
+                &format!("{total_receivables:.2}"),
+                &format!("{net_diff:.2}"),
+                &settlement_dir,
+                lines.iter().filter(|l| l.source_type == "payable").count() as i32,
+                lines
+                    .iter()
+                    .filter(|l| l.source_type == "receivable")
+                    .count() as i32,
+            )
+            .await?;
 
-        info!("Submitting netting batch {} (payables: {:.2}, receivables: {:.2}, net: {:.2} {})",
-            batch.batch_number, total_payables, total_receivables, net_diff, settlement_dir);
+        info!(
+            "Submitting netting batch {} (payables: {:.2}, receivables: {:.2}, net: {:.2} {})",
+            batch.batch_number, total_payables, total_receivables, net_diff, settlement_dir
+        );
 
-        self.repository.update_batch_status(
-            batch_id, "submitted", submitted_by, None, None,
-        ).await
+        self.repository
+            .update_batch_status(batch_id, "submitted", submitted_by, None, None)
+            .await
     }
 
     /// Approve a submitted batch
-    pub async fn approve_batch(&self, batch_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<NettingBatch> {
-        let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {batch_id} not found")
-            ))?;
+    pub async fn approve_batch(
+        &self,
+        batch_id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<NettingBatch> {
+        let batch = self.repository.get_batch(batch_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Netting batch {batch_id} not found"))
+        })?;
 
         if batch.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve batch in '{}' status. Must be 'submitted'.", batch.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve batch in '{}' status. Must be 'submitted'.",
+                batch.status
+            )));
         }
 
         info!("Approving netting batch {}", batch.batch_number);
 
-        self.repository.update_batch_status(
-            batch_id, "approved", None, approved_by, None,
-        ).await
+        self.repository
+            .update_batch_status(batch_id, "approved", None, approved_by, None)
+            .await
     }
 
     /// Settle an approved batch (mark transactions as netted)
     pub async fn settle_batch(&self, batch_id: Uuid) -> AtlasResult<NettingBatch> {
-        let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {batch_id} not found")
-            ))?;
+        let batch = self.repository.get_batch(batch_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Netting batch {batch_id} not found"))
+        })?;
 
         if batch.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot settle batch in '{}' status. Must be 'approved'.", batch.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot settle batch in '{}' status. Must be 'approved'.",
+                batch.status
+            )));
         }
 
         // Mark all transaction lines as netted
         let lines = self.repository.list_batch_lines(batch_id).await?;
         for line in &lines {
-            self.repository.update_line_status(line.id, "netted").await?;
+            self.repository
+                .update_line_status(line.id, "netted")
+                .await?;
         }
 
-        info!("Settling netting batch {} (direction: {})", batch.batch_number, batch.settlement_direction);
+        info!(
+            "Settling netting batch {} (direction: {})",
+            batch.batch_number, batch.settlement_direction
+        );
 
-        self.repository.update_batch_status(
-            batch_id, "settled", None, None, None,
-        ).await
+        self.repository
+            .update_batch_status(batch_id, "settled", None, None, None)
+            .await
     }
 
     /// Cancel a draft or submitted batch
-    pub async fn cancel_batch(&self, batch_id: Uuid, reason: Option<&str>) -> AtlasResult<NettingBatch> {
-        let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {batch_id} not found")
-            ))?;
+    pub async fn cancel_batch(
+        &self,
+        batch_id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<NettingBatch> {
+        let batch = self.repository.get_batch(batch_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Netting batch {batch_id} not found"))
+        })?;
 
         if batch.status != "draft" && batch.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel batch in '{}' status. Must be 'draft' or 'submitted'.", batch.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel batch in '{}' status. Must be 'draft' or 'submitted'.",
+                batch.status
+            )));
         }
 
         info!("Cancelling netting batch {}", batch.batch_number);
 
-        self.repository.update_batch_status(
-            batch_id, "cancelled", None, None, reason,
-        ).await
+        self.repository
+            .update_batch_status(batch_id, "cancelled", None, None, reason)
+            .await
     }
 
     /// Get settlement summary for a batch
-    pub async fn get_settlement_summary(&self, batch_id: Uuid) -> AtlasResult<NettingSettlementSummary> {
-        let batch = self.repository.get_batch(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Netting batch {batch_id} not found")
-            ))?;
+    pub async fn get_settlement_summary(
+        &self,
+        batch_id: Uuid,
+    ) -> AtlasResult<NettingSettlementSummary> {
+        let batch = self.repository.get_batch(batch_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Netting batch {batch_id} not found"))
+        })?;
 
         Ok(NettingSettlementSummary {
             batch_id: batch.id,
@@ -494,7 +608,7 @@ impl NettingEngine {
     }
 
     /// Check if a partner is eligible for netting
-    #[must_use] 
+    #[must_use]
     pub fn check_netting_eligibility(
         payables_amount: f64,
         receivables_amount: f64,
@@ -598,15 +712,25 @@ mod tests {
     #[test]
     fn test_check_netting_eligibility() {
         // Both sides have amounts, above minimum
-        assert!(NettingEngine::check_netting_eligibility(10000.0, 8000.0, 100.0));
+        assert!(NettingEngine::check_netting_eligibility(
+            10000.0, 8000.0, 100.0
+        ));
         // Below minimum
-        assert!(!NettingEngine::check_netting_eligibility(100.0, 50.0, 100.0));
+        assert!(!NettingEngine::check_netting_eligibility(
+            100.0, 50.0, 100.0
+        ));
         // Exact minimum
-        assert!(NettingEngine::check_netting_eligibility(200.0, 100.0, 100.0));
+        assert!(NettingEngine::check_netting_eligibility(
+            200.0, 100.0, 100.0
+        ));
         // No receivables
-        assert!(!NettingEngine::check_netting_eligibility(10000.0, 0.0, 100.0));
+        assert!(!NettingEngine::check_netting_eligibility(
+            10000.0, 0.0, 100.0
+        ));
         // No payables
-        assert!(!NettingEngine::check_netting_eligibility(0.0, 5000.0, 100.0));
+        assert!(!NettingEngine::check_netting_eligibility(
+            0.0, 5000.0, 100.0
+        ));
         // Both zero
         assert!(!NettingEngine::check_netting_eligibility(0.0, 0.0, 100.0));
     }

@@ -5,18 +5,17 @@
 //! API endpoints for managing asset categories, asset books, fixed assets,
 //! depreciation, asset transfers, and asset retirements.
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
+use tracing::{error, info};
 use uuid::Uuid;
-use tracing::{info, error};
 
 // ============================================================================
 // Asset Category Handlers
@@ -39,8 +38,12 @@ pub struct CreateAssetCategoryRequest {
     pub default_gain_loss_account_code: Option<String>,
 }
 
-fn default_depreciation_method() -> String { "straight_line".to_string() }
-const fn default_useful_life() -> i32 { 60 }
+fn default_depreciation_method() -> String {
+    "straight_line".to_string()
+}
+const fn default_useful_life() -> i32 {
+    60
+}
 
 /// Create or update an asset category
 pub async fn create_asset_category(
@@ -48,27 +51,47 @@ pub async fn create_asset_category(
     claims: Extension<Claims>,
     Json(payload): Json<CreateAssetCategoryRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    info!("Creating asset category {} for org {}", payload.code, org_id);
+    info!(
+        "Creating asset category {} for org {}",
+        payload.code, org_id
+    );
 
-    match state.financials.fixed_asset_engine.create_category(
-        org_id, &payload.code, &payload.name, payload.description.as_deref(),
-        &payload.default_depreciation_method, payload.default_useful_life_months,
-        &payload.default_salvage_value_percent,
-        payload.default_asset_account_code.as_deref(),
-        payload.default_accum_depr_account_code.as_deref(),
-        payload.default_depr_expense_account_code.as_deref(),
-        payload.default_gain_loss_account_code.as_deref(),
-        Some(user_id),
-    ).await {
-        Ok(cat) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cat).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .financials
+        .fixed_asset_engine
+        .create_category(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.default_depreciation_method,
+            payload.default_useful_life_months,
+            &payload.default_salvage_value_percent,
+            payload.default_asset_account_code.as_deref(),
+            payload.default_accum_depr_account_code.as_deref(),
+            payload.default_depr_expense_account_code.as_deref(),
+            payload.default_gain_loss_account_code.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(cat) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(cat).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create asset category: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                409 => StatusCode::CONFLICT,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -79,13 +102,23 @@ pub async fn get_asset_category(
     claims: Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.fixed_asset_engine.get_category(org_id, &code).await {
-        Ok(Some(cat)) => Ok(Json(serde_json::to_value(cat).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .financials
+        .fixed_asset_engine
+        .get_category(org_id, &code)
+        .await
+    {
+        Ok(Some(cat)) => Ok(Json(serde_json::to_value(cat).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get asset category: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get asset category: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -94,12 +127,19 @@ pub async fn list_asset_categories(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.fixed_asset_engine.list_categories(org_id).await {
+    match state
+        .financials
+        .fixed_asset_engine
+        .list_categories(org_id)
+        .await
+    {
         Ok(cats) => Ok(Json(serde_json::json!({ "data": cats }))),
-        Err(e) => { error!("Failed to list asset categories: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list asset categories: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -109,12 +149,19 @@ pub async fn delete_asset_category(
     claims: Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.fixed_asset_engine.delete_category(org_id, &code).await {
+    match state
+        .financials
+        .fixed_asset_engine
+        .delete_category(org_id, &code)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Failed to delete asset category: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to delete asset category: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -135,9 +182,15 @@ pub struct CreateAssetBookRequest {
     pub depreciation_calendar: String,
 }
 
-fn default_book_type() -> String { "corporate".to_string() }
-const fn default_true() -> bool { true }
-fn default_calendar() -> String { "monthly".to_string() }
+fn default_book_type() -> String {
+    "corporate".to_string()
+}
+const fn default_true() -> bool {
+    true
+}
+fn default_calendar() -> String {
+    "monthly".to_string()
+}
 
 /// Create or update an asset book
 pub async fn create_asset_book(
@@ -145,22 +198,39 @@ pub async fn create_asset_book(
     claims: Extension<Claims>,
     Json(payload): Json<CreateAssetBookRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     info!("Creating asset book {} for org {}", payload.code, org_id);
 
-    match state.financials.fixed_asset_engine.create_book(
-        org_id, &payload.code, &payload.name, payload.description.as_deref(),
-        &payload.book_type, payload.auto_depreciation, &payload.depreciation_calendar,
-        Some(user_id),
-    ).await {
-        Ok(book) => Ok((StatusCode::CREATED, Json(serde_json::to_value(book).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .financials
+        .fixed_asset_engine
+        .create_book(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.book_type,
+            payload.auto_depreciation,
+            &payload.depreciation_calendar,
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(book) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(book).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create asset book: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -170,12 +240,14 @@ pub async fn list_asset_books(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.financials.fixed_asset_engine.list_books(org_id).await {
         Ok(books) => Ok(Json(serde_json::json!({ "data": books }))),
-        Err(e) => { error!("Failed to list asset books: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list asset books: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -221,7 +293,9 @@ pub struct CreateFixedAssetRequest {
     pub gain_loss_account_code: Option<String>,
 }
 
-fn default_asset_type() -> String { "tangible".to_string() }
+fn default_asset_type() -> String {
+    "tangible".to_string()
+}
 
 /// Create a new fixed asset
 pub async fn create_fixed_asset(
@@ -229,37 +303,80 @@ pub async fn create_fixed_asset(
     claims: Extension<Claims>,
     Json(payload): Json<CreateFixedAssetRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    info!("Creating fixed asset {} for org {}", payload.asset_number, org_id);
+    info!(
+        "Creating fixed asset {} for org {}",
+        payload.asset_number, org_id
+    );
 
-    let salvage = if payload.salvage_value.is_empty() { "0" } else { &payload.salvage_value };
-    let salvage_pct = if payload.salvage_value_percent.is_empty() { "0" } else { &payload.salvage_value_percent };
+    let salvage = if payload.salvage_value.is_empty() {
+        "0"
+    } else {
+        &payload.salvage_value
+    };
+    let salvage_pct = if payload.salvage_value_percent.is_empty() {
+        "0"
+    } else {
+        &payload.salvage_value_percent
+    };
 
-    match state.financials.fixed_asset_engine.create_asset(
-        org_id, &payload.asset_number, &payload.asset_name, payload.description.as_deref(),
-        payload.category_code.as_deref(), payload.book_code.as_deref(),
-        &payload.asset_type, &payload.original_cost, salvage, salvage_pct,
-        payload.depreciation_method.as_deref(), payload.useful_life_months,
-        payload.declining_balance_rate.as_deref(),
-        payload.acquisition_date,
-        payload.location.as_deref(), payload.department_id, payload.department_name.as_deref(),
-        payload.custodian_id, payload.custodian_name.as_deref(),
-        payload.serial_number.as_deref(), payload.tag_number.as_deref(),
-        payload.manufacturer.as_deref(), payload.model.as_deref(),
-        payload.warranty_expiry, payload.insurance_policy_number.as_deref(),
-        payload.insurance_expiry, payload.lease_number.as_deref(), payload.lease_expiry,
-        payload.asset_account_code.as_deref(), payload.accum_depr_account_code.as_deref(),
-        payload.depr_expense_account_code.as_deref(), payload.gain_loss_account_code.as_deref(),
-        Some(user_id),
-    ).await {
-        Ok(asset) => Ok((StatusCode::CREATED, Json(serde_json::to_value(asset).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .financials
+        .fixed_asset_engine
+        .create_asset(
+            org_id,
+            &payload.asset_number,
+            &payload.asset_name,
+            payload.description.as_deref(),
+            payload.category_code.as_deref(),
+            payload.book_code.as_deref(),
+            &payload.asset_type,
+            &payload.original_cost,
+            salvage,
+            salvage_pct,
+            payload.depreciation_method.as_deref(),
+            payload.useful_life_months,
+            payload.declining_balance_rate.as_deref(),
+            payload.acquisition_date,
+            payload.location.as_deref(),
+            payload.department_id,
+            payload.department_name.as_deref(),
+            payload.custodian_id,
+            payload.custodian_name.as_deref(),
+            payload.serial_number.as_deref(),
+            payload.tag_number.as_deref(),
+            payload.manufacturer.as_deref(),
+            payload.model.as_deref(),
+            payload.warranty_expiry,
+            payload.insurance_policy_number.as_deref(),
+            payload.insurance_expiry,
+            payload.lease_number.as_deref(),
+            payload.lease_expiry,
+            payload.asset_account_code.as_deref(),
+            payload.accum_depr_account_code.as_deref(),
+            payload.depr_expense_account_code.as_deref(),
+            payload.gain_loss_account_code.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(asset) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(asset).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create fixed asset: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                409 => StatusCode::CONFLICT,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -271,9 +388,15 @@ pub async fn get_fixed_asset(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.financials.fixed_asset_engine.get_asset(id).await {
-        Ok(Some(asset)) => Ok(Json(serde_json::to_value(asset).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(Some(asset)) => Ok(Json(serde_json::to_value(asset).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get fixed asset: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get fixed asset: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -290,16 +413,26 @@ pub async fn list_fixed_assets(
     claims: Extension<Claims>,
     Query(query): Query<ListAssetsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.fixed_asset_engine.list_assets(
-        org_id, query.status.as_deref(), query.category_code.as_deref(), query.book_code.as_deref(),
-    ).await {
+    match state
+        .financials
+        .fixed_asset_engine
+        .list_assets(
+            org_id,
+            query.status.as_deref(),
+            query.category_code.as_deref(),
+            query.book_code.as_deref(),
+        )
+        .await
+    {
         Ok(assets) => Ok(Json(serde_json::json!({ "data": assets }))),
         Err(e) => {
             error!("Failed to list fixed assets: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -315,10 +448,17 @@ pub async fn acquire_fixed_asset(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     match state.financials.fixed_asset_engine.acquire_asset(id).await {
-        Ok(asset) => Ok(Json(serde_json::to_value(asset).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(asset) => Ok(Json(serde_json::to_value(asset).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to acquire asset: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -329,11 +469,23 @@ pub async fn place_asset_in_service(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.fixed_asset_engine.place_in_service(id, None).await {
-        Ok(asset) => Ok(Json(serde_json::to_value(asset).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .financials
+        .fixed_asset_engine
+        .place_in_service(id, None)
+        .await
+    {
+        Ok(asset) => Ok(Json(serde_json::to_value(asset).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to place asset in service: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -357,21 +509,32 @@ pub async fn calculate_depreciation(
     Path(id): Path<Uuid>,
     Json(payload): Json<CalculateDepreciationRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.fixed_asset_engine.calculate_depreciation(
-        id, payload.fiscal_year, payload.period_number,
-        payload.period_name.as_deref(), payload.depreciation_date,
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .fixed_asset_engine
+        .calculate_depreciation(
+            id,
+            payload.fiscal_year,
+            payload.period_number,
+            payload.period_name.as_deref(),
+            payload.depreciation_date,
+            Some(user_id),
+        )
+        .await
+    {
         Ok((dep_amount, asset)) => Ok(Json(serde_json::json!({
             "depreciation_amount": format!("{:.2}", dep_amount),
             "asset": asset,
         }))),
         Err(e) => {
             error!("Failed to calculate depreciation: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -382,9 +545,17 @@ pub async fn list_depreciation_history(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.fixed_asset_engine.list_depreciation_history(id).await {
+    match state
+        .financials
+        .fixed_asset_engine
+        .list_depreciation_history(id)
+        .await
+    {
         Ok(history) => Ok(Json(serde_json::json!({ "data": history }))),
-        Err(e) => { error!("Failed to list depreciation history: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list depreciation history: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -410,23 +581,40 @@ pub async fn create_asset_transfer(
     claims: Extension<Claims>,
     Json(payload): Json<CreateAssetTransferRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.fixed_asset_engine.create_transfer(
-        org_id, payload.asset_id,
-        payload.to_department_id, payload.to_department_name.as_deref(),
-        payload.to_location.as_deref(),
-        payload.to_custodian_id, payload.to_custodian_name.as_deref(),
-        payload.transfer_date, payload.reason.as_deref(),
-        Some(user_id),
-    ).await {
-        Ok(transfer) => Ok((StatusCode::CREATED, Json(serde_json::to_value(transfer).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .financials
+        .fixed_asset_engine
+        .create_transfer(
+            org_id,
+            payload.asset_id,
+            payload.to_department_id,
+            payload.to_department_name.as_deref(),
+            payload.to_location.as_deref(),
+            payload.to_custodian_id,
+            payload.to_custodian_name.as_deref(),
+            payload.transfer_date,
+            payload.reason.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(transfer) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(transfer).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create asset transfer: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -437,14 +625,25 @@ pub async fn approve_asset_transfer(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.fixed_asset_engine.approve_transfer(id, user_id).await {
-        Ok(transfer) => Ok(Json(serde_json::to_value(transfer).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .financials
+        .fixed_asset_engine
+        .approve_transfer(id, user_id)
+        .await
+    {
+        Ok(transfer) => Ok(Json(serde_json::to_value(transfer).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to approve asset transfer: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -461,11 +660,23 @@ pub async fn reject_asset_transfer(
     Path(id): Path<Uuid>,
     Json(payload): Json<RejectTransferRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.fixed_asset_engine.reject_transfer(id, payload.reason.as_deref()).await {
-        Ok(transfer) => Ok(Json(serde_json::to_value(transfer).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .financials
+        .fixed_asset_engine
+        .reject_transfer(id, payload.reason.as_deref())
+        .await
+    {
+        Ok(transfer) => Ok(Json(serde_json::to_value(transfer).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to reject asset transfer: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -476,12 +687,19 @@ pub async fn list_asset_transfers(
     claims: Extension<Claims>,
     Query(query): Query<ListTransfersQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.fixed_asset_engine.list_transfers(org_id, query.asset_id).await {
+    match state
+        .financials
+        .fixed_asset_engine
+        .list_transfers(org_id, query.asset_id)
+        .await
+    {
         Ok(transfers) => Ok(Json(serde_json::json!({ "data": transfers }))),
-        Err(e) => { error!("Failed to list asset transfers: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list asset transfers: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -509,7 +727,9 @@ pub struct CreateAssetRetirementRequest {
     pub notes: Option<String>,
 }
 
-fn default_retirement_type() -> String { "sale".to_string() }
+fn default_retirement_type() -> String {
+    "sale".to_string()
+}
 
 /// Create an asset retirement
 pub async fn create_asset_retirement(
@@ -517,24 +737,51 @@ pub async fn create_asset_retirement(
     claims: Extension<Claims>,
     Json(payload): Json<CreateAssetRetirementRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let proceeds = if payload.proceeds.is_empty() { "0" } else { &payload.proceeds };
-    let removal = if payload.removal_cost.is_empty() { "0" } else { &payload.removal_cost };
+    let proceeds = if payload.proceeds.is_empty() {
+        "0"
+    } else {
+        &payload.proceeds
+    };
+    let removal = if payload.removal_cost.is_empty() {
+        "0"
+    } else {
+        &payload.removal_cost
+    };
 
-    match state.financials.fixed_asset_engine.create_retirement(
-        org_id, payload.asset_id, &payload.retirement_type,
-        payload.retirement_date, proceeds, removal,
-        payload.reference_number.as_deref(), payload.buyer_name.as_deref(),
-        payload.notes.as_deref(), Some(user_id),
-    ).await {
-        Ok(retirement) => Ok((StatusCode::CREATED, Json(serde_json::to_value(retirement).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .financials
+        .fixed_asset_engine
+        .create_retirement(
+            org_id,
+            payload.asset_id,
+            &payload.retirement_type,
+            payload.retirement_date,
+            proceeds,
+            removal,
+            payload.reference_number.as_deref(),
+            payload.buyer_name.as_deref(),
+            payload.notes.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(retirement) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(retirement).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create asset retirement: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -545,14 +792,25 @@ pub async fn approve_asset_retirement(
     claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.fixed_asset_engine.approve_retirement(id, user_id).await {
-        Ok(retirement) => Ok(Json(serde_json::to_value(retirement).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .financials
+        .fixed_asset_engine
+        .approve_retirement(id, user_id)
+        .await
+    {
+        Ok(retirement) => Ok(Json(serde_json::to_value(retirement).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to approve asset retirement: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -563,12 +821,19 @@ pub async fn list_asset_retirements(
     claims: Extension<Claims>,
     Query(query): Query<ListRetirementsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.fixed_asset_engine.list_retirements(org_id, query.asset_id).await {
+    match state
+        .financials
+        .fixed_asset_engine
+        .list_retirements(org_id, query.asset_id)
+        .await
+    {
         Ok(retirements) => Ok(Json(serde_json::json!({ "data": retirements }))),
-        Err(e) => { error!("Failed to list asset retirements: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list asset retirements: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 

@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Payables > Payments
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::PaymentEngine;
 pub use repository::{PaymentRepository, PostgresPaymentRepository};

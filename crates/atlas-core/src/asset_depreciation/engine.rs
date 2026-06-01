@@ -12,20 +12,18 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Fixed Assets > Depreciation
 
-use atlas_shared::{
-    DepreciationResult, DepreciationSchedule, AssetDepreciationHistory,
-    AtlasError, AtlasResult,
-};
 use super::AssetDepreciationRepository;
+use atlas_shared::{
+    AssetDepreciationHistory, AtlasError, AtlasResult, DepreciationResult, DepreciationSchedule,
+};
+use chrono::Datelike;
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
-use chrono::Datelike;
 
 /// Valid depreciation methods
-const VALID_DEPRECIATION_METHODS: &[&str] = &[
-    "straight_line", "declining_balance", "sum_of_years_digits",
-];
+const VALID_DEPRECIATION_METHODS: &[&str] =
+    &["straight_line", "declining_balance", "sum_of_years_digits"];
 
 /// Asset Depreciation Engine
 pub struct AssetDepreciationEngine {
@@ -54,7 +52,8 @@ impl AssetDepreciationEngine {
         if !VALID_DEPRECIATION_METHODS.contains(&method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid depreciation method '{}'. Must be one of: {}",
-                method, VALID_DEPRECIATION_METHODS.join(", ")
+                method,
+                VALID_DEPRECIATION_METHODS.join(", ")
             )));
         }
         if depreciable_basis < 0.0 {
@@ -92,11 +91,13 @@ impl AssetDepreciationEngine {
             "declining_balance" => {
                 let rate = declining_balance_rate.unwrap_or(2.0); // Default: double declining
                 let monthly_rate = rate / f64::from(useful_life_months);
-                let book_value = (depreciable_amount / f64::from(useful_life_months)).mul_add(-f64::from(periods_depreciated), depreciable_basis);
+                let book_value = (depreciable_amount / f64::from(useful_life_months))
+                    .mul_add(-f64::from(periods_depreciated), depreciable_basis);
                 let book_value_for_calc = book_value.max(salvage_value);
                 let mut dep = book_value_for_calc * monthly_rate;
                 // Don't depreciate below salvage value
-                let current_book = (depreciable_amount / f64::from(useful_life_months)).mul_add(-f64::from(periods_depreciated), depreciable_basis);
+                let current_book = (depreciable_amount / f64::from(useful_life_months))
+                    .mul_add(-f64::from(periods_depreciated), depreciable_basis);
                 if current_book - dep < salvage_value {
                     dep = (current_book - salvage_value).max(0.0);
                 }
@@ -116,9 +117,11 @@ impl AssetDepreciationEngine {
                 let monthly = annual_depreciation / 12.0;
                 monthly.max(0.0)
             }
-            _ => return Err(AtlasError::ValidationFailed(
-                format!("Unknown depreciation method: {method}")
-            )),
+            _ => {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Unknown depreciation method: {method}"
+                )))
+            }
         };
 
         Ok(depreciation.max(0.0))
@@ -203,22 +206,27 @@ impl AssetDepreciationEngine {
         depreciation_date: chrono::NaiveDate,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetDepreciationHistory> {
-        let asset = self.repository.get_asset(asset_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Asset {asset_id} not found")
-            ))?;
+        let asset = self
+            .repository
+            .get_asset(asset_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Asset {asset_id} not found")))?;
 
         if asset.status != "in_service" && asset.status != "acquired" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot depreciate asset in '{}' status", asset.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot depreciate asset in '{}' status",
+                asset.status
+            )));
         }
 
         let original_cost: f64 = asset.original_cost.parse().unwrap_or(0.0);
         let salvage_value: f64 = asset.salvage_value.parse().unwrap_or(0.0);
         let periods_depreciated = asset.periods_depreciated;
         let useful_life = asset.useful_life_months;
-        let db_rate: Option<f64> = asset.declining_balance_rate.as_ref().and_then(|s| s.parse().ok());
+        let db_rate: Option<f64> = asset
+            .declining_balance_rate
+            .as_ref()
+            .and_then(|s| s.parse().ok());
 
         let dep_amount = self.calculate_period_depreciation(
             &asset.depreciation_method,
@@ -233,43 +241,53 @@ impl AssetDepreciationEngine {
         let new_accumulated = prev_accumulated + dep_amount;
         let nbv = (original_cost - new_accumulated).max(salvage_value);
 
-        info!("Running depreciation for asset {} period {}/{}: amount={:.2}, nbv={:.2}",
-            asset.asset_number, period_number, fiscal_year, dep_amount, nbv);
+        info!(
+            "Running depreciation for asset {} period {}/{}: amount={:.2}, nbv={:.2}",
+            asset.asset_number, period_number, fiscal_year, dep_amount, nbv
+        );
 
-        let history = self.repository.create_depreciation_history(
-            asset.organization_id,
-            asset_id,
-            fiscal_year,
-            period_number,
-            None,
-            depreciation_date,
-            &format!("{dep_amount:.2}"),
-            &format!("{new_accumulated:.2}"),
-            &format!("{nbv:.2}"),
-            &asset.depreciation_method,
-            created_by,
-        ).await?;
+        let history = self
+            .repository
+            .create_depreciation_history(
+                asset.organization_id,
+                asset_id,
+                fiscal_year,
+                period_number,
+                None,
+                depreciation_date,
+                &format!("{dep_amount:.2}"),
+                &format!("{new_accumulated:.2}"),
+                &format!("{nbv:.2}"),
+                &asset.depreciation_method,
+                created_by,
+            )
+            .await?;
 
         // Update asset record
-        self.repository.update_asset_depreciation(
-            asset_id,
-            &format!("{new_accumulated:.2}"),
-            &format!("{nbv:.2}"),
-            &format!("{dep_amount:.2}"),
-            periods_depreciated + 1,
-            depreciation_date,
-        ).await?;
+        self.repository
+            .update_asset_depreciation(
+                asset_id,
+                &format!("{new_accumulated:.2}"),
+                &format!("{nbv:.2}"),
+                &format!("{dep_amount:.2}"),
+                periods_depreciated + 1,
+                depreciation_date,
+            )
+            .await?;
 
         Ok(history)
     }
 
     /// Get depreciation history for an asset
-    pub async fn get_depreciation_history(&self, asset_id: Uuid) -> AtlasResult<Vec<AssetDepreciationHistory>> {
+    pub async fn get_depreciation_history(
+        &self,
+        asset_id: Uuid,
+    ) -> AtlasResult<Vec<AssetDepreciationHistory>> {
         self.repository.list_depreciation_history(asset_id).await
     }
 
     /// Get net book value of an asset at a given date
-    #[must_use] 
+    #[must_use]
     pub fn calculate_net_book_value(
         &self,
         original_cost: f64,
@@ -281,7 +299,11 @@ impl AssetDepreciationEngine {
 
     /// Round up to nearest integer
     fn round_up(v: f64) -> f64 {
-        if v == v.floor() { v } else { v.floor() + 1.0 }
+        if v == v.floor() {
+            v
+        } else {
+            v.floor() + 1.0
+        }
     }
 }
 
@@ -324,29 +346,33 @@ mod tests {
 
     #[test]
     fn test_straight_line_depreciation() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
 
         // $12,000 asset, $0 salvage, 12 months = $1,000/month
-        let dep = engine.calculate_period_depreciation(
-            "straight_line", 12000.0, 0.0, 12, 0, None,
-        ).unwrap();
+        let dep = engine
+            .calculate_period_depreciation("straight_line", 12000.0, 0.0, 12, 0, None)
+            .unwrap();
         assert!((dep - 1000.0).abs() < 0.01, "Expected ~1000.0, got {}", dep);
 
         // $10,000 asset, $1,000 salvage, 36 months = $250/month
-        let dep = engine.calculate_period_depreciation(
-            "straight_line", 10000.0, 1000.0, 36, 0, None,
-        ).unwrap();
+        let dep = engine
+            .calculate_period_depreciation("straight_line", 10000.0, 1000.0, 36, 0, None)
+            .unwrap();
         assert!((dep - 250.0).abs() < 0.01, "Expected ~250.0, got {}", dep);
     }
 
     #[test]
     fn test_straight_line_last_period() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
 
         // 12 months, already depreciated 11 periods, last period gets remainder
-        let dep = engine.calculate_period_depreciation(
-            "straight_line", 10000.0, 0.0, 12, 11, None,
-        ).unwrap();
+        let dep = engine
+            .calculate_period_depreciation("straight_line", 10000.0, 0.0, 12, 11, None)
+            .unwrap();
         // Remaining = 10000 - 11*833.33 = 10000 - 9166.63 = 833.37
         assert!(dep > 0.0, "Last period should have positive depreciation");
         assert!(dep < 1200.0, "Last period should be close to normal period");
@@ -354,23 +380,27 @@ mod tests {
 
     #[test]
     fn test_straight_line_fully_depreciated() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
 
         // Already fully depreciated
-        let dep = engine.calculate_period_depreciation(
-            "straight_line", 10000.0, 0.0, 12, 12, None,
-        ).unwrap();
+        let dep = engine
+            .calculate_period_depreciation("straight_line", 10000.0, 0.0, 12, 12, None)
+            .unwrap();
         assert_eq!(dep, 0.0, "Fully depreciated asset should return 0");
     }
 
     #[test]
     fn test_declining_balance_depreciation() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
 
         // Double declining balance: $10,000, 60 months
-        let dep = engine.calculate_period_depreciation(
-            "declining_balance", 10000.0, 0.0, 60, 0, Some(2.0),
-        ).unwrap();
+        let dep = engine
+            .calculate_period_depreciation("declining_balance", 10000.0, 0.0, 60, 0, Some(2.0))
+            .unwrap();
         // First period: 10000 * (2.0 / 60) = 333.33
         assert!(dep > 0.0, "Should have positive depreciation");
         assert!(dep < 500.0, "First period should be reasonable");
@@ -378,59 +408,76 @@ mod tests {
 
     #[test]
     fn test_sum_of_years_digits() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
 
         // $15,000, $0 salvage, 60 months (5 years)
         // Sum of years = 5+4+3+2+1 = 15
         // Year 1 depreciation = 15000 * (5/15) = 5000, monthly = 416.67
-        let dep = engine.calculate_period_depreciation(
-            "sum_of_years_digits", 15000.0, 0.0, 60, 0, None,
-        ).unwrap();
+        let dep = engine
+            .calculate_period_depreciation("sum_of_years_digits", 15000.0, 0.0, 60, 0, None)
+            .unwrap();
         assert!(dep > 300.0, "SYD first year monthly should be > 300");
         assert!(dep < 500.0, "SYD first year monthly should be < 500");
     }
 
     #[test]
     fn test_zero_depreciable_basis() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
 
         // Cost = salvage value
-        let dep = engine.calculate_period_depreciation(
-            "straight_line", 5000.0, 5000.0, 60, 0, None,
-        ).unwrap();
+        let dep = engine
+            .calculate_period_depreciation("straight_line", 5000.0, 5000.0, 60, 0, None)
+            .unwrap();
         assert_eq!(dep, 0.0, "No depreciation when cost equals salvage");
     }
 
     #[test]
     fn test_invalid_method() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
 
-        let result = engine.calculate_period_depreciation(
-            "invalid_method", 10000.0, 0.0, 60, 0, None,
-        );
+        let result =
+            engine.calculate_period_depreciation("invalid_method", 10000.0, 0.0, 60, 0, None);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_invalid_useful_life() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
 
-        let result = engine.calculate_period_depreciation(
-            "straight_line", 10000.0, 0.0, 0, 0, None,
-        );
+        let result =
+            engine.calculate_period_depreciation("straight_line", 10000.0, 0.0, 0, 0, None);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_generate_schedule_straight_line() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
         let asset_id = Uuid::new_v4();
         let start = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
 
-        let schedule = engine.generate_schedule(
-            asset_id, "ASSET-001", "Test Asset",
-            12000.0, 0.0, 12, "straight_line", None, start,
-        ).unwrap();
+        let schedule = engine
+            .generate_schedule(
+                asset_id,
+                "ASSET-001",
+                "Test Asset",
+                12000.0,
+                0.0,
+                12,
+                "straight_line",
+                None,
+                start,
+            )
+            .unwrap();
 
         assert_eq!(schedule.periods.len(), 12);
         assert_eq!(schedule.asset_number, "ASSET-001");
@@ -443,36 +490,65 @@ mod tests {
         // Last period should bring accumulated to total
         let last = &schedule.periods.last().unwrap();
         let total_accum: f64 = last.accumulated_depreciation.parse().unwrap();
-        assert!((total_accum - 12000.0).abs() < 1.0, "Total accumulated should be ~12000, got {}", total_accum);
+        assert!(
+            (total_accum - 12000.0).abs() < 1.0,
+            "Total accumulated should be ~12000, got {}",
+            total_accum
+        );
     }
 
     #[test]
     fn test_generate_schedule_with_salvage() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
         let asset_id = Uuid::new_v4();
         let start = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
 
-        let schedule = engine.generate_schedule(
-            asset_id, "ASSET-002", "Salvage Asset",
-            10000.0, 1000.0, 36, "straight_line", None, start,
-        ).unwrap();
+        let schedule = engine
+            .generate_schedule(
+                asset_id,
+                "ASSET-002",
+                "Salvage Asset",
+                10000.0,
+                1000.0,
+                36,
+                "straight_line",
+                None,
+                start,
+            )
+            .unwrap();
 
         assert_eq!(schedule.periods.len(), 36);
 
         // Total depreciation should be ~9000 (10000-1000)
-        let total_dep: f64 = schedule.periods.iter()
+        let total_dep: f64 = schedule
+            .periods
+            .iter()
             .map(|p| p.depreciation_amount.parse::<f64>().unwrap())
             .sum();
-        assert!((total_dep - 9000.0).abs() < 1.0, "Total depreciation should be ~9000, got {}", total_dep);
+        assert!(
+            (total_dep - 9000.0).abs() < 1.0,
+            "Total depreciation should be ~9000, got {}",
+            total_dep
+        );
 
         // Net book value at end should be >= salvage
-        let last_nbv: f64 = schedule.periods.last().unwrap().net_book_value.parse().unwrap();
+        let last_nbv: f64 = schedule
+            .periods
+            .last()
+            .unwrap()
+            .net_book_value
+            .parse()
+            .unwrap();
         assert!(last_nbv >= 999.0, "Final NBV should be >= salvage value");
     }
 
     #[test]
     fn test_calculate_net_book_value() {
-        let engine = AssetDepreciationEngine::new(Arc::new(crate::mock_repos::MockAssetDepreciationRepository));
+        let engine = AssetDepreciationEngine::new(Arc::new(
+            crate::mock_repos::MockAssetDepreciationRepository,
+        ));
 
         let nbv = engine.calculate_net_book_value(10000.0, 6000.0, 0.0);
         assert!((nbv - 4000.0).abs() < 0.01);

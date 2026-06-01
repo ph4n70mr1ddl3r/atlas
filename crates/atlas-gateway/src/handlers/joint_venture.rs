@@ -6,19 +6,18 @@
 //! AFEs (Authorizations for Expenditure), cost/revenue distributions,
 //! and Joint Interest Billing (JIB).
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Joint Venture CRUD
@@ -45,14 +44,30 @@ pub async fn create_venture(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.projects.joint_venture_engine.create_venture(
-        org_id, &payload.venture_number, &payload.name,
-        payload.description.as_deref(), None,
-        payload.operator_name.as_deref(), &payload.currency_code,
-        payload.start_date, payload.end_date,
-        &payload.accounting_method, &payload.billing_cycle,
-        None, None, None, None, None, Some(user_id),
-    ).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .create_venture(
+            org_id,
+            &payload.venture_number,
+            &payload.name,
+            payload.description.as_deref(),
+            None,
+            payload.operator_name.as_deref(),
+            &payload.currency_code,
+            payload.start_date,
+            payload.end_date,
+            &payload.accounting_method,
+            &payload.billing_cycle,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(venture) => Ok(created_json(venture)),
         Err(e) => {
             error!("Failed to create joint venture: {}", e);
@@ -76,9 +91,17 @@ pub async fn list_ventures(
     Query(query): Query<ListVenturesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.projects.joint_venture_engine.list_ventures(org_id, query.status.as_deref()).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .list_ventures(org_id, query.status.as_deref())
+        .await
+    {
         Ok(ventures) => Ok(Json(serde_json::json!({ "data": ventures }))),
-        Err(e) => { error!("Failed to list ventures: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list ventures: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -89,7 +112,10 @@ pub async fn get_venture(
     match state.projects.joint_venture_engine.get_venture(id).await {
         Ok(Some(v)) => Ok(to_json(v)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get venture: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get venture: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -97,7 +123,12 @@ pub async fn activate_venture(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.projects.joint_venture_engine.activate_venture(id).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .activate_venture(id)
+        .await
+    {
         Ok(v) => Ok(to_json(v)),
         Err(e) => {
             error!("Failed to activate venture: {}", e);
@@ -155,14 +186,28 @@ pub async fn add_partner(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.projects.joint_venture_engine.add_partner(
-        org_id, venture_id, payload.partner_id, &payload.partner_name,
-        &payload.partner_type, &payload.ownership_percentage,
-        payload.revenue_interest_pct.as_deref(), payload.cost_bearing_pct.as_deref(),
-        &payload.role, payload.billing_contact.as_deref(),
-        payload.billing_email.as_deref(), payload.billing_address.as_deref(),
-        payload.effective_from, payload.effective_to, Some(user_id),
-    ).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .add_partner(
+            org_id,
+            venture_id,
+            payload.partner_id,
+            &payload.partner_name,
+            &payload.partner_type,
+            &payload.ownership_percentage,
+            payload.revenue_interest_pct.as_deref(),
+            payload.cost_bearing_pct.as_deref(),
+            &payload.role,
+            payload.billing_contact.as_deref(),
+            payload.billing_email.as_deref(),
+            payload.billing_address.as_deref(),
+            payload.effective_from,
+            payload.effective_to,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(partner) => Ok(created_json(partner)),
         Err(e) => {
             error!("Failed to add partner: {}", e);
@@ -178,9 +223,17 @@ pub async fn list_partners(
     State(state): State<Arc<AppState>>,
     Path(venture_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.projects.joint_venture_engine.list_partners(venture_id).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .list_partners(venture_id)
+        .await
+    {
         Ok(partners) => Ok(Json(serde_json::json!({ "data": partners }))),
-        Err(e) => { error!("Failed to list partners: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list partners: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -211,13 +264,26 @@ pub async fn create_afe(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.projects.joint_venture_engine.create_afe(
-        org_id, venture_id, &payload.afe_number, &payload.title,
-        payload.description.as_deref(), &payload.estimated_cost,
-        &payload.currency_code, payload.cost_center.as_deref(),
-        payload.work_area.as_deref(), payload.well_name.as_deref(),
-        payload.effective_from, payload.effective_to, Some(user_id),
-    ).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .create_afe(
+            org_id,
+            venture_id,
+            &payload.afe_number,
+            &payload.title,
+            payload.description.as_deref(),
+            &payload.estimated_cost,
+            &payload.currency_code,
+            payload.cost_center.as_deref(),
+            payload.work_area.as_deref(),
+            payload.well_name.as_deref(),
+            payload.effective_from,
+            payload.effective_to,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(afe) => Ok(created_json(afe)),
         Err(e) => {
             error!("Failed to create AFE: {}", e);
@@ -252,7 +318,12 @@ pub async fn approve_afe(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.projects.joint_venture_engine.approve_afe(id, user_id).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .approve_afe(id, user_id)
+        .await
+    {
         Ok(a) => Ok(to_json(a)),
         Err(e) => {
             error!("Failed to approve AFE: {}", e);
@@ -268,9 +339,17 @@ pub async fn list_afes(
     State(state): State<Arc<AppState>>,
     Path(venture_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.projects.joint_venture_engine.list_afes(venture_id, None).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .list_afes(venture_id, None)
+        .await
+    {
         Ok(afes) => Ok(Json(serde_json::json!({ "data": afes }))),
-        Err(e) => { error!("Failed to list AFEs: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list AFEs: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -301,14 +380,26 @@ pub async fn create_cost_distribution(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.projects.joint_venture_engine.create_cost_distribution(
-        org_id, venture_id, &payload.distribution_number,
-        payload.afe_id, payload.description.as_deref(),
-        &payload.total_amount, &payload.currency_code,
-        &payload.cost_type, payload.distribution_date,
-        payload.source_type.as_deref(), payload.source_id,
-        payload.source_number.as_deref(), Some(user_id),
-    ).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .create_cost_distribution(
+            org_id,
+            venture_id,
+            &payload.distribution_number,
+            payload.afe_id,
+            payload.description.as_deref(),
+            &payload.total_amount,
+            &payload.currency_code,
+            &payload.cost_type,
+            payload.distribution_date,
+            payload.source_type.as_deref(),
+            payload.source_id,
+            payload.source_number.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok((dist, _lines)) => Ok(created_json(dist)),
         Err(e) => {
             let msg = e.to_string();
@@ -327,9 +418,17 @@ pub async fn list_cost_distributions(
     State(state): State<Arc<AppState>>,
     Path(venture_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.projects.joint_venture_engine.list_cost_distributions(venture_id, None).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .list_cost_distributions(venture_id, None)
+        .await
+    {
         Ok(dists) => Ok(Json(serde_json::json!({ "data": dists }))),
-        Err(e) => { error!("Failed to list cost distributions: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list cost distributions: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -337,7 +436,12 @@ pub async fn post_cost_distribution(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.projects.joint_venture_engine.post_cost_distribution(id).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .post_cost_distribution(id)
+        .await
+    {
         Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to post cost distribution: {}", e);
@@ -358,8 +462,16 @@ pub async fn get_joint_venture_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.projects.joint_venture_engine.get_dashboard(org_id).await {
+    match state
+        .projects
+        .joint_venture_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(to_json(dashboard)),
-        Err(e) => { error!("Failed to get JV dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get JV dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

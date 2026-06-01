@@ -7,87 +7,94 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Collections
 
-use atlas_shared::{
-    CustomerCreditProfile, CollectionCase, CustomerInteraction, PromiseToPay,
-    WriteOffRequest, AgingSummary,
-    AtlasError, AtlasResult,
-};
 use super::CollectionsRepository;
+use atlas_shared::{
+    AgingSummary, AtlasError, AtlasResult, CollectionCase, CustomerCreditProfile,
+    CustomerInteraction, PromiseToPay, WriteOffRequest,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid risk classifications
 #[allow(dead_code)]
-const VALID_RISK_CLASSIFICATIONS: &[&str] = &[
-    "low", "medium", "high", "very_high", "defaulted",
-];
+const VALID_RISK_CLASSIFICATIONS: &[&str] = &["low", "medium", "high", "very_high", "defaulted"];
 
 /// Valid case types
 #[allow(dead_code)]
-const VALID_CASE_TYPES: &[&str] = &[
-    "collection", "dispute", "bankruptcy", "skip_trace",
-];
+const VALID_CASE_TYPES: &[&str] = &["collection", "dispute", "bankruptcy", "skip_trace"];
 
 /// Valid case statuses
 #[allow(dead_code)]
 const VALID_CASE_STATUSES: &[&str] = &[
-    "open", "in_progress", "resolved", "closed", "escalated", "written_off",
+    "open",
+    "in_progress",
+    "resolved",
+    "closed",
+    "escalated",
+    "written_off",
 ];
 
 /// Valid case priorities
 #[allow(dead_code)]
-const VALID_PRIORITIES: &[&str] = &[
-    "low", "medium", "high", "critical",
-];
+const VALID_PRIORITIES: &[&str] = &["low", "medium", "high", "critical"];
 
 /// Valid interaction types
 #[allow(dead_code)]
-const VALID_INTERACTION_TYPES: &[&str] = &[
-    "phone_call", "email", "letter", "meeting", "note", "sms",
-];
+const VALID_INTERACTION_TYPES: &[&str] =
+    &["phone_call", "email", "letter", "meeting", "note", "sms"];
 
 /// Valid interaction outcomes
 #[allow(dead_code)]
 const VALID_OUTCOMES: &[&str] = &[
-    "contacted", "left_message", "no_answer", "promised_to_pay",
-    "disputed", "refused", "agreed_payment_plan", "escalated", "no_action",
+    "contacted",
+    "left_message",
+    "no_answer",
+    "promised_to_pay",
+    "disputed",
+    "refused",
+    "agreed_payment_plan",
+    "escalated",
+    "no_action",
 ];
 
 /// Valid promise types
 #[allow(dead_code)]
-const VALID_PROMISE_TYPES: &[&str] = &[
-    "single_payment", "installment", "full_balance",
-];
+const VALID_PROMISE_TYPES: &[&str] = &["single_payment", "installment", "full_balance"];
 
 /// Valid promise statuses
 #[allow(dead_code)]
-const VALID_PROMISE_STATUSES: &[&str] = &[
-    "pending", "partially_kept", "kept", "broken", "cancelled",
-];
+const VALID_PROMISE_STATUSES: &[&str] =
+    &["pending", "partially_kept", "kept", "broken", "cancelled"];
 
 /// Valid dunning levels
 #[allow(dead_code)]
 const VALID_DUNNING_LEVELS: &[&str] = &[
-    "reminder", "first_notice", "second_notice", "final_notice", "pre_legal", "legal",
+    "reminder",
+    "first_notice",
+    "second_notice",
+    "final_notice",
+    "pre_legal",
+    "legal",
 ];
 
 /// Valid communication methods
 #[allow(dead_code)]
-const VALID_COMMUNICATION_METHODS: &[&str] = &[
-    "email", "letter", "sms", "phone",
-];
+const VALID_COMMUNICATION_METHODS: &[&str] = &["email", "letter", "sms", "phone"];
 
 /// Valid write-off types
 #[allow(dead_code)]
-const VALID_WRITE_OFF_TYPES: &[&str] = &[
-    "bad_debt", "small_balance", "dispute", "adjustment",
-];
+const VALID_WRITE_OFF_TYPES: &[&str] = &["bad_debt", "small_balance", "dispute", "adjustment"];
 
 /// Valid write-off statuses
 #[allow(dead_code)]
 const VALID_WRITE_OFF_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "rejected", "processed", "cancelled",
+    "draft",
+    "submitted",
+    "approved",
+    "rejected",
+    "processed",
+    "cancelled",
 ];
 
 /// Collections & Credit Management engine
@@ -121,9 +128,9 @@ impl CollectionsEngine {
         next_review_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CustomerCreditProfile> {
-        let limit: f64 = credit_limit.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Credit limit must be a valid number".to_string(),
-        ))?;
+        let limit: f64 = credit_limit.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Credit limit must be a valid number".to_string())
+        })?;
         if limit < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Credit limit must be non-negative".to_string(),
@@ -132,7 +139,8 @@ impl CollectionsEngine {
         if !VALID_RISK_CLASSIFICATIONS.contains(&risk_classification) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid risk classification '{}'. Must be one of: {}",
-                risk_classification, VALID_RISK_CLASSIFICATIONS.join(", ")
+                risk_classification,
+                VALID_RISK_CLASSIFICATIONS.join(", ")
             )));
         }
         if let Some(score) = credit_score {
@@ -143,19 +151,39 @@ impl CollectionsEngine {
             }
         }
 
-        info!("Creating/updating credit profile for customer {} in org {}", customer_id, org_id);
+        info!(
+            "Creating/updating credit profile for customer {} in org {}",
+            customer_id, org_id
+        );
 
-        self.repository.create_credit_profile(
-            org_id, customer_id, customer_number, customer_name,
-            credit_limit, risk_classification, credit_score,
-            external_credit_rating, external_rating_agency, external_rating_date,
-            payment_terms, next_review_date, created_by,
-        ).await
+        self.repository
+            .create_credit_profile(
+                org_id,
+                customer_id,
+                customer_number,
+                customer_name,
+                credit_limit,
+                risk_classification,
+                credit_score,
+                external_credit_rating,
+                external_rating_agency,
+                external_rating_date,
+                payment_terms,
+                next_review_date,
+                created_by,
+            )
+            .await
     }
 
     /// Get a customer's credit profile
-    pub async fn get_credit_profile(&self, org_id: Uuid, customer_id: Uuid) -> AtlasResult<Option<CustomerCreditProfile>> {
-        self.repository.get_credit_profile(org_id, customer_id).await
+    pub async fn get_credit_profile(
+        &self,
+        org_id: Uuid,
+        customer_id: Uuid,
+    ) -> AtlasResult<Option<CustomerCreditProfile>> {
+        self.repository
+            .get_credit_profile(org_id, customer_id)
+            .await
     }
 
     /// List credit profiles with optional filters
@@ -165,7 +193,9 @@ impl CollectionsEngine {
         status: Option<&str>,
         risk_classification: Option<&str>,
     ) -> AtlasResult<Vec<CustomerCreditProfile>> {
-        self.repository.list_credit_profiles(org_id, status, risk_classification).await
+        self.repository
+            .list_credit_profiles(org_id, status, risk_classification)
+            .await
     }
 
     /// Place a customer on credit hold
@@ -176,10 +206,15 @@ impl CollectionsEngine {
         reason: &str,
         placed_by: Uuid,
     ) -> AtlasResult<CustomerCreditProfile> {
-        let profile = self.repository.get_credit_profile(org_id, customer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile not found for customer {customer_id}")
-            ))?;
+        let profile = self
+            .repository
+            .get_credit_profile(org_id, customer_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Credit profile not found for customer {customer_id}"
+                ))
+            })?;
 
         if profile.credit_hold {
             return Err(AtlasError::ValidationFailed(
@@ -187,14 +222,32 @@ impl CollectionsEngine {
             ));
         }
 
-        info!("Placing customer {} on credit hold: {}", customer_id, reason);
+        info!(
+            "Placing customer {} on credit hold: {}",
+            customer_id, reason
+        );
 
-        self.repository.update_credit_profile(
-            profile.id,
-            None, None, None, None, None, None, None, None, None,
-            Some(true), Some(reason), Some(chrono::Utc::now()), Some(placed_by),
-            None, None, None,
-        ).await
+        self.repository
+            .update_credit_profile(
+                profile.id,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(true),
+                Some(reason),
+                Some(chrono::Utc::now()),
+                Some(placed_by),
+                None,
+                None,
+                None,
+            )
+            .await
     }
 
     /// Remove a customer from credit hold
@@ -203,10 +256,15 @@ impl CollectionsEngine {
         org_id: Uuid,
         customer_id: Uuid,
     ) -> AtlasResult<CustomerCreditProfile> {
-        let profile = self.repository.get_credit_profile(org_id, customer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile not found for customer {customer_id}")
-            ))?;
+        let profile = self
+            .repository
+            .get_credit_profile(org_id, customer_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Credit profile not found for customer {customer_id}"
+                ))
+            })?;
 
         if !profile.credit_hold {
             return Err(AtlasError::ValidationFailed(
@@ -216,12 +274,27 @@ impl CollectionsEngine {
 
         info!("Removing credit hold for customer {}", customer_id);
 
-        self.repository.update_credit_profile(
-            profile.id,
-            None, None, None, None, None, None, None, None, None,
-            Some(false), None, None, None,
-            Some(chrono::Utc::now().date_naive()), None, None,
-        ).await
+        self.repository
+            .update_credit_profile(
+                profile.id,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(false),
+                None,
+                None,
+                None,
+                Some(chrono::Utc::now().date_naive()),
+                None,
+                None,
+            )
+            .await
     }
 
     /// Check if a customer can be extended additional credit
@@ -231,18 +304,23 @@ impl CollectionsEngine {
         customer_id: Uuid,
         additional_amount: &str,
     ) -> AtlasResult<bool> {
-        let profile = self.repository.get_credit_profile(org_id, customer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile not found for customer {customer_id}")
-            ))?;
+        let profile = self
+            .repository
+            .get_credit_profile(org_id, customer_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Credit profile not found for customer {customer_id}"
+                ))
+            })?;
 
         if profile.credit_hold {
             return Ok(false);
         }
 
-        let additional: f64 = additional_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Additional amount must be a valid number".to_string(),
-        ))?;
+        let additional: f64 = additional_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Additional amount must be a valid number".to_string())
+        })?;
 
         let available: f64 = profile.credit_available.parse().unwrap_or(0.0);
 
@@ -276,28 +354,46 @@ impl CollectionsEngine {
         if !VALID_CASE_TYPES.contains(&case_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid case type '{}'. Must be one of: {}",
-                case_type, VALID_CASE_TYPES.join(", ")
+                case_type,
+                VALID_CASE_TYPES.join(", ")
             )));
         }
         if !VALID_PRIORITIES.contains(&priority) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid priority '{}'. Must be one of: {}",
-                priority, VALID_PRIORITIES.join(", ")
+                priority,
+                VALID_PRIORITIES.join(", ")
             )));
         }
 
         let case_number = format!("CC-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating collection case {} for customer {}", case_number, customer_id);
+        info!(
+            "Creating collection case {} for customer {}",
+            case_number, customer_id
+        );
 
-        self.repository.create_case(
-            org_id, &case_number, customer_id, customer_number, customer_name,
-            strategy_id, assigned_to, assigned_to_name,
-            case_type, priority,
-            total_overdue_amount, total_disputed_amount, total_invoiced_amount,
-            overdue_invoice_count, oldest_overdue_date,
-            related_invoice_ids, created_by,
-        ).await
+        self.repository
+            .create_case(
+                org_id,
+                &case_number,
+                customer_id,
+                customer_number,
+                customer_name,
+                strategy_id,
+                assigned_to,
+                assigned_to_name,
+                case_type,
+                priority,
+                total_overdue_amount,
+                total_disputed_amount,
+                total_invoiced_amount,
+                overdue_invoice_count,
+                oldest_overdue_date,
+                related_invoice_ids,
+                created_by,
+            )
+            .await
     }
 
     /// Get a collection case by ID
@@ -316,11 +412,15 @@ impl CollectionsEngine {
         if let Some(s) = status {
             if !VALID_CASE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_CASE_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_CASE_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_cases(org_id, status, customer_id, assigned_to).await
+        self.repository
+            .list_cases(org_id, status, customer_id, assigned_to)
+            .await
     }
 
     /// Escalate a collection case
@@ -331,33 +431,38 @@ impl CollectionsEngine {
         escalated_to_name: Option<&str>,
         reason: Option<&str>,
     ) -> AtlasResult<CollectionCase> {
-        let case = self.repository.get_case(case_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Collection case {case_id} not found")
-            ))?;
+        let case = self.repository.get_case(case_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Collection case {case_id} not found"))
+        })?;
 
         if case.status != "open" && case.status != "in_progress" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot escalate case in '{}' status", case.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot escalate case in '{}' status",
+                case.status
+            )));
         }
 
-        info!("Escalating collection case {} to {}", case.case_number, escalated_to);
+        info!(
+            "Escalating collection case {} to {}",
+            case.case_number, escalated_to
+        );
 
         let today = chrono::Utc::now().date_naive();
-        self.repository.update_case_status(
-            case_id,
-            "escalated",
-            None,
-            Some(escalated_to),
-            escalated_to_name,
-            Some(today),
-            None,
-            None,
-            reason,
-            None,
-            None,
-        ).await
+        self.repository
+            .update_case_status(
+                case_id,
+                "escalated",
+                None,
+                Some(escalated_to),
+                escalated_to_name,
+                Some(today),
+                None,
+                None,
+                reason,
+                None,
+                None,
+            )
+            .await
     }
 
     /// Resolve a collection case
@@ -367,33 +472,38 @@ impl CollectionsEngine {
         resolution_type: &str,
         resolution_notes: Option<&str>,
     ) -> AtlasResult<CollectionCase> {
-        let case = self.repository.get_case(case_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Collection case {case_id} not found")
-            ))?;
+        let case = self.repository.get_case(case_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Collection case {case_id} not found"))
+        })?;
 
         if case.status == "closed" || case.status == "resolved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Case is already '{}'", case.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Case is already '{}'",
+                case.status
+            )));
         }
 
         let today = chrono::Utc::now().date_naive();
-        info!("Resolving collection case {} as: {}", case.case_number, resolution_type);
+        info!(
+            "Resolving collection case {} as: {}",
+            case.case_number, resolution_type
+        );
 
-        self.repository.update_case_status(
-            case_id,
-            "resolved",
-            None,
-            None,
-            None,
-            Some(today),
-            None,
-            Some(resolution_type),
-            resolution_notes,
-            Some(today),
-            None,
-        ).await
+        self.repository
+            .update_case_status(
+                case_id,
+                "resolved",
+                None,
+                None,
+                None,
+                Some(today),
+                None,
+                Some(resolution_type),
+                resolution_notes,
+                Some(today),
+                None,
+            )
+            .await
     }
 
     // ========================================================================
@@ -426,7 +536,8 @@ impl CollectionsEngine {
         if !VALID_INTERACTION_TYPES.contains(&interaction_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid interaction type '{}'. Must be one of: {}",
-                interaction_type, VALID_INTERACTION_TYPES.join(", ")
+                interaction_type,
+                VALID_INTERACTION_TYPES.join(", ")
             )));
         }
         if !["outbound", "inbound"].contains(&direction) {
@@ -437,32 +548,62 @@ impl CollectionsEngine {
         if let Some(o) = outcome {
             if !VALID_OUTCOMES.contains(&o) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid outcome '{}'. Must be one of: {}", o, VALID_OUTCOMES.join(", ")
+                    "Invalid outcome '{}'. Must be one of: {}",
+                    o,
+                    VALID_OUTCOMES.join(", ")
                 )));
             }
         }
 
-        info!("Recording {} interaction for customer {}", interaction_type, customer_id);
+        info!(
+            "Recording {} interaction for customer {}",
+            interaction_type, customer_id
+        );
 
         // If linked to a case, update the case's last_action_date
         if let Some(cid) = case_id {
             let today = chrono::Utc::now().date_naive();
-            let _ = self.repository.update_case_status(
-                cid,
-                "in_progress",
-                None, None, None,
-                Some(today), follow_up_date,
-                None, None, None, None,
-            ).await;
+            let _ = self
+                .repository
+                .update_case_status(
+                    cid,
+                    "in_progress",
+                    None,
+                    None,
+                    None,
+                    Some(today),
+                    follow_up_date,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+                .await;
         }
 
-        self.repository.create_interaction(
-            org_id, case_id, customer_id, customer_number, customer_name,
-            interaction_type, direction,
-            contact_name, contact_role, contact_phone, contact_email,
-            subject, body, outcome, follow_up_date, follow_up_notes,
-            performed_by, performed_by_name, duration_minutes,
-        ).await
+        self.repository
+            .create_interaction(
+                org_id,
+                case_id,
+                customer_id,
+                customer_number,
+                customer_name,
+                interaction_type,
+                direction,
+                contact_name,
+                contact_role,
+                contact_phone,
+                contact_email,
+                subject,
+                body,
+                outcome,
+                follow_up_date,
+                follow_up_notes,
+                performed_by,
+                performed_by_name,
+                duration_minutes,
+            )
+            .await
     }
 
     /// List interactions for a case or customer
@@ -472,7 +613,9 @@ impl CollectionsEngine {
         case_id: Option<Uuid>,
         customer_id: Option<Uuid>,
     ) -> AtlasResult<Vec<CustomerInteraction>> {
-        self.repository.list_interactions(org_id, case_id, customer_id).await
+        self.repository
+            .list_interactions(org_id, case_id, customer_id)
+            .await
     }
 
     // ========================================================================
@@ -501,88 +644,131 @@ impl CollectionsEngine {
         if !VALID_PROMISE_TYPES.contains(&promise_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid promise type '{}'. Must be one of: {}",
-                promise_type, VALID_PROMISE_TYPES.join(", ")
+                promise_type,
+                VALID_PROMISE_TYPES.join(", ")
             )));
         }
-        let amount: f64 = promised_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Promised amount must be a valid number".to_string(),
-        ))?;
+        let amount: f64 = promised_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Promised amount must be a valid number".to_string())
+        })?;
         if amount <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Promised amount must be positive".to_string(),
             ));
         }
 
-        info!("Recording promise to pay of {} from customer {}", promised_amount, customer_id);
+        info!(
+            "Recording promise to pay of {} from customer {}",
+            promised_amount, customer_id
+        );
 
-        self.repository.create_promise_to_pay(
-            org_id, case_id, customer_id, customer_number, customer_name,
-            promise_type, promised_amount, promise_date,
-            installment_count, installment_frequency,
-            related_invoice_ids, promised_by_name, promised_by_role,
-            notes, recorded_by,
-        ).await
+        self.repository
+            .create_promise_to_pay(
+                org_id,
+                case_id,
+                customer_id,
+                customer_number,
+                customer_name,
+                promise_type,
+                promised_amount,
+                promise_date,
+                installment_count,
+                installment_frequency,
+                related_invoice_ids,
+                promised_by_name,
+                promised_by_role,
+                notes,
+                recorded_by,
+            )
+            .await
     }
 
     /// Mark a promise as kept (fully paid)
-    pub async fn keep_promise(&self, promise_id: Uuid, paid_amount: &str) -> AtlasResult<PromiseToPay> {
-        let ptp = self.repository.get_promise_to_pay(promise_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Promise to pay {promise_id} not found")
-            ))?;
+    pub async fn keep_promise(
+        &self,
+        promise_id: Uuid,
+        paid_amount: &str,
+    ) -> AtlasResult<PromiseToPay> {
+        let ptp = self
+            .repository
+            .get_promise_to_pay(promise_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Promise to pay {promise_id} not found"))
+            })?;
 
         if ptp.status != "pending" && ptp.status != "partially_kept" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot update promise in '{}' status", ptp.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot update promise in '{}' status",
+                ptp.status
+            )));
         }
 
-        let paid: f64 = paid_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Paid amount must be a valid number".to_string(),
-        ))?;
+        let paid: f64 = paid_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Paid amount must be a valid number".to_string())
+        })?;
 
         let promised: f64 = ptp.promised_amount.parse().unwrap_or(0.0);
         let already_paid: f64 = ptp.paid_amount.parse().unwrap_or(0.0);
         let total_paid = already_paid + paid;
         let remaining = (promised - total_paid).max(0.0);
 
-        let new_status = if remaining <= 0.01 { "kept" } else { "partially_kept" };
+        let new_status = if remaining <= 0.01 {
+            "kept"
+        } else {
+            "partially_kept"
+        };
 
-        info!("Updating promise {} - paid {}, status: {}", promise_id, paid_amount, new_status);
+        info!(
+            "Updating promise {} - paid {}, status: {}",
+            promise_id, paid_amount, new_status
+        );
 
-        self.repository.update_promise_status(
-            promise_id,
-            new_status,
-            Some(&format!("{total_paid:.2}")),
-            Some(&format!("{remaining:.2}")),
-            None,
-            None,
-        ).await
+        self.repository
+            .update_promise_status(
+                promise_id,
+                new_status,
+                Some(&format!("{total_paid:.2}")),
+                Some(&format!("{remaining:.2}")),
+                None,
+                None,
+            )
+            .await
     }
 
     /// Mark a promise as broken
-    pub async fn break_promise(&self, promise_id: Uuid, reason: Option<&str>) -> AtlasResult<PromiseToPay> {
-        let ptp = self.repository.get_promise_to_pay(promise_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Promise to pay {promise_id} not found")
-            ))?;
+    pub async fn break_promise(
+        &self,
+        promise_id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<PromiseToPay> {
+        let ptp = self
+            .repository
+            .get_promise_to_pay(promise_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Promise to pay {promise_id} not found"))
+            })?;
 
         if ptp.status != "pending" && ptp.status != "partially_kept" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot break promise in '{}' status", ptp.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot break promise in '{}' status",
+                ptp.status
+            )));
         }
 
         info!("Marking promise {} as broken", promise_id);
 
-        self.repository.update_promise_status(
-            promise_id,
-            "broken",
-            None,
-            None,
-            Some(chrono::Utc::now().date_naive()),
-            reason,
-        ).await
+        self.repository
+            .update_promise_status(
+                promise_id,
+                "broken",
+                None,
+                None,
+                Some(chrono::Utc::now().date_naive()),
+                reason,
+            )
+            .await
     }
 
     /// List promises to pay
@@ -595,11 +781,15 @@ impl CollectionsEngine {
         if let Some(s) = status {
             if !VALID_PROMISE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_PROMISE_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_PROMISE_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_promises_to_pay(org_id, customer_id, status).await
+        self.repository
+            .list_promises_to_pay(org_id, customer_id, status)
+            .await
     }
 
     // ========================================================================
@@ -624,12 +814,13 @@ impl CollectionsEngine {
         if !VALID_WRITE_OFF_TYPES.contains(&write_off_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid write-off type '{}'. Must be one of: {}",
-                write_off_type, VALID_WRITE_OFF_TYPES.join(", ")
+                write_off_type,
+                VALID_WRITE_OFF_TYPES.join(", ")
             )));
         }
-        let amount: f64 = write_off_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Write-off amount must be a valid number".to_string(),
-        ))?;
+        let amount: f64 = write_off_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Write-off amount must be a valid number".to_string())
+        })?;
         if amount <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Write-off amount must be positive".to_string(),
@@ -643,64 +834,115 @@ impl CollectionsEngine {
 
         let request_number = format!("WO-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating write-off request {} for customer {}", request_number, customer_id);
+        info!(
+            "Creating write-off request {} for customer {}",
+            request_number, customer_id
+        );
 
-        self.repository.create_write_off_request(
-            org_id, &request_number, customer_id, customer_number, customer_name,
-            write_off_type, write_off_amount, write_off_account_code,
-            reason, related_invoice_ids, case_id, created_by,
-        ).await
+        self.repository
+            .create_write_off_request(
+                org_id,
+                &request_number,
+                customer_id,
+                customer_number,
+                customer_name,
+                write_off_type,
+                write_off_amount,
+                write_off_account_code,
+                reason,
+                related_invoice_ids,
+                case_id,
+                created_by,
+            )
+            .await
     }
 
     /// Submit a write-off request for approval
-    pub async fn submit_write_off(&self, request_id: Uuid, submitted_by: Uuid) -> AtlasResult<WriteOffRequest> {
-        let wo = self.repository.get_write_off_request(request_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Write-off request {request_id} not found")
-            ))?;
+    pub async fn submit_write_off(
+        &self,
+        request_id: Uuid,
+        submitted_by: Uuid,
+    ) -> AtlasResult<WriteOffRequest> {
+        let wo = self
+            .repository
+            .get_write_off_request(request_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Write-off request {request_id} not found"))
+            })?;
 
         if wo.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit write-off in '{}' status. Must be 'draft'.", wo.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit write-off in '{}' status. Must be 'draft'.",
+                wo.status
+            )));
         }
 
         info!("Submitting write-off request {}", wo.request_number);
-        self.repository.update_write_off_status(request_id, "submitted", Some(submitted_by), None, None, None).await
+        self.repository
+            .update_write_off_status(
+                request_id,
+                "submitted",
+                Some(submitted_by),
+                None,
+                None,
+                None,
+            )
+            .await
     }
 
     /// Approve a write-off request
-    pub async fn approve_write_off(&self, request_id: Uuid, approved_by: Uuid) -> AtlasResult<WriteOffRequest> {
-        let wo = self.repository.get_write_off_request(request_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Write-off request {request_id} not found")
-            ))?;
+    pub async fn approve_write_off(
+        &self,
+        request_id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<WriteOffRequest> {
+        let wo = self
+            .repository
+            .get_write_off_request(request_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Write-off request {request_id} not found"))
+            })?;
 
         if wo.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve write-off in '{}' status. Must be 'submitted'.", wo.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve write-off in '{}' status. Must be 'submitted'.",
+                wo.status
+            )));
         }
 
         info!("Approving write-off request {}", wo.request_number);
-        self.repository.update_write_off_status(request_id, "approved", None, Some(approved_by), None, None).await
+        self.repository
+            .update_write_off_status(request_id, "approved", None, Some(approved_by), None, None)
+            .await
     }
 
     /// Reject a write-off request
-    pub async fn reject_write_off(&self, request_id: Uuid, reason: &str) -> AtlasResult<WriteOffRequest> {
-        let wo = self.repository.get_write_off_request(request_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Write-off request {request_id} not found")
-            ))?;
+    pub async fn reject_write_off(
+        &self,
+        request_id: Uuid,
+        reason: &str,
+    ) -> AtlasResult<WriteOffRequest> {
+        let wo = self
+            .repository
+            .get_write_off_request(request_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Write-off request {request_id} not found"))
+            })?;
 
         if wo.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reject write-off in '{}' status. Must be 'submitted'.", wo.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reject write-off in '{}' status. Must be 'submitted'.",
+                wo.status
+            )));
         }
 
         info!("Rejecting write-off request {}", wo.request_number);
-        self.repository.update_write_off_status(request_id, "rejected", None, None, Some(reason), None).await
+        self.repository
+            .update_write_off_status(request_id, "rejected", None, None, Some(reason), None)
+            .await
     }
 
     // ========================================================================
@@ -709,7 +951,7 @@ impl CollectionsEngine {
 
     /// Calculate aging summary across all customers for a given date
     /// This returns a summary report combining all individual snapshots
-    #[must_use] 
+    #[must_use]
     pub fn calculate_aging_summary(
         &self,
         snapshots: &[atlas_shared::ReceivablesAgingSnapshot],
@@ -748,8 +990,12 @@ impl CollectionsEngine {
 
         // Weighted average days overdue (approximate using bucket midpoints)
         let weighted_days = if total_overdue > 0.0 {
-            (aging_1_30 * 15.0 + aging_31_60 * 45.0 + aging_61_90 * 75.0
-                + aging_91_120 * 105.0 + aging_121_plus * 150.0) / total_overdue
+            (aging_1_30 * 15.0
+                + aging_31_60 * 45.0
+                + aging_61_90 * 75.0
+                + aging_91_120 * 105.0
+                + aging_121_plus * 150.0)
+                / total_overdue
         } else {
             0.0
         };

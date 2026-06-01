@@ -6,17 +6,17 @@
 //! approval workflow, and `AutoCreate` conversion to purchase orders.
 
 use axum::{
-    extract::{Path, Query, State, Extension},
-    Json,
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::handlers::auth::{parse_uuid, Claims};
 use crate::AppState;
-use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Query Parameters
@@ -40,47 +40,65 @@ pub async fn create_requisition(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
     let lines = match body["lines"].as_array() {
-        Some(arr) => arr.iter().map(|l| {
-            let dists = l["distributions"].as_array().map(|da| {
-                da.iter().filter_map(|d| {
-                    Some(atlas_shared::RequisitionDistributionRequest {
-                        charge_account_code: d["charge_account_code"].as_str()?.to_string(),
-                        allocation_percentage: d["allocation_percentage"].as_str().map(String::from),
-                        amount: d["amount"].as_str().map(String::from),
-                        project_code: d["project_code"].as_str().map(String::from),
-                        cost_center: d["cost_center"].as_str().map(String::from),
-                    })
-                }).collect::<Vec<_>>()
-            });
-            atlas_shared::RequisitionLineRequest {
-                item_code: l["item_code"].as_str().map(String::from),
-                item_description: l["item_description"].as_str().unwrap_or("").to_string(),
-                category: l["category"].as_str().map(String::from),
-                quantity: l["quantity"].as_str().map(String::from),
-                unit_of_measure: l["unit_of_measure"].as_str().map(String::from),
-                unit_price: l["unit_price"].as_str().map(String::from),
-                currency_code: l["currency_code"].as_str().map(String::from),
-                charge_account_code: l["charge_account_code"].as_str().map(String::from),
-                requested_delivery_date: l["requested_delivery_date"].as_str().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
-                supplier_id: l["supplier_id"].as_str().and_then(|s| Uuid::parse_str(s).ok()),
-                supplier_name: l["supplier_name"].as_str().map(String::from),
-                source_type: l["source_type"].as_str().map(String::from),
-                source_reference: l["source_reference"].as_str().map(String::from),
-                notes: l["notes"].as_str().map(String::from),
-                distributions: dists,
-            }
-        }).collect(),
+        Some(arr) => arr
+            .iter()
+            .map(|l| {
+                let dists = l["distributions"].as_array().map(|da| {
+                    da.iter()
+                        .filter_map(|d| {
+                            Some(atlas_shared::RequisitionDistributionRequest {
+                                charge_account_code: d["charge_account_code"].as_str()?.to_string(),
+                                allocation_percentage: d["allocation_percentage"]
+                                    .as_str()
+                                    .map(String::from),
+                                amount: d["amount"].as_str().map(String::from),
+                                project_code: d["project_code"].as_str().map(String::from),
+                                cost_center: d["cost_center"].as_str().map(String::from),
+                            })
+                        })
+                        .collect::<Vec<_>>()
+                });
+                atlas_shared::RequisitionLineRequest {
+                    item_code: l["item_code"].as_str().map(String::from),
+                    item_description: l["item_description"].as_str().unwrap_or("").to_string(),
+                    category: l["category"].as_str().map(String::from),
+                    quantity: l["quantity"].as_str().map(String::from),
+                    unit_of_measure: l["unit_of_measure"].as_str().map(String::from),
+                    unit_price: l["unit_price"].as_str().map(String::from),
+                    currency_code: l["currency_code"].as_str().map(String::from),
+                    charge_account_code: l["charge_account_code"].as_str().map(String::from),
+                    requested_delivery_date: l["requested_delivery_date"]
+                        .as_str()
+                        .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+                    supplier_id: l["supplier_id"]
+                        .as_str()
+                        .and_then(|s| Uuid::parse_str(s).ok()),
+                    supplier_name: l["supplier_name"].as_str().map(String::from),
+                    source_type: l["source_type"].as_str().map(String::from),
+                    source_reference: l["source_reference"].as_str().map(String::from),
+                    notes: l["notes"].as_str().map(String::from),
+                    distributions: dists,
+                }
+            })
+            .collect(),
         None => Vec::new(),
     };
 
     let request = atlas_shared::PurchaseRequisitionRequest {
         description: body["description"].as_str().map(String::from),
         urgency_code: body["urgency_code"].as_str().map(String::from),
-        requester_id: body["requester_id"].as_str().and_then(|s| Uuid::parse_str(s).ok()),
+        requester_id: body["requester_id"]
+            .as_str()
+            .and_then(|s| Uuid::parse_str(s).ok()),
         requester_name: body["requester_name"].as_str().map(String::from),
         department: body["department"].as_str().map(String::from),
         justification: body["justification"].as_str().map(String::from),
@@ -89,15 +107,28 @@ pub async fn create_requisition(
         currency_code: body["currency_code"].as_str().map(String::from),
         charge_account_code: body["charge_account_code"].as_str().map(String::from),
         delivery_address: body["delivery_address"].as_str().map(String::from),
-        requested_delivery_date: body["requested_delivery_date"].as_str().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+        requested_delivery_date: body["requested_delivery_date"]
+            .as_str()
+            .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
         notes: body["notes"].as_str().map(String::from),
         lines,
     };
 
     let created_by = Uuid::parse_str(&claims.sub).ok();
 
-    match state.scm.purchase_requisition_engine.create_requisition(org_id, &request, created_by).await {
-        Ok(req) => Ok((StatusCode::CREATED, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .create_requisition(org_id, &request, created_by)
+        .await
+    {
+        Ok(req) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(req).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
@@ -115,10 +146,24 @@ pub async fn get_requisition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.get_requisition(id).await {
-        Ok(Some(req)) => Ok(Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(json!({"error": "Requisition not found"})))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .get_requisition(id)
+        .await
+    {
+        Ok(Some(req)) => Ok(Json(serde_json::to_value(req).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "Requisition not found"})),
+        )),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -130,14 +175,30 @@ pub async fn list_requisitions(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
-    let requester_id = query.requester_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
+    let requester_id = query
+        .requester_id
+        .as_ref()
+        .and_then(|s| Uuid::parse_str(s).ok());
 
-    match state.scm.purchase_requisition_engine.list_requisitions(org_id, query.status.as_deref(), requester_id).await {
+    match state
+        .scm
+        .purchase_requisition_engine
+        .list_requisitions(org_id, query.status.as_deref(), requester_id)
+        .await
+    {
         Ok(requisitions) => Ok(Json(json!({"data": requisitions}))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -150,12 +211,18 @@ pub async fn update_requisition(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
     let lines = match body["lines"].as_array() {
-        Some(arr) => arr.iter().map(|l| {
-            atlas_shared::RequisitionLineRequest {
+        Some(arr) => arr
+            .iter()
+            .map(|l| atlas_shared::RequisitionLineRequest {
                 item_code: l["item_code"].as_str().map(String::from),
                 item_description: l["item_description"].as_str().unwrap_or("").to_string(),
                 category: l["category"].as_str().map(String::from),
@@ -164,22 +231,28 @@ pub async fn update_requisition(
                 unit_price: l["unit_price"].as_str().map(String::from),
                 currency_code: l["currency_code"].as_str().map(String::from),
                 charge_account_code: l["charge_account_code"].as_str().map(String::from),
-                requested_delivery_date: l["requested_delivery_date"].as_str().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
-                supplier_id: l["supplier_id"].as_str().and_then(|s| Uuid::parse_str(s).ok()),
+                requested_delivery_date: l["requested_delivery_date"]
+                    .as_str()
+                    .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+                supplier_id: l["supplier_id"]
+                    .as_str()
+                    .and_then(|s| Uuid::parse_str(s).ok()),
                 supplier_name: l["supplier_name"].as_str().map(String::from),
                 source_type: l["source_type"].as_str().map(String::from),
                 source_reference: l["source_reference"].as_str().map(String::from),
                 notes: l["notes"].as_str().map(String::from),
                 distributions: None,
-            }
-        }).collect(),
+            })
+            .collect(),
         None => Vec::new(),
     };
 
     let request = atlas_shared::PurchaseRequisitionRequest {
         description: body["description"].as_str().map(String::from),
         urgency_code: body["urgency_code"].as_str().map(String::from),
-        requester_id: body["requester_id"].as_str().and_then(|s| Uuid::parse_str(s).ok()),
+        requester_id: body["requester_id"]
+            .as_str()
+            .and_then(|s| Uuid::parse_str(s).ok()),
         requester_name: body["requester_name"].as_str().map(String::from),
         department: body["department"].as_str().map(String::from),
         justification: body["justification"].as_str().map(String::from),
@@ -188,15 +261,28 @@ pub async fn update_requisition(
         currency_code: body["currency_code"].as_str().map(String::from),
         charge_account_code: body["charge_account_code"].as_str().map(String::from),
         delivery_address: body["delivery_address"].as_str().map(String::from),
-        requested_delivery_date: body["requested_delivery_date"].as_str().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+        requested_delivery_date: body["requested_delivery_date"]
+            .as_str()
+            .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
         notes: body["notes"].as_str().map(String::from),
         lines,
     };
 
     let updated_by = Uuid::parse_str(&claims.sub).ok();
 
-    match state.scm.purchase_requisition_engine.update_requisition(id, org_id, &request, updated_by).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .update_requisition(id, org_id, &request, updated_by)
+        .await
+    {
+        Ok(req) => Ok((
+            StatusCode::OK,
+            Json(serde_json::to_value(req).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -214,7 +300,12 @@ pub async fn delete_requisition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.delete_requisition(id).await {
+    match state
+        .scm
+        .purchase_requisition_engine
+        .delete_requisition(id)
+        .await
+    {
         Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "Deleted"})))),
         Err(e) => {
             let status = match &e {
@@ -240,19 +331,26 @@ pub async fn add_requisition_line(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
     let distributions = body["distributions"].as_array().map(|da| {
-        da.iter().filter_map(|d| {
-            Some(atlas_shared::RequisitionDistributionRequest {
-                charge_account_code: d["charge_account_code"].as_str()?.to_string(),
-                allocation_percentage: d["allocation_percentage"].as_str().map(String::from),
-                amount: d["amount"].as_str().map(String::from),
-                project_code: d["project_code"].as_str().map(String::from),
-                cost_center: d["cost_center"].as_str().map(String::from),
+        da.iter()
+            .filter_map(|d| {
+                Some(atlas_shared::RequisitionDistributionRequest {
+                    charge_account_code: d["charge_account_code"].as_str()?.to_string(),
+                    allocation_percentage: d["allocation_percentage"].as_str().map(String::from),
+                    amount: d["amount"].as_str().map(String::from),
+                    project_code: d["project_code"].as_str().map(String::from),
+                    cost_center: d["cost_center"].as_str().map(String::from),
+                })
             })
-        }).collect::<Vec<_>>()
+            .collect::<Vec<_>>()
     });
 
     let request = atlas_shared::RequisitionLineRequest {
@@ -264,8 +362,12 @@ pub async fn add_requisition_line(
         unit_price: body["unit_price"].as_str().map(String::from),
         currency_code: body["currency_code"].as_str().map(String::from),
         charge_account_code: body["charge_account_code"].as_str().map(String::from),
-        requested_delivery_date: body["requested_delivery_date"].as_str().and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
-        supplier_id: body["supplier_id"].as_str().and_then(|s| Uuid::parse_str(s).ok()),
+        requested_delivery_date: body["requested_delivery_date"]
+            .as_str()
+            .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+        supplier_id: body["supplier_id"]
+            .as_str()
+            .and_then(|s| Uuid::parse_str(s).ok()),
         supplier_name: body["supplier_name"].as_str().map(String::from),
         source_type: body["source_type"].as_str().map(String::from),
         source_reference: body["source_reference"].as_str().map(String::from),
@@ -275,8 +377,19 @@ pub async fn add_requisition_line(
 
     let created_by = Uuid::parse_str(&claims.sub).ok();
 
-    match state.scm.purchase_requisition_engine.add_line(org_id, requisition_id, &request, created_by).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .add_line(org_id, requisition_id, &request, created_by)
+        .await
+    {
+        Ok(line) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(line).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -294,9 +407,17 @@ pub async fn list_requisition_lines(
     State(state): State<Arc<AppState>>,
     Path(requisition_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.list_lines(requisition_id).await {
+    match state
+        .scm
+        .purchase_requisition_engine
+        .list_lines(requisition_id)
+        .await
+    {
         Ok(lines) => Ok(Json(json!({"data": lines}))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -305,9 +426,17 @@ pub async fn remove_requisition_line(
     State(state): State<Arc<AppState>>,
     Path(line_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.remove_line(line_id).await {
+    match state
+        .scm
+        .purchase_requisition_engine
+        .remove_line(line_id)
+        .await
+    {
         Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "Line removed"})))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -324,19 +453,38 @@ pub async fn add_requisition_distribution(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
     let request = atlas_shared::RequisitionDistributionRequest {
-        charge_account_code: body["charge_account_code"].as_str().unwrap_or("").to_string(),
+        charge_account_code: body["charge_account_code"]
+            .as_str()
+            .unwrap_or("")
+            .to_string(),
         allocation_percentage: body["allocation_percentage"].as_str().map(String::from),
         amount: body["amount"].as_str().map(String::from),
         project_code: body["project_code"].as_str().map(String::from),
         cost_center: body["cost_center"].as_str().map(String::from),
     };
 
-    match state.scm.purchase_requisition_engine.add_distribution(org_id, requisition_id, line_id, &request).await {
-        Ok(dist) => Ok((StatusCode::CREATED, Json(serde_json::to_value(dist).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .add_distribution(org_id, requisition_id, line_id, &request)
+        .await
+    {
+        Ok(dist) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(dist).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -353,9 +501,17 @@ pub async fn list_requisition_distributions(
     State(state): State<Arc<AppState>>,
     Path(line_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.list_distributions(line_id).await {
+    match state
+        .scm
+        .purchase_requisition_engine
+        .list_distributions(line_id)
+        .await
+    {
         Ok(distributions) => Ok(Json(json!({"data": distributions}))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -370,8 +526,19 @@ pub async fn submit_requisition(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
-    match state.scm.purchase_requisition_engine.submit_requisition(id, submitted_by).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .submit_requisition(id, submitted_by)
+        .await
+    {
+        Ok(req) => Ok((
+            StatusCode::OK,
+            Json(serde_json::to_value(req).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -395,10 +562,19 @@ pub async fn approve_requisition(
     let approver_name = claims.email.clone();
     let comments = body["comments"].as_str().map(String::from);
 
-    match state.scm.purchase_requisition_engine.approve_requisition(
-        id, approver_id, Some(&approver_name), comments.as_deref()
-    ).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .approve_requisition(id, approver_id, Some(&approver_name), comments.as_deref())
+        .await
+    {
+        Ok(req) => Ok((
+            StatusCode::OK,
+            Json(serde_json::to_value(req).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -421,10 +597,19 @@ pub async fn reject_requisition(
     let approver_name = claims.email.clone();
     let comments = body["comments"].as_str().map(String::from);
 
-    match state.scm.purchase_requisition_engine.reject_requisition(
-        id, approver_id, Some(&approver_name), comments.as_deref()
-    ).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .reject_requisition(id, approver_id, Some(&approver_name), comments.as_deref())
+        .await
+    {
+        Ok(req) => Ok((
+            StatusCode::OK,
+            Json(serde_json::to_value(req).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -441,8 +626,19 @@ pub async fn cancel_requisition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.cancel_requisition(id).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .cancel_requisition(id)
+        .await
+    {
+        Ok(req) => Ok((
+            StatusCode::OK,
+            Json(serde_json::to_value(req).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -459,8 +655,19 @@ pub async fn close_requisition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.close_requisition(id).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .close_requisition(id)
+        .await
+    {
+        Ok(req) => Ok((
+            StatusCode::OK,
+            Json(serde_json::to_value(req).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -477,8 +684,19 @@ pub async fn return_requisition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.return_requisition(id).await {
-        Ok(req) => Ok((StatusCode::OK, Json(serde_json::to_value(req).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .return_requisition(id)
+        .await
+    {
+        Ok(req) => Ok((
+            StatusCode::OK,
+            Json(serde_json::to_value(req).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             let status = match &e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
@@ -495,9 +713,17 @@ pub async fn list_requisition_approvals(
     State(state): State<Arc<AppState>>,
     Path(requisition_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.list_approvals(requisition_id).await {
+    match state
+        .scm
+        .purchase_requisition_engine
+        .list_approvals(requisition_id)
+        .await
+    {
         Ok(approvals) => Ok(Json(json!({"data": approvals}))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -513,23 +739,40 @@ pub async fn autocreate(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
-    let line_ids = body["requisition_line_ids"].as_array()
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().and_then(|s| Uuid::parse_str(s).ok())).collect())
+    let line_ids = body["requisition_line_ids"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().and_then(|s| Uuid::parse_str(s).ok()))
+                .collect()
+        })
         .unwrap_or_default();
 
     let request = atlas_shared::AutocreateRequest {
         requisition_line_ids: line_ids,
         purchase_order_number: body["purchase_order_number"].as_str().map(String::from),
-        supplier_id: body["supplier_id"].as_str().and_then(|s| Uuid::parse_str(s).ok()),
+        supplier_id: body["supplier_id"]
+            .as_str()
+            .and_then(|s| Uuid::parse_str(s).ok()),
         supplier_name: body["supplier_name"].as_str().map(String::from),
     };
 
     let created_by = Uuid::parse_str(&claims.sub).ok();
 
-    match state.scm.purchase_requisition_engine.autocreate(org_id, &request, created_by).await {
+    match state
+        .scm
+        .purchase_requisition_engine
+        .autocreate(org_id, &request, created_by)
+        .await
+    {
         Ok(links) => Ok((StatusCode::CREATED, Json(json!({"data": links})))),
         Err(e) => {
             let status = match &e {
@@ -548,9 +791,17 @@ pub async fn list_autocreate_links(
     State(state): State<Arc<AppState>>,
     Path(requisition_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.list_autocreate_links(requisition_id).await {
+    match state
+        .scm
+        .purchase_requisition_engine
+        .list_autocreate_links(requisition_id)
+        .await
+    {
         Ok(links) => Ok(Json(json!({"data": links}))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -559,9 +810,20 @@ pub async fn cancel_autocreate_link(
     State(state): State<Arc<AppState>>,
     Path(link_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match state.scm.purchase_requisition_engine.cancel_autocreate_link(link_id).await {
-        Ok(()) => Ok((StatusCode::OK, Json(json!({"message": "AutoCreate link cancelled"})))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .cancel_autocreate_link(link_id)
+        .await
+    {
+        Ok(()) => Ok((
+            StatusCode::OK,
+            Json(json!({"message": "AutoCreate link cancelled"})),
+        )),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -576,11 +838,27 @@ pub async fn get_requisition_dashboard(
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let org_id = match Uuid::parse_str(&claims.org_id) {
         Ok(id) => id,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid org_id"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Invalid org_id"})),
+            ))
+        }
     };
 
-    match state.scm.purchase_requisition_engine.get_dashboard(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+    match state
+        .scm
+        .purchase_requisition_engine
+        .get_dashboard(org_id)
+        .await
+    {
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }

@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Payables > Payment Process Requests
 
-pub mod repository;
 pub mod engine;
+pub mod repository;
 
 pub use engine::PaymentProcessRequestEngine;
 pub use repository::{PaymentProcessRequestRepository, PostgresPaymentProcessRequestRepository};

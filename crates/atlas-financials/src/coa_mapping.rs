@@ -39,15 +39,21 @@ impl CoaMappingService {
 
         for target_segment in &mapping.target_coa_segments {
             // Find the rule for this target segment
-            let rule_opt = mapping.segment_rules.iter().find(|r| r.target_segment_name == *target_segment);
-            
+            let rule_opt = mapping
+                .segment_rules
+                .iter()
+                .find(|r| r.target_segment_name == *target_segment);
+
             let rule = match rule_opt {
                 Some(r) => r,
                 None => {
                     return MappingResult {
                         is_successful: false,
                         target_account_combination: None,
-                        error_message: Some(format!("No mapping rule found for target segment '{}'", target_segment)),
+                        error_message: Some(format!(
+                            "No mapping rule found for target segment '{}'",
+                            target_segment
+                        )),
                     };
                 }
             };
@@ -60,10 +66,13 @@ impl CoaMappingService {
                         return MappingResult {
                             is_successful: false,
                             target_account_combination: None,
-                            error_message: Some(format!("Missing constant_value for ASSIGN_VALUE rule on '{}'", target_segment)),
+                            error_message: Some(format!(
+                                "Missing constant_value for ASSIGN_VALUE rule on '{}'",
+                                target_segment
+                            )),
                         };
                     }
-                },
+                }
                 "COPY_FROM_SOURCE" => {
                     if let Some(ref src_seg) = rule.source_segment_name {
                         if let Some(val) = source_segments.get(src_seg) {
@@ -72,22 +81,31 @@ impl CoaMappingService {
                             return MappingResult {
                                 is_successful: false,
                                 target_account_combination: None,
-                                error_message: Some(format!("Source segment '{}' not found in provided source combination", src_seg)),
+                                error_message: Some(format!(
+                                    "Source segment '{}' not found in provided source combination",
+                                    src_seg
+                                )),
                             };
                         }
                     } else {
                         return MappingResult {
                             is_successful: false,
                             target_account_combination: None,
-                            error_message: Some(format!("Missing source_segment_name for COPY_FROM_SOURCE rule on '{}'", target_segment)),
+                            error_message: Some(format!(
+                                "Missing source_segment_name for COPY_FROM_SOURCE rule on '{}'",
+                                target_segment
+                            )),
                         };
                     }
-                },
+                }
                 _ => {
                     return MappingResult {
                         is_successful: false,
                         target_account_combination: None,
-                        error_message: Some(format!("Invalid action_type '{}' on '{}'", rule.action_type, target_segment)),
+                        error_message: Some(format!(
+                            "Invalid action_type '{}' on '{}'",
+                            rule.action_type, target_segment
+                        )),
                     };
                 }
             };
@@ -112,7 +130,11 @@ mod tests {
         let mapping = CoaMapping {
             mapping_name: "US_TO_GLOBAL".to_string(),
             // The global target COA has 3 segments: GlobalCompany-GlobalDept-GlobalAccount
-            target_coa_segments: vec!["GlobalCompany".to_string(), "GlobalDept".to_string(), "GlobalAccount".to_string()],
+            target_coa_segments: vec![
+                "GlobalCompany".to_string(),
+                "GlobalDept".to_string(),
+                "GlobalAccount".to_string(),
+            ],
             segment_rules: vec![
                 CoaSegmentRule {
                     target_segment_name: "GlobalCompany".to_string(),
@@ -167,7 +189,10 @@ mod tests {
         let result = CoaMappingService::translate_account(&mapping, &source_segs);
 
         assert!(!result.is_successful);
-        assert_eq!(result.error_message.unwrap(), "No mapping rule found for target segment 'Account'");
+        assert_eq!(
+            result.error_message.unwrap(),
+            "No mapping rule found for target segment 'Account'"
+        );
     }
 
     #[test]
@@ -175,14 +200,12 @@ mod tests {
         let mapping = CoaMapping {
             mapping_name: "FAULTY_INPUT".to_string(),
             target_coa_segments: vec!["Account".to_string()],
-            segment_rules: vec![
-                CoaSegmentRule {
-                    target_segment_name: "Account".to_string(),
-                    action_type: "COPY_FROM_SOURCE".to_string(),
-                    source_segment_name: Some("SourceAccount".to_string()),
-                    constant_value: None,
-                },
-            ],
+            segment_rules: vec![CoaSegmentRule {
+                target_segment_name: "Account".to_string(),
+                action_type: "COPY_FROM_SOURCE".to_string(),
+                source_segment_name: Some("SourceAccount".to_string()),
+                constant_value: None,
+            }],
         };
 
         let mut source_segs = HashMap::new();
@@ -191,7 +214,10 @@ mod tests {
         let result = CoaMappingService::translate_account(&mapping, &source_segs);
 
         assert!(!result.is_successful);
-        assert_eq!(result.error_message.unwrap(), "Source segment 'SourceAccount' not found in provided source combination");
+        assert_eq!(
+            result.error_message.unwrap(),
+            "Source segment 'SourceAccount' not found in provided source combination"
+        );
     }
 
     #[test]
@@ -199,20 +225,21 @@ mod tests {
         let mapping = CoaMapping {
             mapping_name: "INVALID_ACTION".to_string(),
             target_coa_segments: vec!["Account".to_string()],
-            segment_rules: vec![
-                CoaSegmentRule {
-                    target_segment_name: "Account".to_string(),
-                    action_type: "MAGIC_WAND".to_string(), // Invalid action
-                    source_segment_name: None,
-                    constant_value: None,
-                },
-            ],
+            segment_rules: vec![CoaSegmentRule {
+                target_segment_name: "Account".to_string(),
+                action_type: "MAGIC_WAND".to_string(), // Invalid action
+                source_segment_name: None,
+                constant_value: None,
+            }],
         };
 
         let source_segs = HashMap::new();
         let result = CoaMappingService::translate_account(&mapping, &source_segs);
 
         assert!(!result.is_successful);
-        assert_eq!(result.error_message.unwrap(), "Invalid action_type 'MAGIC_WAND' on 'Account'");
+        assert_eq!(
+            result.error_message.unwrap(),
+            "Invalid action_type 'MAGIC_WAND' on 'Account'"
+        );
     }
 }

@@ -5,12 +5,12 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Revenue Management > Deferral Schedules
 
+use super::DeferredRevenueRepository;
 use atlas_shared::{
-    DeferralTemplate, DeferralSchedule, DeferralScheduleLine, DeferralDashboardSummary,
-    AtlasError, AtlasResult,
+    AtlasError, AtlasResult, DeferralDashboardSummary, DeferralSchedule, DeferralScheduleLine,
+    DeferralTemplate,
 };
 use chrono::Datelike;
-use super::DeferredRevenueRepository;
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -20,7 +20,11 @@ const VALID_DEFERRAL_TYPES: &[&str] = &["revenue", "cost"];
 
 /// Valid recognition methods
 const VALID_RECOGNITION_METHODS: &[&str] = &[
-    "straight_line", "daily_rate", "front_loaded", "back_loaded", "fixed_schedule",
+    "straight_line",
+    "daily_rate",
+    "front_loaded",
+    "back_loaded",
+    "fixed_schedule",
 ];
 
 /// Valid period types
@@ -33,15 +37,11 @@ const VALID_START_DATE_BASES: &[&str] = &["transaction_date", "period_start", "c
 const VALID_END_DATE_BASES: &[&str] = &["fixed_periods", "end_of_period", "custom"];
 
 /// Valid schedule statuses
-const VALID_SCHEDULE_STATUSES: &[&str] = &[
-    "draft", "active", "on_hold", "completed", "cancelled",
-];
+const VALID_SCHEDULE_STATUSES: &[&str] = &["draft", "active", "on_hold", "completed", "cancelled"];
 
 /// Valid line statuses
 #[allow(dead_code)]
-const VALID_LINE_STATUSES: &[&str] = &[
-    "pending", "recognized", "reversed", "on_hold",
-];
+const VALID_LINE_STATUSES: &[&str] = &["pending", "recognized", "reversed", "on_hold"];
 
 /// Deferred Revenue/Cost Management Engine
 pub struct DeferredRevenueEngine {
@@ -89,27 +89,37 @@ impl DeferredRevenueEngine {
         }
         if !VALID_DEFERRAL_TYPES.contains(&deferral_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid deferral_type '{}'. Must be one of: {}", deferral_type, VALID_DEFERRAL_TYPES.join(", ")
+                "Invalid deferral_type '{}'. Must be one of: {}",
+                deferral_type,
+                VALID_DEFERRAL_TYPES.join(", ")
             )));
         }
         if !VALID_RECOGNITION_METHODS.contains(&recognition_method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid recognition_method '{}'. Must be one of: {}", recognition_method, VALID_RECOGNITION_METHODS.join(", ")
+                "Invalid recognition_method '{}'. Must be one of: {}",
+                recognition_method,
+                VALID_RECOGNITION_METHODS.join(", ")
             )));
         }
         if !VALID_PERIOD_TYPES.contains(&period_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid period_type '{}'. Must be one of: {}", period_type, VALID_PERIOD_TYPES.join(", ")
+                "Invalid period_type '{}'. Must be one of: {}",
+                period_type,
+                VALID_PERIOD_TYPES.join(", ")
             )));
         }
         if !VALID_START_DATE_BASES.contains(&start_date_basis) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid start_date_basis '{}'. Must be one of: {}", start_date_basis, VALID_START_DATE_BASES.join(", ")
+                "Invalid start_date_basis '{}'. Must be one of: {}",
+                start_date_basis,
+                VALID_START_DATE_BASES.join(", ")
             )));
         }
         if !VALID_END_DATE_BASES.contains(&end_date_basis) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid end_date_basis '{}'. Must be one of: {}", end_date_basis, VALID_END_DATE_BASES.join(", ")
+                "Invalid end_date_basis '{}'. Must be one of: {}",
+                end_date_basis,
+                VALID_END_DATE_BASES.join(", ")
             )));
         }
         if deferral_account_code.is_empty() || recognition_account_code.is_empty() {
@@ -125,34 +135,61 @@ impl DeferredRevenueEngine {
 
         // Check uniqueness
         if self.repository.get_template(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(
-                format!("Deferral template code '{code}' already exists")
-            ));
+            return Err(AtlasError::Conflict(format!(
+                "Deferral template code '{code}' already exists"
+            )));
         }
 
         info!("Creating deferral template {} for org {}", code, org_id);
 
-        self.repository.create_template(
-            org_id, code, name, description, deferral_type, recognition_method,
-            deferral_account_code, recognition_account_code, contra_account_code,
-            default_periods, period_type, start_date_basis, end_date_basis,
-            prorate_partial_periods, auto_generate_schedule, auto_post,
-            rounding_threshold, currency_code, effective_from, effective_to,
-            created_by,
-        ).await
+        self.repository
+            .create_template(
+                org_id,
+                code,
+                name,
+                description,
+                deferral_type,
+                recognition_method,
+                deferral_account_code,
+                recognition_account_code,
+                contra_account_code,
+                default_periods,
+                period_type,
+                start_date_basis,
+                end_date_basis,
+                prorate_partial_periods,
+                auto_generate_schedule,
+                auto_post,
+                rounding_threshold,
+                currency_code,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a template by code
-    pub async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<DeferralTemplate>> {
+    pub async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<DeferralTemplate>> {
         self.repository.get_template(org_id, code).await
     }
 
     /// List templates, optionally filtered by deferral type
-    pub async fn list_templates(&self, org_id: Uuid, deferral_type: Option<&str>) -> AtlasResult<Vec<DeferralTemplate>> {
+    pub async fn list_templates(
+        &self,
+        org_id: Uuid,
+        deferral_type: Option<&str>,
+    ) -> AtlasResult<Vec<DeferralTemplate>> {
         if let Some(dt) = deferral_type {
             if !VALID_DEFERRAL_TYPES.contains(&dt) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid deferral_type '{}'. Must be one of: {}", dt, VALID_DEFERRAL_TYPES.join(", ")
+                    "Invalid deferral_type '{}'. Must be one of: {}",
+                    dt,
+                    VALID_DEFERRAL_TYPES.join(", ")
                 )));
             }
         }
@@ -161,10 +198,12 @@ impl DeferredRevenueEngine {
 
     /// Delete (soft-delete) a template
     pub async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        self.repository.get_template(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deferral template '{code}' not found")
-            ))?;
+        self.repository
+            .get_template(org_id, code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Deferral template '{code}' not found"))
+            })?;
 
         info!("Deleting deferral template {} in org {}", code, org_id);
         self.repository.delete_template(org_id, code).await
@@ -191,9 +230,9 @@ impl DeferredRevenueEngine {
         original_journal_entry_id: Option<Uuid>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<DeferralSchedule> {
-        let amount: f64 = total_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Total amount must be a valid number".to_string(),
-        ))?;
+        let amount: f64 = total_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Total amount must be a valid number".to_string())
+        })?;
         if amount <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Total amount must be positive".to_string(),
@@ -211,41 +250,66 @@ impl DeferredRevenueEngine {
         }
 
         // Get the template
-        let template = self.repository.get_template_by_id(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deferral template {template_id} not found")
-            ))?;
+        let template = self
+            .repository
+            .get_template_by_id(template_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Deferral template {template_id} not found"))
+            })?;
 
         // Calculate periods
-        let total_periods = Self::calculate_period_count(
-            start_date, end_date, &template.period_type,
-        );
+        let total_periods =
+            Self::calculate_period_count(start_date, end_date, &template.period_type);
 
         let schedule_number = format!("DEF-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating deferral schedule {} for org {} ({} periods, {})",
-            schedule_number, org_id, total_periods, total_amount);
+        info!(
+            "Creating deferral schedule {} for org {} ({} periods, {})",
+            schedule_number, org_id, total_periods, total_amount
+        );
 
-        let schedule = self.repository.create_schedule(
-            org_id, &schedule_number, template_id, Some(&template.code),
-            &template.deferral_type, source_type, source_id,
-            source_number, source_line_id, description,
-            total_amount, "0.00", total_amount, // Initially nothing recognized
-            currency_code,
-            &template.deferral_account_code,
-            &template.recognition_account_code,
-            template.contra_account_code.as_deref(),
-            &template.recognition_method,
-            start_date, end_date, total_periods,
-            "active", // Start active
-            original_journal_entry_id, created_by,
-        ).await?;
+        let schedule = self
+            .repository
+            .create_schedule(
+                org_id,
+                &schedule_number,
+                template_id,
+                Some(&template.code),
+                &template.deferral_type,
+                source_type,
+                source_id,
+                source_number,
+                source_line_id,
+                description,
+                total_amount,
+                "0.00",
+                total_amount, // Initially nothing recognized
+                currency_code,
+                &template.deferral_account_code,
+                &template.recognition_account_code,
+                template.contra_account_code.as_deref(),
+                &template.recognition_method,
+                start_date,
+                end_date,
+                total_periods,
+                "active", // Start active
+                original_journal_entry_id,
+                created_by,
+            )
+            .await?;
 
         // Generate schedule lines
         self.generate_schedule_lines(
-            org_id, schedule.id, start_date, end_date, total_amount,
-            &template.recognition_method, &template.period_type,
-        ).await?;
+            org_id,
+            schedule.id,
+            start_date,
+            end_date,
+            total_amount,
+            &template.recognition_method,
+            &template.period_type,
+        )
+        .await?;
 
         Ok(schedule)
     }
@@ -256,7 +320,11 @@ impl DeferredRevenueEngine {
     }
 
     /// Get a schedule by number
-    pub async fn get_schedule_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<DeferralSchedule>> {
+    pub async fn get_schedule_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<DeferralSchedule>> {
         self.repository.get_schedule_by_number(org_id, number).await
     }
 
@@ -271,22 +339,31 @@ impl DeferredRevenueEngine {
         if let Some(s) = status {
             if !VALID_SCHEDULE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_SCHEDULE_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_SCHEDULE_STATUSES.join(", ")
                 )));
             }
         }
         if let Some(dt) = deferral_type {
             if !VALID_DEFERRAL_TYPES.contains(&dt) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid deferral_type '{}'. Must be one of: {}", dt, VALID_DEFERRAL_TYPES.join(", ")
+                    "Invalid deferral_type '{}'. Must be one of: {}",
+                    dt,
+                    VALID_DEFERRAL_TYPES.join(", ")
                 )));
             }
         }
-        self.repository.list_schedules(org_id, status, deferral_type, source_type).await
+        self.repository
+            .list_schedules(org_id, status, deferral_type, source_type)
+            .await
     }
 
     /// List schedule lines
-    pub async fn list_schedule_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<DeferralScheduleLine>> {
+    pub async fn list_schedule_lines(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<DeferralScheduleLine>> {
         self.repository.list_schedule_lines(schedule_id).await
     }
 
@@ -295,21 +372,32 @@ impl DeferredRevenueEngine {
     // ========================================================================
 
     /// Recognize pending schedule lines as of a given date
-    pub async fn recognize_pending(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<DeferralScheduleLine>> {
-        let pending_lines = self.repository.get_pending_lines(org_id, as_of_date).await?;
+    pub async fn recognize_pending(
+        &self,
+        org_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<DeferralScheduleLine>> {
+        let pending_lines = self
+            .repository
+            .get_pending_lines(org_id, as_of_date)
+            .await?;
 
         let mut recognized = Vec::new();
         for line in &pending_lines {
-            let updated = self.repository.update_line_status(
-                line.id, "recognized", &line.amount, Some(as_of_date), None,
-            ).await?;
+            let updated = self
+                .repository
+                .update_line_status(line.id, "recognized", &line.amount, Some(as_of_date), None)
+                .await?;
             recognized.push(updated);
 
             // Update parent schedule amounts
-            let schedule = self.repository.get_schedule(line.schedule_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Schedule {} not found", line.schedule_id)
-                ))?;
+            let schedule = self
+                .repository
+                .get_schedule(line.schedule_id)
+                .await?
+                .ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Schedule {} not found", line.schedule_id))
+                })?;
 
             let new_recognized: f64 = schedule.recognized_amount.parse::<f64>().unwrap_or(0.0)
                 + line.amount.parse::<f64>().unwrap_or(0.0);
@@ -317,37 +405,49 @@ impl DeferredRevenueEngine {
                 - line.amount.parse::<f64>().unwrap_or(0.0);
             let new_completed = schedule.completed_periods + 1;
 
-            self.repository.update_schedule_amounts(
-                line.schedule_id,
-                &format!("{new_recognized:.2}"),
-                &format!("{:.2}", new_remaining.max(0.0)),
-                new_completed,
-            ).await?;
+            self.repository
+                .update_schedule_amounts(
+                    line.schedule_id,
+                    &format!("{new_recognized:.2}"),
+                    &format!("{:.2}", new_remaining.max(0.0)),
+                    new_completed,
+                )
+                .await?;
 
             // Check if schedule is complete
             if new_completed >= schedule.total_periods || new_remaining.abs() < 0.01 {
-                self.repository.update_schedule_status(
-                    line.schedule_id, "completed", None,
-                ).await?;
+                self.repository
+                    .update_schedule_status(line.schedule_id, "completed", None)
+                    .await?;
             }
 
-            info!("Recognized deferral line {} for schedule {} (amount: {})",
-                line.line_number, schedule.schedule_number, line.amount);
+            info!(
+                "Recognized deferral line {} for schedule {} (amount: {})",
+                line.line_number, schedule.schedule_number, line.amount
+            );
         }
 
         Ok(recognized)
     }
 
     /// Put a schedule on hold
-    pub async fn hold_schedule(&self, schedule_id: Uuid, reason: &str) -> AtlasResult<DeferralSchedule> {
-        let schedule = self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Schedule {schedule_id} not found")
-            ))?;
+    pub async fn hold_schedule(
+        &self,
+        schedule_id: Uuid,
+        reason: &str,
+    ) -> AtlasResult<DeferralSchedule> {
+        let schedule = self
+            .repository
+            .get_schedule(schedule_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
         if schedule.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot hold schedule in '{}' status. Must be 'active'.", schedule.status
+                "Cannot hold schedule in '{}' status. Must be 'active'.",
+                schedule.status
             )));
         }
         if reason.is_empty() {
@@ -356,42 +456,59 @@ impl DeferredRevenueEngine {
             ));
         }
 
-        info!("Putting schedule {} on hold: {}", schedule.schedule_number, reason);
-        self.repository.update_schedule_status(schedule_id, "on_hold", Some(reason)).await
+        info!(
+            "Putting schedule {} on hold: {}",
+            schedule.schedule_number, reason
+        );
+        self.repository
+            .update_schedule_status(schedule_id, "on_hold", Some(reason))
+            .await
     }
 
     /// Resume a held schedule
     pub async fn resume_schedule(&self, schedule_id: Uuid) -> AtlasResult<DeferralSchedule> {
-        let schedule = self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Schedule {schedule_id} not found")
-            ))?;
+        let schedule = self
+            .repository
+            .get_schedule(schedule_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
         if schedule.status != "on_hold" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot resume schedule in '{}' status. Must be 'on_hold'.", schedule.status
+                "Cannot resume schedule in '{}' status. Must be 'on_hold'.",
+                schedule.status
             )));
         }
 
         info!("Resuming schedule {}", schedule.schedule_number);
-        self.repository.update_schedule_status(schedule_id, "active", None).await
+        self.repository
+            .update_schedule_status(schedule_id, "active", None)
+            .await
     }
 
     /// Cancel a schedule
     pub async fn cancel_schedule(&self, schedule_id: Uuid) -> AtlasResult<DeferralSchedule> {
-        let schedule = self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Schedule {schedule_id} not found")
-            ))?;
+        let schedule = self
+            .repository
+            .get_schedule(schedule_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
         if schedule.status == "completed" || schedule.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot cancel schedule in '{}' status.", schedule.status
+                "Cannot cancel schedule in '{}' status.",
+                schedule.status
             )));
         }
 
         info!("Cancelling schedule {}", schedule.schedule_number);
-        self.repository.update_schedule_status(schedule_id, "cancelled", None).await
+        self.repository
+            .update_schedule_status(schedule_id, "cancelled", None)
+            .await
     }
 
     // ========================================================================
@@ -399,7 +516,10 @@ impl DeferredRevenueEngine {
     // ========================================================================
 
     /// Get dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<DeferralDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<DeferralDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 
@@ -408,10 +528,15 @@ impl DeferredRevenueEngine {
     // ========================================================================
 
     /// Calculate the number of periods between two dates based on period type
-    fn calculate_period_count(start: chrono::NaiveDate, end: chrono::NaiveDate, period_type: &str) -> i32 {
+    fn calculate_period_count(
+        start: chrono::NaiveDate,
+        end: chrono::NaiveDate,
+        period_type: &str,
+    ) -> i32 {
         match period_type {
             "monthly" => {
-                let months = ((end.year() - start.year()) * 12 + (end.month() as i32) - (start.month() as i32))
+                let months = ((end.year() - start.year()) * 12 + (end.month() as i32)
+                    - (start.month() as i32))
                     .max(1);
                 // Add 1 if end day > start day to account for partial months
                 if end.day() >= start.day() {
@@ -470,9 +595,7 @@ impl DeferredRevenueEngine {
                         per_period
                     }
                 }
-                "daily_rate" => {
-                    (total * f64::from(days_in_period)) / f64::from(total_days)
-                }
+                "daily_rate" => (total * f64::from(days_in_period)) / f64::from(total_days),
                 "front_loaded" => {
                     // More weight toward earlier periods
                     let weight = f64::from(periods - period_idx);
@@ -490,11 +613,20 @@ impl DeferredRevenueEngine {
 
             let period_name = format!("{}-{:02}", current_start.year(), current_start.month());
 
-            let line = self.repository.create_schedule_line(
-                org_id, schedule_id, line_num,
-                Some(&period_name), current_start, current_end,
-                days_in_period, &format!("{amount:.2}"), "pending",
-            ).await?;
+            let line = self
+                .repository
+                .create_schedule_line(
+                    org_id,
+                    schedule_id,
+                    line_num,
+                    Some(&period_name),
+                    current_start,
+                    current_end,
+                    days_in_period,
+                    &format!("{amount:.2}"),
+                    "pending",
+                )
+                .await?;
 
             lines.push(line);
 
@@ -509,26 +641,35 @@ impl DeferredRevenueEngine {
     }
 
     /// Calculate the end date of the current period
-    fn next_period_end(start: chrono::NaiveDate, schedule_end: chrono::NaiveDate, period_type: &str) -> chrono::NaiveDate {
+    fn next_period_end(
+        start: chrono::NaiveDate,
+        schedule_end: chrono::NaiveDate,
+        period_type: &str,
+    ) -> chrono::NaiveDate {
         let candidate = match period_type {
             "monthly" => {
-                let year = if start.month() == 12 { start.year() + 1 } else { start.year() };
-                let month = if start.month() == 12 { 1 } else { start.month() + 1 };
-                chrono::NaiveDate::from_ymd_opt(year, month, 1)
-                    .unwrap_or(schedule_end)
+                let year = if start.month() == 12 {
+                    start.year() + 1
+                } else {
+                    start.year()
+                };
+                let month = if start.month() == 12 {
+                    1
+                } else {
+                    start.month() + 1
+                };
+                chrono::NaiveDate::from_ymd_opt(year, month, 1).unwrap_or(schedule_end)
                     - chrono::Duration::days(1)
             }
             "quarterly" => {
                 let current_quarter = ((start.month() - 1) / 3) + 1;
                 let end_month = current_quarter * 3;
-                chrono::NaiveDate::from_ymd_opt(start.year(), end_month, 1)
-                    .unwrap_or(schedule_end)
+                chrono::NaiveDate::from_ymd_opt(start.year(), end_month, 1).unwrap_or(schedule_end)
                     - chrono::Duration::days(1)
                     + chrono::Duration::days(1)
             }
             "yearly" => {
-                chrono::NaiveDate::from_ymd_opt(start.year(), 12, 31)
-                    .unwrap_or(schedule_end)
+                chrono::NaiveDate::from_ymd_opt(start.year(), 12, 31).unwrap_or(schedule_end)
             }
             "daily" => start,
             _ => start,
@@ -614,7 +755,10 @@ mod tests {
     fn test_calculate_period_count_quarterly() {
         let start = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         let end = chrono::NaiveDate::from_ymd_opt(2026, 12, 31).unwrap();
-        assert_eq!(DeferredRevenueEngine::calculate_period_count(start, end, "quarterly"), 4);
+        assert_eq!(
+            DeferredRevenueEngine::calculate_period_count(start, end, "quarterly"),
+            4
+        );
     }
 
     #[test]
@@ -629,7 +773,10 @@ mod tests {
     fn test_calculate_period_count_daily() {
         let start = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         let end = chrono::NaiveDate::from_ymd_opt(2026, 1, 31).unwrap();
-        assert_eq!(DeferredRevenueEngine::calculate_period_count(start, end, "daily"), 30);
+        assert_eq!(
+            DeferredRevenueEngine::calculate_period_count(start, end, "daily"),
+            30
+        );
     }
 
     #[test]

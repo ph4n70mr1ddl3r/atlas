@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion Cloud equivalent: SCM > Product Management > Configurator
 
-use atlas_shared::{
-    ConfigModel, ConfigFeature, ConfigOption, ConfigRule,
-    ConfigInstance, ConfiguratorDashboard,
-    AtlasError, AtlasResult,
-};
 use super::ProductConfiguratorRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ConfigFeature, ConfigInstance, ConfigModel, ConfigOption, ConfigRule,
+    ConfiguratorDashboard,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -21,44 +20,51 @@ use uuid::Uuid;
 
 const VALID_MODEL_TYPES: &[&str] = &["standard", "kit", "bundle"];
 
-const VALID_MODEL_STATUSES: &[&str] = &[
-    "draft", "active", "inactive", "obsolete",
-];
+const VALID_MODEL_STATUSES: &[&str] = &["draft", "active", "inactive", "obsolete"];
 
-const VALID_VALIDATION_MODES: &[&str] = &[
-    "strict", "relaxed", "none",
-];
+const VALID_VALIDATION_MODES: &[&str] = &["strict", "relaxed", "none"];
 
 const VALID_FEATURE_TYPES: &[&str] = &[
-    "single_select", "multi_select", "numeric", "text", "boolean",
+    "single_select",
+    "multi_select",
+    "numeric",
+    "text",
+    "boolean",
 ];
 
-const VALID_OPTION_TYPES: &[&str] = &[
-    "standard", "default", "recommended",
-];
+const VALID_OPTION_TYPES: &[&str] = &["standard", "default", "recommended"];
 
 const VALID_RULE_TYPES: &[&str] = &[
-    "compatibility", "incompatibility", "default", "requirement", "exclusion",
+    "compatibility",
+    "incompatibility",
+    "default",
+    "requirement",
+    "exclusion",
 ];
 
-const VALID_SEVERITIES: &[&str] = &[
-    "error", "warning", "info",
-];
+const VALID_SEVERITIES: &[&str] = &["error", "warning", "info"];
 
 const VALID_INSTANCE_STATUSES: &[&str] = &[
-    "draft", "valid", "invalid", "submitted", "approved", "ordered", "cancelled",
+    "draft",
+    "valid",
+    "invalid",
+    "submitted",
+    "approved",
+    "ordered",
+    "cancelled",
 ];
 
 /// Helper to validate a value against allowed set
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
-        return Err(AtlasError::ValidationFailed(format!(
-            "{field} is required"
-        )));
+        return Err(AtlasError::ValidationFailed(format!("{field} is required")));
     }
     if !allowed.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field, value, allowed.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field,
+            value,
+            allowed.join(", ")
         )));
     }
     Ok(())
@@ -98,10 +104,14 @@ impl ProductConfiguratorEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConfigModel> {
         if model_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Model number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Model number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Model name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Model name is required".to_string(),
+            ));
         }
         validate_enum("model_type", model_type, VALID_MODEL_TYPES)?;
         validate_enum("validation_mode", validation_mode, VALID_VALIDATION_MODES)?;
@@ -113,25 +123,42 @@ impl ProductConfiguratorEngine {
             }
         }
 
-        if self.repository.get_model_by_number(org_id, model_number).await?.is_some() {
+        if self
+            .repository
+            .get_model_by_number(org_id, model_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Model '{model_number}' already exists"
             )));
         }
 
-        info!("Creating config model '{}' ({}) for org {} [type={}]",
-              model_number, name, org_id, model_type);
+        info!(
+            "Creating config model '{}' ({}) for org {} [type={}]",
+            model_number, name, org_id, model_type
+        );
 
-        self.repository.create_model(
-            org_id, model_number, name, description,
-            base_product_id, base_product_number, base_product_name,
-            model_type, "draft", 1,
-            effective_from, effective_to,
-            default_config.unwrap_or(serde_json::json!({})),
-            validation_mode,
-            ui_layout.unwrap_or(serde_json::json!({})),
-            created_by,
-        ).await
+        self.repository
+            .create_model(
+                org_id,
+                model_number,
+                name,
+                description,
+                base_product_id,
+                base_product_number,
+                base_product_name,
+                model_type,
+                "draft",
+                1,
+                effective_from,
+                effective_to,
+                default_config.unwrap_or(serde_json::json!({})),
+                validation_mode,
+                ui_layout.unwrap_or(serde_json::json!({})),
+                created_by,
+            )
+            .await
     }
 
     /// Get a model by ID
@@ -140,8 +167,14 @@ impl ProductConfiguratorEngine {
     }
 
     /// Get a model by number
-    pub async fn get_model_by_number(&self, org_id: Uuid, model_number: &str) -> AtlasResult<Option<ConfigModel>> {
-        self.repository.get_model_by_number(org_id, model_number).await
+    pub async fn get_model_by_number(
+        &self,
+        org_id: Uuid,
+        model_number: &str,
+    ) -> AtlasResult<Option<ConfigModel>> {
+        self.repository
+            .get_model_by_number(org_id, model_number)
+            .await
     }
 
     /// List models with optional filters
@@ -157,18 +190,24 @@ impl ProductConfiguratorEngine {
         if let Some(t) = model_type {
             validate_enum("model_type", t, VALID_MODEL_TYPES)?;
         }
-        self.repository.list_models(org_id, status, model_type).await
+        self.repository
+            .list_models(org_id, status, model_type)
+            .await
     }
 
     /// Activate a model
     pub async fn activate_model(&self, id: Uuid) -> AtlasResult<ConfigModel> {
-        let model = self.repository.get_model(id).await?
+        let model = self
+            .repository
+            .get_model(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {id} not found")))?;
 
         if model.status != "draft" && model.status != "inactive" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot activate model in '{}' status. Must be 'draft' or 'inactive'.", model.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot activate model in '{}' status. Must be 'draft' or 'inactive'.",
+                model.status
+            )));
         }
 
         info!("Activating config model {}", id);
@@ -177,13 +216,17 @@ impl ProductConfiguratorEngine {
 
     /// Deactivate a model
     pub async fn deactivate_model(&self, id: Uuid) -> AtlasResult<ConfigModel> {
-        let model = self.repository.get_model(id).await?
+        let model = self
+            .repository
+            .get_model(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {id} not found")))?;
 
         if model.status != "active" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot deactivate model in '{}' status. Must be 'active'.", model.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot deactivate model in '{}' status. Must be 'active'.",
+                model.status
+            )));
         }
 
         info!("Deactivating config model {}", id);
@@ -192,12 +235,15 @@ impl ProductConfiguratorEngine {
 
     /// Obsolete a model
     pub async fn obsolete_model(&self, id: Uuid) -> AtlasResult<ConfigModel> {
-        let model = self.repository.get_model(id).await?
+        let model = self
+            .repository
+            .get_model(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {id} not found")))?;
 
         if model.status == "obsolete" {
             return Err(AtlasError::ValidationFailed(
-                "Model is already obsolete".to_string()
+                "Model is already obsolete".to_string(),
             ));
         }
 
@@ -207,14 +253,21 @@ impl ProductConfiguratorEngine {
 
     /// Delete a model by number (only draft)
     pub async fn delete_model(&self, org_id: Uuid, model_number: &str) -> AtlasResult<()> {
-        if let Some(model) = self.repository.get_model_by_number(org_id, model_number).await? {
+        if let Some(model) = self
+            .repository
+            .get_model_by_number(org_id, model_number)
+            .await?
+        {
             if model.status != "draft" {
                 return Err(AtlasError::ValidationFailed(
-                    "Only draft models can be deleted".to_string()
+                    "Only draft models can be deleted".to_string(),
                 ));
             }
         }
-        info!("Deleting config model '{}' for org {}", model_number, org_id);
+        info!(
+            "Deleting config model '{}' for org {}",
+            model_number, org_id
+        );
         self.repository.delete_model(org_id, model_number).await
     }
 
@@ -237,32 +290,49 @@ impl ProductConfiguratorEngine {
         ui_hints: Option<serde_json::Value>,
     ) -> AtlasResult<ConfigFeature> {
         if feature_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Feature code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Feature code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Feature name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Feature name is required".to_string(),
+            ));
         }
         validate_enum("feature_type", feature_type, VALID_FEATURE_TYPES)?;
 
         // Verify model exists
-        let model = self.repository.get_model(model_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Model {model_id} not found"
-            )))?;
+        let model = self
+            .repository
+            .get_model(model_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {model_id} not found")))?;
 
         if model.status != "draft" && model.status != "active" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot add features to model in '{}' status", model.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot add features to model in '{}' status",
+                model.status
+            )));
         }
 
-        info!("Creating feature '{}' ({}) for model {}", feature_code, name, model_id);
+        info!(
+            "Creating feature '{}' ({}) for model {}",
+            feature_code, name, model_id
+        );
 
-        self.repository.create_feature(
-            org_id, model_id, feature_code, name, description,
-            feature_type, is_required, display_order,
-            ui_hints.unwrap_or(serde_json::json!({})),
-        ).await
+        self.repository
+            .create_feature(
+                org_id,
+                model_id,
+                feature_code,
+                name,
+                description,
+                feature_type,
+                is_required,
+                display_order,
+                ui_hints.unwrap_or(serde_json::json!({})),
+            )
+            .await
     }
 
     /// Get a feature by ID
@@ -303,10 +373,14 @@ impl ProductConfiguratorEngine {
         display_order: i32,
     ) -> AtlasResult<ConfigOption> {
         if option_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Option code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Option code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Option name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Option name is required".to_string(),
+            ));
         }
         validate_enum("option_type", option_type, VALID_OPTION_TYPES)?;
         if lead_time_days < 0 {
@@ -316,30 +390,49 @@ impl ProductConfiguratorEngine {
         }
 
         // Verify feature exists
-        let feature = self.repository.get_feature(feature_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Feature {feature_id} not found"
-            )))?;
+        let feature = self
+            .repository
+            .get_feature(feature_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Feature {feature_id} not found")))?;
 
         // Verify model is editable
-        let model = self.repository.get_model(feature.model_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Model {} not found", feature.model_id
-            )))?;
+        let model = self
+            .repository
+            .get_model(feature.model_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Model {} not found", feature.model_id))
+            })?;
 
         if model.status != "draft" && model.status != "active" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot add options to model in '{}' status", model.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot add options to model in '{}' status",
+                model.status
+            )));
         }
 
-        info!("Creating option '{}' ({}) for feature {}", option_code, name, feature_id);
+        info!(
+            "Creating option '{}' ({}) for feature {}",
+            option_code, name, feature_id
+        );
 
-        self.repository.create_option(
-            org_id, feature_id, option_code, name, description,
-            option_type, price_adjustment, cost_adjustment,
-            lead_time_days, is_default, is_available, display_order,
-        ).await
+        self.repository
+            .create_option(
+                org_id,
+                feature_id,
+                option_code,
+                name,
+                description,
+                option_type,
+                price_adjustment,
+                cost_adjustment,
+                lead_time_days,
+                is_default,
+                is_available,
+                display_order,
+            )
+            .await
     }
 
     /// Get an option by ID
@@ -353,9 +446,15 @@ impl ProductConfiguratorEngine {
     }
 
     /// Update option availability
-    pub async fn update_option_availability(&self, id: Uuid, is_available: bool) -> AtlasResult<ConfigOption> {
+    pub async fn update_option_availability(
+        &self,
+        id: Uuid,
+        is_available: bool,
+    ) -> AtlasResult<ConfigOption> {
         info!("Updating option {} availability to {}", id, is_available);
-        self.repository.update_option_availability(id, is_available).await
+        self.repository
+            .update_option_availability(id, is_available)
+            .await
     }
 
     /// Delete an option
@@ -389,68 +488,89 @@ impl ProductConfiguratorEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConfigRule> {
         if rule_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Rule code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Rule code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Rule name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Rule name is required".to_string(),
+            ));
         }
         validate_enum("rule_type", rule_type, VALID_RULE_TYPES)?;
         validate_enum("severity", severity, VALID_SEVERITIES)?;
 
         // Verify model exists
-        let model = self.repository.get_model(model_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Model {model_id} not found"
-            )))?;
+        let model = self
+            .repository
+            .get_model(model_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {model_id} not found")))?;
 
         if model.status != "draft" && model.status != "active" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot add rules to model in '{}' status", model.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot add rules to model in '{}' status",
+                model.status
+            )));
         }
 
         // Verify referenced features/options exist
         if let Some(sf_id) = source_feature_id {
-            self.repository.get_feature(sf_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Source feature {sf_id} not found"
-                )))?;
+            self.repository.get_feature(sf_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Source feature {sf_id} not found"))
+            })?;
         }
         if let Some(tf_id) = target_feature_id {
-            self.repository.get_feature(tf_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Target feature {tf_id} not found"
-                )))?;
+            self.repository.get_feature(tf_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Target feature {tf_id} not found"))
+            })?;
         }
         if let Some(so_id) = source_option_id {
-            self.repository.get_option(so_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Source option {so_id} not found"
-                )))?;
+            self.repository.get_option(so_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Source option {so_id} not found"))
+            })?;
         }
         if let Some(to_id) = target_option_id {
-            self.repository.get_option(to_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Target option {to_id} not found"
-                )))?;
+            self.repository.get_option(to_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Target option {to_id} not found"))
+            })?;
         }
 
-        if self.repository.get_rule_by_code(model_id, rule_code).await?.is_some() {
+        if self
+            .repository
+            .get_rule_by_code(model_id, rule_code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Rule '{rule_code}' already exists in model"
             )));
         }
 
-        info!("Creating rule '{}' ({}) for model {} [type={}, severity={}]",
-              rule_code, name, model_id, rule_type, severity);
+        info!(
+            "Creating rule '{}' ({}) for model {} [type={}, severity={}]",
+            rule_code, name, model_id, rule_type, severity
+        );
 
-        self.repository.create_rule(
-            org_id, model_id, rule_code, name, description,
-            rule_type, source_feature_id, source_option_id,
-            target_feature_id, target_option_id,
-            condition_expression, severity, is_active, priority,
-            created_by,
-        ).await
+        self.repository
+            .create_rule(
+                org_id,
+                model_id,
+                rule_code,
+                name,
+                description,
+                rule_type,
+                source_feature_id,
+                source_option_id,
+                target_feature_id,
+                target_option_id,
+                condition_expression,
+                severity,
+                is_active,
+                priority,
+                created_by,
+            )
+            .await
     }
 
     /// Get a rule by ID
@@ -459,7 +579,11 @@ impl ProductConfiguratorEngine {
     }
 
     /// List rules for a model
-    pub async fn list_rules(&self, model_id: Uuid, rule_type: Option<&str>) -> AtlasResult<Vec<ConfigRule>> {
+    pub async fn list_rules(
+        &self,
+        model_id: Uuid,
+        rule_type: Option<&str>,
+    ) -> AtlasResult<Vec<ConfigRule>> {
         if let Some(rt) = rule_type {
             validate_enum("rule_type", rt, VALID_RULE_TYPES)?;
         }
@@ -499,10 +623,14 @@ impl ProductConfiguratorEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConfigInstance> {
         if instance_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Instance number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Instance number is required".to_string(),
+            ));
         }
         if currency_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Currency code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
         }
         if base_price < 0.0 {
             return Err(AtlasError::ValidationFailed(
@@ -511,19 +639,23 @@ impl ProductConfiguratorEngine {
         }
 
         // Verify model exists and is active
-        let model = self.repository.get_model(model_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Model {model_id} not found"
-            )))?;
+        let model = self
+            .repository
+            .get_model(model_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Model {model_id} not found")))?;
 
         if model.status != "active" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot create instances for model in '{}' status. Must be 'active'.", model.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot create instances for model in '{}' status. Must be 'active'.",
+                model.status
+            )));
         }
 
         // Calculate total price from selections
-        let total_price = self.calculate_total_price(model_id, base_price, &selections).await?;
+        let total_price = self
+            .calculate_total_price(model_id, base_price, &selections)
+            .await?;
 
         // Generate config hash
         let config_hash = Self::compute_config_hash(&selections);
@@ -537,25 +669,43 @@ impl ProductConfiguratorEngine {
             "invalid"
         };
 
-        if self.repository.get_instance_by_number(org_id, instance_number).await?.is_some() {
+        if self
+            .repository
+            .get_instance_by_number(org_id, instance_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Instance '{instance_number}' already exists"
             )));
         }
 
-        info!("Creating config instance '{}' for model {} [status={}, price={:.2}]",
-              instance_number, model.model_number, status, total_price);
+        info!(
+            "Creating config instance '{}' for model {} [status={}, price={:.2}]",
+            instance_number, model.model_number, status, total_price
+        );
 
-        self.repository.create_instance(
-            org_id, instance_number, model_id,
-            Some(&model.model_number), name, description,
-            status, selections,
-            errors, warnings,
-            base_price, total_price, currency_code,
-            Some(&config_hash),
-            effective_date,
-            configured_by, created_by,
-        ).await
+        self.repository
+            .create_instance(
+                org_id,
+                instance_number,
+                model_id,
+                Some(&model.model_number),
+                name,
+                description,
+                status,
+                selections,
+                errors,
+                warnings,
+                base_price,
+                total_price,
+                currency_code,
+                Some(&config_hash),
+                effective_date,
+                configured_by,
+                created_by,
+            )
+            .await
     }
 
     /// Get an instance by ID
@@ -564,8 +714,14 @@ impl ProductConfiguratorEngine {
     }
 
     /// Get an instance by number
-    pub async fn get_instance_by_number(&self, org_id: Uuid, instance_number: &str) -> AtlasResult<Option<ConfigInstance>> {
-        self.repository.get_instance_by_number(org_id, instance_number).await
+    pub async fn get_instance_by_number(
+        &self,
+        org_id: Uuid,
+        instance_number: &str,
+    ) -> AtlasResult<Option<ConfigInstance>> {
+        self.repository
+            .get_instance_by_number(org_id, instance_number)
+            .await
     }
 
     /// List instances with optional filters
@@ -578,7 +734,9 @@ impl ProductConfiguratorEngine {
         if let Some(s) = status {
             validate_enum("status", s, VALID_INSTANCE_STATUSES)?;
         }
-        self.repository.list_instances(org_id, status, model_id).await
+        self.repository
+            .list_instances(org_id, status, model_id)
+            .await
     }
 
     /// Update instance selections (re-validate)
@@ -588,18 +746,27 @@ impl ProductConfiguratorEngine {
         selections: serde_json::Value,
         base_price: f64,
     ) -> AtlasResult<ConfigInstance> {
-        let instance = self.repository.get_instance(id).await?
+        let instance = self
+            .repository
+            .get_instance(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {id} not found")))?;
 
-        if instance.status != "draft" && instance.status != "valid" && instance.status != "invalid" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot update selections for instance in '{}' status", instance.status)
-            ));
+        if instance.status != "draft" && instance.status != "valid" && instance.status != "invalid"
+        {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot update selections for instance in '{}' status",
+                instance.status
+            )));
         }
 
-        let total_price = self.calculate_total_price(instance.model_id, base_price, &selections).await?;
+        let total_price = self
+            .calculate_total_price(instance.model_id, base_price, &selections)
+            .await?;
         let config_hash = Self::compute_config_hash(&selections);
-        let (errors, warnings) = self.validate_configuration(instance.model_id, &selections).await?;
+        let (errors, warnings) = self
+            .validate_configuration(instance.model_id, &selections)
+            .await?;
 
         let new_status = if errors.as_array().is_none_or(std::vec::Vec::is_empty) {
             "valid"
@@ -607,61 +774,89 @@ impl ProductConfiguratorEngine {
             "invalid"
         };
 
-        info!("Updating instance {} selections [status={}, price={:.2}]", id, new_status, total_price);
+        info!(
+            "Updating instance {} selections [status={}, price={:.2}]",
+            id, new_status, total_price
+        );
 
-        let _inst = self.repository.update_instance_selections(
-            id, selections, total_price, Some(&config_hash),
-        ).await?;
-        let _inst = self.repository.update_instance_validation(id, errors, warnings).await?;
+        let _inst = self
+            .repository
+            .update_instance_selections(id, selections, total_price, Some(&config_hash))
+            .await?;
+        let _inst = self
+            .repository
+            .update_instance_validation(id, errors, warnings)
+            .await?;
         let _ = _inst; // suppress unused warning; validation already persisted
-        // Update status via repository
+                       // Update status via repository
         self.repository.update_instance_status(id, new_status).await
     }
 
     /// Submit a configuration for approval
     pub async fn submit_instance(&self, id: Uuid) -> AtlasResult<ConfigInstance> {
-        let instance = self.repository.get_instance(id).await?
+        let instance = self
+            .repository
+            .get_instance(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {id} not found")))?;
 
         if instance.status != "valid" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot submit instance in '{}' status. Must be 'valid'.", instance.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot submit instance in '{}' status. Must be 'valid'.",
+                instance.status
+            )));
         }
 
         info!("Submitting config instance {} for approval", id);
-        self.repository.update_instance_status(id, "submitted").await
+        self.repository
+            .update_instance_status(id, "submitted")
+            .await
     }
 
     /// Approve a configuration
-    pub async fn approve_instance(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<ConfigInstance> {
-        let instance = self.repository.get_instance(id).await?
+    pub async fn approve_instance(
+        &self,
+        id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<ConfigInstance> {
+        let instance = self
+            .repository
+            .get_instance(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {id} not found")))?;
 
         if instance.status != "submitted" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot approve instance in '{}' status. Must be 'submitted'.", instance.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot approve instance in '{}' status. Must be 'submitted'.",
+                instance.status
+            )));
         }
 
         info!("Approving config instance {} by {:?}", id, approved_by);
-        self.repository.update_instance_approval(id, approved_by).await?;
+        self.repository
+            .update_instance_approval(id, approved_by)
+            .await?;
         self.repository.update_instance_status(id, "approved").await
     }
 
     /// Reject (cancel) a configuration
     pub async fn cancel_instance(&self, id: Uuid) -> AtlasResult<ConfigInstance> {
-        let instance = self.repository.get_instance(id).await?
+        let instance = self
+            .repository
+            .get_instance(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {id} not found")))?;
 
         if instance.status == "ordered" {
             return Err(AtlasError::ValidationFailed(
-                "Cannot cancel an ordered configuration".to_string()
+                "Cannot cancel an ordered configuration".to_string(),
             ));
         }
 
         info!("Cancelling config instance {}", id);
-        self.repository.update_instance_status(id, "cancelled").await
+        self.repository
+            .update_instance_status(id, "cancelled")
+            .await
     }
 
     /// Link a configuration instance to a sales order
@@ -672,33 +867,58 @@ impl ProductConfiguratorEngine {
         sales_order_number: &str,
         sales_order_line: i32,
     ) -> AtlasResult<ConfigInstance> {
-        let instance = self.repository.get_instance(id).await?
+        let instance = self
+            .repository
+            .get_instance(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Instance {id} not found")))?;
 
         if instance.status != "approved" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot link instance in '{}' status. Must be 'approved'.", instance.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot link instance in '{}' status. Must be 'approved'.",
+                instance.status
+            )));
         }
 
-        info!("Linking config instance {} to order {}", id, sales_order_number);
-        let _inst = self.repository.link_instance_to_order(
-            id, Some(sales_order_id), Some(sales_order_number), Some(sales_order_line),
-        ).await?;
+        info!(
+            "Linking config instance {} to order {}",
+            id, sales_order_number
+        );
+        let _inst = self
+            .repository
+            .link_instance_to_order(
+                id,
+                Some(sales_order_id),
+                Some(sales_order_number),
+                Some(sales_order_line),
+            )
+            .await?;
         self.repository.update_instance_status(id, "ordered").await
     }
 
     /// Delete an instance by number (only draft/invalid)
     pub async fn delete_instance(&self, org_id: Uuid, instance_number: &str) -> AtlasResult<()> {
-        if let Some(instance) = self.repository.get_instance_by_number(org_id, instance_number).await? {
-            if instance.status != "draft" && instance.status != "invalid" && instance.status != "cancelled" {
+        if let Some(instance) = self
+            .repository
+            .get_instance_by_number(org_id, instance_number)
+            .await?
+        {
+            if instance.status != "draft"
+                && instance.status != "invalid"
+                && instance.status != "cancelled"
+            {
                 return Err(AtlasError::ValidationFailed(
-                    "Only draft, invalid, or cancelled instances can be deleted".to_string()
+                    "Only draft, invalid, or cancelled instances can be deleted".to_string(),
                 ));
             }
         }
-        info!("Deleting config instance '{}' for org {}", instance_number, org_id);
-        self.repository.delete_instance(org_id, instance_number).await
+        info!(
+            "Deleting config instance '{}' for org {}",
+            instance_number, org_id
+        );
+        self.repository
+            .delete_instance(org_id, instance_number)
+            .await
     }
 
     // ========================================================================
@@ -771,11 +991,16 @@ impl ProductConfiguratorEngine {
         // Check required features have selections
         for feature in &features {
             if feature.is_required {
-                let has_selection = selections.get(&feature.feature_code)
+                let has_selection = selections
+                    .get(&feature.feature_code)
                     .and_then(|v| {
-                        if v.is_string() { Some(v.as_str().map(|s| !s.is_empty())).flatten() }
-                        else if v.is_array() { Some(!v.as_array().is_none_or(std::vec::Vec::is_empty)) }
-                        else { None }
+                        if v.is_string() {
+                            Some(v.as_str().map(|s| !s.is_empty())).flatten()
+                        } else if v.is_array() {
+                            Some(!v.as_array().is_none_or(std::vec::Vec::is_empty))
+                        } else {
+                            None
+                        }
                     })
                     .unwrap_or(false);
 
@@ -806,22 +1031,36 @@ impl ProductConfiguratorEngine {
 
             // For incompatibility rules: source and target can't both be selected
             if rule.rule_type == "incompatibility" {
-                let source_opt = self.repository.get_option(
-                    rule.source_option_id.unwrap_or(Uuid::nil())
-                ).await.ok().flatten();
-                let source_feat = self.repository.get_feature(
-                    rule.source_feature_id.unwrap_or(Uuid::nil())
-                ).await.ok().flatten();
+                let source_opt = self
+                    .repository
+                    .get_option(rule.source_option_id.unwrap_or(Uuid::nil()))
+                    .await
+                    .ok()
+                    .flatten();
+                let source_feat = self
+                    .repository
+                    .get_feature(rule.source_feature_id.unwrap_or(Uuid::nil()))
+                    .await
+                    .ok()
+                    .flatten();
 
-                let target_opt = self.repository.get_option(
-                    rule.target_option_id.unwrap_or(Uuid::nil())
-                ).await.ok().flatten();
-                let target_feat = self.repository.get_feature(
-                    rule.target_feature_id.unwrap_or(Uuid::nil())
-                ).await.ok().flatten();
+                let target_opt = self
+                    .repository
+                    .get_option(rule.target_option_id.unwrap_or(Uuid::nil()))
+                    .await
+                    .ok()
+                    .flatten();
+                let target_feat = self
+                    .repository
+                    .get_feature(rule.target_feature_id.unwrap_or(Uuid::nil()))
+                    .await
+                    .ok()
+                    .flatten();
 
-                let source_selected = Self::is_option_selected(selections, &source_feat, &source_opt);
-                let target_selected = Self::is_option_selected(selections, &target_feat, &target_opt);
+                let source_selected =
+                    Self::is_option_selected(selections, &source_feat, &source_opt);
+                let target_selected =
+                    Self::is_option_selected(selections, &target_feat, &target_opt);
 
                 if source_selected && target_selected {
                     let msg = format!(
@@ -843,22 +1082,36 @@ impl ProductConfiguratorEngine {
 
             // For requirement rules: if source is selected, target must also be selected
             if rule.rule_type == "requirement" {
-                let source_opt = self.repository.get_option(
-                    rule.source_option_id.unwrap_or(Uuid::nil())
-                ).await.ok().flatten();
-                let source_feat = self.repository.get_feature(
-                    rule.source_feature_id.unwrap_or(Uuid::nil())
-                ).await.ok().flatten();
+                let source_opt = self
+                    .repository
+                    .get_option(rule.source_option_id.unwrap_or(Uuid::nil()))
+                    .await
+                    .ok()
+                    .flatten();
+                let source_feat = self
+                    .repository
+                    .get_feature(rule.source_feature_id.unwrap_or(Uuid::nil()))
+                    .await
+                    .ok()
+                    .flatten();
 
-                let target_opt = self.repository.get_option(
-                    rule.target_option_id.unwrap_or(Uuid::nil())
-                ).await.ok().flatten();
-                let target_feat = self.repository.get_feature(
-                    rule.target_feature_id.unwrap_or(Uuid::nil())
-                ).await.ok().flatten();
+                let target_opt = self
+                    .repository
+                    .get_option(rule.target_option_id.unwrap_or(Uuid::nil()))
+                    .await
+                    .ok()
+                    .flatten();
+                let target_feat = self
+                    .repository
+                    .get_feature(rule.target_feature_id.unwrap_or(Uuid::nil()))
+                    .await
+                    .ok()
+                    .flatten();
 
-                let source_selected = Self::is_option_selected(selections, &source_feat, &source_opt);
-                let target_selected = Self::is_option_selected(selections, &target_feat, &target_opt);
+                let source_selected =
+                    Self::is_option_selected(selections, &source_feat, &source_opt);
+                let target_selected =
+                    Self::is_option_selected(selections, &target_feat, &target_opt);
 
                 if source_selected && !target_selected {
                     let msg = format!(
@@ -912,10 +1165,10 @@ impl ProductConfiguratorEngine {
     fn compute_config_hash(selections: &serde_json::Value) -> String {
         use std::collections::BTreeMap;
         // Sort keys for deterministic ordering
-        let sorted: BTreeMap<_, _> = selections.as_object()
+        let sorted: BTreeMap<_, _> = selections
+            .as_object()
             .map_or(BTreeMap::new(), |m| m.iter().collect());
-        let canonical = serde_json::to_string(&serde_json::json!(sorted))
-            .unwrap_or_default();
+        let canonical = serde_json::to_string(&serde_json::json!(sorted)).unwrap_or_default();
         // Simple hash (not crypto, but good enough for dedup)
         use std::hash::{Hash, Hasher};
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
@@ -1050,11 +1303,24 @@ mod tests {
     #[tokio::test]
     async fn test_create_model_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_model(
-            test_org_id(), "", "Laptop Configurator", None,
-            None, None, None, "standard",
-            None, None, None, "strict", None, None,
-        ).await;
+        let result = engine
+            .create_model(
+                test_org_id(),
+                "",
+                "Laptop Configurator",
+                None,
+                None,
+                None,
+                None,
+                "standard",
+                None,
+                None,
+                None,
+                "strict",
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -1065,11 +1331,24 @@ mod tests {
     #[tokio::test]
     async fn test_create_model_validation_empty_name() {
         let engine = create_engine();
-        let result = engine.create_model(
-            test_org_id(), "MODEL-001", "", None,
-            None, None, None, "standard",
-            None, None, None, "strict", None, None,
-        ).await;
+        let result = engine
+            .create_model(
+                test_org_id(),
+                "MODEL-001",
+                "",
+                None,
+                None,
+                None,
+                None,
+                "standard",
+                None,
+                None,
+                None,
+                "strict",
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("name")),
@@ -1080,11 +1359,24 @@ mod tests {
     #[tokio::test]
     async fn test_create_model_validation_bad_type() {
         let engine = create_engine();
-        let result = engine.create_model(
-            test_org_id(), "MODEL-001", "Laptop Configurator", None,
-            None, None, None, "custom_type",
-            None, None, None, "strict", None, None,
-        ).await;
+        let result = engine
+            .create_model(
+                test_org_id(),
+                "MODEL-001",
+                "Laptop Configurator",
+                None,
+                None,
+                None,
+                None,
+                "custom_type",
+                None,
+                None,
+                None,
+                "strict",
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("model_type")),
@@ -1095,11 +1387,24 @@ mod tests {
     #[tokio::test]
     async fn test_create_model_validation_bad_validation_mode() {
         let engine = create_engine();
-        let result = engine.create_model(
-            test_org_id(), "MODEL-001", "Laptop Configurator", None,
-            None, None, None, "standard",
-            None, None, None, "ultra_strict", None, None,
-        ).await;
+        let result = engine
+            .create_model(
+                test_org_id(),
+                "MODEL-001",
+                "Laptop Configurator",
+                None,
+                None,
+                None,
+                None,
+                "standard",
+                None,
+                None,
+                None,
+                "ultra_strict",
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("validation_mode")),
@@ -1110,13 +1415,24 @@ mod tests {
     #[tokio::test]
     async fn test_create_model_validation_dates_inverted() {
         let engine = create_engine();
-        let result = engine.create_model(
-            test_org_id(), "MODEL-001", "Laptop Configurator", None,
-            None, None, None, "standard",
-            chrono::NaiveDate::from_ymd_opt(2025, 12, 31),
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1),
-            None, "strict", None, None,
-        ).await;
+        let result = engine
+            .create_model(
+                test_org_id(),
+                "MODEL-001",
+                "Laptop Configurator",
+                None,
+                None,
+                None,
+                None,
+                "standard",
+                chrono::NaiveDate::from_ymd_opt(2025, 12, 31),
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1),
+                None,
+                "strict",
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Effective from")),
@@ -1127,14 +1443,24 @@ mod tests {
     #[tokio::test]
     async fn test_create_model_success() {
         let engine = create_engine();
-        let result = engine.create_model(
-            test_org_id(), "MODEL-001", "Laptop Configurator",
-            Some("Configure your laptop"),
-            None, None, None, "standard",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1),
-            chrono::NaiveDate::from_ymd_opt(2025, 12, 31),
-            None, "strict", None, Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_model(
+                test_org_id(),
+                "MODEL-001",
+                "Laptop Configurator",
+                Some("Configure your laptop"),
+                None,
+                None,
+                None,
+                "standard",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1),
+                chrono::NaiveDate::from_ymd_opt(2025, 12, 31),
+                None,
+                "strict",
+                None,
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let model = result.unwrap();
         assert_eq!(model.model_number, "MODEL-001");
@@ -1149,10 +1475,19 @@ mod tests {
     #[tokio::test]
     async fn test_create_feature_validation_empty_code() {
         let engine = create_engine();
-        let result = engine.create_feature(
-            test_org_id(), Uuid::new_v4(), "", "Color", None,
-            "single_select", false, 0, None,
-        ).await;
+        let result = engine
+            .create_feature(
+                test_org_id(),
+                Uuid::new_v4(),
+                "",
+                "Color",
+                None,
+                "single_select",
+                false,
+                0,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("code")),
@@ -1163,10 +1498,19 @@ mod tests {
     #[tokio::test]
     async fn test_create_feature_validation_bad_type() {
         let engine = create_engine();
-        let result = engine.create_feature(
-            test_org_id(), Uuid::new_v4(), "COLOR", "Color", None,
-            "dropdown", false, 0, None,
-        ).await;
+        let result = engine
+            .create_feature(
+                test_org_id(),
+                Uuid::new_v4(),
+                "COLOR",
+                "Color",
+                None,
+                "dropdown",
+                false,
+                0,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("feature_type")),
@@ -1179,10 +1523,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_option_validation_empty_code() {
         let engine = create_engine();
-        let result = engine.create_option(
-            test_org_id(), Uuid::new_v4(), "", "Red", None,
-            "standard", 0.0, 0.0, 0, false, true, 0,
-        ).await;
+        let result = engine
+            .create_option(
+                test_org_id(),
+                Uuid::new_v4(),
+                "",
+                "Red",
+                None,
+                "standard",
+                0.0,
+                0.0,
+                0,
+                false,
+                true,
+                0,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("code")),
@@ -1193,10 +1549,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_option_validation_negative_lead_time() {
         let engine = create_engine();
-        let result = engine.create_option(
-            test_org_id(), Uuid::new_v4(), "RED", "Red", None,
-            "standard", 0.0, 0.0, -5, false, true, 0,
-        ).await;
+        let result = engine
+            .create_option(
+                test_org_id(),
+                Uuid::new_v4(),
+                "RED",
+                "Red",
+                None,
+                "standard",
+                0.0,
+                0.0,
+                -5,
+                false,
+                true,
+                0,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Lead time")),
@@ -1209,11 +1577,25 @@ mod tests {
     #[tokio::test]
     async fn test_create_rule_validation_empty_code() {
         let engine = create_engine();
-        let result = engine.create_rule(
-            test_org_id(), Uuid::new_v4(), "", "Color-Engine Rule", None,
-            "incompatibility", None, None, None, None, None,
-            "error", true, 0, None,
-        ).await;
+        let result = engine
+            .create_rule(
+                test_org_id(),
+                Uuid::new_v4(),
+                "",
+                "Color-Engine Rule",
+                None,
+                "incompatibility",
+                None,
+                None,
+                None,
+                None,
+                None,
+                "error",
+                true,
+                0,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("code")),
@@ -1224,11 +1606,25 @@ mod tests {
     #[tokio::test]
     async fn test_create_rule_validation_bad_type() {
         let engine = create_engine();
-        let result = engine.create_rule(
-            test_org_id(), Uuid::new_v4(), "RULE-001", "Rule", None,
-            "conditional", None, None, None, None, None,
-            "error", true, 0, None,
-        ).await;
+        let result = engine
+            .create_rule(
+                test_org_id(),
+                Uuid::new_v4(),
+                "RULE-001",
+                "Rule",
+                None,
+                "conditional",
+                None,
+                None,
+                None,
+                None,
+                None,
+                "error",
+                true,
+                0,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("rule_type")),
@@ -1239,11 +1635,25 @@ mod tests {
     #[tokio::test]
     async fn test_create_rule_validation_bad_severity() {
         let engine = create_engine();
-        let result = engine.create_rule(
-            test_org_id(), Uuid::new_v4(), "RULE-001", "Rule", None,
-            "incompatibility", None, None, None, None, None,
-            "critical", true, 0, None,
-        ).await;
+        let result = engine
+            .create_rule(
+                test_org_id(),
+                Uuid::new_v4(),
+                "RULE-001",
+                "Rule",
+                None,
+                "incompatibility",
+                None,
+                None,
+                None,
+                None,
+                None,
+                "critical",
+                true,
+                0,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("severity")),
@@ -1256,10 +1666,21 @@ mod tests {
     #[tokio::test]
     async fn test_create_instance_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_instance(
-            test_org_id(), "", Uuid::new_v4(), None, None,
-            serde_json::json!({}), 1000.0, "USD", None, None, None,
-        ).await;
+        let result = engine
+            .create_instance(
+                test_org_id(),
+                "",
+                Uuid::new_v4(),
+                None,
+                None,
+                serde_json::json!({}),
+                1000.0,
+                "USD",
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -1270,10 +1691,21 @@ mod tests {
     #[tokio::test]
     async fn test_create_instance_validation_negative_price() {
         let engine = create_engine();
-        let result = engine.create_instance(
-            test_org_id(), "CFG-001", Uuid::new_v4(), None, None,
-            serde_json::json!({}), -100.0, "USD", None, None, None,
-        ).await;
+        let result = engine
+            .create_instance(
+                test_org_id(),
+                "CFG-001",
+                Uuid::new_v4(),
+                None,
+                None,
+                serde_json::json!({}),
+                -100.0,
+                "USD",
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Base price")),
@@ -1340,7 +1772,9 @@ mod tests {
         };
 
         assert!(ProductConfiguratorEngine::is_option_selected(
-            &selections, &Some(feature_color.clone()), &Some(opt_red.clone())
+            &selections,
+            &Some(feature_color.clone()),
+            &Some(opt_red.clone())
         ));
 
         let opt_blue = ConfigOption {
@@ -1348,7 +1782,9 @@ mod tests {
             ..opt_red.clone()
         };
         assert!(!ProductConfiguratorEngine::is_option_selected(
-            &selections, &Some(feature_color.clone()), &Some(opt_blue)
+            &selections,
+            &Some(feature_color.clone()),
+            &Some(opt_blue)
         ));
 
         // Multi-select
@@ -1363,7 +1799,9 @@ mod tests {
             ..opt_red.clone()
         };
         assert!(ProductConfiguratorEngine::is_option_selected(
-            &selections, &Some(feature_acc), &Some(opt_mouse)
+            &selections,
+            &Some(feature_acc),
+            &Some(opt_mouse)
         ));
     }
 }

@@ -15,8 +15,8 @@
 //! 8. Create packing slips for packages
 //! 9. Analyze via dashboard
 
-use atlas_shared::AtlasError;
 use super::ShippingRepository;
+use atlas_shared::AtlasError;
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -26,7 +26,13 @@ const VALID_CARRIER_TYPES: &[&str] = &["external", "internal", "third_party"];
 
 /// Valid shipment statuses
 const VALID_SHIPMENT_STATUSES: &[&str] = &[
-    "draft", "confirmed", "picked", "packed", "shipped", "delivered", "cancelled",
+    "draft",
+    "confirmed",
+    "picked",
+    "packed",
+    "shipped",
+    "delivered",
+    "cancelled",
 ];
 
 /// Valid package types
@@ -67,31 +73,57 @@ impl ShippingEngine {
             ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Carrier name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Carrier name is required".to_string(),
+            ));
         }
         if !VALID_CARRIER_TYPES.contains(&carrier_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid carrier_type '{}'. Must be one of: {}", carrier_type, VALID_CARRIER_TYPES.join(", ")
+                "Invalid carrier_type '{}'. Must be one of: {}",
+                carrier_type,
+                VALID_CARRIER_TYPES.join(", ")
             )));
         }
-        if self.repository.get_carrier_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Carrier '{code}' already exists")));
+        if self
+            .repository
+            .get_carrier_by_code(org_id, &code)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Carrier '{code}' already exists"
+            )));
         }
         info!("Creating carrier '{}' for org {}", code, org_id);
-        self.repository.create_carrier(
-            org_id, &code, name, description, carrier_type,
-            tracking_url_template, contact_name, contact_phone, contact_email,
-            created_by,
-        ).await
+        self.repository
+            .create_carrier(
+                org_id,
+                &code,
+                name,
+                description,
+                carrier_type,
+                tracking_url_template,
+                contact_name,
+                contact_phone,
+                contact_email,
+                created_by,
+            )
+            .await
     }
 
     /// Get a carrier by ID
-    pub async fn get_carrier(&self, id: Uuid) -> atlas_shared::AtlasResult<Option<atlas_shared::ShippingCarrier>> {
+    pub async fn get_carrier(
+        &self,
+        id: Uuid,
+    ) -> atlas_shared::AtlasResult<Option<atlas_shared::ShippingCarrier>> {
         self.repository.get_carrier(id).await
     }
 
     /// List carriers
-    pub async fn list_carriers(&self, org_id: Uuid) -> atlas_shared::AtlasResult<Vec<atlas_shared::ShippingCarrier>> {
+    pub async fn list_carriers(
+        &self,
+        org_id: Uuid,
+    ) -> atlas_shared::AtlasResult<Vec<atlas_shared::ShippingCarrier>> {
         self.repository.list_carriers(org_id).await
     }
 
@@ -119,28 +151,48 @@ impl ShippingEngine {
     ) -> atlas_shared::AtlasResult<atlas_shared::ShippingMethod> {
         let code = code.to_uppercase();
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Method code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Method code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Method name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Method name is required".to_string(),
+            ));
         }
         if transit_time_days < 0 {
-            return Err(AtlasError::ValidationFailed("Transit time cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Transit time cannot be negative".to_string(),
+            ));
         }
         info!("Creating shipping method '{}' for org {}", code, org_id);
-        self.repository.create_method(
-            org_id, &code, name, description, carrier_id,
-            transit_time_days, is_express, created_by,
-        ).await
+        self.repository
+            .create_method(
+                org_id,
+                &code,
+                name,
+                description,
+                carrier_id,
+                transit_time_days,
+                is_express,
+                created_by,
+            )
+            .await
     }
 
     /// Get a method by ID
-    pub async fn get_method(&self, id: Uuid) -> atlas_shared::AtlasResult<Option<atlas_shared::ShippingMethod>> {
+    pub async fn get_method(
+        &self,
+        id: Uuid,
+    ) -> atlas_shared::AtlasResult<Option<atlas_shared::ShippingMethod>> {
         self.repository.get_method(id).await
     }
 
     /// List methods
-    pub async fn list_methods(&self, org_id: Uuid) -> atlas_shared::AtlasResult<Vec<atlas_shared::ShippingMethod>> {
+    pub async fn list_methods(
+        &self,
+        org_id: Uuid,
+    ) -> atlas_shared::AtlasResult<Vec<atlas_shared::ShippingMethod>> {
         self.repository.list_methods(org_id).await
     }
 
@@ -179,10 +231,19 @@ impl ShippingEngine {
         created_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::Shipment> {
         if shipment_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Shipment number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Shipment number is required".to_string(),
+            ));
         }
-        if self.repository.get_shipment_by_number(org_id, shipment_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Shipment '{shipment_number}' already exists")));
+        if self
+            .repository
+            .get_shipment_by_number(org_id, shipment_number)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Shipment '{shipment_number}' already exists"
+            )));
         }
 
         // Resolve carrier name from carrier_id if not provided
@@ -208,22 +269,38 @@ impl ShippingEngine {
         };
 
         info!("Creating shipment '{}' for org {}", shipment_number, org_id);
-        self.repository.create_shipment(
-            org_id, shipment_number, description,
-            carrier_id, carrier_name.as_deref(),
-            shipping_method_id, shipping_method_name.as_deref(),
-            order_id, order_number,
-            customer_id, customer_name,
-            ship_from_warehouse,
-            ship_to_name, ship_to_address,
-            ship_to_city, ship_to_state,
-            ship_to_postal_code, ship_to_country,
-            estimated_delivery, notes, created_by,
-        ).await
+        self.repository
+            .create_shipment(
+                org_id,
+                shipment_number,
+                description,
+                carrier_id,
+                carrier_name.as_deref(),
+                shipping_method_id,
+                shipping_method_name.as_deref(),
+                order_id,
+                order_number,
+                customer_id,
+                customer_name,
+                ship_from_warehouse,
+                ship_to_name,
+                ship_to_address,
+                ship_to_city,
+                ship_to_state,
+                ship_to_postal_code,
+                ship_to_country,
+                estimated_delivery,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a shipment by ID
-    pub async fn get_shipment(&self, id: Uuid) -> atlas_shared::AtlasResult<Option<atlas_shared::Shipment>> {
+    pub async fn get_shipment(
+        &self,
+        id: Uuid,
+    ) -> atlas_shared::AtlasResult<Option<atlas_shared::Shipment>> {
         self.repository.get_shipment(id).await
     }
 
@@ -236,7 +313,9 @@ impl ShippingEngine {
         if let Some(s) = status {
             if !VALID_SHIPMENT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_SHIPMENT_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_SHIPMENT_STATUSES.join(", ")
                 )));
             }
         }
@@ -249,11 +328,15 @@ impl ShippingEngine {
         id: Uuid,
         confirmed_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::Shipment> {
-        let shipment = self.repository.get_shipment(id).await?
+        let shipment = self
+            .repository
+            .get_shipment(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {id} not found")))?;
         if shipment.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot confirm shipment in '{}' status. Must be 'draft'.", shipment.status
+                "Cannot confirm shipment in '{}' status. Must be 'draft'.",
+                shipment.status
             )));
         }
         info!("Confirming shipment {}", shipment.shipment_number);
@@ -267,15 +350,26 @@ impl ShippingEngine {
         tracking_number: Option<&str>,
         shipped_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::Shipment> {
-        let shipment = self.repository.get_shipment(id).await?
+        let shipment = self
+            .repository
+            .get_shipment(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {id} not found")))?;
-        if shipment.status != "confirmed" && shipment.status != "picked" && shipment.status != "packed" {
+        if shipment.status != "confirmed"
+            && shipment.status != "picked"
+            && shipment.status != "packed"
+        {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot ship confirm shipment in '{}' status. Must be 'confirmed', 'picked', or 'packed'.", shipment.status
             )));
         }
-        info!("Ship confirming shipment {} with tracking {:?}", shipment.shipment_number, tracking_number);
-        self.repository.ship_confirm(id, tracking_number, shipped_by).await
+        info!(
+            "Ship confirming shipment {} with tracking {:?}",
+            shipment.shipment_number, tracking_number
+        );
+        self.repository
+            .ship_confirm(id, tracking_number, shipped_by)
+            .await
     }
 
     /// Record delivery
@@ -284,33 +378,58 @@ impl ShippingEngine {
         id: Uuid,
         delivered_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::Shipment> {
-        let shipment = self.repository.get_shipment(id).await?
+        let shipment = self
+            .repository
+            .get_shipment(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {id} not found")))?;
         if shipment.status != "shipped" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot deliver shipment in '{}' status. Must be 'shipped'.", shipment.status
+                "Cannot deliver shipment in '{}' status. Must be 'shipped'.",
+                shipment.status
             )));
         }
-        info!("Recording delivery for shipment {}", shipment.shipment_number);
+        info!(
+            "Recording delivery for shipment {}",
+            shipment.shipment_number
+        );
         self.repository.deliver(id, delivered_by).await
     }
 
     /// Cancel a shipment
-    pub async fn cancel_shipment(&self, id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::Shipment> {
-        let shipment = self.repository.get_shipment(id).await?
+    pub async fn cancel_shipment(
+        &self,
+        id: Uuid,
+    ) -> atlas_shared::AtlasResult<atlas_shared::Shipment> {
+        let shipment = self
+            .repository
+            .get_shipment(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {id} not found")))?;
-        if shipment.status == "shipped" || shipment.status == "delivered" || shipment.status == "cancelled" {
+        if shipment.status == "shipped"
+            || shipment.status == "delivered"
+            || shipment.status == "cancelled"
+        {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot cancel shipment in '{}' status.", shipment.status
+                "Cannot cancel shipment in '{}' status.",
+                shipment.status
             )));
         }
         info!("Cancelling shipment {}", shipment.shipment_number);
-        self.repository.update_shipment_status(id, "cancelled").await
+        self.repository
+            .update_shipment_status(id, "cancelled")
+            .await
     }
 
     /// Delete a shipment
-    pub async fn delete_shipment(&self, org_id: Uuid, shipment_number: &str) -> atlas_shared::AtlasResult<()> {
-        self.repository.delete_shipment(org_id, shipment_number).await
+    pub async fn delete_shipment(
+        &self,
+        org_id: Uuid,
+        shipment_number: &str,
+    ) -> atlas_shared::AtlasResult<()> {
+        self.repository
+            .delete_shipment(org_id, shipment_number)
+            .await
     }
 
     // ========================================================================
@@ -337,23 +456,33 @@ impl ShippingEngine {
         order_line_id: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::ShipmentLine> {
         if item_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Item code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Item code is required".to_string(),
+            ));
         }
 
         let qty: f64 = requested_quantity.parse().map_err(|_| {
             AtlasError::ValidationFailed("Requested quantity must be a number".to_string())
         })?;
         if qty <= 0.0 {
-            return Err(AtlasError::ValidationFailed("Requested quantity must be positive".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Requested quantity must be positive".to_string(),
+            ));
         }
 
         // Verify shipment exists and is in editable state
-        let shipment = self.repository.get_shipment(shipment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {shipment_id} not found")))?;
+        let shipment = self
+            .repository
+            .get_shipment(shipment_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Shipment {shipment_id} not found"))
+            })?;
 
         if shipment.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot add lines to shipment in '{}' status. Must be 'draft'.", shipment.status
+                "Cannot add lines to shipment in '{}' status. Must be 'draft'.",
+                shipment.status
             )));
         }
 
@@ -361,29 +490,54 @@ impl ShippingEngine {
         let existing = self.repository.list_shipment_lines(shipment_id).await?;
         let line_number = (existing.len() as i32) + 1;
 
-        info!("Adding line {} (item: {}) to shipment {}", line_number, item_code, shipment.shipment_number);
+        info!(
+            "Adding line {} (item: {}) to shipment {}",
+            line_number, item_code, shipment.shipment_number
+        );
 
-        self.repository.add_shipment_line(
-            org_id, shipment_id, line_number, order_line_id,
-            item_code, item_name, item_description,
-            requested_quantity, unit_of_measure,
-            weight, weight_unit, lot_number, serial_number,
-            is_fragile, is_hazardous, notes,
-        ).await
+        self.repository
+            .add_shipment_line(
+                org_id,
+                shipment_id,
+                line_number,
+                order_line_id,
+                item_code,
+                item_name,
+                item_description,
+                requested_quantity,
+                unit_of_measure,
+                weight,
+                weight_unit,
+                lot_number,
+                serial_number,
+                is_fragile,
+                is_hazardous,
+                notes,
+            )
+            .await
     }
 
     /// List shipment lines
-    pub async fn list_shipment_lines(&self, shipment_id: Uuid) -> atlas_shared::AtlasResult<Vec<atlas_shared::ShipmentLine>> {
+    pub async fn list_shipment_lines(
+        &self,
+        shipment_id: Uuid,
+    ) -> atlas_shared::AtlasResult<Vec<atlas_shared::ShipmentLine>> {
         self.repository.list_shipment_lines(shipment_id).await
     }
 
     /// Delete a shipment line
     pub async fn delete_shipment_line(&self, id: Uuid) -> atlas_shared::AtlasResult<()> {
-        let line = self.repository.get_shipment_line(id).await?
+        let line = self
+            .repository
+            .get_shipment_line(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment line {id} not found")))?;
 
         // Check shipment status
-        let shipment = self.repository.get_shipment(line.shipment_id).await?
+        let shipment = self
+            .repository
+            .get_shipment(line.shipment_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Shipment not found".to_string()))?;
         if shipment.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -400,14 +554,19 @@ impl ShippingEngine {
         id: Uuid,
         shipped_quantity: &str,
     ) -> atlas_shared::AtlasResult<atlas_shared::ShipmentLine> {
-        let line = self.repository.get_shipment_line(id).await?
+        let line = self
+            .repository
+            .get_shipment_line(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment line {id} not found")))?;
 
         let shipped: f64 = shipped_quantity.parse().map_err(|_| {
             AtlasError::ValidationFailed("Shipped quantity must be a number".to_string())
         })?;
         if shipped < 0.0 {
-            return Err(AtlasError::ValidationFailed("Shipped quantity cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Shipped quantity cannot be negative".to_string(),
+            ));
         }
         let requested: f64 = line.requested_quantity.parse().unwrap_or(0.0);
         if shipped > requested {
@@ -416,8 +575,13 @@ impl ShippingEngine {
             )));
         }
 
-        info!("Updating shipped qty for line {} item {} to {}", line.line_number, line.item_code, shipped);
-        self.repository.update_line_shipped_quantity(id, shipped_quantity).await
+        info!(
+            "Updating shipped qty for line {} item {} to {}",
+            line.line_number, line.item_code, shipped
+        );
+        self.repository
+            .update_line_shipped_quantity(id, shipped_quantity)
+            .await
     }
 
     // ========================================================================
@@ -442,40 +606,70 @@ impl ShippingEngine {
         created_by: Option<Uuid>,
     ) -> atlas_shared::AtlasResult<atlas_shared::PackingSlip> {
         if packing_slip_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Packing slip number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Packing slip number is required".to_string(),
+            ));
         }
         if package_number < 1 {
-            return Err(AtlasError::ValidationFailed("Package number must be >= 1".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Package number must be >= 1".to_string(),
+            ));
         }
         if let Some(pt) = package_type {
             if !VALID_PACKAGE_TYPES.contains(&pt) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid package_type '{}'. Must be one of: {}", pt, VALID_PACKAGE_TYPES.join(", ")
+                    "Invalid package_type '{}'. Must be one of: {}",
+                    pt,
+                    VALID_PACKAGE_TYPES.join(", ")
                 )));
             }
         }
 
         // Verify shipment exists
-        let shipment = self.repository.get_shipment(shipment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Shipment {shipment_id} not found")))?;
+        let shipment = self
+            .repository
+            .get_shipment(shipment_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Shipment {shipment_id} not found"))
+            })?;
 
-        info!("Creating packing slip {} for shipment {}", packing_slip_number, shipment.shipment_number);
-        self.repository.create_packing_slip(
-            org_id, shipment_id, packing_slip_number,
-            package_number, package_type,
-            weight, weight_unit,
-            dimensions_length, dimensions_width, dimensions_height, dimensions_unit,
-            notes, created_by,
-        ).await
+        info!(
+            "Creating packing slip {} for shipment {}",
+            packing_slip_number, shipment.shipment_number
+        );
+        self.repository
+            .create_packing_slip(
+                org_id,
+                shipment_id,
+                packing_slip_number,
+                package_number,
+                package_type,
+                weight,
+                weight_unit,
+                dimensions_length,
+                dimensions_width,
+                dimensions_height,
+                dimensions_unit,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// List packing slips for a shipment
-    pub async fn list_packing_slips(&self, shipment_id: Uuid) -> atlas_shared::AtlasResult<Vec<atlas_shared::PackingSlip>> {
+    pub async fn list_packing_slips(
+        &self,
+        shipment_id: Uuid,
+    ) -> atlas_shared::AtlasResult<Vec<atlas_shared::PackingSlip>> {
         self.repository.list_packing_slips(shipment_id).await
     }
 
     /// Get a packing slip
-    pub async fn get_packing_slip(&self, id: Uuid) -> atlas_shared::AtlasResult<Option<atlas_shared::PackingSlip>> {
+    pub async fn get_packing_slip(
+        &self,
+        id: Uuid,
+    ) -> atlas_shared::AtlasResult<Option<atlas_shared::PackingSlip>> {
         self.repository.get_packing_slip(id).await
     }
 
@@ -500,29 +694,52 @@ impl ShippingEngine {
         notes: Option<&str>,
     ) -> atlas_shared::AtlasResult<atlas_shared::PackingSlipLine> {
         if item_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Item code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Item code is required".to_string(),
+            ));
         }
         let qty: f64 = packed_quantity.parse().map_err(|_| {
             AtlasError::ValidationFailed("Packed quantity must be a number".to_string())
         })?;
         if qty <= 0.0 {
-            return Err(AtlasError::ValidationFailed("Packed quantity must be positive".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Packed quantity must be positive".to_string(),
+            ));
         }
 
         // Get next line number
-        let existing = self.repository.list_packing_slip_lines(packing_slip_id).await?;
+        let existing = self
+            .repository
+            .list_packing_slip_lines(packing_slip_id)
+            .await?;
         let line_number = (existing.len() as i32) + 1;
 
-        info!("Adding packing slip line {} (item: {})", line_number, item_code);
-        self.repository.add_packing_slip_line(
-            org_id, packing_slip_id, shipment_line_id,
-            line_number, item_code, item_name, packed_quantity, notes,
-        ).await
+        info!(
+            "Adding packing slip line {} (item: {})",
+            line_number, item_code
+        );
+        self.repository
+            .add_packing_slip_line(
+                org_id,
+                packing_slip_id,
+                shipment_line_id,
+                line_number,
+                item_code,
+                item_name,
+                packed_quantity,
+                notes,
+            )
+            .await
     }
 
     /// List packing slip lines
-    pub async fn list_packing_slip_lines(&self, packing_slip_id: Uuid) -> atlas_shared::AtlasResult<Vec<atlas_shared::PackingSlipLine>> {
-        self.repository.list_packing_slip_lines(packing_slip_id).await
+    pub async fn list_packing_slip_lines(
+        &self,
+        packing_slip_id: Uuid,
+    ) -> atlas_shared::AtlasResult<Vec<atlas_shared::PackingSlipLine>> {
+        self.repository
+            .list_packing_slip_lines(packing_slip_id)
+            .await
     }
 
     /// Delete a packing slip line
@@ -535,7 +752,10 @@ impl ShippingEngine {
     // ========================================================================
 
     /// Get shipping dashboard
-    pub async fn get_dashboard(&self, org_id: Uuid) -> atlas_shared::AtlasResult<atlas_shared::ShippingDashboard> {
+    pub async fn get_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> atlas_shared::AtlasResult<atlas_shared::ShippingDashboard> {
         self.repository.get_dashboard(org_id).await
     }
 }

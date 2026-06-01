@@ -9,12 +9,12 @@
 //! - New Item Request (NIR) workflow: draft → submitted → approved → implemented
 //! - PIM dashboard summary
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
 use uuid::Uuid;
-use super::common::helpers::*;
 
 async fn setup_pim_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -30,30 +30,48 @@ async fn setup_pim_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Rou
 
 async fn create_test_item(app: &axum::Router, item_number: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/pim/items")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "item_number": item_number,
-            "item_name": format!("Test Item {}", item_number),
-            "description": "A test product item",
-            "item_type": "finished_good",
-            "primary_uom_code": "EA",
-            "list_price": "99.99",
-            "cost_price": "50.00",
-            "currency_code": "USD",
-            "inventory_item_flag": true,
-            "purchasable_flag": true,
-            "sellable_flag": true,
-            "stock_enabled_flag": true,
-            "invoice_enabled_flag": true
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/pim/items")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "item_number": item_number,
+                        "item_name": format!("Test Item {}", item_number),
+                        "description": "A test product item",
+                        "item_type": "finished_good",
+                        "primary_uom_code": "EA",
+                        "list_price": "99.99",
+                        "cost_price": "50.00",
+                        "currency_code": "USD",
+                        "inventory_item_flag": true,
+                        "purchasable_flag": true,
+                        "sellable_flag": true,
+                        "stock_enabled_flag": true,
+                        "invoice_enabled_flag": true
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
-async fn create_test_category(app: &axum::Router, code: &str, parent_id: Option<&str>) -> serde_json::Value {
+async fn create_test_category(
+    app: &axum::Router,
+    code: &str,
+    parent_id: Option<&str>,
+) -> serde_json::Value {
     let mut body = json!({
         "code": code,
         "name": format!("Category {}", code),
@@ -64,54 +82,93 @@ async fn create_test_category(app: &axum::Router, code: &str, parent_id: Option<
     }
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/pim/categories")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&body).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/pim/categories")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
 async fn create_test_nir(app: &axum::Router, title: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/pim/new-item-requests")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "title": title,
-            "description": "New product request for testing",
-            "item_type": "finished_good",
-            "priority": "high",
-            "requested_item_number": format!("ITEM-NIR-{}", Uuid::new_v4()),
-            "requested_item_name": format!("New Product {}", title),
-            "justification": "Market demand for new product",
-            "currency_code": "USD"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/pim/new-item-requests")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "title": title,
+                        "description": "New product request for testing",
+                        "item_type": "finished_good",
+                        "priority": "high",
+                        "requested_item_number": format!("ITEM-NIR-{}", Uuid::new_v4()),
+                        "requested_item_name": format!("New Product {}", title),
+                        "justification": "Market demand for new product",
+                        "currency_code": "USD"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
 async fn create_test_template(app: &axum::Router, code: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/pim/templates")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": code,
-            "name": format!("Template {}", code),
-            "description": "A test item template",
-            "item_type": "finished_good",
-            "default_uom_code": "EA",
-            "default_inventory_flag": true,
-            "default_purchasable_flag": true,
-            "default_sellable_flag": true,
-            "default_stock_enabled_flag": true,
-            "attribute_defaults": {"color": "default", "size": "M"}
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/pim/templates")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": code,
+                        "name": format!("Template {}", code),
+                        "description": "A test item template",
+                        "item_type": "finished_good",
+                        "default_uom_code": "EA",
+                        "default_inventory_flag": true,
+                        "default_purchasable_flag": true,
+                        "default_sellable_flag": true,
+                        "default_stock_enabled_flag": true,
+                        "attribute_defaults": {"color": "default", "size": "M"}
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -138,16 +195,28 @@ async fn test_create_item() {
 async fn test_create_item_validation_empty_number() {
     let (_state, app) = setup_pim_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/pim/items")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "item_number": "",
-            "item_name": "Test",
-            "item_type": "finished_good",
-            "primary_uom_code": "EA",
-            "currency_code": "USD"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/pim/items")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "item_number": "",
+                        "item_name": "Test",
+                        "item_type": "finished_good",
+                        "primary_uom_code": "EA",
+                        "currency_code": "USD"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -155,16 +224,28 @@ async fn test_create_item_validation_empty_number() {
 async fn test_create_item_validation_invalid_type() {
     let (_state, app) = setup_pim_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/pim/items")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "item_number": "ITEM-BAD",
-            "item_name": "Test",
-            "item_type": "invalid_type",
-            "primary_uom_code": "EA",
-            "currency_code": "USD"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/pim/items")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "item_number": "ITEM-BAD",
+                        "item_name": "Test",
+                        "item_type": "invalid_type",
+                        "primary_uom_code": "EA",
+                        "currency_code": "USD"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -175,16 +256,28 @@ async fn test_create_item_duplicate_number() {
 
     // Try creating with same number
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/pim/items")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "item_number": "ITEM-DUP",
-            "item_name": "Duplicate",
-            "item_type": "finished_good",
-            "primary_uom_code": "EA",
-            "currency_code": "USD"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/pim/items")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "item_number": "ITEM-DUP",
+                        "item_name": "Duplicate",
+                        "item_type": "finished_good",
+                        "primary_uom_code": "EA",
+                        "currency_code": "USD"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -195,13 +288,23 @@ async fn test_get_item() {
     let id = item["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/pim/items/{}", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/pim/items/{}", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fetched: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(fetched["item_number"], "ITEM-GET");
 }
@@ -212,13 +315,23 @@ async fn test_get_item_by_number() {
     create_test_item(&app, "ITEM-BYNUM").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/pim/items/by-number/ITEM-BYNUM")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/pim/items/by-number/ITEM-BYNUM")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fetched: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(fetched["item_number"], "ITEM-BYNUM");
 }
@@ -230,13 +343,23 @@ async fn test_list_items() {
     create_test_item(&app, "ITEM-LIST-2").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/pim/items")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/pim/items")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(result["data"].as_array().unwrap().len() >= 2);
 }
@@ -252,14 +375,26 @@ async fn test_update_item_status_draft_to_active() {
     let id = item["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/items/{}/status", id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "active"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/items/{}/status", id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "active"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(updated["status"], "active");
     // When activating from concept, lifecycle should auto-advance to production
@@ -274,11 +409,21 @@ async fn test_update_item_status_invalid_transition() {
 
     // Cannot go directly from draft to obsolete
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/items/{}/status", id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "obsolete"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/items/{}/status", id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "obsolete"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -290,14 +435,26 @@ async fn test_update_lifecycle_phase() {
 
     // Advance concept -> design
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/items/{}/lifecycle", id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"lifecycle_phase": "design"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/items/{}/lifecycle", id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"lifecycle_phase": "design"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(updated["lifecycle_phase"], "design");
 }
@@ -310,18 +467,38 @@ async fn test_update_lifecycle_backward_rejected() {
 
     // Advance to design first
     let (k, v) = auth_header(&admin_claims());
-    let _r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/items/{}/lifecycle", id))
-        .header("Content-Type", "application/json").header(&k.clone(), v.clone())
-        .body(Body::from(serde_json::to_string(&json!({"lifecycle_phase": "design"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let _r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/items/{}/lifecycle", id))
+                .header("Content-Type", "application/json")
+                .header(&k.clone(), v.clone())
+                .body(Body::from(
+                    serde_json::to_string(&json!({"lifecycle_phase": "design"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try going backward: design -> concept (should fail)
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/items/{}/lifecycle", id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"lifecycle_phase": "concept"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/items/{}/lifecycle", id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"lifecycle_phase": "concept"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -332,10 +509,18 @@ async fn test_delete_item() {
     let id = item["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/pim/items/{}", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/pim/items/{}", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -347,17 +532,35 @@ async fn test_delete_active_item_rejected() {
 
     // Activate first
     let (k, v) = auth_header(&admin_claims());
-    let _r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/items/{}/status", id))
-        .header("Content-Type", "application/json").header(&k.clone(), v.clone())
-        .body(Body::from(serde_json::to_string(&json!({"status": "active"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let _r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/items/{}/status", id))
+                .header("Content-Type", "application/json")
+                .header(&k.clone(), v.clone())
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "active"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Now try to delete — should fail
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/pim/items/{}", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/pim/items/{}", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -393,13 +596,25 @@ async fn test_category_duplicate_code() {
     create_test_category(&app, "DUP-CAT", None).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/pim/categories")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": "DUP-CAT",
-            "name": "Duplicate Category"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/pim/categories")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": "DUP-CAT",
+                        "name": "Duplicate Category"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -410,13 +625,23 @@ async fn test_list_categories() {
     create_test_category(&app, "CAT-B", None).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/pim/categories")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/pim/categories")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(result["data"].as_array().unwrap().len() >= 2);
 }
@@ -428,10 +653,18 @@ async fn test_delete_category() {
     let id = cat["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/pim/categories/{}", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/pim/categories/{}", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -446,19 +679,32 @@ async fn test_create_cross_reference() {
     let item_id = item["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/items/{}/cross-references", item_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "cross_reference_type": "gtin",
-            "cross_reference_value": "01234567890123",
-            "description": "GTIN-13 barcode",
-            "source_system": "GS1"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/items/{}/cross-references", item_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "cross_reference_type": "gtin",
+                        "cross_reference_value": "01234567890123",
+                        "description": "GTIN-13 barcode",
+                        "source_system": "GS1"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let xref: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(xref["cross_reference_type"], "gtin");
     assert_eq!(xref["cross_reference_value"], "01234567890123");
@@ -471,14 +717,25 @@ async fn test_cross_reference_invalid_type() {
     let item_id = item["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/items/{}/cross-references", item_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "cross_reference_type": "invalid",
-            "cross_reference_value": "123"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/items/{}/cross-references", item_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "cross_reference_type": "invalid",
+                        "cross_reference_value": "123"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -491,23 +748,44 @@ async fn test_list_cross_references() {
     // Create two cross-refs
     let (k, v) = auth_header(&admin_claims());
     for (xref_type, value) in [("gtin", "1111111111111"), ("upc", "222222222222")] {
-        let _ = app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/pim/items/{}/cross-references", item_id))
-            .header("Content-Type", "application/json").header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({
-                "cross_reference_type": xref_type,
-                "cross_reference_value": value
-            })).unwrap())).unwrap()
-        ).await.unwrap();
+        let _ = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/v1/pim/items/{}/cross-references", item_id))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({
+                            "cross_reference_type": xref_type,
+                            "cross_reference_value": value
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/pim/items/{}/cross-references", item_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/pim/items/{}/cross-references", item_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(result["data"].as_array().unwrap().len() >= 2);
 }
@@ -534,13 +812,23 @@ async fn test_list_templates() {
     create_test_template(&app, "Tmpl-B").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/pim/templates")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/pim/templates")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(result["data"].as_array().unwrap().len() >= 2);
 }
@@ -561,33 +849,63 @@ async fn test_nir_full_workflow() {
 
     // 2. Submit for approval
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/new-item-requests/{}/submit", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/new-item-requests/{}/submit", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let submitted: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(submitted["status"], "submitted");
 
     // 3. Approve
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/new-item-requests/{}/approve", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/new-item-requests/{}/approve", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let approved: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(approved["status"], "approved");
     assert!(approved["approved_by"].is_string());
 
     // 4. Implement — creates the actual item
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/new-item-requests/{}/implement", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/new-item-requests/{}/implement", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let item: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(item["status"], "draft");
     assert!(item["item_number"].is_string());
@@ -602,25 +920,49 @@ async fn test_nir_reject_workflow() {
 
     // Submit
     let (k, v) = auth_header(&admin_claims());
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/new-item-requests/{}/submit", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/new-item-requests/{}/submit", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Reject
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/new-item-requests/{}/reject", id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "rejection_reason": "Not aligned with product strategy"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/new-item-requests/{}/reject", id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "rejection_reason": "Not aligned with product strategy"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let rejected: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(rejected["status"], "rejected");
-    assert_eq!(rejected["rejection_reason"], "Not aligned with product strategy");
+    assert_eq!(
+        rejected["rejection_reason"],
+        "Not aligned with product strategy"
+    );
 }
 
 #[tokio::test]
@@ -631,13 +973,23 @@ async fn test_nir_cancel_workflow() {
     let id = nir["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/new-item-requests/{}/cancel", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/new-item-requests/{}/cancel", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cancelled: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
@@ -649,10 +1001,18 @@ async fn test_nir_cannot_approve_draft() {
     let id = nir["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/pim/new-item-requests/{}/approve", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/pim/new-item-requests/{}/approve", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -663,13 +1023,23 @@ async fn test_list_nirs() {
     create_test_nir(&app, "NIR List 2").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/pim/new-item-requests")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/pim/new-item-requests")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(result["data"].as_array().unwrap().len() >= 2);
 }
@@ -685,13 +1055,23 @@ async fn test_pim_dashboard() {
     create_test_category(&app, "DASH-CAT", None).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/pim/dashboard")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/pim/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(dashboard["total_items"].is_number());
     assert!(dashboard["active_items"].is_number());

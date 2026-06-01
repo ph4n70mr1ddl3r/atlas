@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: SCM > Procurement > Contracts
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ProcurementContractEngine;
-pub use repository::{ProcurementContractRepository, PostgresProcurementContractRepository};
+pub use repository::{PostgresProcurementContractRepository, ProcurementContractRepository};

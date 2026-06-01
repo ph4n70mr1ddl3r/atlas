@@ -14,12 +14,11 @@
 //! 6. Place/release credit holds on transactions
 //! 7. Conduct periodic credit reviews
 
-use atlas_shared::{
-    CreditScoringModel, CreditProfile, CreditLimit, CreditCheckRule,
-    CreditExposure, CreditHold, CreditReview, CreditManagementDashboard,
-    AtlasError, AtlasResult,
-};
 use super::CreditManagementRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CreditCheckRule, CreditExposure, CreditHold, CreditLimit,
+    CreditManagementDashboard, CreditProfile, CreditReview, CreditScoringModel,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -39,63 +38,46 @@ fn risk_level_from_score(score: f64) -> &'static str {
 }
 
 /// Valid model types for scoring models
-const VALID_MODEL_TYPES: &[&str] = &[
-    "manual", "scorecard", "risk_category", "external",
-];
+const VALID_MODEL_TYPES: &[&str] = &["manual", "scorecard", "risk_category", "external"];
 
 /// Valid profile types
-const VALID_PROFILE_TYPES: &[&str] = &[
-    "customer", "customer_group", "global",
-];
+const VALID_PROFILE_TYPES: &[&str] = &["customer", "customer_group", "global"];
 
 /// Valid profile statuses
-const VALID_PROFILE_STATUSES: &[&str] = &[
-    "active", "inactive", "suspended", "blocked",
-];
+const VALID_PROFILE_STATUSES: &[&str] = &["active", "inactive", "suspended", "blocked"];
 
 /// Valid risk levels
-const VALID_RISK_LEVELS: &[&str] = &[
-    "low", "medium", "high", "very_high", "blocked",
-];
+const VALID_RISK_LEVELS: &[&str] = &["low", "medium", "high", "very_high", "blocked"];
 
 /// Valid limit types
-const VALID_LIMIT_TYPES: &[&str] = &[
-    "overall", "order", "delivery", "currency",
-];
+const VALID_LIMIT_TYPES: &[&str] = &["overall", "order", "delivery", "currency"];
 
 /// Valid check points for credit check rules
-const VALID_CHECK_POINTS: &[&str] = &[
-    "order_entry", "shipment", "invoice", "delivery", "payment",
-];
+const VALID_CHECK_POINTS: &[&str] = &["order_entry", "shipment", "invoice", "delivery", "payment"];
 
 /// Valid check types
-const VALID_CHECK_TYPES: &[&str] = &[
-    "automatic", "manual",
-];
+const VALID_CHECK_TYPES: &[&str] = &["automatic", "manual"];
 
 /// Valid actions on credit check failure
-const VALID_FAILURE_ACTIONS: &[&str] = &[
-    "hold", "warn", "reject", "notify",
-];
+const VALID_FAILURE_ACTIONS: &[&str] = &["hold", "warn", "reject", "notify"];
 
 /// Valid hold types
-const VALID_HOLD_TYPES: &[&str] = &[
-    "credit_limit", "overdue", "review", "manual", "scoring",
-];
+const VALID_HOLD_TYPES: &[&str] = &["credit_limit", "overdue", "review", "manual", "scoring"];
 
 /// Valid hold statuses
-const VALID_HOLD_STATUSES: &[&str] = &[
-    "active", "released", "overridden", "cancelled",
-];
+const VALID_HOLD_STATUSES: &[&str] = &["active", "released", "overridden", "cancelled"];
 
 /// Valid review types
-const VALID_REVIEW_TYPES: &[&str] = &[
-    "periodic", "triggered", "ad_hoc", "escalation",
-];
+const VALID_REVIEW_TYPES: &[&str] = &["periodic", "triggered", "ad_hoc", "escalation"];
 
 /// Valid review statuses
 const VALID_REVIEW_STATUSES: &[&str] = &[
-    "pending", "in_review", "completed", "approved", "rejected", "cancelled",
+    "pending",
+    "in_review",
+    "completed",
+    "approved",
+    "rejected",
+    "cancelled",
 ];
 
 /// Credit Management engine
@@ -138,23 +120,40 @@ impl CreditManagementEngine {
         if !VALID_MODEL_TYPES.contains(&model_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid model_type '{}'. Must be one of: {}",
-                model_type, VALID_MODEL_TYPES.join(", ")
+                model_type,
+                VALID_MODEL_TYPES.join(", ")
             )));
         }
 
         // Check uniqueness
-        if self.repository.get_scoring_model_by_code(org_id, &code).await?.is_some() {
+        if self
+            .repository
+            .get_scoring_model_by_code(org_id, &code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Scoring model '{code}' already exists"
             )));
         }
 
-        info!("Creating credit scoring model '{}' for org {}", code, org_id);
+        info!(
+            "Creating credit scoring model '{}' for org {}",
+            code, org_id
+        );
 
-        self.repository.create_scoring_model(
-            org_id, &code, name, description, model_type,
-            scoring_criteria, score_ranges, created_by,
-        ).await
+        self.repository
+            .create_scoring_model(
+                org_id,
+                &code,
+                name,
+                description,
+                model_type,
+                scoring_criteria,
+                score_ranges,
+                created_by,
+            )
+            .await
     }
 
     /// Get a scoring model by ID
@@ -163,8 +162,14 @@ impl CreditManagementEngine {
     }
 
     /// Get a scoring model by code
-    pub async fn get_scoring_model_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CreditScoringModel>> {
-        self.repository.get_scoring_model_by_code(org_id, code).await
+    pub async fn get_scoring_model_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CreditScoringModel>> {
+        self.repository
+            .get_scoring_model_by_code(org_id, code)
+            .await
     }
 
     /// List all scoring models for an org
@@ -174,7 +179,10 @@ impl CreditManagementEngine {
 
     /// Delete a scoring model
     pub async fn delete_scoring_model(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        info!("Deleting credit scoring model '{}' for org {}", code, org_id);
+        info!(
+            "Deleting credit scoring model '{}' for org {}",
+            code, org_id
+        );
         self.repository.delete_scoring_model(org_id, code).await
     }
 
@@ -211,7 +219,8 @@ impl CreditManagementEngine {
         if !VALID_PROFILE_TYPES.contains(&profile_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid profile_type '{}'. Must be one of: {}",
-                profile_type, VALID_PROFILE_TYPES.join(", ")
+                profile_type,
+                VALID_PROFILE_TYPES.join(", ")
             )));
         }
 
@@ -233,33 +242,53 @@ impl CreditManagementEngine {
         // Validate scoring model if provided
         if let Some(sm_id) = scoring_model_id {
             if self.repository.get_scoring_model(sm_id).await?.is_none() {
-                return Err(AtlasError::EntityNotFound(
-                    format!("Scoring model {sm_id} not found")
-                ));
+                return Err(AtlasError::EntityNotFound(format!(
+                    "Scoring model {sm_id} not found"
+                )));
             }
         }
 
         // Check uniqueness
-        if self.repository.get_profile_by_number(org_id, profile_number).await?.is_some() {
+        if self
+            .repository
+            .get_profile_by_number(org_id, profile_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Credit profile '{profile_number}' already exists"
             )));
         }
 
-        info!("Creating credit profile '{}' for org {}", profile_number, org_id);
+        info!(
+            "Creating credit profile '{}' for org {}",
+            profile_number, org_id
+        );
 
-        let profile = self.repository.create_profile(
-            org_id, profile_number, profile_name, description,
-            profile_type, customer_id, customer_name,
-            customer_group_id, customer_group_name,
-            scoring_model_id, review_frequency_days, created_by,
-        ).await?;
+        let profile = self
+            .repository
+            .create_profile(
+                org_id,
+                profile_number,
+                profile_name,
+                description,
+                profile_type,
+                customer_id,
+                customer_name,
+                customer_group_id,
+                customer_group_name,
+                scoring_model_id,
+                review_frequency_days,
+                created_by,
+            )
+            .await?;
 
         // Create default overall credit limit of 0, preserving audit trail
-        self.repository.create_credit_limit(
-            org_id, profile.id, "overall", None,
-            "0", None, None, created_by,
-        ).await?;
+        self.repository
+            .create_credit_limit(
+                org_id, profile.id, "overall", None, "0", None, None, created_by,
+            )
+            .await?;
 
         Ok(profile)
     }
@@ -270,22 +299,39 @@ impl CreditManagementEngine {
     }
 
     /// Get a profile by number
-    pub async fn get_profile_by_number(&self, org_id: Uuid, profile_number: &str) -> AtlasResult<Option<CreditProfile>> {
-        self.repository.get_profile_by_number(org_id, profile_number).await
+    pub async fn get_profile_by_number(
+        &self,
+        org_id: Uuid,
+        profile_number: &str,
+    ) -> AtlasResult<Option<CreditProfile>> {
+        self.repository
+            .get_profile_by_number(org_id, profile_number)
+            .await
     }
 
     /// Get a profile by customer ID
-    pub async fn get_profile_by_customer(&self, org_id: Uuid, customer_id: Uuid) -> AtlasResult<Option<CreditProfile>> {
-        self.repository.get_profile_by_customer(org_id, customer_id).await
+    pub async fn get_profile_by_customer(
+        &self,
+        org_id: Uuid,
+        customer_id: Uuid,
+    ) -> AtlasResult<Option<CreditProfile>> {
+        self.repository
+            .get_profile_by_customer(org_id, customer_id)
+            .await
     }
 
     /// List profiles
-    pub async fn list_profiles(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CreditProfile>> {
+    pub async fn list_profiles(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CreditProfile>> {
         if let Some(s) = status {
             if !VALID_PROFILE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid profile status filter '{}'. Must be one of: {}",
-                    s, VALID_PROFILE_STATUSES.join(", ")
+                    s,
+                    VALID_PROFILE_STATUSES.join(", ")
                 )));
             }
         }
@@ -293,20 +339,28 @@ impl CreditManagementEngine {
     }
 
     /// Update profile status
-    pub async fn update_profile_status(&self, id: Uuid, status: &str) -> AtlasResult<CreditProfile> {
+    pub async fn update_profile_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<CreditProfile> {
         if !VALID_PROFILE_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid profile status '{}'. Must be one of: {}",
-                status, VALID_PROFILE_STATUSES.join(", ")
+                status,
+                VALID_PROFILE_STATUSES.join(", ")
             )));
         }
 
-        let profile = self.repository.get_profile(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {id} not found")
-            ))?;
+        let profile =
+            self.repository.get_profile(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit profile {id} not found"))
+            })?;
 
-        info!("Updating credit profile {} status to {}", profile.profile_number, status);
+        info!(
+            "Updating credit profile {} status to {}",
+            profile.profile_number, status
+        );
         self.repository.update_profile_status(id, status).await
     }
 
@@ -321,7 +375,8 @@ impl CreditManagementEngine {
         if !VALID_RISK_LEVELS.contains(&risk_level) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid risk_level '{}'. Must be one of: {}",
-                risk_level, VALID_RISK_LEVELS.join(", ")
+                risk_level,
+                VALID_RISK_LEVELS.join(", ")
             )));
         }
 
@@ -335,13 +390,21 @@ impl CreditManagementEngine {
             ));
         }
 
-        info!("Updating credit profile {} score to {} ({})", id, credit_score, credit_rating);
-        self.repository.update_profile_score(id, credit_score, credit_rating, risk_level).await
+        info!(
+            "Updating credit profile {} score to {} ({})",
+            id, credit_score, credit_rating
+        );
+        self.repository
+            .update_profile_score(id, credit_score, credit_rating, risk_level)
+            .await
     }
 
     /// Delete a profile
     pub async fn delete_profile(&self, org_id: Uuid, profile_number: &str) -> AtlasResult<()> {
-        info!("Deleting credit profile '{}' for org {}", profile_number, org_id);
+        info!(
+            "Deleting credit profile '{}' for org {}",
+            profile_number, org_id
+        );
         self.repository.delete_profile(org_id, profile_number).await
     }
 
@@ -364,7 +427,8 @@ impl CreditManagementEngine {
         if !VALID_LIMIT_TYPES.contains(&limit_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid limit_type '{}'. Must be one of: {}",
-                limit_type, VALID_LIMIT_TYPES.join(", ")
+                limit_type,
+                VALID_LIMIT_TYPES.join(", ")
             )));
         }
 
@@ -379,17 +443,30 @@ impl CreditManagementEngine {
         }
 
         // Verify profile exists
-        self.repository.get_profile(profile_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {profile_id} not found")
-            ))?;
+        self.repository
+            .get_profile(profile_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit profile {profile_id} not found"))
+            })?;
 
-        info!("Creating {} credit limit of {} for profile {}", limit_type, credit_limit, profile_id);
+        info!(
+            "Creating {} credit limit of {} for profile {}",
+            limit_type, credit_limit, profile_id
+        );
 
-        self.repository.create_credit_limit(
-            org_id, profile_id, limit_type, currency_code,
-            credit_limit, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_credit_limit(
+                org_id,
+                profile_id,
+                limit_type,
+                currency_code,
+                credit_limit,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// List credit limits for a profile
@@ -398,7 +475,11 @@ impl CreditManagementEngine {
     }
 
     /// Update credit limit amount
-    pub async fn update_credit_limit_amount(&self, id: Uuid, credit_limit: &str) -> AtlasResult<CreditLimit> {
+    pub async fn update_credit_limit_amount(
+        &self,
+        id: Uuid,
+        credit_limit: &str,
+    ) -> AtlasResult<CreditLimit> {
         let limit: f64 = credit_limit.parse().map_err(|_| {
             AtlasError::ValidationFailed("credit_limit must be a number".to_string())
         })?;
@@ -410,11 +491,18 @@ impl CreditManagementEngine {
         }
 
         info!("Updating credit limit {} to {}", id, credit_limit);
-        self.repository.update_credit_limit_amount(id, credit_limit).await
+        self.repository
+            .update_credit_limit_amount(id, credit_limit)
+            .await
     }
 
     /// Set a temporary limit increase
-    pub async fn set_temp_limit(&self, id: Uuid, temp_increase: &str, expiry: Option<chrono::NaiveDate>) -> AtlasResult<CreditLimit> {
+    pub async fn set_temp_limit(
+        &self,
+        id: Uuid,
+        temp_increase: &str,
+        expiry: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<CreditLimit> {
         let increase: f64 = temp_increase.parse().map_err(|_| {
             AtlasError::ValidationFailed("temp_limit_increase must be a number".to_string())
         })?;
@@ -431,8 +519,13 @@ impl CreditManagementEngine {
             ));
         }
 
-        info!("Setting temp limit increase of {} for credit limit {}", temp_increase, id);
-        self.repository.set_temp_limit(id, temp_increase, expiry).await
+        info!(
+            "Setting temp limit increase of {} for credit limit {}",
+            temp_increase, id
+        );
+        self.repository
+            .set_temp_limit(id, temp_increase, expiry)
+            .await
     }
 
     /// Delete a credit limit
@@ -467,24 +560,32 @@ impl CreditManagementEngine {
         if !VALID_CHECK_POINTS.contains(&check_point) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid check_point '{}'. Must be one of: {}",
-                check_point, VALID_CHECK_POINTS.join(", ")
+                check_point,
+                VALID_CHECK_POINTS.join(", ")
             )));
         }
         if !VALID_CHECK_TYPES.contains(&check_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid check_type '{}'. Must be one of: {}",
-                check_type, VALID_CHECK_TYPES.join(", ")
+                check_type,
+                VALID_CHECK_TYPES.join(", ")
             )));
         }
         if !VALID_FAILURE_ACTIONS.contains(&action_on_failure) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid action_on_failure '{}'. Must be one of: {}",
-                action_on_failure, VALID_FAILURE_ACTIONS.join(", ")
+                action_on_failure,
+                VALID_FAILURE_ACTIONS.join(", ")
             )));
         }
 
         // Check uniqueness
-        if self.repository.get_check_rule_by_name(org_id, name).await?.is_some() {
+        if self
+            .repository
+            .get_check_rule_by_name(org_id, name)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Credit check rule '{name}' already exists"
             )));
@@ -492,11 +593,21 @@ impl CreditManagementEngine {
 
         info!("Creating credit check rule '{}' for org {}", name, org_id);
 
-        self.repository.create_check_rule(
-            org_id, name, description, check_point, check_type,
-            condition, action_on_failure, priority,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_check_rule(
+                org_id,
+                name,
+                description,
+                check_point,
+                check_type,
+                condition,
+                action_on_failure,
+                priority,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a check rule by ID
@@ -532,10 +643,12 @@ impl CreditManagementEngine {
         on_hold_amount: &str,
     ) -> AtlasResult<CreditExposure> {
         // Verify profile exists
-        self.repository.get_profile(profile_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {profile_id} not found")
-            ))?;
+        self.repository
+            .get_profile(profile_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit profile {profile_id} not found"))
+            })?;
 
         let receivables: f64 = open_receivables.parse().unwrap_or(0.0);
         let orders: f64 = open_orders.parse().unwrap_or(0.0);
@@ -545,11 +658,16 @@ impl CreditManagementEngine {
         let _holds: f64 = on_hold_amount.parse().unwrap_or(0.0);
 
         let total_exposure = receivables + orders + shipments + invoices - cash;
-        let total_exposure = if total_exposure < 0.0 { 0.0 } else { total_exposure };
+        let total_exposure = if total_exposure < 0.0 {
+            0.0
+        } else {
+            total_exposure
+        };
 
         // Get current credit limit
         let limits = self.repository.list_credit_limits(profile_id).await?;
-        let overall_limit = limits.iter()
+        let overall_limit = limits
+            .iter()
             .find(|l| l.limit_type == "overall")
             .map_or(0.0, |l| l.credit_limit.parse::<f64>().unwrap_or(0.0));
 
@@ -572,25 +690,43 @@ impl CreditManagementEngine {
             profile_id, total_exposure, overall_limit, available_credit, utilization
         );
 
-        self.repository.create_exposure(
-            org_id, profile_id, today, currency_code,
-            open_receivables, open_orders, open_shipments, open_invoices,
-            unapplied_cash, on_hold_amount,
-            &format!("{total_exposure:.2}"),
-            &format!("{overall_limit:.2}"),
-            &format!("{available_credit:.2}"),
-            &format!("{utilization:.2}"),
-        ).await
+        self.repository
+            .create_exposure(
+                org_id,
+                profile_id,
+                today,
+                currency_code,
+                open_receivables,
+                open_orders,
+                open_shipments,
+                open_invoices,
+                unapplied_cash,
+                on_hold_amount,
+                &format!("{total_exposure:.2}"),
+                &format!("{overall_limit:.2}"),
+                &format!("{available_credit:.2}"),
+                &format!("{utilization:.2}"),
+            )
+            .await
     }
 
     /// Get latest exposure for a profile
-    pub async fn get_latest_exposure(&self, profile_id: Uuid) -> AtlasResult<Option<CreditExposure>> {
+    pub async fn get_latest_exposure(
+        &self,
+        profile_id: Uuid,
+    ) -> AtlasResult<Option<CreditExposure>> {
         self.repository.get_latest_exposure(profile_id).await
     }
 
     /// Get exposure history
-    pub async fn list_exposure_history(&self, profile_id: Uuid, limit: Option<i32>) -> AtlasResult<Vec<CreditExposure>> {
-        self.repository.list_exposure_history(profile_id, limit).await
+    pub async fn list_exposure_history(
+        &self,
+        profile_id: Uuid,
+        limit: Option<i32>,
+    ) -> AtlasResult<Vec<CreditExposure>> {
+        self.repository
+            .list_exposure_history(profile_id, limit)
+            .await
     }
 
     /// Perform a credit check against a profile
@@ -602,15 +738,21 @@ impl CreditManagementEngine {
         requested_amount: &str,
         _check_point: &str,
     ) -> AtlasResult<CreditCheckResult> {
-        let profile = self.repository.get_profile(profile_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {profile_id} not found")
-            ))?;
+        let profile = self
+            .repository
+            .get_profile(profile_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit profile {profile_id} not found"))
+            })?;
 
         if profile.status != "active" {
             return Ok(CreditCheckResult {
                 passed: false,
-                reason: Some(format!("Profile status is '{}', not 'active'", profile.status)),
+                reason: Some(format!(
+                    "Profile status is '{}', not 'active'",
+                    profile.status
+                )),
                 exposure: None,
             });
         }
@@ -622,7 +764,8 @@ impl CreditManagementEngine {
 
         // Get credit limit
         let limits = self.repository.list_credit_limits(profile_id).await?;
-        let overall_limit = limits.iter()
+        let overall_limit = limits
+            .iter()
             .find(|l| l.limit_type == "overall")
             .map_or(0.0, |l| {
                 let base = l.credit_limit.parse::<f64>().unwrap_or(0.0);
@@ -639,7 +782,8 @@ impl CreditManagementEngine {
                 }
             });
 
-        let current_exposure = exposure.as_ref()
+        let current_exposure = exposure
+            .as_ref()
             .map_or(0.0, |e| e.total_exposure.parse::<f64>().unwrap_or(0.0));
 
         let available = if overall_limit > current_exposure {
@@ -664,7 +808,9 @@ impl CreditManagementEngine {
 
         Ok(CreditCheckResult {
             passed,
-            reason: if passed { None } else {
+            reason: if passed {
+                None
+            } else {
                 Some(format!(
                     "Credit limit exceeded: requested {requested:.2}, available {available:.2} (limit {overall_limit:.2}, exposure {current_exposure:.2})"
                 ))
@@ -693,25 +839,49 @@ impl CreditManagementEngine {
         if !VALID_HOLD_TYPES.contains(&hold_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid hold_type '{}'. Must be one of: {}",
-                hold_type, VALID_HOLD_TYPES.join(", ")
+                hold_type,
+                VALID_HOLD_TYPES.join(", ")
             )));
         }
 
         // Verify profile exists
-        self.repository.get_profile(profile_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {profile_id} not found")
-            ))?;
+        self.repository
+            .get_profile(profile_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit profile {profile_id} not found"))
+            })?;
 
-        let hold_number = format!("HLD-{}-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>());
+        let hold_number = format!(
+            "HLD-{}-{}",
+            chrono::Utc::now().format("%Y%m%d%H%M%S"),
+            Uuid::new_v4()
+                .as_simple()
+                .to_string()
+                .chars()
+                .take(8)
+                .collect::<String>()
+        );
 
-        info!("Creating credit hold {} on {} ({})", hold_number, entity_type, hold_type);
+        info!(
+            "Creating credit hold {} on {} ({})",
+            hold_number, entity_type, hold_type
+        );
 
-        self.repository.create_hold(
-            org_id, profile_id, &hold_number, hold_type,
-            entity_type, entity_id, entity_number,
-            hold_amount, reason, created_by,
-        ).await
+        self.repository
+            .create_hold(
+                org_id,
+                profile_id,
+                &hold_number,
+                hold_type,
+                entity_type,
+                entity_id,
+                entity_number,
+                hold_amount,
+                reason,
+                created_by,
+            )
+            .await
     }
 
     /// Get a hold by ID
@@ -720,12 +890,18 @@ impl CreditManagementEngine {
     }
 
     /// List holds
-    pub async fn list_holds(&self, org_id: Uuid, status: Option<&str>, profile_id: Option<Uuid>) -> AtlasResult<Vec<CreditHold>> {
+    pub async fn list_holds(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        profile_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<CreditHold>> {
         if let Some(s) = status {
             if !VALID_HOLD_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid hold status filter '{}'. Must be one of: {}",
-                    s, VALID_HOLD_STATUSES.join(", ")
+                    s,
+                    VALID_HOLD_STATUSES.join(", ")
                 )));
             }
         }
@@ -733,32 +909,48 @@ impl CreditManagementEngine {
     }
 
     /// Release a hold
-    pub async fn release_hold(&self, id: Uuid, released_by: Option<Uuid>, release_reason: Option<&str>) -> AtlasResult<CreditHold> {
-        let hold = self.repository.get_hold(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit hold {id} not found")
-            ))?;
+    pub async fn release_hold(
+        &self,
+        id: Uuid,
+        released_by: Option<Uuid>,
+        release_reason: Option<&str>,
+    ) -> AtlasResult<CreditHold> {
+        let hold = self
+            .repository
+            .get_hold(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Credit hold {id} not found")))?;
 
         if hold.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot release hold in '{}' status. Must be 'active'.", hold.status
+                "Cannot release hold in '{}' status. Must be 'active'.",
+                hold.status
             )));
         }
 
         info!("Releasing credit hold {}", hold.hold_number);
-        self.repository.release_hold(id, released_by, release_reason).await
+        self.repository
+            .release_hold(id, released_by, release_reason)
+            .await
     }
 
     /// Override a hold (with authorization)
-    pub async fn override_hold(&self, id: Uuid, overridden_by: Option<Uuid>, override_reason: Option<&str>) -> AtlasResult<CreditHold> {
-        let hold = self.repository.get_hold(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit hold {id} not found")
-            ))?;
+    pub async fn override_hold(
+        &self,
+        id: Uuid,
+        overridden_by: Option<Uuid>,
+        override_reason: Option<&str>,
+    ) -> AtlasResult<CreditHold> {
+        let hold = self
+            .repository
+            .get_hold(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Credit hold {id} not found")))?;
 
         if hold.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot override hold in '{}' status. Must be 'active'.", hold.status
+                "Cannot override hold in '{}' status. Must be 'active'.",
+                hold.status
             )));
         }
 
@@ -769,7 +961,9 @@ impl CreditManagementEngine {
         }
 
         info!("Overriding credit hold {}", hold.hold_number);
-        self.repository.override_hold(id, overridden_by, override_reason).await
+        self.repository
+            .override_hold(id, overridden_by, override_reason)
+            .await
     }
 
     // ========================================================================
@@ -792,30 +986,54 @@ impl CreditManagementEngine {
         if !VALID_REVIEW_TYPES.contains(&review_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid review_type '{}'. Must be one of: {}",
-                review_type, VALID_REVIEW_TYPES.join(", ")
+                review_type,
+                VALID_REVIEW_TYPES.join(", ")
             )));
         }
 
         // Verify profile exists
-        let profile = self.repository.get_profile(profile_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit profile {profile_id} not found")
-            ))?;
+        let profile = self
+            .repository
+            .get_profile(profile_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit profile {profile_id} not found"))
+            })?;
 
-        let review_number = format!("CR-{}-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>());
+        let review_number = format!(
+            "CR-{}-{}",
+            chrono::Utc::now().format("%Y%m%d%H%M%S"),
+            Uuid::new_v4()
+                .as_simple()
+                .to_string()
+                .chars()
+                .take(8)
+                .collect::<String>()
+        );
 
         // Auto-populate previous values from profile if not provided
         let prev_score = previous_score.or(profile.credit_score.as_deref());
         let prev_rating = previous_rating.or(profile.credit_rating.as_deref());
 
-        info!("Creating credit review {} for profile {}", review_number, profile.profile_number);
+        info!(
+            "Creating credit review {} for profile {}",
+            review_number, profile.profile_number
+        );
 
-        self.repository.create_review(
-            org_id, profile_id, &review_number, review_type,
-            previous_credit_limit, recommended_credit_limit,
-            prev_score, prev_rating,
-            due_date, created_by,
-        ).await
+        self.repository
+            .create_review(
+                org_id,
+                profile_id,
+                &review_number,
+                review_type,
+                previous_credit_limit,
+                recommended_credit_limit,
+                prev_score,
+                prev_rating,
+                due_date,
+                created_by,
+            )
+            .await
     }
 
     /// Get a review by ID
@@ -824,28 +1042,37 @@ impl CreditManagementEngine {
     }
 
     /// List reviews
-    pub async fn list_reviews(&self, org_id: Uuid, status: Option<&str>, profile_id: Option<Uuid>) -> AtlasResult<Vec<CreditReview>> {
+    pub async fn list_reviews(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        profile_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<CreditReview>> {
         if let Some(s) = status {
             if !VALID_REVIEW_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid review status filter '{}'. Must be one of: {}",
-                    s, VALID_REVIEW_STATUSES.join(", ")
+                    s,
+                    VALID_REVIEW_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_reviews(org_id, status, profile_id).await
+        self.repository
+            .list_reviews(org_id, status, profile_id)
+            .await
     }
 
     /// Start a review (transition from pending to `in_review`)
     pub async fn start_review(&self, id: Uuid) -> AtlasResult<CreditReview> {
-        let review = self.repository.get_review(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit review {id} not found")
-            ))?;
+        let review =
+            self.repository.get_review(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit review {id} not found"))
+            })?;
 
         if review.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot start review in '{}' status. Must be 'pending'.", review.status
+                "Cannot start review in '{}' status. Must be 'pending'.",
+                review.status
             )));
         }
 
@@ -864,22 +1091,32 @@ impl CreditManagementEngine {
         reviewer_id: Option<Uuid>,
         reviewer_name: Option<&str>,
     ) -> AtlasResult<CreditReview> {
-        let review = self.repository.get_review(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit review {id} not found")
-            ))?;
+        let review =
+            self.repository.get_review(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit review {id} not found"))
+            })?;
 
         if review.status != "in_review" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot complete review in '{}' status. Must be 'in_review'.", review.status
+                "Cannot complete review in '{}' status. Must be 'in_review'.",
+                review.status
             )));
         }
 
         info!("Completing credit review {}", review.review_number);
-        let completed = self.repository.complete_review(
-            id, new_score, new_rating, approved_credit_limit,
-            findings, recommendations, reviewer_id, reviewer_name,
-        ).await?;
+        let completed = self
+            .repository
+            .complete_review(
+                id,
+                new_score,
+                new_rating,
+                approved_credit_limit,
+                findings,
+                recommendations,
+                reviewer_id,
+                reviewer_name,
+            )
+            .await?;
 
         // Update the profile's score and review dates
         let profile_id = completed.profile_id;
@@ -890,9 +1127,11 @@ impl CreditManagementEngine {
             let score_val: f64 = score.parse().unwrap_or(0.0);
             let risk_level = risk_level_from_score(score_val);
 
-            if let Err(e) = self.repository.update_profile_score(
-                profile_id, score, rating, risk_level,
-            ).await {
+            if let Err(e) = self
+                .repository
+                .update_profile_score(profile_id, score, rating, risk_level)
+                .await
+            {
                 tracing::warn!("Failed to update profile score after review: {}", e);
             }
         }
@@ -901,9 +1140,11 @@ impl CreditManagementEngine {
         let profile = self.repository.get_profile(profile_id).await?;
         if let Some(p) = profile {
             let next_review = today + chrono::Duration::days(i64::from(p.review_frequency_days));
-            if let Err(e) = self.repository.update_profile_review_dates(
-                profile_id, Some(today), Some(next_review),
-            ).await {
+            if let Err(e) = self
+                .repository
+                .update_profile_review_dates(profile_id, Some(today), Some(next_review))
+                .await
+            {
                 tracing::warn!("Failed to update profile review dates: {}", e);
             }
         }
@@ -912,9 +1153,11 @@ impl CreditManagementEngine {
         if let Some(new_limit) = approved_credit_limit {
             let limits = self.repository.list_credit_limits(profile_id).await?;
             if let Some(overall) = limits.iter().find(|l| l.limit_type == "overall") {
-                if let Err(e) = self.repository.update_credit_limit_amount(
-                    overall.id, new_limit,
-                ).await {
+                if let Err(e) = self
+                    .repository
+                    .update_credit_limit_amount(overall.id, new_limit)
+                    .await
+                {
                     tracing::warn!("Failed to update credit limit after review: {}", e);
                 }
             }
@@ -930,31 +1173,39 @@ impl CreditManagementEngine {
         approver_id: Option<Uuid>,
         approver_name: Option<&str>,
     ) -> AtlasResult<CreditReview> {
-        let review = self.repository.get_review(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit review {id} not found")
-            ))?;
+        let review =
+            self.repository.get_review(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit review {id} not found"))
+            })?;
 
         if review.status != "completed" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot approve review in '{}' status. Must be 'completed'.", review.status
+                "Cannot approve review in '{}' status. Must be 'completed'.",
+                review.status
             )));
         }
 
         info!("Approving credit review {}", review.review_number);
-        self.repository.approve_review(id, approver_id, approver_name).await
+        self.repository
+            .approve_review(id, approver_id, approver_name)
+            .await
     }
 
     /// Reject a completed review
-    pub async fn reject_review(&self, id: Uuid, _rejected_reason: Option<&str>) -> AtlasResult<CreditReview> {
-        let review = self.repository.get_review(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit review {id} not found")
-            ))?;
+    pub async fn reject_review(
+        &self,
+        id: Uuid,
+        _rejected_reason: Option<&str>,
+    ) -> AtlasResult<CreditReview> {
+        let review =
+            self.repository.get_review(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit review {id} not found"))
+            })?;
 
         if review.status != "completed" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot reject review in '{}' status. Must be 'completed'.", review.status
+                "Cannot reject review in '{}' status. Must be 'completed'.",
+                review.status
             )));
         }
 
@@ -963,14 +1214,15 @@ impl CreditManagementEngine {
 
     /// Cancel a pending or `in_review` review
     pub async fn cancel_review(&self, id: Uuid) -> AtlasResult<CreditReview> {
-        let review = self.repository.get_review(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Credit review {id} not found")
-            ))?;
+        let review =
+            self.repository.get_review(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Credit review {id} not found"))
+            })?;
 
         if !matches!(review.status.as_str(), "pending" | "in_review") {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot cancel review in '{}' status.", review.status
+                "Cannot cancel review in '{}' status.",
+                review.status
             )));
         }
 
@@ -1147,7 +1399,11 @@ mod tests {
 
         // Zero limit
         let limit: f64 = 0.0;
-        let utilization: f64 = if limit > 0.0 { (exposure / limit) * 100.0 } else { 0.0 };
+        let utilization: f64 = if limit > 0.0 {
+            (exposure / limit) * 100.0
+        } else {
+            0.0
+        };
         assert!((utilization - 0.0).abs() < 0.01);
     }
 
@@ -1184,12 +1440,20 @@ mod tests {
     fn test_available_credit_calculation() {
         let limit: f64 = 100000.0;
         let exposure: f64 = 75000.0;
-        let available: f64 = if limit > exposure { limit - exposure } else { 0.0 };
+        let available: f64 = if limit > exposure {
+            limit - exposure
+        } else {
+            0.0
+        };
         assert!((available - 25000.0).abs() < 0.01);
 
         // Exposure exceeds limit
         let exposure: f64 = 120000.0;
-        let available: f64 = if limit > exposure { limit - exposure } else { 0.0 };
+        let available: f64 = if limit > exposure {
+            limit - exposure
+        } else {
+            0.0
+        };
         assert!((available - 0.0).abs() < 0.01);
     }
 
@@ -1213,16 +1477,33 @@ mod tests {
 
     #[test]
     fn test_hold_number_format() {
-        let hold_number = format!("HLD-{}-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>());
+        let hold_number = format!(
+            "HLD-{}-{}",
+            chrono::Utc::now().format("%Y%m%d%H%M%S"),
+            Uuid::new_v4()
+                .as_simple()
+                .to_string()
+                .chars()
+                .take(8)
+                .collect::<String>()
+        );
         assert!(hold_number.starts_with("HLD-"));
         assert!(hold_number.len() > 20); // HLD-YYYYMMDDHHMMSS-XXXXXXXX
     }
 
     #[test]
     fn test_review_number_format() {
-        let review_number = format!("CR-{}-{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), Uuid::new_v4().as_simple().to_string().chars().take(8).collect::<String>());
+        let review_number = format!(
+            "CR-{}-{}",
+            chrono::Utc::now().format("%Y%m%d%H%M%S"),
+            Uuid::new_v4()
+                .as_simple()
+                .to_string()
+                .chars()
+                .take(8)
+                .collect::<String>()
+        );
         assert!(review_number.starts_with("CR-"));
         assert!(review_number.len() > 20); // CR-YYYYMMDDHHMMSS-XXXXXXXX
     }
-
 }

@@ -14,8 +14,8 @@
 //!
 //! Oracle Fusion equivalent: Application Extensions > Flexfields > Descriptive
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::DescriptiveFlexfieldEngine;
 pub use repository::{DescriptiveFlexfieldRepository, PostgresDescriptiveFlexfieldRepository};

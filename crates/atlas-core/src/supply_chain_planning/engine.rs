@@ -18,12 +18,11 @@
 //! 5. Review and firm planned orders
 //! 6. Resolve planning exceptions
 
-use atlas_shared::{
-    PlanningScenario, PlanningParameter, SupplyDemandEntry,
-    PlannedOrder, PlanningException, PlanningDashboard,
-    AtlasError, AtlasResult,
-};
 use super::PlanningRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, PlannedOrder, PlanningDashboard, PlanningException, PlanningParameter,
+    PlanningScenario, SupplyDemandEntry,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -34,25 +33,28 @@ use uuid::Uuid;
 
 #[allow(dead_code)]
 const VALID_SCENARIO_TYPES: &[&str] = &[
-    "mrp", "distribution_planning", "demand_planning", "production_planning",
+    "mrp",
+    "distribution_planning",
+    "demand_planning",
+    "production_planning",
 ];
 
 #[allow(dead_code)]
-const VALID_SCENARIO_STATUSES: &[&str] = &[
-    "draft", "running", "completed", "error", "cancelled",
-];
+const VALID_SCENARIO_STATUSES: &[&str] = &["draft", "running", "completed", "error", "cancelled"];
 
 #[allow(dead_code)]
-const VALID_PLANNING_METHODS: &[&str] = &[
-    "mrp", "min_max", "reorder_point", "kanban", "not_planned",
-];
+const VALID_PLANNING_METHODS: &[&str] =
+    &["mrp", "min_max", "reorder_point", "kanban", "not_planned"];
 
 #[allow(dead_code)]
 const VALID_MAKE_BUY: &[&str] = &["make", "buy"];
 
 #[allow(dead_code)]
 const VALID_LOT_POLICIES: &[&str] = &[
-    "fixed_quantity", "lot_for_lot", "period_order_quantity", "min_max",
+    "fixed_quantity",
+    "lot_for_lot",
+    "period_order_quantity",
+    "min_max",
 ];
 
 #[allow(dead_code)]
@@ -60,37 +62,49 @@ const VALID_ENTRY_TYPES: &[&str] = &["supply", "demand"];
 
 #[allow(dead_code)]
 const VALID_SOURCE_TYPES: &[&str] = &[
-    "on_hand", "purchase_order", "work_order", "transfer_order",
-    "sales_order", "forecast", "safety_stock",
+    "on_hand",
+    "purchase_order",
+    "work_order",
+    "transfer_order",
+    "sales_order",
+    "forecast",
+    "safety_stock",
 ];
 
 #[allow(dead_code)]
 const VALID_ORDER_TYPES: &[&str] = &["buy", "make", "transfer"];
 
 #[allow(dead_code)]
-const VALID_ORDER_STATUSES: &[&str] = &[
-    "unfirm", "firmed", "released", "cancelled", "completed",
-];
+const VALID_ORDER_STATUSES: &[&str] = &["unfirm", "firmed", "released", "cancelled", "completed"];
 
 #[allow(dead_code)]
 const VALID_ORDER_ACTIONS: &[&str] = &[
-    "new", "reschedule_in", "reschedule_out", "cancel", "expedite",
+    "new",
+    "reschedule_in",
+    "reschedule_out",
+    "cancel",
+    "expedite",
 ];
 
 #[allow(dead_code)]
 const VALID_EXCEPTION_TYPES: &[&str] = &[
-    "late_order", "early_order", "excess_supply", "shortage",
-    "past_due_demand", "order_past_due", "over_planned", "under_planned",
-    "cancel_suggestion", "reschedule_suggestion",
+    "late_order",
+    "early_order",
+    "excess_supply",
+    "shortage",
+    "past_due_demand",
+    "order_past_due",
+    "over_planned",
+    "under_planned",
+    "cancel_suggestion",
+    "reschedule_suggestion",
 ];
 
 #[allow(dead_code)]
 const VALID_SEVERITIES: &[&str] = &["info", "warning", "error", "critical"];
 
 #[allow(dead_code)]
-const VALID_RESOLUTION_STATUSES: &[&str] = &[
-    "open", "acknowledged", "resolved", "dismissed",
-];
+const VALID_RESOLUTION_STATUSES: &[&str] = &["open", "acknowledged", "resolved", "dismissed"];
 
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
@@ -98,7 +112,10 @@ fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> 
     }
     if !allowed.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field, value, allowed.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field,
+            value,
+            allowed.join(", ")
         )));
     }
     Ok(())
@@ -136,7 +153,9 @@ impl SupplyChainPlanningEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PlanningScenario> {
         if name.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Scenario name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Scenario name is required".to_string(),
+            ));
         }
         validate_enum("scenario type", scenario_type, VALID_SCENARIO_TYPES)?;
         if planning_horizon_days < 1 {
@@ -146,18 +165,33 @@ impl SupplyChainPlanningEngine {
         }
 
         let scenario_number = format!("SCP-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
-        let planning_end_date = planning_start_date.map(|d| {
-            d + chrono::Duration::days(i64::from(planning_horizon_days))
-        });
+        let planning_end_date = planning_start_date
+            .map(|d| d + chrono::Duration::days(i64::from(planning_horizon_days)));
 
-        info!("Creating planning scenario {} for org {}", scenario_number, org_id);
+        info!(
+            "Creating planning scenario {} for org {}",
+            scenario_number, org_id
+        );
 
-        self.repository.create_scenario(
-            org_id, &scenario_number, name, description, scenario_type,
-            planning_horizon_days, planning_start_date, planning_end_date,
-            include_existing_supply, include_on_hand, include_wip,
-            auto_firm, auto_firm_days, net_shortages_only, created_by,
-        ).await
+        self.repository
+            .create_scenario(
+                org_id,
+                &scenario_number,
+                name,
+                description,
+                scenario_type,
+                planning_horizon_days,
+                planning_start_date,
+                planning_end_date,
+                include_existing_supply,
+                include_on_hand,
+                include_wip,
+                auto_firm,
+                auto_firm_days,
+                net_shortages_only,
+                created_by,
+            )
+            .await
     }
 
     /// Get a planning scenario by ID
@@ -171,7 +205,9 @@ impl SupplyChainPlanningEngine {
         org_id: Uuid,
         scenario_number: &str,
     ) -> AtlasResult<Option<PlanningScenario>> {
-        self.repository.get_scenario_by_number(org_id, scenario_number).await
+        self.repository
+            .get_scenario_by_number(org_id, scenario_number)
+            .await
     }
 
     /// List planning scenarios
@@ -187,33 +223,49 @@ impl SupplyChainPlanningEngine {
         if let Some(s) = status {
             validate_enum("status", s, VALID_SCENARIO_STATUSES)?;
         }
-        self.repository.list_scenarios(org_id, scenario_type, status).await
+        self.repository
+            .list_scenarios(org_id, scenario_type, status)
+            .await
     }
 
     /// Run MRP for a scenario: nets supply vs demand, generates planned orders and exceptions
     pub async fn run_mrp(&self, scenario_id: Uuid) -> AtlasResult<PlanningScenario> {
-        let mut scenario = self.repository.get_scenario(scenario_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planning scenario {scenario_id} not found")
-            ))?;
+        let mut scenario = self
+            .repository
+            .get_scenario(scenario_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Planning scenario {scenario_id} not found"))
+            })?;
 
         if scenario.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot run scenario in '{}' status. Must be 'draft'.", scenario.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot run scenario in '{}' status. Must be 'draft'.",
+                scenario.status
+            )));
         }
 
         info!("Starting MRP run for scenario {}", scenario.scenario_number);
 
         // Mark as running
-        scenario = self.repository.update_scenario_status(scenario_id, "running").await?;
+        scenario = self
+            .repository
+            .update_scenario_status(scenario_id, "running")
+            .await?;
 
         // Clear existing planned orders and exceptions for this scenario
-        self.repository.delete_planned_orders_by_scenario(scenario_id).await?;
-        self.repository.delete_exceptions_by_scenario(scenario_id).await?;
+        self.repository
+            .delete_planned_orders_by_scenario(scenario_id)
+            .await?;
+        self.repository
+            .delete_exceptions_by_scenario(scenario_id)
+            .await?;
 
         // Get all supply/demand entries for this scenario
-        let entries = self.repository.list_supply_demand_by_scenario(scenario_id).await?;
+        let entries = self
+            .repository
+            .list_supply_demand_by_scenario(scenario_id)
+            .await?;
 
         // Group by item_id
         let mut item_ids: Vec<Uuid> = entries.iter().map(|e| e.item_id).collect();
@@ -243,31 +295,38 @@ impl SupplyChainPlanningEngine {
             demand.sort_by_key(|e| e.due_date);
 
             // Get planning parameters
-            let params = self.repository.get_planning_parameter_by_item(
-                scenario.organization_id, *item_id,
-            ).await?;
+            let params = self
+                .repository
+                .get_planning_parameter_by_item(scenario.organization_id, *item_id)
+                .await?;
 
             let lead_time = params.as_ref().map_or(0, |p| p.lead_time_days);
-            let safety_stock: f64 = params.as_ref()
+            let safety_stock: f64 = params
+                .as_ref()
                 .map_or(0.0, |p| p.safety_stock_quantity.parse().unwrap_or(0.0));
-            let min_order: f64 = params.as_ref()
+            let min_order: f64 = params
+                .as_ref()
                 .map_or(0.0, |p| p.min_order_quantity.parse().unwrap_or(0.0));
-            let order_multiple: f64 = params.as_ref()
-                .map_or(1.0_f64, |p| p.order_multiple.parse().unwrap_or(1.0)).max(1.0);
-            let make_buy = params.as_ref()
-                .map_or("buy", |p| p.make_buy.as_str());
-            let lot_policy = params.as_ref()
+            let order_multiple: f64 = params
+                .as_ref()
+                .map_or(1.0_f64, |p| p.order_multiple.parse().unwrap_or(1.0))
+                .max(1.0);
+            let make_buy = params.as_ref().map_or("buy", |p| p.make_buy.as_str());
+            let lot_policy = params
+                .as_ref()
                 .map_or("lot_for_lot", |p| p.lot_size_policy.as_str());
 
             let item_name = item_entries.first().and_then(|e| e.item_name.clone());
             let item_number = item_entries.first().and_then(|e| e.item_number.clone());
 
             // Calculate total supply and demand
-            let total_supply: f64 = supply.iter()
+            let total_supply: f64 = supply
+                .iter()
                 .filter(|e| e.status == "open")
                 .map(|e| e.quantity_remaining.parse().unwrap_or(0.0))
                 .sum();
-            let total_demand: f64 = demand.iter()
+            let total_demand: f64 = demand
+                .iter()
                 .filter(|e| e.status == "open")
                 .map(|e| e.quantity_remaining.parse().unwrap_or(0.0))
                 .sum();
@@ -299,30 +358,37 @@ impl SupplyChainPlanningEngine {
 
             // Generate excess exception if net position is very positive
             if net_position > total_demand * 0.5 && total_demand > 0.0 {
-                let _ex = self.repository.create_exception(
-                    scenario.organization_id,
-                    Some(scenario_id),
-                    *item_id,
-                    item_name.as_deref(),
-                    item_number.as_deref(),
-                    "excess_supply",
-                    "warning",
-                    &format!(
-                        "Item {} has excess supply of {:.2} above demand + safety stock",
-                        item_number.as_deref().unwrap_or("unknown"),
-                        net_position
-                    ),
-                    None, None, None,
-                    Some(&format!("{net_position:.2}")),
-                    scenario.planning_start_date,
-                ).await?;
+                let _ex = self
+                    .repository
+                    .create_exception(
+                        scenario.organization_id,
+                        Some(scenario_id),
+                        *item_id,
+                        item_name.as_deref(),
+                        item_number.as_deref(),
+                        "excess_supply",
+                        "warning",
+                        &format!(
+                            "Item {} has excess supply of {:.2} above demand + safety stock",
+                            item_number.as_deref().unwrap_or("unknown"),
+                            net_position
+                        ),
+                        None,
+                        None,
+                        None,
+                        Some(&format!("{net_position:.2}")),
+                        scenario.planning_start_date,
+                    )
+                    .await?;
                 total_exceptions += 1;
             }
 
             // Net supply against demand chronologically
             let mut supply_pool = total_supply;
             for dem in &demand {
-                if dem.status != "open" { continue; }
+                if dem.status != "open" {
+                    continue;
+                }
                 let dem_qty: f64 = dem.quantity_remaining.parse().unwrap_or(0.0);
                 supply_pool -= dem_qty;
 
@@ -330,45 +396,55 @@ impl SupplyChainPlanningEngine {
                     // This demand causes the shortage - generate planned order
                     let needed = supply_pool.abs();
                     let order_qty = Self::calculate_order_quantity(
-                        needed, min_order, order_multiple, lot_policy,
+                        needed,
+                        min_order,
+                        order_multiple,
+                        lot_policy,
                     );
 
                     if order_qty > 0.0 {
                         let due_date = dem.due_date;
                         let start_date = due_date - chrono::Duration::days(i64::from(lead_time));
-                        let order_number = format!("PO-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
+                        let order_number =
+                            format!("PO-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
                         let order_type = match make_buy {
                             "make" => "make",
                             _ => "buy",
                         };
 
                         let supplier_id = params.as_ref().and_then(|p| p.default_supplier_id);
-                        let supplier_name = params.as_ref().and_then(|p| p.default_supplier_name.clone());
+                        let supplier_name = params
+                            .as_ref()
+                            .and_then(|p| p.default_supplier_name.clone());
 
                         let firm_deadline = start_date;
-                        let _order = self.repository.create_planned_order(
-                            scenario.organization_id,
-                            Some(scenario_id),
-                            *item_id,
-                            item_name.as_deref(),
-                            item_number.as_deref(),
-                            &order_number,
-                            order_type,
-                            "unfirm",
-                            &format!("{order_qty:.2}"),
-                            "0",
-                            due_date,
-                            Some(start_date),
-                            Some(dem.due_date),
-                            None,
-                            5,
-                            "new",
-                            supplier_id,
-                            supplier_name.as_deref(),
-                            None, None,
-                            Some(firm_deadline),
-                            Some(dem.id),
-                        ).await?;
+                        let _order = self
+                            .repository
+                            .create_planned_order(
+                                scenario.organization_id,
+                                Some(scenario_id),
+                                *item_id,
+                                item_name.as_deref(),
+                                item_number.as_deref(),
+                                &order_number,
+                                order_type,
+                                "unfirm",
+                                &format!("{order_qty:.2}"),
+                                "0",
+                                due_date,
+                                Some(start_date),
+                                Some(dem.due_date),
+                                None,
+                                5,
+                                "new",
+                                supplier_id,
+                                supplier_name.as_deref(),
+                                None,
+                                None,
+                                Some(firm_deadline),
+                                Some(dem.id),
+                            )
+                            .await?;
                         total_orders += 1;
                     }
                 }
@@ -376,26 +452,29 @@ impl SupplyChainPlanningEngine {
                 // Check for past due demand
                 if let Some(start) = scenario.planning_start_date {
                     if dem.due_date < start {
-                        let _ex = self.repository.create_exception(
-                            scenario.organization_id,
-                            Some(scenario_id),
-                            *item_id,
-                            item_name.as_deref(),
-                            item_number.as_deref(),
-                            "past_due_demand",
-                            "error",
-                            &format!(
-                                "Item {} has past-due demand of {:.2} due on {}",
-                                item_number.as_deref().unwrap_or("unknown"),
-                                dem_qty,
-                                dem.due_date
-                            ),
-                            Some(&dem.source_type),
-                            dem.source_id,
-                            dem.source_number.as_deref(),
-                            Some(&format!("{dem_qty:.2}")),
-                            Some(dem.due_date),
-                        ).await?;
+                        let _ex = self
+                            .repository
+                            .create_exception(
+                                scenario.organization_id,
+                                Some(scenario_id),
+                                *item_id,
+                                item_name.as_deref(),
+                                item_number.as_deref(),
+                                "past_due_demand",
+                                "error",
+                                &format!(
+                                    "Item {} has past-due demand of {:.2} due on {}",
+                                    item_number.as_deref().unwrap_or("unknown"),
+                                    dem_qty,
+                                    dem.due_date
+                                ),
+                                Some(&dem.source_type),
+                                dem.source_id,
+                                dem.source_number.as_deref(),
+                                Some(&format!("{dem_qty:.2}")),
+                                Some(dem.due_date),
+                            )
+                            .await?;
                         total_exceptions += 1;
                     }
                 }
@@ -405,55 +484,65 @@ impl SupplyChainPlanningEngine {
             if net_position < 0.0 && demand.is_empty() {
                 // No demand but need safety stock
                 let needed = net_position.abs();
-                let order_qty = Self::calculate_order_quantity(
-                    needed, min_order, order_multiple, lot_policy,
-                );
+                let order_qty =
+                    Self::calculate_order_quantity(needed, min_order, order_multiple, lot_policy);
                 if order_qty > 0.0 {
-                    let order_number = format!("PO-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
-                    let due_date = scenario.planning_start_date
+                    let order_number =
+                        format!("PO-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
+                    let due_date = scenario
+                        .planning_start_date
                         .unwrap_or_else(|| chrono::Utc::now().date_naive());
                     let start_date = due_date - chrono::Duration::days(i64::from(lead_time));
                     let supplier_id = params.as_ref().and_then(|p| p.default_supplier_id);
-                    let supplier_name = params.as_ref().and_then(|p| p.default_supplier_name.clone());
+                    let supplier_name = params
+                        .as_ref()
+                        .and_then(|p| p.default_supplier_name.clone());
 
-                    let _order = self.repository.create_planned_order(
-                        scenario.organization_id,
-                        Some(scenario_id),
-                        *item_id,
-                        item_name.as_deref(),
-                        item_number.as_deref(),
-                        &order_number,
-                        match make_buy { "make" => "make", _ => "buy" },
-                        "unfirm",
-                        &format!("{order_qty:.2}"),
-                        "0",
-                        due_date,
-                        Some(start_date),
-                        None,
-                        None,
-                        5,
-                        "new",
-                        supplier_id,
-                        supplier_name.as_deref(),
-                        None, None,
-                        Some(start_date),
-                        None,
-                    ).await?;
+                    let _order = self
+                        .repository
+                        .create_planned_order(
+                            scenario.organization_id,
+                            Some(scenario_id),
+                            *item_id,
+                            item_name.as_deref(),
+                            item_number.as_deref(),
+                            &order_number,
+                            match make_buy {
+                                "make" => "make",
+                                _ => "buy",
+                            },
+                            "unfirm",
+                            &format!("{order_qty:.2}"),
+                            "0",
+                            due_date,
+                            Some(start_date),
+                            None,
+                            None,
+                            5,
+                            "new",
+                            supplier_id,
+                            supplier_name.as_deref(),
+                            None,
+                            None,
+                            Some(start_date),
+                            None,
+                        )
+                        .await?;
                     total_orders += 1;
                 }
             }
         }
 
         // Update scenario totals and mark completed
-        let completed = self.repository.update_scenario_results(
-            scenario_id,
-            "completed",
-            total_orders,
-            total_exceptions,
-        ).await?;
+        let completed = self
+            .repository
+            .update_scenario_results(scenario_id, "completed", total_orders, total_exceptions)
+            .await?;
 
-        info!("MRP run completed for scenario {}: {} planned orders, {} exceptions",
-            completed.scenario_number, total_orders, total_exceptions);
+        info!(
+            "MRP run completed for scenario {}: {} planned orders, {} exceptions",
+            completed.scenario_number, total_orders, total_exceptions
+        );
 
         Ok(completed)
     }
@@ -465,7 +554,9 @@ impl SupplyChainPlanningEngine {
         order_multiple: f64,
         lot_policy: &str,
     ) -> f64 {
-        if needed <= 0.0 { return 0.0; }
+        if needed <= 0.0 {
+            return 0.0;
+        }
         let base = needed.max(min_order);
         match lot_policy {
             "lot_for_lot" => needed,
@@ -484,19 +575,25 @@ impl SupplyChainPlanningEngine {
 
     /// Cancel a planning scenario
     pub async fn cancel_scenario(&self, scenario_id: Uuid) -> AtlasResult<PlanningScenario> {
-        let scenario = self.repository.get_scenario(scenario_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planning scenario {scenario_id} not found")
-            ))?;
+        let scenario = self
+            .repository
+            .get_scenario(scenario_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Planning scenario {scenario_id} not found"))
+            })?;
 
         if scenario.status == "completed" || scenario.status == "cancelled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel scenario in '{}' status", scenario.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel scenario in '{}' status",
+                scenario.status
+            )));
         }
 
         info!("Cancelling planning scenario {}", scenario.scenario_number);
-        self.repository.update_scenario_status(scenario_id, "cancelled").await
+        self.repository
+            .update_scenario_status(scenario_id, "cancelled")
+            .await
     }
 
     // ========================================================================
@@ -533,37 +630,49 @@ impl SupplyChainPlanningEngine {
                 "Lead time cannot be negative".to_string(),
             ));
         }
-        let ss: f64 = safety_stock_quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Safety stock must be a valid number".to_string(),
-        ))?;
+        let ss: f64 = safety_stock_quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Safety stock must be a valid number".to_string())
+        })?;
         if ss < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Safety stock cannot be negative".to_string(),
             ));
         }
-        let moq: f64 = min_order_quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Min order quantity must be a valid number".to_string(),
-        ))?;
+        let moq: f64 = min_order_quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Min order quantity must be a valid number".to_string())
+        })?;
         if moq < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Min order quantity cannot be negative".to_string(),
             ));
         }
 
-        info!("Upserting planning parameters for item {} in org {}", item_id, org_id);
+        info!(
+            "Upserting planning parameters for item {} in org {}",
+            item_id, org_id
+        );
 
-        self.repository.upsert_planning_parameter(
-            org_id, item_id, item_name, item_number, planner_code,
-            planning_method, make_buy, lead_time_days,
-            &format!("{ss:.2}"),
-            &format!("{moq:.2}"),
-            max_order_quantity,
-            fixed_order_quantity,
-            lot_size_policy,
-            order_multiple.unwrap_or("1"),
-            default_supplier_id, default_supplier_name,
-            created_by,
-        ).await
+        self.repository
+            .upsert_planning_parameter(
+                org_id,
+                item_id,
+                item_name,
+                item_number,
+                planner_code,
+                planning_method,
+                make_buy,
+                lead_time_days,
+                &format!("{ss:.2}"),
+                &format!("{moq:.2}"),
+                max_order_quantity,
+                fixed_order_quantity,
+                lot_size_policy,
+                order_multiple.unwrap_or("1"),
+                default_supplier_id,
+                default_supplier_name,
+                created_by,
+            )
+            .await
     }
 
     /// Get planning parameters for an item
@@ -572,7 +681,9 @@ impl SupplyChainPlanningEngine {
         org_id: Uuid,
         item_id: Uuid,
     ) -> AtlasResult<Option<PlanningParameter>> {
-        self.repository.get_planning_parameter_by_item(org_id, item_id).await
+        self.repository
+            .get_planning_parameter_by_item(org_id, item_id)
+            .await
     }
 
     /// List all planning parameters for an org
@@ -585,8 +696,13 @@ impl SupplyChainPlanningEngine {
 
     /// Delete planning parameters for an item
     pub async fn delete_planning_parameter(&self, org_id: Uuid, item_id: Uuid) -> AtlasResult<()> {
-        info!("Deleting planning parameters for item {} in org {}", item_id, org_id);
-        self.repository.delete_planning_parameter(org_id, item_id).await
+        info!(
+            "Deleting planning parameters for item {} in org {}",
+            item_id, org_id
+        );
+        self.repository
+            .delete_planning_parameter(org_id, item_id)
+            .await
     }
 
     // ========================================================================
@@ -612,24 +728,33 @@ impl SupplyChainPlanningEngine {
         validate_enum("entry type", entry_type, VALID_ENTRY_TYPES)?;
         validate_enum("source type", source_type, VALID_SOURCE_TYPES)?;
 
-        let qty: f64 = quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Quantity must be a valid number".to_string(),
-        ))?;
+        let qty: f64 = quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Quantity must be a valid number".to_string())
+        })?;
         if qty <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Quantity must be positive".to_string(),
             ));
         }
 
-        self.repository.create_supply_demand_entry(
-            org_id, scenario_id, item_id, item_name, item_number,
-            entry_type, source_type, source_id, source_number,
-            &format!("{qty:.2}"),
-            &format!("{qty:.2}"),
-            due_date,
-            priority.unwrap_or(5),
-            "open",
-        ).await
+        self.repository
+            .create_supply_demand_entry(
+                org_id,
+                scenario_id,
+                item_id,
+                item_name,
+                item_number,
+                entry_type,
+                source_type,
+                source_id,
+                source_number,
+                &format!("{qty:.2}"),
+                &format!("{qty:.2}"),
+                due_date,
+                priority.unwrap_or(5),
+                "open",
+            )
+            .await
     }
 
     /// List supply/demand entries for a scenario
@@ -641,9 +766,9 @@ impl SupplyChainPlanningEngine {
         if let Some(et) = entry_type {
             validate_enum("entry type", et, VALID_ENTRY_TYPES)?;
         }
-        self.repository.list_supply_demand_by_scenario_filtered(
-            scenario_id, entry_type,
-        ).await
+        self.repository
+            .list_supply_demand_by_scenario_filtered(scenario_id, entry_type)
+            .await
     }
 
     // ========================================================================
@@ -668,46 +793,56 @@ impl SupplyChainPlanningEngine {
         if let Some(ot) = order_type {
             validate_enum("order type", ot, VALID_ORDER_TYPES)?;
         }
-        self.repository.list_planned_orders(scenario_id, status, order_type).await
+        self.repository
+            .list_planned_orders(scenario_id, status, order_type)
+            .await
     }
 
     /// Firm a planned order (commit to executing it)
     pub async fn firm_planned_order(&self, order_id: Uuid) -> AtlasResult<PlannedOrder> {
-        let order = self.repository.get_planned_order(order_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planned order {order_id} not found")
-            ))?;
+        let order = self
+            .repository
+            .get_planned_order(order_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Planned order {order_id} not found"))
+            })?;
 
         if order.status != "unfirm" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot firm order in '{}' status. Must be 'unfirm'.", order.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot firm order in '{}' status. Must be 'unfirm'.",
+                order.status
+            )));
         }
 
         info!("Firming planned order {}", order.order_number);
         let qty: f64 = order.quantity.parse().unwrap_or(0.0);
-        self.repository.update_planned_order_status(
-            order_id, "firmed", Some(&format!("{qty:.2}")), None,
-        ).await
+        self.repository
+            .update_planned_order_status(order_id, "firmed", Some(&format!("{qty:.2}")), None)
+            .await
     }
 
     /// Cancel a planned order
     pub async fn cancel_planned_order(&self, order_id: Uuid) -> AtlasResult<PlannedOrder> {
-        let order = self.repository.get_planned_order(order_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planned order {order_id} not found")
-            ))?;
+        let order = self
+            .repository
+            .get_planned_order(order_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Planned order {order_id} not found"))
+            })?;
 
         if order.status == "released" || order.status == "completed" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel order in '{}' status", order.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel order in '{}' status",
+                order.status
+            )));
         }
 
         info!("Cancelling planned order {}", order.order_number);
-        self.repository.update_planned_order_status(
-            order_id, "cancelled", None, Some("Cancelled by planner"),
-        ).await
+        self.repository
+            .update_planned_order_status(order_id, "cancelled", None, Some("Cancelled by planner"))
+            .await
     }
 
     // ========================================================================
@@ -727,7 +862,9 @@ impl SupplyChainPlanningEngine {
         if let Some(rs) = resolution_status {
             validate_enum("resolution status", rs, VALID_RESOLUTION_STATUSES)?;
         }
-        self.repository.list_exceptions(scenario_id, severity, resolution_status).await
+        self.repository
+            .list_exceptions(scenario_id, severity, resolution_status)
+            .await
     }
 
     /// Resolve a planning exception
@@ -737,14 +874,17 @@ impl SupplyChainPlanningEngine {
         resolution: &str,
         resolved_by: Option<Uuid>,
     ) -> AtlasResult<PlanningException> {
-        let ex = self.repository.get_exception(exception_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planning exception {exception_id} not found")
-            ))?;
+        let ex = self
+            .repository
+            .get_exception(exception_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Planning exception {exception_id} not found"))
+            })?;
 
         if ex.resolution_status == "resolved" {
             return Err(AtlasError::WorkflowError(
-                "Exception is already resolved".to_string()
+                "Exception is already resolved".to_string(),
             ));
         }
         if resolution.trim().is_empty() {
@@ -753,10 +893,13 @@ impl SupplyChainPlanningEngine {
             ));
         }
 
-        info!("Resolving planning exception {} for item {}", exception_id, ex.item_id);
-        self.repository.update_exception_resolution(
-            exception_id, "resolved", Some(resolution), resolved_by,
-        ).await
+        info!(
+            "Resolving planning exception {} for item {}",
+            exception_id, ex.item_id
+        );
+        self.repository
+            .update_exception_resolution(exception_id, "resolved", Some(resolution), resolved_by)
+            .await
     }
 
     /// Dismiss a planning exception
@@ -766,21 +909,24 @@ impl SupplyChainPlanningEngine {
         reason: Option<&str>,
         resolved_by: Option<Uuid>,
     ) -> AtlasResult<PlanningException> {
-        let ex = self.repository.get_exception(exception_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Planning exception {exception_id} not found")
-            ))?;
+        let ex = self
+            .repository
+            .get_exception(exception_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Planning exception {exception_id} not found"))
+            })?;
 
         if ex.resolution_status == "resolved" {
             return Err(AtlasError::WorkflowError(
-                "Exception is already resolved".to_string()
+                "Exception is already resolved".to_string(),
             ));
         }
 
         info!("Dismissing planning exception {}", exception_id);
-        self.repository.update_exception_resolution(
-            exception_id, "dismissed", reason, resolved_by,
-        ).await
+        self.repository
+            .update_exception_resolution(exception_id, "dismissed", reason, resolved_by)
+            .await
     }
 
     // ========================================================================
@@ -830,41 +976,40 @@ mod tests {
 
     #[test]
     fn test_calculate_order_quantity_lot_for_lot() {
-        let qty = SupplyChainPlanningEngine::calculate_order_quantity(
-            100.0, 50.0, 10.0, "lot_for_lot",
-        );
+        let qty =
+            SupplyChainPlanningEngine::calculate_order_quantity(100.0, 50.0, 10.0, "lot_for_lot");
         assert_eq!(qty, 100.0);
     }
 
     #[test]
     fn test_calculate_order_quantity_with_minimum() {
-        let qty = SupplyChainPlanningEngine::calculate_order_quantity(
-            30.0, 50.0, 10.0, "fixed_quantity",
-        );
+        let qty =
+            SupplyChainPlanningEngine::calculate_order_quantity(30.0, 50.0, 10.0, "fixed_quantity");
         assert_eq!(qty, 50.0); // min order wins
     }
 
     #[test]
     fn test_calculate_order_quantity_with_multiple() {
         let qty = SupplyChainPlanningEngine::calculate_order_quantity(
-            95.0, 0.0, 25.0, "period_order_quantity",
+            95.0,
+            0.0,
+            25.0,
+            "period_order_quantity",
         );
         assert_eq!(qty, 100.0); // round up to next multiple of 25
     }
 
     #[test]
     fn test_calculate_order_quantity_zero_needed() {
-        let qty = SupplyChainPlanningEngine::calculate_order_quantity(
-            0.0, 50.0, 10.0, "lot_for_lot",
-        );
+        let qty =
+            SupplyChainPlanningEngine::calculate_order_quantity(0.0, 50.0, 10.0, "lot_for_lot");
         assert_eq!(qty, 0.0);
     }
 
     #[test]
     fn test_calculate_order_quantity_negative() {
-        let qty = SupplyChainPlanningEngine::calculate_order_quantity(
-            -10.0, 50.0, 10.0, "lot_for_lot",
-        );
+        let qty =
+            SupplyChainPlanningEngine::calculate_order_quantity(-10.0, 50.0, 10.0, "lot_for_lot");
         assert_eq!(qty, 0.0);
     }
 

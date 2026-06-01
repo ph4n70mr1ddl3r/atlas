@@ -1,5 +1,5 @@
 //! Atlas Event Types
-//! 
+//!
 //! Events published to NATS for inter-service communication.
 //! These events enable loose coupling between microservices.
 
@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{RecordId, UserId, OrganizationId};
+use super::{OrganizationId, RecordId, UserId};
 
 /// Event envelope for all Atlas events
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,7 +22,7 @@ pub struct AtlasEvent {
 }
 
 impl AtlasEvent {
-    #[must_use] 
+    #[must_use]
     pub fn new(source_service: &str, payload: EventPayload) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -33,8 +33,8 @@ impl AtlasEvent {
             payload,
         }
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub const fn with_org(mut self, org_id: OrganizationId) -> Self {
         self.organization_id = Some(org_id);
         self
@@ -51,44 +51,44 @@ pub enum EventType {
     FieldCreated,
     FieldUpdated,
     FieldDeleted,
-    
+
     // Data events
     RecordCreated,
     RecordUpdated,
     RecordDeleted,
-    
+
     // Workflow events
     WorkflowTransition,
     WorkflowStateEntered,
     WorkflowStateExited,
-    
+
     // Approval events (Oracle Fusion)
     ApprovalRequested,
     ApprovalStepCompleted,
     ApprovalDelegated,
     ApprovalEscalated,
-    
+
     // Notification events
     NotificationCreated,
     NotificationRead,
-    
+
     // Duplicate detection event
     DuplicateDetected,
-    
+
     // Import event
     ImportCompleted,
     ImportFailed,
-    
+
     // Config events
     ConfigChanged,
     ConfigReloaded,
-    
+
     // Auth events
     UserLoggedIn,
     UserLoggedOut,
     UserCreated,
     UserUpdated,
-    
+
     // System events
     ServiceStarted,
     ServiceStopped,
@@ -103,45 +103,45 @@ pub enum EventPayload {
     EntityUpdated(EntityUpdatedPayload),
     FieldCreated(FieldCreatedPayload),
     FieldUpdated(FieldUpdatedPayload),
-    
+
     // Data payloads
     RecordCreated(RecordPayload),
     RecordUpdated(RecordPayload),
     RecordDeleted(RecordDeletedPayload),
-    
+
     // Workflow payloads
     WorkflowTransition(WorkflowTransitionPayload),
-    
+
     // Approval payloads (Oracle Fusion)
     ApprovalRequested(ApprovalEventPayload),
     ApprovalStepCompleted(ApprovalEventPayload),
     ApprovalDelegated(ApprovalDelegationPayload),
     ApprovalEscalated(ApprovalEventPayload),
-    
+
     // Notification payloads
     NotificationCreated(NotificationEventPayload),
-    
+
     // Duplicate detection
     DuplicateDetected(DuplicateDetectedPayload),
-    
+
     // Import
     ImportCompleted(ImportEventPayload),
     ImportFailed(ImportEventPayload),
-    
+
     // Config payloads
     ConfigChanged(ConfigChangedPayload),
-    
+
     // Auth payloads
     UserLoggedIn(UserLoginPayload),
     UserLoggedOut(UserLogoutPayload),
-    
+
     // System payloads
     ServiceStarted(ServiceInfoPayload),
     HealthCheck(HealthCheckPayload),
 }
 
 impl EventPayload {
-    #[must_use] 
+    #[must_use]
     pub const fn event_type(&self) -> EventType {
         match self {
             Self::EntityCreated(_) => EventType::EntityCreated,
@@ -371,76 +371,76 @@ pub mod subjects {
     pub const CONFIG_CHANGED: &str = "atlas.config.changed";
     pub const SERVICE_HEALTH: &str = "atlas.health";
     pub const SCHEMA_CHANGED: &str = "atlas.schema.changed";
-    
+
     /// Organization-scoped subjects
-    #[must_use] 
+    #[must_use]
     pub fn org_events(org_id: &str) -> String {
         format!("atlas.org.{org_id}.events")
     }
-    
+
     /// Entity-specific subjects
-    #[must_use] 
+    #[must_use]
     pub fn entity_created(entity: &str) -> String {
         format!("atlas.entity.{entity}.created")
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn entity_updated(entity: &str) -> String {
         format!("atlas.entity.{entity}.updated")
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn entity_deleted(entity: &str) -> String {
         format!("atlas.entity.{entity}.deleted")
     }
-    
+
     /// Workflow subjects
-    #[must_use] 
+    #[must_use]
     pub fn workflow_transition(entity: &str) -> String {
         format!("atlas.workflow.{entity}.transition")
     }
-    
+
     /// Audit subjects
-    #[must_use] 
+    #[must_use]
     pub fn audit_log() -> String {
         "atlas.audit".to_string()
     }
-    
+
     /// Approval subjects
-    #[must_use] 
+    #[must_use]
     pub fn approval_requested() -> String {
         "atlas.approval.requested".to_string()
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn approval_completed() -> String {
         "atlas.approval.completed".to_string()
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn approval_delegated() -> String {
         "atlas.approval.delegated".to_string()
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn approval_escalated() -> String {
         "atlas.approval.escalated".to_string()
     }
-    
+
     /// Notification subjects
-    #[must_use] 
+    #[must_use]
     pub fn notification_created() -> String {
         "atlas.notification.created".to_string()
     }
-    
+
     /// Import status
-    #[must_use] 
+    #[must_use]
     pub fn import_status() -> String {
         "atlas.import.status".to_string()
     }
-    
+
     /// Duplicate detection
-    #[must_use] 
+    #[must_use]
     pub fn duplicate_detected() -> String {
         "atlas.duplicate.detected".to_string()
     }

@@ -3,12 +3,11 @@
 //! Manages creation, querying, and delivery of notifications.
 //! Inspired by Oracle Fusion's bell-icon notification system.
 
-use atlas_shared::{Notification, CreateNotificationRequest, AtlasResult};
 use super::NotificationRepository;
+use atlas_shared::{AtlasResult, CreateNotificationRequest, Notification};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
-
 
 /// Notification engine for managing notifications
 pub struct NotificationEngine {
@@ -26,7 +25,10 @@ impl NotificationEngine {
         org_id: Uuid,
         request: CreateNotificationRequest,
     ) -> AtlasResult<Notification> {
-        info!("Creating notification: {} for user {:?}", request.title, request.user_id);
+        info!(
+            "Creating notification: {} for user {:?}",
+            request.title, request.user_id
+        );
 
         let notification = self.repository.create(org_id, request).await?;
         Ok(notification)
@@ -95,8 +97,12 @@ impl NotificationEngine {
         workflow_name: &str,
         performed_by: Option<Uuid>,
     ) -> AtlasResult<Notification> {
-        let title = format!("{}: {} → {}", action.replace('_', " "), 
-            from_state.replace('_', " "), to_state.replace('_', " "));
+        let title = format!(
+            "{}: {} → {}",
+            action.replace('_', " "),
+            from_state.replace('_', " "),
+            to_state.replace('_', " ")
+        );
         let message = Some(format!(
             "Record {entity_id} in {entity_type} has transitioned from {from_state} to {to_state} via action '{action}'."
         ));
@@ -172,7 +178,10 @@ impl NotificationEngine {
         hours_passed: i32,
         title: &str,
     ) -> AtlasResult<Vec<Notification>> {
-        info!("Escalating approval for {} {} after {} hours", entity_type, entity_id, hours_passed);
+        info!(
+            "Escalating approval for {} {} after {} hours",
+            entity_type, entity_id, hours_passed
+        );
         self.notify_role(
             org_id,
             escalated_to_role,
@@ -216,7 +225,9 @@ impl NotificationEngine {
         limit: i64,
         offset: i64,
     ) -> AtlasResult<Vec<Notification>> {
-        self.repository.list(org_id, user_id, include_read, limit, offset).await
+        self.repository
+            .list(org_id, user_id, include_read, limit, offset)
+            .await
     }
 
     /// Delete expired notifications

@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for account groups, members, balance snapshots,
 //! and saved balance inquiries.
 
-use atlas_shared::{
-    AccountGroup, AccountGroupMember, BalanceSnapshot, SavedBalanceInquiry,
-    AccountMonitorSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AccountGroup, AccountGroupMember, AccountMonitorSummary, AtlasError, AtlasResult,
+    BalanceSnapshot, SavedBalanceInquiry,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -32,8 +31,16 @@ pub trait AccountMonitorRepository: Send + Sync {
     ) -> AtlasResult<AccountGroup>;
 
     async fn get_account_group(&self, id: Uuid) -> AtlasResult<Option<AccountGroup>>;
-    async fn get_account_group_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AccountGroup>>;
-    async fn list_account_groups(&self, org_id: Uuid, owner_id: Option<Uuid>) -> AtlasResult<Vec<AccountGroup>>;
+    async fn get_account_group_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<AccountGroup>>;
+    async fn list_account_groups(
+        &self,
+        org_id: Uuid,
+        owner_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AccountGroup>>;
     async fn delete_account_group(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Group Members
@@ -108,7 +115,11 @@ pub trait AccountMonitorRepository: Send + Sync {
     ) -> AtlasResult<SavedBalanceInquiry>;
 
     async fn get_saved_inquiry(&self, id: Uuid) -> AtlasResult<Option<SavedBalanceInquiry>>;
-    async fn list_saved_inquiries(&self, org_id: Uuid, user_id: Option<Uuid>) -> AtlasResult<Vec<SavedBalanceInquiry>>;
+    async fn list_saved_inquiries(
+        &self,
+        org_id: Uuid,
+        user_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SavedBalanceInquiry>>;
     async fn delete_saved_inquiry(&self, id: Uuid) -> AtlasResult<()>;
 
     // Dashboard Summary
@@ -121,7 +132,7 @@ pub struct PostgresAccountMonitorRepository {
 }
 
 impl PostgresAccountMonitorRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -153,18 +164,28 @@ fn row_to_snapshot(row: &sqlx::postgres::PgRow) -> BalanceSnapshot {
         period_end: row.try_get("period_end").unwrap_or_default(),
         fiscal_year: row.try_get("fiscal_year").unwrap_or_default(),
         period_number: row.try_get("period_number").unwrap_or_default(),
-        beginning_balance: row.try_get::<String, _>("beginning_balance").unwrap_or_default(),
+        beginning_balance: row
+            .try_get::<String, _>("beginning_balance")
+            .unwrap_or_default(),
         total_debits: row.try_get::<String, _>("total_debits").unwrap_or_default(),
-        total_credits: row.try_get::<String, _>("total_credits").unwrap_or_default(),
+        total_credits: row
+            .try_get::<String, _>("total_credits")
+            .unwrap_or_default(),
         net_activity: row.try_get::<String, _>("net_activity").unwrap_or_default(),
-        ending_balance: row.try_get::<String, _>("ending_balance").unwrap_or_default(),
+        ending_balance: row
+            .try_get::<String, _>("ending_balance")
+            .unwrap_or_default(),
         journal_entry_count: row.try_get("journal_entry_count").unwrap_or(0),
         comparison_balance: row.try_get("comparison_balance").unwrap_or_default(),
         comparison_period_name: row.try_get("comparison_period_name").unwrap_or_default(),
         variance_amount: row.try_get("variance_amount").unwrap_or_default(),
         variance_pct: row.try_get("variance_pct").unwrap_or_default(),
-        alert_status: row.try_get("alert_status").unwrap_or_else(|_| "none".to_string()),
-        snapshot_date: row.try_get("snapshot_date").unwrap_or(chrono::Utc::now().date_naive()),
+        alert_status: row
+            .try_get("alert_status")
+            .unwrap_or_else(|_| "none".to_string()),
+        snapshot_date: row
+            .try_get("snapshot_date")
+            .unwrap_or(chrono::Utc::now().date_naive()),
         computed_at: row.try_get("computed_at").unwrap_or(chrono::Utc::now()),
         created_at: row.try_get("created_at").unwrap_or(chrono::Utc::now()),
     }
@@ -177,16 +198,26 @@ fn row_to_inquiry(row: &sqlx::postgres::PgRow) -> SavedBalanceInquiry {
         user_id: row.try_get("user_id").unwrap_or_default(),
         name: row.try_get("name").unwrap_or_default(),
         description: row.try_get("description").unwrap_or_default(),
-        account_segments: row.try_get("account_segments").unwrap_or(serde_json::json!([])),
+        account_segments: row
+            .try_get("account_segments")
+            .unwrap_or(serde_json::json!([])),
         period_from: row.try_get("period_from").unwrap_or_default(),
         period_to: row.try_get("period_to").unwrap_or_default(),
-        currency_code: row.try_get("currency_code").unwrap_or_else(|_| "USD".to_string()),
-        amount_type: row.try_get("amount_type").unwrap_or_else(|_| "ending_balance".to_string()),
+        currency_code: row
+            .try_get("currency_code")
+            .unwrap_or_else(|_| "USD".to_string()),
+        amount_type: row
+            .try_get("amount_type")
+            .unwrap_or_else(|_| "ending_balance".to_string()),
         include_zero_balances: row.try_get("include_zero_balances").unwrap_or(false),
         comparison_enabled: row.try_get("comparison_enabled").unwrap_or(false),
         comparison_type: row.try_get("comparison_type").unwrap_or_default(),
-        sort_by: row.try_get("sort_by").unwrap_or_else(|_| "account_segment".to_string()),
-        sort_direction: row.try_get("sort_direction").unwrap_or_else(|_| "asc".to_string()),
+        sort_by: row
+            .try_get("sort_by")
+            .unwrap_or_else(|_| "account_segment".to_string()),
+        sort_direction: row
+            .try_get("sort_direction")
+            .unwrap_or_else(|_| "asc".to_string()),
         is_shared: row.try_get("is_shared").unwrap_or(false),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_at: row.try_get("created_at").unwrap_or(chrono::Utc::now()),
@@ -234,7 +265,9 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
             threshold_warning_pct: row.try_get("threshold_warning_pct").ok(),
             threshold_critical_pct: row.try_get("threshold_critical_pct").ok(),
             comparison_type: row.try_get("comparison_type").unwrap_or_default(),
-            status: row.try_get("status").unwrap_or_else(|_| "active".to_string()),
+            status: row
+                .try_get("status")
+                .unwrap_or_else(|_| "active".to_string()),
             metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
             members: vec![],
             created_by: row.try_get("created_by").unwrap_or_default(),
@@ -247,7 +280,8 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
     async fn get_account_group(&self, id: Uuid) -> AtlasResult<Option<AccountGroup>> {
         let row = sqlx::query("SELECT * FROM _atlas.account_groups WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await?;
+            .fetch_optional(&self.pool)
+            .await?;
         match row {
             Some(r) => {
                 let mut group = row_to_group_bare(&r);
@@ -258,12 +292,18 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
         }
     }
 
-    async fn get_account_group_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AccountGroup>> {
+    async fn get_account_group_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<AccountGroup>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.account_groups WHERE organization_id = $1 AND code = $2"
+            "SELECT * FROM _atlas.account_groups WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
-        .fetch_optional(&self.pool).await?;
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await?;
         match row {
             Some(r) => {
                 let gid: Uuid = r.try_get("id").unwrap_or_default();
@@ -275,7 +315,11 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
         }
     }
 
-    async fn list_account_groups(&self, org_id: Uuid, owner_id: Option<Uuid>) -> AtlasResult<Vec<AccountGroup>> {
+    async fn list_account_groups(
+        &self,
+        org_id: Uuid,
+        owner_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AccountGroup>> {
         let rows = if let Some(oid) = owner_id {
             sqlx::query(
                 "SELECT * FROM _atlas.account_groups WHERE organization_id = $1 AND (owner_id = $2 OR is_shared = true) ORDER BY created_at DESC"
@@ -302,12 +346,16 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
 
     async fn delete_account_group(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.account_groups WHERE organization_id = $1 AND code = $2"
+            "DELETE FROM _atlas.account_groups WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
-        .execute(&self.pool).await?;
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Account group '{code}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Account group '{code}' not found"
+            )));
         }
         Ok(())
     }
@@ -335,7 +383,8 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
     async fn remove_group_member(&self, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query("DELETE FROM _atlas.account_group_members WHERE id = $1")
             .bind(id)
-            .execute(&self.pool).await?;
+            .execute(&self.pool)
+            .await?;
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound("Member not found".to_string()));
         }
@@ -387,16 +436,30 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
                     $14::NUMERIC, $15,
                     $16::NUMERIC, $17,
                     $18::NUMERIC, $19::NUMERIC, $20)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(org_id).bind(group_id).bind(member_id).bind(account_segment)
-        .bind(period_name).bind(period_start).bind(period_end)
-        .bind(fiscal_year).bind(period_number)
-        .bind(beginning_balance).bind(total_debits).bind(total_credits)
-        .bind(net_activity).bind(ending_balance).bind(journal_entry_count)
-        .bind(comparison_balance).bind(comparison_period_name)
-        .bind(variance_amount).bind(variance_pct).bind(alert_status)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(group_id)
+        .bind(member_id)
+        .bind(account_segment)
+        .bind(period_name)
+        .bind(period_start)
+        .bind(period_end)
+        .bind(fiscal_year)
+        .bind(period_number)
+        .bind(beginning_balance)
+        .bind(total_debits)
+        .bind(total_credits)
+        .bind(net_activity)
+        .bind(ending_balance)
+        .bind(journal_entry_count)
+        .bind(comparison_balance)
+        .bind(comparison_period_name)
+        .bind(variance_amount)
+        .bind(variance_pct)
+        .bind(alert_status)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_snapshot(&row))
     }
 
@@ -435,7 +498,8 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
     async fn delete_snapshot(&self, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query("DELETE FROM _atlas.balance_snapshots WHERE id = $1")
             .bind(id)
-            .execute(&self.pool).await?;
+            .execute(&self.pool)
+            .await?;
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound("Snapshot not found".to_string()));
         }
@@ -467,25 +531,41 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
                  include_zero_balances, comparison_enabled, comparison_type,
                  sort_by, sort_direction, is_shared, metadata)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, '{}'::jsonb)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(org_id).bind(user_id).bind(name).bind(description)
-        .bind(&account_segments).bind(period_from).bind(period_to)
-        .bind(currency_code).bind(amount_type)
-        .bind(include_zero_balances).bind(comparison_enabled).bind(comparison_type)
-        .bind(sort_by).bind(sort_direction).bind(is_shared)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(user_id)
+        .bind(name)
+        .bind(description)
+        .bind(&account_segments)
+        .bind(period_from)
+        .bind(period_to)
+        .bind(currency_code)
+        .bind(amount_type)
+        .bind(include_zero_balances)
+        .bind(comparison_enabled)
+        .bind(comparison_type)
+        .bind(sort_by)
+        .bind(sort_direction)
+        .bind(is_shared)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_inquiry(&row))
     }
 
     async fn get_saved_inquiry(&self, id: Uuid) -> AtlasResult<Option<SavedBalanceInquiry>> {
         let row = sqlx::query("SELECT * FROM _atlas.saved_balance_inquiries WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await?;
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_inquiry))
     }
 
-    async fn list_saved_inquiries(&self, org_id: Uuid, user_id: Option<Uuid>) -> AtlasResult<Vec<SavedBalanceInquiry>> {
+    async fn list_saved_inquiries(
+        &self,
+        org_id: Uuid,
+        user_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SavedBalanceInquiry>> {
         let rows = if let Some(uid) = user_id {
             sqlx::query(
                 "SELECT * FROM _atlas.saved_balance_inquiries WHERE organization_id = $1 AND (user_id = $2 OR is_shared = true) ORDER BY created_at DESC"
@@ -505,9 +585,12 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
     async fn delete_saved_inquiry(&self, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query("DELETE FROM _atlas.saved_balance_inquiries WHERE id = $1")
             .bind(id)
-            .execute(&self.pool).await?;
+            .execute(&self.pool)
+            .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Saved inquiry not found".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Saved inquiry not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -543,7 +626,7 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
 
         // Latest snapshot date
         let latest: Option<chrono::NaiveDate> = sqlx::query_scalar(
-            "SELECT MAX(snapshot_date) FROM _atlas.balance_snapshots WHERE organization_id = $1"
+            "SELECT MAX(snapshot_date) FROM _atlas.balance_snapshots WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -552,17 +635,21 @@ impl AccountMonitorRepository for PostgresAccountMonitorRepository {
 
         // Recent alerts
         let alerts = self.get_alert_snapshots(org_id).await.unwrap_or_default();
-        let recent_alerts: Vec<serde_json::Value> = alerts.iter().take(10).map(|a| {
-            serde_json::json!({
-                "id": a.id,
-                "accountSegment": a.account_segment,
-                "periodName": a.period_name,
-                "endingBalance": a.ending_balance,
-                "alertStatus": a.alert_status,
-                "variancePct": a.variance_pct,
-                "computedAt": a.computed_at,
+        let recent_alerts: Vec<serde_json::Value> = alerts
+            .iter()
+            .take(10)
+            .map(|a| {
+                serde_json::json!({
+                    "id": a.id,
+                    "accountSegment": a.account_segment,
+                    "periodName": a.period_name,
+                    "endingBalance": a.ending_balance,
+                    "alertStatus": a.alert_status,
+                    "variancePct": a.variance_pct,
+                    "computedAt": a.computed_at,
+                })
             })
-        }).collect();
+            .collect();
 
         Ok(AccountMonitorSummary {
             total_groups,
@@ -589,7 +676,9 @@ fn row_to_group_bare(row: &sqlx::postgres::PgRow) -> AccountGroup {
         threshold_warning_pct: row.try_get("threshold_warning_pct").ok(),
         threshold_critical_pct: row.try_get("threshold_critical_pct").ok(),
         comparison_type: row.try_get("comparison_type").unwrap_or_default(),
-        status: row.try_get("status").unwrap_or_else(|_| "active".to_string()),
+        status: row
+            .try_get("status")
+            .unwrap_or_else(|_| "active".to_string()),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         members: vec![],
         created_by: row.try_get("created_by").unwrap_or_default(),

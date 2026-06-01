@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Receivables > Billing > Balance Forward Billing
 
-pub mod repository;
 pub mod engine;
+pub mod repository;
 
 pub use engine::CustomerStatementEngine;
 pub use repository::{CustomerStatementRepository, PostgresCustomerStatementRepository};

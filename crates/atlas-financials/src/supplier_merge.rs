@@ -114,7 +114,10 @@ impl SupplierMergeService {
         if request.transfer_purchase_orders {
             for po in purchase_orders.iter_mut() {
                 // Only transfer open/active POs
-                if po.supplier_id == request.from_supplier_id && po.status != "CLOSED" && po.status != "CANCELED" {
+                if po.supplier_id == request.from_supplier_id
+                    && po.status != "CLOSED"
+                    && po.status != "CANCELED"
+                {
                     po.supplier_id = request.to_supplier_id.clone();
                     updated_pos.push(po.clone());
                     pos_transferred += 1;
@@ -159,15 +162,42 @@ mod tests {
         };
 
         let invoices = vec![
-            ApInvoice { invoice_id: "INV-1".to_string(), supplier_id: "SUPP-DUPE".to_string(), amount: 100.0, is_paid: false },
-            ApInvoice { invoice_id: "INV-2".to_string(), supplier_id: "SUPP-DUPE".to_string(), amount: 500.0, is_paid: true },
-            ApInvoice { invoice_id: "INV-3".to_string(), supplier_id: "SUPP-OTHER".to_string(), amount: 300.0, is_paid: false },
+            ApInvoice {
+                invoice_id: "INV-1".to_string(),
+                supplier_id: "SUPP-DUPE".to_string(),
+                amount: 100.0,
+                is_paid: false,
+            },
+            ApInvoice {
+                invoice_id: "INV-2".to_string(),
+                supplier_id: "SUPP-DUPE".to_string(),
+                amount: 500.0,
+                is_paid: true,
+            },
+            ApInvoice {
+                invoice_id: "INV-3".to_string(),
+                supplier_id: "SUPP-OTHER".to_string(),
+                amount: 300.0,
+                is_paid: false,
+            },
         ];
 
         let pos = vec![
-            PurchaseOrder { po_id: "PO-1".to_string(), supplier_id: "SUPP-DUPE".to_string(), status: "OPEN".to_string() },
-            PurchaseOrder { po_id: "PO-2".to_string(), supplier_id: "SUPP-DUPE".to_string(), status: "CLOSED".to_string() }, // Won't transfer
-            PurchaseOrder { po_id: "PO-3".to_string(), supplier_id: "SUPP-PRIMARY".to_string(), status: "OPEN".to_string() },
+            PurchaseOrder {
+                po_id: "PO-1".to_string(),
+                supplier_id: "SUPP-DUPE".to_string(),
+                status: "OPEN".to_string(),
+            },
+            PurchaseOrder {
+                po_id: "PO-2".to_string(),
+                supplier_id: "SUPP-DUPE".to_string(),
+                status: "CLOSED".to_string(),
+            }, // Won't transfer
+            PurchaseOrder {
+                po_id: "PO-3".to_string(),
+                supplier_id: "SUPP-PRIMARY".to_string(),
+                status: "OPEN".to_string(),
+            },
         ];
 
         (from_supp, to_supp, invoices, pos)
@@ -185,7 +215,13 @@ mod tests {
             inactivate_from_supplier: true,
         };
 
-        let result = SupplierMergeService::process_merge(&request, &mut from_supp, &to_supp, &mut invoices, &mut pos);
+        let result = SupplierMergeService::process_merge(
+            &request,
+            &mut from_supp,
+            &to_supp,
+            &mut invoices,
+            &mut pos,
+        );
 
         assert!(result.is_successful);
         assert!(result.from_supplier_inactivated);
@@ -210,7 +246,13 @@ mod tests {
             inactivate_from_supplier: false, // Keep duplicate active (rare but possible)
         };
 
-        let result = SupplierMergeService::process_merge(&request, &mut from_supp, &to_supp, &mut invoices, &mut pos);
+        let result = SupplierMergeService::process_merge(
+            &request,
+            &mut from_supp,
+            &to_supp,
+            &mut invoices,
+            &mut pos,
+        );
 
         assert!(result.is_successful);
         assert!(!result.from_supplier_inactivated);
@@ -231,10 +273,19 @@ mod tests {
             inactivate_from_supplier: true,
         };
 
-        let result = SupplierMergeService::process_merge(&request, &mut from_supp, &to_supp, &mut invoices, &mut pos);
+        let result = SupplierMergeService::process_merge(
+            &request,
+            &mut from_supp,
+            &to_supp,
+            &mut invoices,
+            &mut pos,
+        );
 
         assert!(!result.is_successful);
-        assert_eq!(result.error_message.unwrap(), "Cannot merge a supplier into itself.");
+        assert_eq!(
+            result.error_message.unwrap(),
+            "Cannot merge a supplier into itself."
+        );
     }
 
     #[test]
@@ -250,9 +301,18 @@ mod tests {
             inactivate_from_supplier: true,
         };
 
-        let result = SupplierMergeService::process_merge(&request, &mut from_supp, &to_supp, &mut invoices, &mut pos);
+        let result = SupplierMergeService::process_merge(
+            &request,
+            &mut from_supp,
+            &to_supp,
+            &mut invoices,
+            &mut pos,
+        );
 
         assert!(!result.is_successful);
-        assert_eq!(result.error_message.unwrap(), "The target 'to_supplier' must be active.");
+        assert_eq!(
+            result.error_message.unwrap(),
+            "The target 'to_supplier' must be active."
+        );
     }
 }

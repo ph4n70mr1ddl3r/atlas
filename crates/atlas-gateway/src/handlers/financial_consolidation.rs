@@ -11,19 +11,18 @@
 //! - Currency translation rates
 //! - Consolidated trial balance
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path},
-    Json,
+    extract::{Path, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Ledger Management
@@ -47,11 +46,21 @@ pub async fn create_ledger(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.financial_consolidation_engine.create_ledger(
-        org_id, &payload.code, &payload.name, payload.description.as_deref(),
-        &payload.base_currency_code, &payload.translation_method,
-        &payload.equity_elimination_method, Some(user_id),
-    ).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .create_ledger(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.base_currency_code,
+            &payload.translation_method,
+            &payload.equity_elimination_method,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(ledger) => Ok(created_json(ledger)),
         Err(e) => {
             error!("Failed to create consolidation ledger: {}", e);
@@ -69,9 +78,17 @@ pub async fn list_ledgers(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.financial_consolidation_engine.list_ledgers(org_id, false).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .list_ledgers(org_id, false)
+        .await
+    {
         Ok(ledgers) => Ok(Json(serde_json::json!({ "data": ledgers }))),
-        Err(e) => { error!("Failed to list ledgers: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list ledgers: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -81,10 +98,18 @@ pub async fn get_ledger(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.financial_consolidation_engine.get_ledger(org_id, &code).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .get_ledger(org_id, &code)
+        .await
+    {
         Ok(Some(l)) => Ok(to_json(l)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get ledger: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get ledger: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -113,12 +138,24 @@ pub async fn add_entity(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.financial_consolidation_engine.add_entity(
-        org_id, ledger_id, payload.entity_id, &payload.entity_name,
-        &payload.entity_code, &payload.local_currency_code,
-        &payload.ownership_percentage, &payload.consolidation_method,
-        payload.effective_from, payload.effective_to, Some(user_id),
-    ).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .add_entity(
+            org_id,
+            ledger_id,
+            payload.entity_id,
+            &payload.entity_name,
+            &payload.entity_code,
+            &payload.local_currency_code,
+            &payload.ownership_percentage,
+            &payload.consolidation_method,
+            payload.effective_from,
+            payload.effective_to,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(entity) => Ok(created_json(entity)),
         Err(e) => {
             error!("Failed to add consolidation entity: {}", e);
@@ -135,9 +172,17 @@ pub async fn list_entities(
     State(state): State<Arc<AppState>>,
     Path(ledger_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.financial_consolidation_engine.list_entities(ledger_id, false).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .list_entities(ledger_id, false)
+        .await
+    {
         Ok(entities) => Ok(Json(serde_json::json!({ "data": entities }))),
-        Err(e) => { error!("Failed to list entities: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list entities: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -166,12 +211,24 @@ pub async fn create_scenario(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.financial_consolidation_engine.create_scenario(
-        org_id, payload.ledger_id, &payload.scenario_number, &payload.name,
-        payload.description.as_deref(), payload.fiscal_year, &payload.period_name,
-        payload.period_start, payload.period_end,
-        payload.translation_rate_type.as_deref(), Some(user_id),
-    ).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .create_scenario(
+            org_id,
+            payload.ledger_id,
+            &payload.scenario_number,
+            &payload.name,
+            payload.description.as_deref(),
+            payload.fiscal_year,
+            &payload.period_name,
+            payload.period_start,
+            payload.period_end,
+            payload.translation_rate_type.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(scenario) => Ok(created_json(scenario)),
         Err(e) => {
             error!("Failed to create scenario: {}", e);
@@ -189,9 +246,17 @@ pub async fn list_scenarios(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.financial_consolidation_engine.list_scenarios(org_id, None, None).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .list_scenarios(org_id, None, None)
+        .await
+    {
         Ok(scenarios) => Ok(Json(serde_json::json!({ "data": scenarios }))),
-        Err(e) => { error!("Failed to list scenarios: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list scenarios: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -199,7 +264,12 @@ pub async fn execute_consolidation(
     State(state): State<Arc<AppState>>,
     Path(scenario_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.financial_consolidation_engine.execute_consolidation(scenario_id).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .execute_consolidation(scenario_id)
+        .await
+    {
         Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to execute consolidation: {}", e);
@@ -219,7 +289,12 @@ pub async fn approve_scenario(
     Path(scenario_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.financial_consolidation_engine.approve_scenario(scenario_id, user_id).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .approve_scenario(scenario_id, user_id)
+        .await
+    {
         Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to approve scenario: {}", e);
@@ -238,7 +313,12 @@ pub async fn post_scenario(
     Path(scenario_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.financial_consolidation_engine.post_scenario(scenario_id, user_id).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .post_scenario(scenario_id, user_id)
+        .await
+    {
         Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to post scenario: {}", e);
@@ -255,7 +335,12 @@ pub async fn reverse_scenario(
     State(state): State<Arc<AppState>>,
     Path(scenario_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.financial_consolidation_engine.reverse_scenario(scenario_id).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .reverse_scenario(scenario_id)
+        .await
+    {
         Ok(s) => Ok(to_json(s)),
         Err(e) => {
             error!("Failed to reverse scenario: {}", e);
@@ -290,12 +375,26 @@ pub async fn create_elimination_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.financial_consolidation_engine.create_elimination_rule(
-        org_id, payload.ledger_id, &payload.rule_code, &payload.name,
-        payload.description.as_deref(), &payload.elimination_type,
-        None, None, None, None,
-        &payload.offset_account_code, 10, Some(user_id),
-    ).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .create_elimination_rule(
+            org_id,
+            payload.ledger_id,
+            &payload.rule_code,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.elimination_type,
+            None,
+            None,
+            None,
+            None,
+            &payload.offset_account_code,
+            10,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(rule) => Ok(created_json(rule)),
         Err(e) => {
             error!("Failed to create elimination rule: {}", e);
@@ -326,8 +425,16 @@ pub async fn get_consolidation_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.financial_consolidation_engine.get_dashboard_summary(org_id).await {
+    match state
+        .financials
+        .financial_consolidation_engine
+        .get_dashboard_summary(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(to_json(dashboard)),
-        Err(e) => { error!("Failed to get consolidation dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get consolidation dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

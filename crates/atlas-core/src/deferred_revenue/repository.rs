@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for deferral templates, schedules, and schedule lines.
 
-use atlas_shared::{
-    DeferralTemplate, DeferralSchedule, DeferralScheduleLine, DeferralDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, DeferralDashboardSummary, DeferralSchedule, DeferralScheduleLine,
+    DeferralTemplate,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -17,59 +17,126 @@ pub trait DeferredRevenueRepository: Send + Sync {
     // Templates
     async fn create_template(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        deferral_type: &str, recognition_method: &str,
-        deferral_account_code: &str, recognition_account_code: &str,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        deferral_type: &str,
+        recognition_method: &str,
+        deferral_account_code: &str,
+        recognition_account_code: &str,
         contra_account_code: Option<&str>,
-        default_periods: i32, period_type: &str,
-        start_date_basis: &str, end_date_basis: &str,
-        prorate_partial_periods: bool, auto_generate_schedule: bool, auto_post: bool,
-        rounding_threshold: Option<&str>, currency_code: &str,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        default_periods: i32,
+        period_type: &str,
+        start_date_basis: &str,
+        end_date_basis: &str,
+        prorate_partial_periods: bool,
+        auto_generate_schedule: bool,
+        auto_post: bool,
+        rounding_threshold: Option<&str>,
+        currency_code: &str,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<DeferralTemplate>;
 
-    async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<DeferralTemplate>>;
+    async fn get_template(&self, org_id: Uuid, code: &str)
+        -> AtlasResult<Option<DeferralTemplate>>;
     async fn get_template_by_id(&self, id: Uuid) -> AtlasResult<Option<DeferralTemplate>>;
-    async fn list_templates(&self, org_id: Uuid, deferral_type: Option<&str>) -> AtlasResult<Vec<DeferralTemplate>>;
+    async fn list_templates(
+        &self,
+        org_id: Uuid,
+        deferral_type: Option<&str>,
+    ) -> AtlasResult<Vec<DeferralTemplate>>;
     async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Schedules
     async fn create_schedule(
         &self,
-        org_id: Uuid, schedule_number: &str, template_id: Uuid, template_code: Option<&str>,
-        deferral_type: &str, source_type: &str, source_id: Option<Uuid>,
-        source_number: Option<&str>, source_line_id: Option<Uuid>,
+        org_id: Uuid,
+        schedule_number: &str,
+        template_id: Uuid,
+        template_code: Option<&str>,
+        deferral_type: &str,
+        source_type: &str,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        source_line_id: Option<Uuid>,
         description: Option<&str>,
-        total_amount: &str, recognized_amount: &str, remaining_amount: &str,
+        total_amount: &str,
+        recognized_amount: &str,
+        remaining_amount: &str,
         currency_code: &str,
-        deferral_account_code: &str, recognition_account_code: &str,
+        deferral_account_code: &str,
+        recognition_account_code: &str,
         contra_account_code: Option<&str>,
         recognition_method: &str,
-        start_date: chrono::NaiveDate, end_date: chrono::NaiveDate,
-        total_periods: i32, status: &str,
+        start_date: chrono::NaiveDate,
+        end_date: chrono::NaiveDate,
+        total_periods: i32,
+        status: &str,
         original_journal_entry_id: Option<Uuid>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<DeferralSchedule>;
 
     async fn get_schedule(&self, id: Uuid) -> AtlasResult<Option<DeferralSchedule>>;
-    async fn get_schedule_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<DeferralSchedule>>;
-    async fn list_schedules(&self, org_id: Uuid, status: Option<&str>, deferral_type: Option<&str>, source_type: Option<&str>) -> AtlasResult<Vec<DeferralSchedule>>;
-    async fn update_schedule_status(&self, id: Uuid, status: &str, hold_reason: Option<&str>) -> AtlasResult<DeferralSchedule>;
-    async fn update_schedule_amounts(&self, id: Uuid, recognized_amount: &str, remaining_amount: &str, completed_periods: i32) -> AtlasResult<()>;
+    async fn get_schedule_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<DeferralSchedule>>;
+    async fn list_schedules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        deferral_type: Option<&str>,
+        source_type: Option<&str>,
+    ) -> AtlasResult<Vec<DeferralSchedule>>;
+    async fn update_schedule_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        hold_reason: Option<&str>,
+    ) -> AtlasResult<DeferralSchedule>;
+    async fn update_schedule_amounts(
+        &self,
+        id: Uuid,
+        recognized_amount: &str,
+        remaining_amount: &str,
+        completed_periods: i32,
+    ) -> AtlasResult<()>;
 
     // Schedule Lines
     async fn create_schedule_line(
         &self,
-        org_id: Uuid, schedule_id: Uuid, line_number: i32,
-        period_name: Option<&str>, period_start_date: chrono::NaiveDate,
-        period_end_date: chrono::NaiveDate, days_in_period: i32,
-        amount: &str, status: &str,
+        org_id: Uuid,
+        schedule_id: Uuid,
+        line_number: i32,
+        period_name: Option<&str>,
+        period_start_date: chrono::NaiveDate,
+        period_end_date: chrono::NaiveDate,
+        days_in_period: i32,
+        amount: &str,
+        status: &str,
     ) -> AtlasResult<DeferralScheduleLine>;
 
-    async fn list_schedule_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<DeferralScheduleLine>>;
-    async fn get_pending_lines(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<DeferralScheduleLine>>;
-    async fn update_line_status(&self, id: Uuid, status: &str, recognized_amount: &str, recognition_date: Option<chrono::NaiveDate>, journal_entry_id: Option<Uuid>) -> AtlasResult<DeferralScheduleLine>;
+    async fn list_schedule_lines(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<DeferralScheduleLine>>;
+    async fn get_pending_lines(
+        &self,
+        org_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<DeferralScheduleLine>>;
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        recognized_amount: &str,
+        recognition_date: Option<chrono::NaiveDate>,
+        journal_entry_id: Option<Uuid>,
+    ) -> AtlasResult<DeferralScheduleLine>;
 
     // Dashboard
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<DeferralDashboardSummary>;
@@ -81,7 +148,7 @@ pub struct PostgresDeferredRevenueRepository {
 }
 
 impl PostgresDeferredRevenueRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -107,7 +174,10 @@ macro_rules! row_to_template {
             prorate_partial_periods: $row.get("prorate_partial_periods"),
             auto_generate_schedule: $row.get("auto_generate_schedule"),
             auto_post: $row.get("auto_post"),
-            rounding_threshold: $row.try_get::<f64, _>("rounding_threshold").ok().map(|v| format!("{:.2}", v)),
+            rounding_threshold: $row
+                .try_get::<f64, _>("rounding_threshold")
+                .ok()
+                .map(|v| format!("{:.2}", v)),
             currency_code: $row.get("currency_code"),
             is_active: $row.get("is_active"),
             effective_from: $row.get("effective_from"),
@@ -134,9 +204,18 @@ macro_rules! row_to_schedule {
             source_number: $row.get("source_number"),
             source_line_id: $row.get("source_line_id"),
             description: $row.get("description"),
-            total_amount: $row.try_get::<f64, _>("total_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
-            recognized_amount: $row.try_get::<f64, _>("recognized_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
-            remaining_amount: $row.try_get::<f64, _>("remaining_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
+            total_amount: $row
+                .try_get::<f64, _>("total_amount")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
+            recognized_amount: $row
+                .try_get::<f64, _>("recognized_amount")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
+            remaining_amount: $row
+                .try_get::<f64, _>("remaining_amount")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
             currency_code: $row.get("currency_code"),
             deferral_account_code: $row.get("deferral_account_code"),
             recognition_account_code: $row.get("recognition_account_code"),
@@ -170,8 +249,14 @@ macro_rules! row_to_schedule_line {
             period_start_date: $row.get("period_start_date"),
             period_end_date: $row.get("period_end_date"),
             days_in_period: $row.get("days_in_period"),
-            amount: $row.try_get::<f64, _>("amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
-            recognized_amount: $row.try_get::<f64, _>("recognized_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
+            amount: $row
+                .try_get::<f64, _>("amount")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
+            recognized_amount: $row
+                .try_get::<f64, _>("recognized_amount")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
             status: $row.get("status"),
             recognition_date: $row.get("recognition_date"),
             journal_entry_id: $row.get("journal_entry_id"),
@@ -187,15 +272,26 @@ macro_rules! row_to_schedule_line {
 impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
     async fn create_template(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        deferral_type: &str, recognition_method: &str,
-        deferral_account_code: &str, recognition_account_code: &str,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        deferral_type: &str,
+        recognition_method: &str,
+        deferral_account_code: &str,
+        recognition_account_code: &str,
         contra_account_code: Option<&str>,
-        default_periods: i32, period_type: &str,
-        start_date_basis: &str, end_date_basis: &str,
-        prorate_partial_periods: bool, auto_generate_schedule: bool, auto_post: bool,
-        rounding_threshold: Option<&str>, currency_code: &str,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        default_periods: i32,
+        period_type: &str,
+        start_date_basis: &str,
+        end_date_basis: &str,
+        prorate_partial_periods: bool,
+        auto_generate_schedule: bool,
+        auto_post: bool,
+        rounding_threshold: Option<&str>,
+        currency_code: &str,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<DeferralTemplate> {
         let row = sqlx::query(
@@ -222,7 +318,11 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
         Ok(row_to_template!(row))
     }
 
-    async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<DeferralTemplate>> {
+    async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<DeferralTemplate>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.deferral_templates WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -242,7 +342,11 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
         Ok(row.map(|r| row_to_template!(r)))
     }
 
-    async fn list_templates(&self, org_id: Uuid, deferral_type: Option<&str>) -> AtlasResult<Vec<DeferralTemplate>> {
+    async fn list_templates(
+        &self,
+        org_id: Uuid,
+        deferral_type: Option<&str>,
+    ) -> AtlasResult<Vec<DeferralTemplate>> {
         let rows = if let Some(dt) = deferral_type {
             sqlx::query(
                 "SELECT * FROM _atlas.deferral_templates WHERE organization_id = $1 AND deferral_type = $2 AND is_active = true ORDER BY code"
@@ -272,17 +376,28 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
 
     async fn create_schedule(
         &self,
-        org_id: Uuid, schedule_number: &str, template_id: Uuid, template_code: Option<&str>,
-        deferral_type: &str, source_type: &str, source_id: Option<Uuid>,
-        source_number: Option<&str>, source_line_id: Option<Uuid>,
+        org_id: Uuid,
+        schedule_number: &str,
+        template_id: Uuid,
+        template_code: Option<&str>,
+        deferral_type: &str,
+        source_type: &str,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        source_line_id: Option<Uuid>,
         description: Option<&str>,
-        total_amount: &str, recognized_amount: &str, remaining_amount: &str,
+        total_amount: &str,
+        recognized_amount: &str,
+        remaining_amount: &str,
         currency_code: &str,
-        deferral_account_code: &str, recognition_account_code: &str,
+        deferral_account_code: &str,
+        recognition_account_code: &str,
         contra_account_code: Option<&str>,
         recognition_method: &str,
-        start_date: chrono::NaiveDate, end_date: chrono::NaiveDate,
-        total_periods: i32, status: &str,
+        start_date: chrono::NaiveDate,
+        end_date: chrono::NaiveDate,
+        total_periods: i32,
+        status: &str,
         original_journal_entry_id: Option<Uuid>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<DeferralSchedule> {
@@ -324,7 +439,11 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
         Ok(row.map(|r| row_to_schedule!(r)))
     }
 
-    async fn get_schedule_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<DeferralSchedule>> {
+    async fn get_schedule_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<DeferralSchedule>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.deferral_schedules WHERE organization_id = $1 AND schedule_number = $2"
         )
@@ -335,25 +454,53 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
         Ok(row.map(|r| row_to_schedule!(r)))
     }
 
-    async fn list_schedules(&self, org_id: Uuid, status: Option<&str>, deferral_type: Option<&str>, source_type: Option<&str>) -> AtlasResult<Vec<DeferralSchedule>> {
-        let mut query = String::from("SELECT * FROM _atlas.deferral_schedules WHERE organization_id = $1");
+    async fn list_schedules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        deferral_type: Option<&str>,
+        source_type: Option<&str>,
+    ) -> AtlasResult<Vec<DeferralSchedule>> {
+        let mut query =
+            String::from("SELECT * FROM _atlas.deferral_schedules WHERE organization_id = $1");
         let mut param_idx = 2;
-        if status.is_some() { query.push_str(&format!(" AND status = ${param_idx}")); param_idx += 1; }
-        if deferral_type.is_some() { query.push_str(&format!(" AND deferral_type = ${param_idx}")); param_idx += 1; }
-        if source_type.is_some() { query.push_str(&format!(" AND source_type = ${param_idx}")); }
+        if status.is_some() {
+            query.push_str(&format!(" AND status = ${param_idx}"));
+            param_idx += 1;
+        }
+        if deferral_type.is_some() {
+            query.push_str(&format!(" AND deferral_type = ${param_idx}"));
+            param_idx += 1;
+        }
+        if source_type.is_some() {
+            query.push_str(&format!(" AND source_type = ${param_idx}"));
+        }
         query.push_str(" ORDER BY start_date DESC, created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
-        if let Some(s) = status { q = q.bind(s); }
-        if let Some(d) = deferral_type { q = q.bind(d); }
-        if let Some(s) = source_type { q = q.bind(s); }
+        if let Some(s) = status {
+            q = q.bind(s);
+        }
+        if let Some(d) = deferral_type {
+            q = q.bind(d);
+        }
+        if let Some(s) = source_type {
+            q = q.bind(s);
+        }
 
-        let rows = q.fetch_all(&self.pool).await
+        let rows = q
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| row_to_schedule!(r)).collect())
     }
 
-    async fn update_schedule_status(&self, id: Uuid, status: &str, hold_reason: Option<&str>) -> AtlasResult<DeferralSchedule> {
+    async fn update_schedule_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        hold_reason: Option<&str>,
+    ) -> AtlasResult<DeferralSchedule> {
         let row = sqlx::query(
             r"UPDATE _atlas.deferral_schedules
             SET status = $1, hold_reason = $2, updated_at = now(),
@@ -361,14 +508,22 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
             WHERE id = $3
             RETURNING *",
         )
-        .bind(status).bind(hold_reason).bind(id)
+        .bind(status)
+        .bind(hold_reason)
+        .bind(id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_schedule!(row))
     }
 
-    async fn update_schedule_amounts(&self, id: Uuid, recognized_amount: &str, remaining_amount: &str, completed_periods: i32) -> AtlasResult<()> {
+    async fn update_schedule_amounts(
+        &self,
+        id: Uuid,
+        recognized_amount: &str,
+        remaining_amount: &str,
+        completed_periods: i32,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.deferral_schedules
             SET recognized_amount = $1, remaining_amount = $2, completed_periods = $3,
@@ -377,7 +532,8 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
         )
         .bind(recognized_amount.parse::<f64>().unwrap_or(0.0))
         .bind(remaining_amount.parse::<f64>().unwrap_or(0.0))
-        .bind(completed_periods).bind(id)
+        .bind(completed_periods)
+        .bind(id)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -386,10 +542,15 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
 
     async fn create_schedule_line(
         &self,
-        org_id: Uuid, schedule_id: Uuid, line_number: i32,
-        period_name: Option<&str>, period_start_date: chrono::NaiveDate,
-        period_end_date: chrono::NaiveDate, days_in_period: i32,
-        amount: &str, status: &str,
+        org_id: Uuid,
+        schedule_id: Uuid,
+        line_number: i32,
+        period_name: Option<&str>,
+        period_start_date: chrono::NaiveDate,
+        period_end_date: chrono::NaiveDate,
+        days_in_period: i32,
+        amount: &str,
+        status: &str,
     ) -> AtlasResult<DeferralScheduleLine> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.deferral_schedule_lines
@@ -399,16 +560,25 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9)
             RETURNING *",
         )
-        .bind(org_id).bind(schedule_id).bind(line_number).bind(period_name)
-        .bind(period_start_date).bind(period_end_date).bind(days_in_period)
-        .bind(amount.parse::<f64>().unwrap_or(0.0)).bind(status)
+        .bind(org_id)
+        .bind(schedule_id)
+        .bind(line_number)
+        .bind(period_name)
+        .bind(period_start_date)
+        .bind(period_end_date)
+        .bind(days_in_period)
+        .bind(amount.parse::<f64>().unwrap_or(0.0))
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_schedule_line!(row))
     }
 
-    async fn list_schedule_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<DeferralScheduleLine>> {
+    async fn list_schedule_lines(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<DeferralScheduleLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.deferral_schedule_lines WHERE schedule_id = $1 ORDER BY line_number"
         )
@@ -419,7 +589,11 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
         Ok(rows.iter().map(|r| row_to_schedule_line!(r)).collect())
     }
 
-    async fn get_pending_lines(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<DeferralScheduleLine>> {
+    async fn get_pending_lines(
+        &self,
+        org_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<DeferralScheduleLine>> {
         let rows = sqlx::query(
             r"SELECT l.* FROM _atlas.deferral_schedule_lines l
             JOIN _atlas.deferral_schedules s ON l.schedule_id = s.id
@@ -427,14 +601,22 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
               AND l.period_end_date <= $2 AND s.status = 'active'
             ORDER BY l.period_start_date",
         )
-        .bind(org_id).bind(as_of_date)
+        .bind(org_id)
+        .bind(as_of_date)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| row_to_schedule_line!(r)).collect())
     }
 
-    async fn update_line_status(&self, id: Uuid, status: &str, recognized_amount: &str, recognition_date: Option<chrono::NaiveDate>, journal_entry_id: Option<Uuid>) -> AtlasResult<DeferralScheduleLine> {
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        recognized_amount: &str,
+        recognition_date: Option<chrono::NaiveDate>,
+        journal_entry_id: Option<Uuid>,
+    ) -> AtlasResult<DeferralScheduleLine> {
         let row = sqlx::query(
             r"UPDATE _atlas.deferral_schedule_lines
             SET status = $1, recognized_amount = $2, recognition_date = $3, journal_entry_id = $4, updated_at = now()
@@ -451,13 +633,12 @@ impl DeferredRevenueRepository for PostgresDeferredRevenueRepository {
     }
 
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<DeferralDashboardSummary> {
-        let schedules = sqlx::query(
-            "SELECT * FROM _atlas.deferral_schedules WHERE organization_id = $1"
-        )
-        .bind(org_id)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let schedules =
+            sqlx::query("SELECT * FROM _atlas.deferral_schedules WHERE organization_id = $1")
+                .bind(org_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut total_schedules = 0i32;
         let mut active_schedules = 0i32;

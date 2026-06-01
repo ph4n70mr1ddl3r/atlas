@@ -6,57 +6,64 @@
 //!
 //! Oracle Fusion CX Service equivalent: Service Requests
 
-use atlas_shared::{
-    ServiceCategory, ServiceRequest, ServiceRequestUpdate,
-    ServiceRequestAssignment, ServiceRequestDashboard,
-    AtlasError, AtlasResult,
-};
 use super::ServiceRequestRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ServiceCategory, ServiceRequest, ServiceRequestAssignment,
+    ServiceRequestDashboard, ServiceRequestUpdate,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid priorities for service requests
 #[allow(dead_code)]
-const VALID_PRIORITIES: &[&str] = &[
-    "low", "medium", "high", "critical",
-];
+const VALID_PRIORITIES: &[&str] = &["low", "medium", "high", "critical"];
 
 /// Valid statuses for service requests
 #[allow(dead_code)]
 const VALID_STATUSES: &[&str] = &[
-    "open", "in_progress", "pending_customer", "resolved", "closed", "cancelled",
+    "open",
+    "in_progress",
+    "pending_customer",
+    "resolved",
+    "closed",
+    "cancelled",
 ];
 
 /// Valid request types
 #[allow(dead_code)]
-const VALID_REQUEST_TYPES: &[&str] = &[
-    "incident", "service_request", "problem", "change_request",
-];
+const VALID_REQUEST_TYPES: &[&str] = &["incident", "service_request", "problem", "change_request"];
 
 /// Valid channels through which a request can arrive
 #[allow(dead_code)]
 const VALID_CHANNELS: &[&str] = &[
-    "phone", "email", "web", "chat", "social_media", "walk_in", "api",
+    "phone",
+    "email",
+    "web",
+    "chat",
+    "social_media",
+    "walk_in",
+    "api",
 ];
 
 /// Valid update types for communications
 #[allow(dead_code)]
-const VALID_UPDATE_TYPES: &[&str] = &[
-    "comment", "email", "phone_call", "note", "system",
-];
+const VALID_UPDATE_TYPES: &[&str] = &["comment", "email", "phone_call", "note", "system"];
 
 /// Valid assignment types
 #[allow(dead_code)]
-const VALID_ASSIGNMENT_TYPES: &[&str] = &[
-    "initial", "transfer", "escalation", "reassignment",
-];
+const VALID_ASSIGNMENT_TYPES: &[&str] = &["initial", "transfer", "escalation", "reassignment"];
 
 /// Valid resolution codes
 #[allow(dead_code)]
 const VALID_RESOLUTION_CODES: &[&str] = &[
-    "resolved", "workaround", "no_fault_found", "duplicate",
-    "out_of_scope", "cancelled_by_customer", "escalated",
+    "resolved",
+    "workaround",
+    "no_fault_found",
+    "duplicate",
+    "out_of_scope",
+    "cancelled_by_customer",
+    "escalated",
 ];
 
 /// Service Request engine for managing service cases
@@ -99,23 +106,41 @@ impl ServiceRequestEngine {
         if let Some(pri) = default_priority {
             if !VALID_PRIORITIES.contains(&pri) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid priority '{}'. Must be one of: {}", pri, VALID_PRIORITIES.join(", ")
+                    "Invalid priority '{}'. Must be one of: {}",
+                    pri,
+                    VALID_PRIORITIES.join(", ")
                 )));
             }
         }
 
-        info!("Creating service category '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating service category '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_category(
-            org_id, &code_upper, name, description,
-            parent_category_id, default_priority, default_sla_hours,
-            created_by,
-        ).await
+        self.repository
+            .create_category(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                parent_category_id,
+                default_priority,
+                default_sla_hours,
+                created_by,
+            )
+            .await
     }
 
     /// Get a service category by code
-    pub async fn get_category(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ServiceCategory>> {
-        self.repository.get_category(org_id, &code.to_uppercase()).await
+    pub async fn get_category(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ServiceCategory>> {
+        self.repository
+            .get_category(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List service categories
@@ -125,8 +150,13 @@ impl ServiceRequestEngine {
 
     /// Deactivate a service category
     pub async fn delete_category(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        info!("Deactivating service category '{}' for org {}", code, org_id);
-        self.repository.delete_category(org_id, &code.to_uppercase()).await
+        info!(
+            "Deactivating service category '{}' for org {}",
+            code, org_id
+        );
+        self.repository
+            .delete_category(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -166,17 +196,23 @@ impl ServiceRequestEngine {
         }
         if !VALID_PRIORITIES.contains(&priority) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid priority '{}'. Must be one of: {}", priority, VALID_PRIORITIES.join(", ")
+                "Invalid priority '{}'. Must be one of: {}",
+                priority,
+                VALID_PRIORITIES.join(", ")
             )));
         }
         if !VALID_REQUEST_TYPES.contains(&request_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid request_type '{}'. Must be one of: {}", request_type, VALID_REQUEST_TYPES.join(", ")
+                "Invalid request_type '{}'. Must be one of: {}",
+                request_type,
+                VALID_REQUEST_TYPES.join(", ")
             )));
         }
         if !VALID_CHANNELS.contains(&channel) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid channel '{}'. Must be one of: {}", channel, VALID_CHANNELS.join(", ")
+                "Invalid channel '{}'. Must be one of: {}",
+                channel,
+                VALID_CHANNELS.join(", ")
             )));
         }
 
@@ -187,26 +223,49 @@ impl ServiceRequestEngine {
             if let Some(cat) = self.repository.get_category_by_id(cat_id).await? {
                 category_name = Some(cat.name.clone());
                 if let Some(hours) = cat.default_sla_hours {
-                    sla_due_date = Some(chrono::Utc::now().date_naive() + chrono::Duration::hours(i64::from(hours)));
+                    sla_due_date = Some(
+                        chrono::Utc::now().date_naive() + chrono::Duration::hours(i64::from(hours)),
+                    );
                     // Note: TimeDelta + NaiveDate yields NaiveDate directly
                 }
                 // Use category default priority if not explicitly set
             }
         }
 
-        info!("Creating service request '{}' ({}) for org {}", request_number, title, org_id);
+        info!(
+            "Creating service request '{}' ({}) for org {}",
+            request_number, title, org_id
+        );
 
-        self.repository.create_request(
-            org_id, request_number, title, description,
-            category_id, category_name.as_deref(), priority,
-            "open", request_type, channel,
-            customer_id, customer_name, contact_id, contact_name,
-            assigned_to, assigned_to_name, assigned_group,
-            product_id, product_name, serial_number,
-            sla_due_date, parent_request_id,
-            related_object_type, related_object_id,
-            created_by,
-        ).await
+        self.repository
+            .create_request(
+                org_id,
+                request_number,
+                title,
+                description,
+                category_id,
+                category_name.as_deref(),
+                priority,
+                "open",
+                request_type,
+                channel,
+                customer_id,
+                customer_name,
+                contact_id,
+                contact_name,
+                assigned_to,
+                assigned_to_name,
+                assigned_group,
+                product_id,
+                product_name,
+                serial_number,
+                sla_due_date,
+                parent_request_id,
+                related_object_type,
+                related_object_id,
+                created_by,
+            )
+            .await
     }
 
     /// Get a service request by ID
@@ -215,8 +274,14 @@ impl ServiceRequestEngine {
     }
 
     /// Get a service request by number
-    pub async fn get_request_by_number(&self, org_id: Uuid, request_number: &str) -> AtlasResult<Option<ServiceRequest>> {
-        self.repository.get_request_by_number(org_id, request_number).await
+    pub async fn get_request_by_number(
+        &self,
+        org_id: Uuid,
+        request_number: &str,
+    ) -> AtlasResult<Option<ServiceRequest>> {
+        self.repository
+            .get_request_by_number(org_id, request_number)
+            .await
     }
 
     /// List service requests with optional filters
@@ -229,25 +294,32 @@ impl ServiceRequestEngine {
         assigned_to: Option<Uuid>,
         category_id: Option<Uuid>,
     ) -> AtlasResult<Vec<ServiceRequest>> {
-        self.repository.list_requests(org_id, status, priority, customer_id, assigned_to, category_id).await
+        self.repository
+            .list_requests(
+                org_id,
+                status,
+                priority,
+                customer_id,
+                assigned_to,
+                category_id,
+            )
+            .await
     }
 
     /// Update a service request's status
-    pub async fn update_status(
-        &self,
-        id: Uuid,
-        new_status: &str,
-    ) -> AtlasResult<ServiceRequest> {
+    pub async fn update_status(&self, id: Uuid, new_status: &str) -> AtlasResult<ServiceRequest> {
         if !VALID_STATUSES.contains(&new_status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid status '{}'. Must be one of: {}", new_status, VALID_STATUSES.join(", ")
+                "Invalid status '{}'. Must be one of: {}",
+                new_status,
+                VALID_STATUSES.join(", ")
             )));
         }
 
-        let request = self.repository.get_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Service request {id} not found")
-            ))?;
+        let request =
+            self.repository.get_request(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Service request {id} not found"))
+            })?;
 
         // Validate state transitions
         let allowed = match request.status.as_str() {
@@ -255,18 +327,22 @@ impl ServiceRequestEngine {
             "in_progress" => vec!["pending_customer", "resolved", "cancelled"],
             "pending_customer" => vec!["in_progress", "resolved", "cancelled"],
             "resolved" => vec!["closed", "in_progress"], // can reopen from resolved
-            "closed" => vec!["in_progress"], // can reopen
-            "cancelled" => vec!["open"], // can reopen cancelled
+            "closed" => vec!["in_progress"],             // can reopen
+            "cancelled" => vec!["open"],                 // can reopen cancelled
             _ => vec![],
         };
 
         if !allowed.contains(&new_status) {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot transition from '{}' to '{}'. Allowed: {:?}", request.status, new_status, allowed)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot transition from '{}' to '{}'. Allowed: {:?}",
+                request.status, new_status, allowed
+            )));
         }
 
-        info!("Updating service request {} status from '{}' to '{}'", id, request.status, new_status);
+        info!(
+            "Updating service request {} status from '{}' to '{}'",
+            id, request.status, new_status
+        );
 
         let now = chrono::Utc::now();
         let resolved_at = if new_status == "resolved" && request.resolved_at.is_none() {
@@ -280,7 +356,9 @@ impl ServiceRequestEngine {
             request.closed_at
         };
 
-        self.repository.update_request_status(id, new_status, resolved_at, closed_at).await
+        self.repository
+            .update_request_status(id, new_status, resolved_at, closed_at)
+            .await
     }
 
     /// Resolve a service request
@@ -298,25 +376,35 @@ impl ServiceRequestEngine {
         if !VALID_RESOLUTION_CODES.contains(&resolution_code) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid resolution_code '{}'. Must be one of: {}",
-                resolution_code, VALID_RESOLUTION_CODES.join(", ")
+                resolution_code,
+                VALID_RESOLUTION_CODES.join(", ")
             )));
         }
 
-        let request = self.repository.get_request(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Service request {id} not found")
-            ))?;
+        let request =
+            self.repository.get_request(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Service request {id} not found"))
+            })?;
 
-        if request.status == "resolved" || request.status == "closed" || request.status == "cancelled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot resolve request in '{}' status", request.status)
-            ));
+        if request.status == "resolved"
+            || request.status == "closed"
+            || request.status == "cancelled"
+        {
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot resolve request in '{}' status",
+                request.status
+            )));
         }
 
-        info!("Resolving service request {} with code '{}'", id, resolution_code);
+        info!(
+            "Resolving service request {} with code '{}'",
+            id, resolution_code
+        );
 
         let now = chrono::Utc::now();
-        self.repository.update_request_resolution(id, resolution, resolution_code, now).await
+        self.repository
+            .update_request_resolution(id, resolution, resolution_code, now)
+            .await
     }
 
     /// Assign a service request
@@ -333,45 +421,67 @@ impl ServiceRequestEngine {
     ) -> AtlasResult<ServiceRequestAssignment> {
         if !VALID_ASSIGNMENT_TYPES.contains(&assignment_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid assignment_type '{}'. Must be one of: {}", assignment_type, VALID_ASSIGNMENT_TYPES.join(", ")
+                "Invalid assignment_type '{}'. Must be one of: {}",
+                assignment_type,
+                VALID_ASSIGNMENT_TYPES.join(", ")
             )));
         }
 
-        let request = self.repository.get_request(request_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Service request {request_id} not found")
-            ))?;
+        let request = self
+            .repository
+            .get_request(request_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Service request {request_id} not found"))
+            })?;
 
         if request.status == "closed" || request.status == "cancelled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot assign request in '{}' status", request.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot assign request in '{}' status",
+                request.status
+            )));
         }
 
-        info!("Assigning service request {} to {:?} ({})", request_id, assigned_to, assignment_type);
+        info!(
+            "Assigning service request {} to {:?} ({})",
+            request_id, assigned_to, assignment_type
+        );
 
-        let assignment = self.repository.create_assignment(
-            org_id, request_id, assigned_to, assigned_to_name,
-            assigned_group, assigned_by, assigned_by_name, assignment_type,
-        ).await?;
+        let assignment = self
+            .repository
+            .create_assignment(
+                org_id,
+                request_id,
+                assigned_to,
+                assigned_to_name,
+                assigned_group,
+                assigned_by,
+                assigned_by_name,
+                assignment_type,
+            )
+            .await?;
 
         // Update the request itself
-        self.repository.update_request_assignment(
-            request_id, assigned_to, assigned_to_name, assigned_group,
-        ).await?;
+        self.repository
+            .update_request_assignment(request_id, assigned_to, assigned_to_name, assigned_group)
+            .await?;
 
         // If the request was open and now assigned, move to in_progress
         if request.status == "open" && assigned_to.is_some() {
-            let _ = self.repository.update_request_status(
-                request_id, "in_progress", None, None,
-            ).await;
+            let _ = self
+                .repository
+                .update_request_status(request_id, "in_progress", None, None)
+                .await;
         }
 
         Ok(assignment)
     }
 
     /// List assignments for a request
-    pub async fn list_assignments(&self, request_id: Uuid) -> AtlasResult<Vec<ServiceRequestAssignment>> {
+    pub async fn list_assignments(
+        &self,
+        request_id: Uuid,
+    ) -> AtlasResult<Vec<ServiceRequestAssignment>> {
         self.repository.list_assignments(request_id).await
     }
 
@@ -389,7 +499,9 @@ impl ServiceRequestEngine {
     ) -> AtlasResult<ServiceRequestUpdate> {
         if !VALID_UPDATE_TYPES.contains(&update_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid update_type '{}'. Must be one of: {}", update_type, VALID_UPDATE_TYPES.join(", ")
+                "Invalid update_type '{}'. Must be one of: {}",
+                update_type,
+                VALID_UPDATE_TYPES.join(", ")
             )));
         }
         if body.is_empty() {
@@ -399,23 +511,38 @@ impl ServiceRequestEngine {
         }
 
         // Verify request exists
-        let request = self.repository.get_request(request_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Service request {request_id} not found")
-            ))?;
+        let request = self
+            .repository
+            .get_request(request_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Service request {request_id} not found"))
+            })?;
 
         if request.status == "closed" || request.status == "cancelled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot add update to request in '{}' status", request.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot add update to request in '{}' status",
+                request.status
+            )));
         }
 
-        info!("Adding {} update to service request {}", update_type, request_id);
+        info!(
+            "Adding {} update to service request {}",
+            update_type, request_id
+        );
 
-        self.repository.create_update(
-            org_id, request_id, update_type, author_id, author_name,
-            subject, body, is_internal,
-        ).await
+        self.repository
+            .create_update(
+                org_id,
+                request_id,
+                update_type,
+                author_id,
+                author_name,
+                subject,
+                body,
+                is_internal,
+            )
+            .await
     }
 
     /// List updates for a request
@@ -424,7 +551,9 @@ impl ServiceRequestEngine {
         request_id: Uuid,
         include_internal: bool,
     ) -> AtlasResult<Vec<ServiceRequestUpdate>> {
-        self.repository.list_updates(request_id, include_internal).await
+        self.repository
+            .list_updates(request_id, include_internal)
+            .await
     }
 
     /// Get dashboard summary

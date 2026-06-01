@@ -5,7 +5,7 @@ use atlas_core::schema::WorkflowBuilder;
 use atlas_shared::EntityDefinition;
 
 /// Customer entity
-#[must_use] 
+#[must_use]
 pub fn customer_definition() -> EntityDefinition {
     SchemaBuilder::new("customers", "Customer")
         .plural_label("Customers")
@@ -14,24 +14,41 @@ pub fn customer_definition() -> EntityDefinition {
         .icon("briefcase")
         .required_string("customer_number", "Customer Number")
         .required_string("name", "Customer Name")
-        .enumeration("type", "Type", vec!["individual", "company", "government", "nonprofit"])
-        .enumeration("industry", "Industry", vec![
-            "technology", "manufacturing", "retail", "healthcare",
-            "finance", "education", "other"
-        ])
+        .enumeration(
+            "type",
+            "Type",
+            vec!["individual", "company", "government", "nonprofit"],
+        )
+        .enumeration(
+            "industry",
+            "Industry",
+            vec![
+                "technology",
+                "manufacturing",
+                "retail",
+                "healthcare",
+                "finance",
+                "education",
+                "other",
+            ],
+        )
         .email("email", "Email")
         .phone("phone", "Phone")
         .url("website", "Website")
         .currency("revenue", "Annual Revenue", "USD")
         .integer("employee_count", "Employee Count")
-        .enumeration("status", "Status", vec!["lead", "prospect", "customer", "churned"])
+        .enumeration(
+            "status",
+            "Status",
+            vec!["lead", "prospect", "customer", "churned"],
+        )
         .reference("owner_id", "Account Owner", "employees")
         .address("address", "Address")
         .build()
 }
 
 /// Lead entity with qualification workflow
-#[must_use] 
+#[must_use]
 pub fn lead_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("lead_workflow", "new")
         .initial_state("new", "New")
@@ -61,14 +78,33 @@ pub fn lead_definition() -> EntityDefinition {
         .phone("phone", "Phone")
         .string("company", "Company")
         .string("title", "Job Title")
-        .enumeration("source", "Source", vec![
-            "website", "referral", "linkedin", "cold_call",
-            "trade_show", "advertisement", "other"
-        ])
-        .enumeration("industry", "Industry", vec![
-            "technology", "manufacturing", "retail", "healthcare",
-            "finance", "education", "government", "other"
-        ])
+        .enumeration(
+            "source",
+            "Source",
+            vec![
+                "website",
+                "referral",
+                "linkedin",
+                "cold_call",
+                "trade_show",
+                "advertisement",
+                "other",
+            ],
+        )
+        .enumeration(
+            "industry",
+            "Industry",
+            vec![
+                "technology",
+                "manufacturing",
+                "retail",
+                "healthcare",
+                "finance",
+                "education",
+                "government",
+                "other",
+            ],
+        )
         .currency("estimated_value", "Estimated Value", "USD")
         .reference("assigned_to_id", "Assigned To", "employees")
         .reference("customer_id", "Converted To Customer", "customers")
@@ -78,7 +114,7 @@ pub fn lead_definition() -> EntityDefinition {
 }
 
 /// Opportunity entity
-#[must_use] 
+#[must_use]
 pub fn opportunity_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("opportunity_workflow", "discovery")
         .initial_state("discovery", "Discovery")
@@ -107,9 +143,18 @@ pub fn opportunity_definition() -> EntityDefinition {
         .currency("amount", "Amount", "USD")
         .integer("probability", "Probability %")
         .date("expected_close_date", "Expected Close Date")
-        .enumeration("stage", "Stage", vec![
-            "discovery", "qualification", "proposal", "negotiation", "closed_won", "closed_lost"
-        ])
+        .enumeration(
+            "stage",
+            "Stage",
+            vec![
+                "discovery",
+                "qualification",
+                "proposal",
+                "negotiation",
+                "closed_won",
+                "closed_lost",
+            ],
+        )
         .reference("assigned_to_id", "Sales Rep", "employees")
         .reference("contact_id", "Primary Contact", "contacts")
         .workflow(workflow)
@@ -117,7 +162,7 @@ pub fn opportunity_definition() -> EntityDefinition {
 }
 
 /// Contact entity
-#[must_use] 
+#[must_use]
 pub fn contact_definition() -> EntityDefinition {
     SchemaBuilder::new("contacts", "Contact")
         .plural_label("Contacts")
@@ -130,16 +175,18 @@ pub fn contact_definition() -> EntityDefinition {
         .phone("phone", "Phone")
         .string("title", "Job Title")
         .reference("customer_id", "Customer", "customers")
-        .enumeration("preferred_contact", "Preferred Contact Method", vec![
-            "email", "phone", "sms", "in_person"
-        ])
+        .enumeration(
+            "preferred_contact",
+            "Preferred Contact Method",
+            vec!["email", "phone", "sms", "in_person"],
+        )
         .boolean("is_primary", "Primary Contact")
         .boolean_default("is_active", "Active", true)
         .build()
 }
 
 /// Service Case entity with workflow
-#[must_use] 
+#[must_use]
 pub fn service_case_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("case_workflow", "open")
         .initial_state("open", "Open")
@@ -166,12 +213,22 @@ pub fn service_case_definition() -> EntityDefinition {
         .rich_text("description", "Description")
         .reference("customer_id", "Customer", "customers")
         .reference("contact_id", "Contact", "contacts")
-        .enumeration("priority", "Priority", vec![
-            "critical", "high", "medium", "low"
-        ])
-        .enumeration("category", "Category", vec![
-            "billing", "technical", "general", "complaint", "feature_request"
-        ])
+        .enumeration(
+            "priority",
+            "Priority",
+            vec!["critical", "high", "medium", "low"],
+        )
+        .enumeration(
+            "category",
+            "Category",
+            vec![
+                "billing",
+                "technical",
+                "general",
+                "complaint",
+                "feature_request",
+            ],
+        )
         .reference("assigned_to_id", "Assigned To", "employees")
         .workflow(workflow)
         .build()

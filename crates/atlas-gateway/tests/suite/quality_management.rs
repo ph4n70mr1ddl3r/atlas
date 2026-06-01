@@ -11,11 +11,11 @@
 //! - Quality dashboard
 //! - Validation edge cases and error handling
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_quality_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -166,11 +166,7 @@ async fn create_test_ncr(
     serde_json::from_slice(&b).unwrap()
 }
 
-async fn create_test_hold(
-    app: &axum::Router,
-    reason: &str,
-    hold_type: &str,
-) -> serde_json::Value {
+async fn create_test_hold(app: &axum::Router, reason: &str, hold_type: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let resp = app
         .clone()
@@ -574,7 +570,10 @@ async fn test_create_inspection() {
     let plan_id = plan["id"].as_str().unwrap();
 
     let inspection = create_test_inspection(&app, plan_id, "100").await;
-    assert!(inspection["inspection_number"].as_str().unwrap().starts_with("QI-"));
+    assert!(inspection["inspection_number"]
+        .as_str()
+        .unwrap()
+        .starts_with("QI-"));
     assert_eq!(inspection["status"], "planned");
     assert_eq!(inspection["verdict"], "pending");
 }
@@ -1123,7 +1122,10 @@ async fn test_create_corrective_action() {
         .await
         .unwrap();
     let action: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert!(action["action_number"].as_str().unwrap().starts_with("CAPA-"));
+    assert!(action["action_number"]
+        .as_str()
+        .unwrap()
+        .starts_with("CAPA-"));
     assert_eq!(action["action_type"], "corrective");
     assert_eq!(action["title"], "Fix the root cause");
     assert_eq!(action["status"], "open");
@@ -1673,7 +1675,13 @@ async fn test_quality_full_lifecycle() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 7. Create an NCR from the failed inspection
-    let ncr = create_test_ncr(&app, "Weight out of spec - LOT-001", "specification", "major").await;
+    let ncr = create_test_ncr(
+        &app,
+        "Weight out of spec - LOT-001",
+        "specification",
+        "major",
+    )
+    .await;
     let ncr_id = ncr["id"].as_str().unwrap();
     assert_eq!(ncr["status"], "open");
 

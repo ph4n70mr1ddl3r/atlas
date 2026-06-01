@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for recruiting data.
 
-use atlas_shared::{
-    JobRequisition, Candidate, JobApplication, Interview, JobOffer,
-    RecruitingDashboard, AtlasResult, AtlasError,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, Candidate, Interview, JobApplication, JobOffer, JobRequisition,
+    RecruitingDashboard,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -15,85 +15,161 @@ use uuid::Uuid;
 pub trait RecruitingRepository: Send + Sync {
     // Requisitions
     async fn create_requisition(
-        &self, org_id: Uuid, requisition_number: &str, title: &str, description: Option<&str>,
-        department: Option<&str>, location: Option<&str>, employment_type: &str,
-        position_type: &str, vacancies: i32, priority: &str,
-        salary_min: Option<&str>, salary_max: Option<&str>, currency: Option<&str>,
-        required_skills: Option<&serde_json::Value>, qualifications: Option<&str>,
-        experience_years_min: Option<i32>, experience_years_max: Option<i32>,
-        education_level: Option<&str>, hiring_manager_id: Option<Uuid>,
-        recruiter_id: Option<Uuid>, target_start_date: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        requisition_number: &str,
+        title: &str,
+        description: Option<&str>,
+        department: Option<&str>,
+        location: Option<&str>,
+        employment_type: &str,
+        position_type: &str,
+        vacancies: i32,
+        priority: &str,
+        salary_min: Option<&str>,
+        salary_max: Option<&str>,
+        currency: Option<&str>,
+        required_skills: Option<&serde_json::Value>,
+        qualifications: Option<&str>,
+        experience_years_min: Option<i32>,
+        experience_years_max: Option<i32>,
+        education_level: Option<&str>,
+        hiring_manager_id: Option<Uuid>,
+        recruiter_id: Option<Uuid>,
+        target_start_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JobRequisition>;
     async fn get_requisition(&self, id: Uuid) -> AtlasResult<Option<JobRequisition>>;
-    async fn get_requisition_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<JobRequisition>>;
-    async fn list_requisitions(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JobRequisition>>;
-    async fn update_requisition_status(&self, id: Uuid, status: &str) -> AtlasResult<JobRequisition>;
+    async fn get_requisition_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<JobRequisition>>;
+    async fn list_requisitions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JobRequisition>>;
+    async fn update_requisition_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<JobRequisition>;
     async fn delete_requisition(&self, org_id: Uuid, number: &str) -> AtlasResult<()>;
 
     // Candidates
     async fn create_candidate(
-        &self, org_id: Uuid, first_name: &str, last_name: &str,
-        email: Option<&str>, phone: Option<&str>, address: Option<&str>,
-        city: Option<&str>, state: Option<&str>, country: Option<&str>,
-        postal_code: Option<&str>, linkedin_url: Option<&str>,
-        source: Option<&str>, source_detail: Option<&str>, resume_url: Option<&str>,
-        current_employer: Option<&str>, current_title: Option<&str>,
-        years_of_experience: Option<i32>, education_level: Option<&str>,
-        skills: Option<&serde_json::Value>, notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        first_name: &str,
+        last_name: &str,
+        email: Option<&str>,
+        phone: Option<&str>,
+        address: Option<&str>,
+        city: Option<&str>,
+        state: Option<&str>,
+        country: Option<&str>,
+        postal_code: Option<&str>,
+        linkedin_url: Option<&str>,
+        source: Option<&str>,
+        source_detail: Option<&str>,
+        resume_url: Option<&str>,
+        current_employer: Option<&str>,
+        current_title: Option<&str>,
+        years_of_experience: Option<i32>,
+        education_level: Option<&str>,
+        skills: Option<&serde_json::Value>,
+        notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<Candidate>;
     async fn get_candidate(&self, id: Uuid) -> AtlasResult<Option<Candidate>>;
-    async fn list_candidates(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<Candidate>>;
+    async fn list_candidates(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<Candidate>>;
     async fn update_candidate_status(&self, id: Uuid, status: &str) -> AtlasResult<Candidate>;
     async fn delete_candidate(&self, id: Uuid) -> AtlasResult<()>;
 
     // Applications
     async fn create_application(
-        &self, org_id: Uuid, requisition_id: Uuid, candidate_id: Uuid,
+        &self,
+        org_id: Uuid,
+        requisition_id: Uuid,
+        candidate_id: Uuid,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JobApplication>;
     async fn get_application(&self, id: Uuid) -> AtlasResult<Option<JobApplication>>;
     async fn list_applications(
-        &self, org_id: Uuid, requisition_id: Option<Uuid>,
-        candidate_id: Option<Uuid>, status: Option<&str>,
+        &self,
+        org_id: Uuid,
+        requisition_id: Option<Uuid>,
+        candidate_id: Option<Uuid>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<JobApplication>>;
     async fn update_application_status(
-        &self, id: Uuid, status: &str, notes: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        notes: Option<&str>,
     ) -> AtlasResult<JobApplication>;
 
     // Interviews
     async fn create_interview(
-        &self, org_id: Uuid, application_id: Uuid, interview_type: &str,
-        round: i32, scheduled_at: Option<chrono::DateTime<chrono::Utc>>,
-        duration_minutes: i32, location: Option<&str>, meeting_link: Option<&str>,
+        &self,
+        org_id: Uuid,
+        application_id: Uuid,
+        interview_type: &str,
+        round: i32,
+        scheduled_at: Option<chrono::DateTime<chrono::Utc>>,
+        duration_minutes: i32,
+        location: Option<&str>,
+        meeting_link: Option<&str>,
         interviewer_ids: Option<&serde_json::Value>,
         interviewer_names: Option<&serde_json::Value>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<Interview>;
     async fn get_interview(&self, id: Uuid) -> AtlasResult<Option<Interview>>;
     async fn list_interviews(&self, application_id: Uuid) -> AtlasResult<Vec<Interview>>;
     async fn update_interview_status(&self, id: Uuid, status: &str) -> AtlasResult<Interview>;
     async fn complete_interview(
-        &self, id: Uuid, feedback: Option<&str>, rating: Option<i32>,
+        &self,
+        id: Uuid,
+        feedback: Option<&str>,
+        rating: Option<i32>,
         recommendation: Option<&str>,
     ) -> AtlasResult<Interview>;
     async fn delete_interview(&self, id: Uuid) -> AtlasResult<()>;
 
     // Offers
     async fn create_offer(
-        &self, org_id: Uuid, application_id: Uuid, offer_number: Option<&str>,
-        job_title: &str, department: Option<&str>, location: Option<&str>,
-        employment_type: &str, start_date: Option<chrono::NaiveDate>,
-        salary_offered: Option<&str>, salary_currency: Option<&str>,
-        salary_frequency: Option<&str>, signing_bonus: Option<&str>,
-        benefits_summary: Option<&str>, terms_and_conditions: Option<&str>,
+        &self,
+        org_id: Uuid,
+        application_id: Uuid,
+        offer_number: Option<&str>,
+        job_title: &str,
+        department: Option<&str>,
+        location: Option<&str>,
+        employment_type: &str,
+        start_date: Option<chrono::NaiveDate>,
+        salary_offered: Option<&str>,
+        salary_currency: Option<&str>,
+        salary_frequency: Option<&str>,
+        signing_bonus: Option<&str>,
+        benefits_summary: Option<&str>,
+        terms_and_conditions: Option<&str>,
         response_deadline: Option<chrono::DateTime<chrono::Utc>>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JobOffer>;
     async fn get_offer(&self, id: Uuid) -> AtlasResult<Option<JobOffer>>;
     async fn list_offers(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JobOffer>>;
-    async fn update_offer_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<JobOffer>;
+    async fn update_offer_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<JobOffer>;
     async fn decline_offer(&self, id: Uuid, notes: Option<&str>) -> AtlasResult<JobOffer>;
     async fn delete_offer(&self, id: Uuid) -> AtlasResult<()>;
 
@@ -107,7 +183,7 @@ pub struct PostgresRecruitingRepository {
 }
 
 impl PostgresRecruitingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -140,7 +216,9 @@ fn row_to_requisition(row: &sqlx::postgres::PgRow) -> JobRequisition {
         priority: row.get("priority"),
         salary_min: get_opt_num(row, "salary_min"),
         salary_max: get_opt_num(row, "salary_max"),
-        currency: row.try_get("currency").unwrap_or_else(|_| "USD".to_string()),
+        currency: row
+            .try_get("currency")
+            .unwrap_or_else(|_| "USD".to_string()),
         required_skills: row.get("required_skills"),
         qualifications: row.get("qualifications"),
         experience_years_min: row.get("experience_years_min"),
@@ -251,8 +329,12 @@ fn row_to_offer(row: &sqlx::postgres::PgRow) -> JobOffer {
         employment_type: row.get("employment_type"),
         start_date: row.get("start_date"),
         salary_offered: get_opt_num(row, "salary_offered"),
-        salary_currency: row.try_get("salary_currency").unwrap_or_else(|_| "USD".to_string()),
-        salary_frequency: row.try_get("salary_frequency").unwrap_or_else(|_| "annual".to_string()),
+        salary_currency: row
+            .try_get("salary_currency")
+            .unwrap_or_else(|_| "USD".to_string()),
+        salary_frequency: row
+            .try_get("salary_frequency")
+            .unwrap_or_else(|_| "annual".to_string()),
         signing_bonus: get_opt_num(row, "signing_bonus"),
         benefits_summary: row.get("benefits_summary"),
         terms_and_conditions: row.get("terms_and_conditions"),
@@ -277,14 +359,28 @@ impl RecruitingRepository for PostgresRecruitingRepository {
     // ========================================================================
 
     async fn create_requisition(
-        &self, org_id: Uuid, requisition_number: &str, title: &str, description: Option<&str>,
-        department: Option<&str>, location: Option<&str>, employment_type: &str,
-        position_type: &str, vacancies: i32, priority: &str,
-        salary_min: Option<&str>, salary_max: Option<&str>, currency: Option<&str>,
-        required_skills: Option<&serde_json::Value>, qualifications: Option<&str>,
-        experience_years_min: Option<i32>, experience_years_max: Option<i32>,
-        education_level: Option<&str>, hiring_manager_id: Option<Uuid>,
-        recruiter_id: Option<Uuid>, target_start_date: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        requisition_number: &str,
+        title: &str,
+        description: Option<&str>,
+        department: Option<&str>,
+        location: Option<&str>,
+        employment_type: &str,
+        position_type: &str,
+        vacancies: i32,
+        priority: &str,
+        salary_min: Option<&str>,
+        salary_max: Option<&str>,
+        currency: Option<&str>,
+        required_skills: Option<&serde_json::Value>,
+        qualifications: Option<&str>,
+        experience_years_min: Option<i32>,
+        experience_years_max: Option<i32>,
+        education_level: Option<&str>,
+        hiring_manager_id: Option<Uuid>,
+        recruiter_id: Option<Uuid>,
+        target_start_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JobRequisition> {
         let row = sqlx::query(
@@ -315,15 +411,19 @@ impl RecruitingRepository for PostgresRecruitingRepository {
     }
 
     async fn get_requisition(&self, id: Uuid) -> AtlasResult<Option<JobRequisition>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.job_requisitions WHERE id = $1",
-        )
-        .bind(id).fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.job_requisitions WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_requisition(&r)))
     }
 
-    async fn get_requisition_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<JobRequisition>> {
+    async fn get_requisition_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<JobRequisition>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.job_requisitions WHERE organization_id = $1 AND requisition_number = $2",
         )
@@ -332,7 +432,11 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         Ok(row.map(|r| row_to_requisition(&r)))
     }
 
-    async fn list_requisitions(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JobRequisition>> {
+    async fn list_requisitions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JobRequisition>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.job_requisitions WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC",
@@ -345,7 +449,11 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         Ok(rows.iter().map(row_to_requisition).collect())
     }
 
-    async fn update_requisition_status(&self, id: Uuid, status: &str) -> AtlasResult<JobRequisition> {
+    async fn update_requisition_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<JobRequisition> {
         let row = sqlx::query(
             r"UPDATE _atlas.job_requisitions
                SET status = $2,
@@ -371,14 +479,27 @@ impl RecruitingRepository for PostgresRecruitingRepository {
     // ========================================================================
 
     async fn create_candidate(
-        &self, org_id: Uuid, first_name: &str, last_name: &str,
-        email: Option<&str>, phone: Option<&str>, address: Option<&str>,
-        city: Option<&str>, state: Option<&str>, country: Option<&str>,
-        postal_code: Option<&str>, linkedin_url: Option<&str>,
-        source: Option<&str>, source_detail: Option<&str>, resume_url: Option<&str>,
-        current_employer: Option<&str>, current_title: Option<&str>,
-        years_of_experience: Option<i32>, education_level: Option<&str>,
-        skills: Option<&serde_json::Value>, notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        first_name: &str,
+        last_name: &str,
+        email: Option<&str>,
+        phone: Option<&str>,
+        address: Option<&str>,
+        city: Option<&str>,
+        state: Option<&str>,
+        country: Option<&str>,
+        postal_code: Option<&str>,
+        linkedin_url: Option<&str>,
+        source: Option<&str>,
+        source_detail: Option<&str>,
+        resume_url: Option<&str>,
+        current_employer: Option<&str>,
+        current_title: Option<&str>,
+        years_of_experience: Option<i32>,
+        education_level: Option<&str>,
+        skills: Option<&serde_json::Value>,
+        notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<Candidate> {
         let row = sqlx::query(
@@ -390,26 +511,47 @@ impl RecruitingRepository for PostgresRecruitingRepository {
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
                RETURNING *",
         )
-        .bind(org_id).bind(first_name).bind(last_name).bind(email)
-        .bind(phone).bind(address).bind(city).bind(state)
-        .bind(country).bind(postal_code).bind(linkedin_url)
-        .bind(source).bind(source_detail).bind(resume_url)
-        .bind(current_employer).bind(current_title).bind(years_of_experience)
-        .bind(education_level).bind(skills.unwrap_or(&serde_json::json!([])))
-        .bind(notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(first_name)
+        .bind(last_name)
+        .bind(email)
+        .bind(phone)
+        .bind(address)
+        .bind(city)
+        .bind(state)
+        .bind(country)
+        .bind(postal_code)
+        .bind(linkedin_url)
+        .bind(source)
+        .bind(source_detail)
+        .bind(resume_url)
+        .bind(current_employer)
+        .bind(current_title)
+        .bind(years_of_experience)
+        .bind(education_level)
+        .bind(skills.unwrap_or(&serde_json::json!([])))
+        .bind(notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_candidate(&row))
     }
 
     async fn get_candidate(&self, id: Uuid) -> AtlasResult<Option<Candidate>> {
         let row = sqlx::query("SELECT * FROM _atlas.candidates WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_candidate(&r)))
     }
 
-    async fn list_candidates(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<Candidate>> {
+    async fn list_candidates(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<Candidate>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.candidates WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC",
@@ -433,7 +575,9 @@ impl RecruitingRepository for PostgresRecruitingRepository {
 
     async fn delete_candidate(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.candidates WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -443,7 +587,10 @@ impl RecruitingRepository for PostgresRecruitingRepository {
     // ========================================================================
 
     async fn create_application(
-        &self, org_id: Uuid, requisition_id: Uuid, candidate_id: Uuid,
+        &self,
+        org_id: Uuid,
+        requisition_id: Uuid,
+        candidate_id: Uuid,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JobApplication> {
         let row = sqlx::query(
@@ -451,46 +598,75 @@ impl RecruitingRepository for PostgresRecruitingRepository {
                 (organization_id, requisition_id, candidate_id, created_by)
                VALUES ($1, $2, $3, $4) RETURNING *",
         )
-        .bind(org_id).bind(requisition_id).bind(candidate_id).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(requisition_id)
+        .bind(candidate_id)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_application(&row))
     }
 
     async fn get_application(&self, id: Uuid) -> AtlasResult<Option<JobApplication>> {
         let row = sqlx::query("SELECT * FROM _atlas.job_applications WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_application(&r)))
     }
 
     async fn list_applications(
-        &self, org_id: Uuid, requisition_id: Option<Uuid>,
-        candidate_id: Option<Uuid>, status: Option<&str>,
+        &self,
+        org_id: Uuid,
+        requisition_id: Option<Uuid>,
+        candidate_id: Option<Uuid>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<JobApplication>> {
-        let mut query_str = "SELECT * FROM _atlas.job_applications WHERE organization_id = $1".to_string();
+        let mut query_str =
+            "SELECT * FROM _atlas.job_applications WHERE organization_id = $1".to_string();
         let mut param_idx = 2;
         let has_req = requisition_id.is_some();
         let has_cand = candidate_id.is_some();
         let has_status = status.is_some();
 
-        if has_req { query_str.push_str(&format!(" AND requisition_id = ${param_idx}")); param_idx += 1; }
-        if has_cand { query_str.push_str(&format!(" AND candidate_id = ${param_idx}")); param_idx += 1; }
-        if has_status { query_str.push_str(&format!(" AND status = ${param_idx}")); }
+        if has_req {
+            query_str.push_str(&format!(" AND requisition_id = ${param_idx}"));
+            param_idx += 1;
+        }
+        if has_cand {
+            query_str.push_str(&format!(" AND candidate_id = ${param_idx}"));
+            param_idx += 1;
+        }
+        if has_status {
+            query_str.push_str(&format!(" AND status = ${param_idx}"));
+        }
         query_str.push_str(" ORDER BY applied_at DESC");
 
         let mut query = sqlx::query(&query_str).bind(org_id);
-        if let Some(rid) = requisition_id { query = query.bind(rid); }
-        if let Some(cid) = candidate_id { query = query.bind(cid); }
-        if let Some(s) = status { query = query.bind(s); }
+        if let Some(rid) = requisition_id {
+            query = query.bind(rid);
+        }
+        if let Some(cid) = candidate_id {
+            query = query.bind(cid);
+        }
+        if let Some(s) = status {
+            query = query.bind(s);
+        }
 
-        let rows = query.fetch_all(&self.pool).await
+        let rows = query
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_application).collect())
     }
 
     async fn update_application_status(
-        &self, id: Uuid, status: &str, notes: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        notes: Option<&str>,
     ) -> AtlasResult<JobApplication> {
         let row = sqlx::query(
             r"UPDATE _atlas.job_applications
@@ -512,12 +688,19 @@ impl RecruitingRepository for PostgresRecruitingRepository {
     // ========================================================================
 
     async fn create_interview(
-        &self, org_id: Uuid, application_id: Uuid, interview_type: &str,
-        round: i32, scheduled_at: Option<chrono::DateTime<chrono::Utc>>,
-        duration_minutes: i32, location: Option<&str>, meeting_link: Option<&str>,
+        &self,
+        org_id: Uuid,
+        application_id: Uuid,
+        interview_type: &str,
+        round: i32,
+        scheduled_at: Option<chrono::DateTime<chrono::Utc>>,
+        duration_minutes: i32,
+        location: Option<&str>,
+        meeting_link: Option<&str>,
         interviewer_ids: Option<&serde_json::Value>,
         interviewer_names: Option<&serde_json::Value>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<Interview> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.interviews
@@ -526,19 +709,29 @@ impl RecruitingRepository for PostgresRecruitingRepository {
                  interviewer_ids, interviewer_names, notes, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *",
         )
-        .bind(org_id).bind(application_id).bind(interview_type).bind(round)
-        .bind(scheduled_at).bind(duration_minutes).bind(location).bind(meeting_link)
+        .bind(org_id)
+        .bind(application_id)
+        .bind(interview_type)
+        .bind(round)
+        .bind(scheduled_at)
+        .bind(duration_minutes)
+        .bind(location)
+        .bind(meeting_link)
         .bind(interviewer_ids.unwrap_or(&serde_json::json!([])))
         .bind(interviewer_names.unwrap_or(&serde_json::json!([])))
-        .bind(notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_interview(&row))
     }
 
     async fn get_interview(&self, id: Uuid) -> AtlasResult<Option<Interview>> {
         let row = sqlx::query("SELECT * FROM _atlas.interviews WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_interview(&r)))
     }
@@ -562,7 +755,10 @@ impl RecruitingRepository for PostgresRecruitingRepository {
     }
 
     async fn complete_interview(
-        &self, id: Uuid, feedback: Option<&str>, rating: Option<i32>,
+        &self,
+        id: Uuid,
+        feedback: Option<&str>,
+        rating: Option<i32>,
         recommendation: Option<&str>,
     ) -> AtlasResult<Interview> {
         let row = sqlx::query(
@@ -572,15 +768,21 @@ impl RecruitingRepository for PostgresRecruitingRepository {
                    completed_at = now(), updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(feedback).bind(rating).bind(recommendation)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(feedback)
+        .bind(rating)
+        .bind(recommendation)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_interview(&row))
     }
 
     async fn delete_interview(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.interviews WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -590,12 +792,21 @@ impl RecruitingRepository for PostgresRecruitingRepository {
     // ========================================================================
 
     async fn create_offer(
-        &self, org_id: Uuid, application_id: Uuid, offer_number: Option<&str>,
-        job_title: &str, department: Option<&str>, location: Option<&str>,
-        employment_type: &str, start_date: Option<chrono::NaiveDate>,
-        salary_offered: Option<&str>, salary_currency: Option<&str>,
-        salary_frequency: Option<&str>, signing_bonus: Option<&str>,
-        benefits_summary: Option<&str>, terms_and_conditions: Option<&str>,
+        &self,
+        org_id: Uuid,
+        application_id: Uuid,
+        offer_number: Option<&str>,
+        job_title: &str,
+        department: Option<&str>,
+        location: Option<&str>,
+        employment_type: &str,
+        start_date: Option<chrono::NaiveDate>,
+        salary_offered: Option<&str>,
+        salary_currency: Option<&str>,
+        salary_frequency: Option<&str>,
+        signing_bonus: Option<&str>,
+        benefits_summary: Option<&str>,
+        terms_and_conditions: Option<&str>,
         response_deadline: Option<chrono::DateTime<chrono::Utc>>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JobOffer> {
@@ -607,22 +818,33 @@ impl RecruitingRepository for PostgresRecruitingRepository {
                  benefits_summary, terms_and_conditions, response_deadline, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *",
         )
-        .bind(org_id).bind(application_id).bind(offer_number).bind(job_title)
-        .bind(department).bind(location).bind(employment_type).bind(start_date)
+        .bind(org_id)
+        .bind(application_id)
+        .bind(offer_number)
+        .bind(job_title)
+        .bind(department)
+        .bind(location)
+        .bind(employment_type)
+        .bind(start_date)
         .bind(salary_offered.map(|v| v.parse::<f64>().unwrap_or(0.0)))
         .bind(salary_currency.unwrap_or("USD"))
         .bind(salary_frequency.unwrap_or("annual"))
         .bind(signing_bonus.map(|v| v.parse::<f64>().unwrap_or(0.0)))
-        .bind(benefits_summary).bind(terms_and_conditions)
-        .bind(response_deadline).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(benefits_summary)
+        .bind(terms_and_conditions)
+        .bind(response_deadline)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_offer(&row))
     }
 
     async fn get_offer(&self, id: Uuid) -> AtlasResult<Option<JobOffer>> {
         let row = sqlx::query("SELECT * FROM _atlas.job_offers WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_offer(&r)))
     }
@@ -640,7 +862,12 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         Ok(rows.iter().map(row_to_offer).collect())
     }
 
-    async fn update_offer_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<JobOffer> {
+    async fn update_offer_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<JobOffer> {
         let row = sqlx::query(
             r"UPDATE _atlas.job_offers
                SET status = $2,
@@ -664,15 +891,19 @@ impl RecruitingRepository for PostgresRecruitingRepository {
                    response_notes = $2, updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(notes)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(notes)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_offer(&row))
     }
 
     async fn delete_offer(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.job_offers WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -692,11 +923,12 @@ impl RecruitingRepository for PostgresRecruitingRepository {
         .bind(org_id).fetch_one(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let cand_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.candidates WHERE organization_id = $1",
-        )
-        .bind(org_id).fetch_one(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let cand_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM _atlas.candidates WHERE organization_id = $1")
+                .bind(org_id)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let app_row = sqlx::query(
             r"SELECT
@@ -704,14 +936,18 @@ impl RecruitingRepository for PostgresRecruitingRepository {
                 COUNT(*) FILTER (WHERE applied_at >= date_trunc('month', now())) as month_count
                FROM _atlas.job_applications WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let interview_month: i64 = sqlx::query_scalar(
             r"SELECT COUNT(*) FROM _atlas.interviews
                WHERE organization_id = $1 AND completed_at >= date_trunc('month', now())",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let offers_pending: i64 = sqlx::query_scalar(
@@ -733,30 +969,40 @@ impl RecruitingRepository for PostgresRecruitingRepository {
             r"SELECT status, COUNT(*) as cnt FROM _atlas.job_requisitions
                WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let requisitions_by_status: serde_json::Value = req_status_rows.iter().map(|r| {
-            serde_json::json!({
-                "status": r.get::<String, _>("status"),
-                "count": r.get::<i64, _>("cnt"),
+        let requisitions_by_status: serde_json::Value = req_status_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "status": r.get::<String, _>("status"),
+                    "count": r.get::<i64, _>("cnt"),
+                })
             })
-        }).collect();
+            .collect();
 
         // Applications by status
         let app_status_rows = sqlx::query(
             r"SELECT status, COUNT(*) as cnt FROM _atlas.job_applications
                WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let applications_by_status: serde_json::Value = app_status_rows.iter().map(|r| {
-            serde_json::json!({
-                "status": r.get::<String, _>("status"),
-                "count": r.get::<i64, _>("cnt"),
+        let applications_by_status: serde_json::Value = app_status_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "status": r.get::<String, _>("status"),
+                    "count": r.get::<i64, _>("cnt"),
+                })
             })
-        }).collect();
+            .collect();
 
         // Top departments
         let dept_rows = sqlx::query(
@@ -764,15 +1010,20 @@ impl RecruitingRepository for PostgresRecruitingRepository {
                WHERE organization_id = $1 AND department IS NOT NULL
                GROUP BY department ORDER BY cnt DESC LIMIT 10",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let top_departments: serde_json::Value = dept_rows.iter().map(|r| {
-            serde_json::json!({
-                "department": r.get::<String, _>("department"),
-                "count": r.get::<i64, _>("cnt"),
+        let top_departments: serde_json::Value = dept_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "department": r.get::<String, _>("department"),
+                    "count": r.get::<i64, _>("cnt"),
+                })
             })
-        }).collect();
+            .collect();
 
         // Recent applications
         let recent_rows = sqlx::query(
@@ -783,7 +1034,9 @@ impl RecruitingRepository for PostgresRecruitingRepository {
                LEFT JOIN _atlas.job_requisitions r ON a.requisition_id = r.id
                WHERE a.organization_id = $1 ORDER BY a.applied_at DESC LIMIT 10",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let recent_applications: serde_json::Value = recent_rows.iter().map(|r| {

@@ -2,8 +2,8 @@
 //!
 //! `PostgreSQL` storage for PPR headers, selected documents, and activity audit trail.
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -173,8 +173,16 @@ pub trait PaymentProcessRequestRepository: Send + Sync {
     ) -> AtlasResult<PaymentProcessRequest>;
 
     async fn get_request(&self, org_id: Uuid, id: Uuid) -> AtlasResult<PaymentProcessRequest>;
-    async fn get_request_by_number(&self, org_id: Uuid, request_number: &str) -> AtlasResult<PaymentProcessRequest>;
-    async fn list_requests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PaymentProcessRequest>>;
+    async fn get_request_by_number(
+        &self,
+        org_id: Uuid,
+        request_number: &str,
+    ) -> AtlasResult<PaymentProcessRequest>;
+    async fn list_requests(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PaymentProcessRequest>>;
     async fn update_status(&self, id: Uuid, status: &str) -> AtlasResult<PaymentProcessRequest>;
     async fn delete_request(&self, org_id: Uuid, request_number: &str) -> AtlasResult<()>;
 
@@ -208,11 +216,32 @@ pub trait PaymentProcessRequestRepository: Send + Sync {
 
     async fn recalculate_totals(&self, ppr_id: Uuid) -> AtlasResult<PaymentProcessRequest>;
 
-    async fn set_submitted(&self, id: Uuid, submitted_by: Uuid) -> AtlasResult<PaymentProcessRequest>;
-    async fn set_selection_complete(&self, id: Uuid, completed_by: Uuid) -> AtlasResult<PaymentProcessRequest>;
-    async fn set_formatted(&self, id: Uuid, formatted_by: Uuid) -> AtlasResult<PaymentProcessRequest>;
-    async fn set_confirmed(&self, id: Uuid, confirmed_by: Uuid) -> AtlasResult<PaymentProcessRequest>;
-    async fn set_cancelled(&self, id: Uuid, cancelled_by: Uuid, reason: Option<&str>) -> AtlasResult<PaymentProcessRequest>;
+    async fn set_submitted(
+        &self,
+        id: Uuid,
+        submitted_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest>;
+    async fn set_selection_complete(
+        &self,
+        id: Uuid,
+        completed_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest>;
+    async fn set_formatted(
+        &self,
+        id: Uuid,
+        formatted_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest>;
+    async fn set_confirmed(
+        &self,
+        id: Uuid,
+        confirmed_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest>;
+    async fn set_cancelled(
+        &self,
+        id: Uuid,
+        cancelled_by: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<PaymentProcessRequest>;
 
     async fn log_activity(
         &self,
@@ -241,7 +270,7 @@ pub struct PostgresPaymentProcessRequestRepository {
 }
 
 impl PostgresPaymentProcessRequestRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -325,16 +354,21 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
 
     async fn get_request(&self, org_id: Uuid, id: Uuid) -> AtlasResult<PaymentProcessRequest> {
         sqlx::query_as::<_, PaymentProcessRequest>(
-            "SELECT * FROM _atlas.payment_process_requests WHERE id = $1 AND organization_id = $2"
+            "SELECT * FROM _atlas.payment_process_requests WHERE id = $1 AND organization_id = $2",
         )
-            .bind(id).bind(org_id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
-            .ok_or_else(|| AtlasError::EntityNotFound("Payment process request not found".to_string()))
+        .bind(id)
+        .bind(org_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
+        .ok_or_else(|| AtlasError::EntityNotFound("Payment process request not found".to_string()))
     }
 
-    async fn get_request_by_number(&self, org_id: Uuid, request_number: &str) -> AtlasResult<PaymentProcessRequest> {
+    async fn get_request_by_number(
+        &self,
+        org_id: Uuid,
+        request_number: &str,
+    ) -> AtlasResult<PaymentProcessRequest> {
         sqlx::query_as::<_, PaymentProcessRequest>(
             "SELECT * FROM _atlas.payment_process_requests WHERE request_number = $1 AND organization_id = $2"
         )
@@ -345,7 +379,11 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
             .ok_or_else(|| AtlasError::EntityNotFound("Payment process request not found".to_string()))
     }
 
-    async fn list_requests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PaymentProcessRequest>> {
+    async fn list_requests(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PaymentProcessRequest>> {
         let rows = if let Some(s) = status {
             sqlx::query_as::<_, PaymentProcessRequest>(
                 "SELECT * FROM _atlas.payment_process_requests WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC"
@@ -471,22 +509,22 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
 
     async fn list_documents(&self, ppr_id: Uuid) -> AtlasResult<Vec<PprSelectedDocument>> {
         sqlx::query_as::<_, PprSelectedDocument>(
-            "SELECT * FROM _atlas.ppr_selected_documents WHERE ppr_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.ppr_selected_documents WHERE ppr_id = $1 ORDER BY line_number",
         )
-            .bind(ppr_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))
+        .bind(ppr_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))
     }
 
     async fn remove_document(&self, ppr_id: Uuid, document_id: Uuid) -> AtlasResult<()> {
-        let result = sqlx::query(
-            "DELETE FROM _atlas.ppr_selected_documents WHERE id = $1 AND ppr_id = $2"
-        )
-            .bind(document_id).bind(ppr_id)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let result =
+            sqlx::query("DELETE FROM _atlas.ppr_selected_documents WHERE id = $1 AND ppr_id = $2")
+                .bind(document_id)
+                .bind(ppr_id)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound("Document not found".to_string()));
@@ -514,12 +552,12 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
                 COALESCE(SUM(discount_taken), 0) as total_discount_taken,
                 COALESCE(SUM(net_payment), 0) as total_payment_amount
             FROM _atlas.ppr_selected_documents
-            WHERE ppr_id = $1 AND selected_for_payment = true"
+            WHERE ppr_id = $1 AND selected_for_payment = true",
         )
-            .bind(ppr_id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(ppr_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_docs: i64 = totals.get("total_documents");
         let total_invoice: f64 = totals.get("total_invoice_amount");
@@ -531,84 +569,111 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
             SET total_documents = $2, total_invoice_amount = $3,
                 total_discount_taken = $4, total_payment_amount = $5,
                 updated_at = now()
-            WHERE id = $1 RETURNING *"
+            WHERE id = $1 RETURNING *",
         )
-            .bind(ppr_id)
-            .bind(total_docs as i32)
-            .bind(total_invoice)
-            .bind(total_discount)
-            .bind(total_payment)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))
+        .bind(ppr_id)
+        .bind(total_docs as i32)
+        .bind(total_invoice)
+        .bind(total_discount)
+        .bind(total_payment)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))
     }
 
-    async fn set_submitted(&self, id: Uuid, submitted_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
+    async fn set_submitted(
+        &self,
+        id: Uuid,
+        submitted_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest> {
         sqlx::query_as::<_, PaymentProcessRequest>(
             r"UPDATE _atlas.payment_process_requests
             SET status = 'submitted', submitted_by = $2, submitted_at = now(), updated_at = now()
-            WHERE id = $1 RETURNING *"
+            WHERE id = $1 RETURNING *",
         )
-            .bind(id).bind(submitted_by)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))
+        .bind(id)
+        .bind(submitted_by)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))
     }
 
-    async fn set_selection_complete(&self, id: Uuid, completed_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
+    async fn set_selection_complete(
+        &self,
+        id: Uuid,
+        completed_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest> {
         let start = std::time::Instant::now();
         let result = sqlx::query_as::<_, PaymentProcessRequest>(
             r"UPDATE _atlas.payment_process_requests
             SET status = 'selection_complete', selection_completed_by = $2,
                 selection_completed_at = now(), processing_time_ms = $3, updated_at = now()
-            WHERE id = $1 RETURNING *"
+            WHERE id = $1 RETURNING *",
         )
-            .bind(id).bind(completed_by)
-            .bind(start.elapsed().as_millis() as i32)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(id)
+        .bind(completed_by)
+        .bind(start.elapsed().as_millis() as i32)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(result)
     }
 
-    async fn set_formatted(&self, id: Uuid, formatted_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
+    async fn set_formatted(
+        &self,
+        id: Uuid,
+        formatted_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest> {
         sqlx::query_as::<_, PaymentProcessRequest>(
             r"UPDATE _atlas.payment_process_requests
             SET status = 'formatted', formatted_by = $2, formatted_at = now(), updated_at = now()
-            WHERE id = $1 RETURNING *"
+            WHERE id = $1 RETURNING *",
         )
-            .bind(id).bind(formatted_by)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))
+        .bind(id)
+        .bind(formatted_by)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))
     }
 
-    async fn set_confirmed(&self, id: Uuid, confirmed_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
+    async fn set_confirmed(
+        &self,
+        id: Uuid,
+        confirmed_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest> {
         // Mark all selected documents as paid
         self.mark_documents_paid(id).await?;
 
         sqlx::query_as::<_, PaymentProcessRequest>(
             r"UPDATE _atlas.payment_process_requests
             SET status = 'confirmed', confirmed_by = $2, confirmed_at = now(), updated_at = now()
-            WHERE id = $1 RETURNING *"
+            WHERE id = $1 RETURNING *",
         )
-            .bind(id).bind(confirmed_by)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))
+        .bind(id)
+        .bind(confirmed_by)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))
     }
 
-    async fn set_cancelled(&self, id: Uuid, cancelled_by: Uuid, reason: Option<&str>) -> AtlasResult<PaymentProcessRequest> {
+    async fn set_cancelled(
+        &self,
+        id: Uuid,
+        cancelled_by: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<PaymentProcessRequest> {
         sqlx::query_as::<_, PaymentProcessRequest>(
             r"UPDATE _atlas.payment_process_requests
             SET status = 'cancelled', cancelled_by = $2, cancelled_at = now(),
                 cancel_reason = $3, updated_at = now()
-            WHERE id = $1 RETURNING *"
+            WHERE id = $1 RETURNING *",
         )
-            .bind(id).bind(cancelled_by).bind(reason)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))
+        .bind(id)
+        .bind(cancelled_by)
+        .bind(reason)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))
     }
 
     async fn log_activity(
@@ -629,27 +694,32 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
                 organization_id, ppr_id, document_id,
                 activity_type, description, old_status, new_status,
                 performed_by, performed_by_name, details
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)"
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
         )
-            .bind(org_id).bind(ppr_id).bind(document_id)
-            .bind(activity_type).bind(description)
-            .bind(old_status).bind(new_status)
-            .bind(performed_by).bind(performed_by_name)
-            .bind(details)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(org_id)
+        .bind(ppr_id)
+        .bind(document_id)
+        .bind(activity_type)
+        .bind(description)
+        .bind(old_status)
+        .bind(new_status)
+        .bind(performed_by)
+        .bind(performed_by_name)
+        .bind(details)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn list_activities(&self, ppr_id: Uuid) -> AtlasResult<Vec<PprActivity>> {
         sqlx::query_as::<_, PprActivity>(
-            "SELECT * FROM _atlas.ppr_activities WHERE ppr_id = $1 ORDER BY created_at"
+            "SELECT * FROM _atlas.ppr_activities WHERE ppr_id = $1 ORDER BY created_at",
         )
-            .bind(ppr_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))
+        .bind(ppr_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))
     }
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PprDashboard> {
@@ -664,12 +734,12 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
                 COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_count,
                 COALESCE(SUM(total_payment_amount), 0) as total_payment_amount,
                 COALESCE(SUM(total_documents), 0) as total_documents_processed
-            FROM _atlas.payment_process_requests WHERE organization_id = $1"
+            FROM _atlas.payment_process_requests WHERE organization_id = $1",
         )
-            .bind(org_id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let by_method = sqlx::query(
             r"SELECT payment_method, COUNT(*) as count, COALESCE(SUM(total_payment_amount), 0) as total
@@ -690,20 +760,32 @@ impl PaymentProcessRequestRepository for PostgresPaymentProcessRequestRepository
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let by_payment_method = serde_json::to_value(
-            by_method.iter().map(|r| serde_json::json!({
-                "paymentMethod": r.get::<String, _>("payment_method"),
-                "count": r.get::<i64, _>("count"),
-                "total": r.get::<f64, _>("total"),
-            })).collect::<Vec<_>>()
-        ).unwrap_or(serde_json::Value::Null);
+            by_method
+                .iter()
+                .map(|r| {
+                    serde_json::json!({
+                        "paymentMethod": r.get::<String, _>("payment_method"),
+                        "count": r.get::<i64, _>("count"),
+                        "total": r.get::<f64, _>("total"),
+                    })
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap_or(serde_json::Value::Null);
 
         let by_selection_criteria = serde_json::to_value(
-            by_criteria.iter().map(|r| serde_json::json!({
-                "selectionCriteria": r.get::<String, _>("selection_criteria"),
-                "count": r.get::<i64, _>("count"),
-                "total": r.get::<f64, _>("total"),
-            })).collect::<Vec<_>>()
-        ).unwrap_or(serde_json::Value::Null);
+            by_criteria
+                .iter()
+                .map(|r| {
+                    serde_json::json!({
+                        "selectionCriteria": r.get::<String, _>("selection_criteria"),
+                        "count": r.get::<i64, _>("count"),
+                        "total": r.get::<f64, _>("total"),
+                    })
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap_or(serde_json::Value::Null);
 
         Ok(PprDashboard {
             total_requests: stats.get("total"),

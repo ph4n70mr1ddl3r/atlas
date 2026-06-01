@@ -14,8 +14,8 @@
 //! - Reconciliation audit trail
 //! - Dashboard reporting
 
-use atlas_shared::AtlasResult;
 use super::BankStatementReconciliationRepository;
+use atlas_shared::AtlasResult;
 use std::sync::Arc;
 // tracing macros used when adding logging in future
 
@@ -25,51 +25,71 @@ use std::sync::Arc;
 
 /// Valid bank statement statuses
 pub const VALID_STATEMENT_STATUSES: &[&str] = &[
-    "imported", "validating", "validated", "reconciling",
-    "reconciled", "exception", "cancelled",
+    "imported",
+    "validating",
+    "validated",
+    "reconciling",
+    "reconciled",
+    "exception",
+    "cancelled",
 ];
 
 /// Valid import sources
-pub const VALID_IMPORT_SOURCES: &[&str] = &[
-    "mt940", "bai2", "ofx", "csv", "manual", "api",
-];
+pub const VALID_IMPORT_SOURCES: &[&str] = &["mt940", "bai2", "ofx", "csv", "manual", "api"];
 
 /// Valid line match statuses
 pub const VALID_LINE_MATCH_STATUSES: &[&str] = &[
-    "unmatched", "matched", "partially_matched",
-    "exception", "manually_matched", "excluded",
+    "unmatched",
+    "matched",
+    "partially_matched",
+    "exception",
+    "manually_matched",
+    "excluded",
 ];
 
 /// Valid match strategies for reconciliation rules
 pub const VALID_MATCH_STRATEGIES: &[&str] = &[
-    "exact_amount", "amount_tolerance", "reference_match",
-    "date_range", "combined_amount_reference", "combined_amount_date",
+    "exact_amount",
+    "amount_tolerance",
+    "reference_match",
+    "date_range",
+    "combined_amount_reference",
+    "combined_amount_date",
     "fuzzy_match",
 ];
 
 /// Valid exception types
 pub const VALID_EXCEPTION_TYPES: &[&str] = &[
-    "unmatched", "multiple_match", "amount_mismatch",
+    "unmatched",
+    "multiple_match",
+    "amount_mismatch",
     "date_out_of_range",
 ];
 
 /// Valid exception resolution statuses
 pub const VALID_RESOLUTION_STATUSES: &[&str] = &[
-    "open", "resolved_matched", "resolved_write_off",
-    "resolved_excluded", "resolved_adjustment",
+    "open",
+    "resolved_matched",
+    "resolved_write_off",
+    "resolved_excluded",
+    "resolved_adjustment",
 ];
 
 /// Valid audit actions
 pub const VALID_AUDIT_ACTIONS: &[&str] = &[
-    "imported", "validated", "auto_matched", "manually_matched",
-    "exception_created", "exception_resolved",
-    "reconciliation_completed", "reconciliation_reversed",
+    "imported",
+    "validated",
+    "auto_matched",
+    "manually_matched",
+    "exception_created",
+    "exception_resolved",
+    "reconciliation_completed",
+    "reconciliation_reversed",
 ];
 
 /// Valid target transaction types for matching rules
-pub const VALID_TARGET_TRANSACTION_TYPES: &[&str] = &[
-    "receipt", "payment", "journal_entry", "bank_charge", "all",
-];
+pub const VALID_TARGET_TRANSACTION_TYPES: &[&str] =
+    &["receipt", "payment", "journal_entry", "bank_charge", "all"];
 
 // ============================================================================
 // Engine
@@ -143,17 +163,23 @@ impl BankStatementReconciliationEngine {
     /// an exact amount match strategy.
     ///
     /// Returns the index of the matching system transaction, if any.
-    #[must_use] 
+    #[must_use]
     pub fn match_exact_amount(
         statement_amount: f64,
         statement_type: &str, // "credit" or "debit"
         system_transactions: &[(f64, &str, Option<&str>, Option<chrono::NaiveDate>)],
         // (amount, txn_type, reference, date)
     ) -> Option<usize> {
-        for (i, (sys_amount, _txn_type, _reference, _date)) in system_transactions.iter().enumerate() {
+        for (i, (sys_amount, _txn_type, _reference, _date)) in
+            system_transactions.iter().enumerate()
+        {
             if (statement_amount - sys_amount).abs() < 0.005 {
                 // Credit on statement = inflow = receipt; Debit = outflow = payment
-                let expected_type = if statement_type == "credit" { "receipt" } else { "payment" };
+                let expected_type = if statement_type == "credit" {
+                    "receipt"
+                } else {
+                    "payment"
+                };
                 if *_txn_type == expected_type || *_txn_type == "all" {
                     return Some(i);
                 }
@@ -166,7 +192,7 @@ impl BankStatementReconciliationEngine {
     /// amount tolerance matching.
     ///
     /// Returns all candidate matches within the tolerance band.
-    #[must_use] 
+    #[must_use]
     pub fn match_amount_tolerance(
         statement_amount: f64,
         tolerance_pct: f64,
@@ -186,7 +212,7 @@ impl BankStatementReconciliationEngine {
     }
 
     /// Match by customer/bank reference string
-    #[must_use] 
+    #[must_use]
     pub fn match_reference(
         statement_reference: &str,
         system_transactions: &[(f64, &str, Option<&str>, Option<chrono::NaiveDate>)],
@@ -215,7 +241,7 @@ impl BankStatementReconciliationEngine {
     }
 
     /// Match by date within a tolerance range
-    #[must_use] 
+    #[must_use]
     pub fn match_date_range(
         statement_date: chrono::NaiveDate,
         tolerance_days: i32,
@@ -234,19 +260,16 @@ impl BankStatementReconciliationEngine {
     }
 
     /// Combined match: amount tolerance AND reference
-    #[must_use] 
+    #[must_use]
     pub fn match_combined_amount_reference(
         statement_amount: f64,
         statement_reference: &str,
         tolerance_pct: f64,
         system_transactions: &[(f64, &str, Option<&str>, Option<chrono::NaiveDate>)],
     ) -> Vec<(usize, f64)> {
-        let amount_matches = Self::match_amount_tolerance(
-            statement_amount, tolerance_pct, system_transactions,
-        );
-        let ref_matches = Self::match_reference(
-            statement_reference, system_transactions, false,
-        );
+        let amount_matches =
+            Self::match_amount_tolerance(statement_amount, tolerance_pct, system_transactions);
+        let ref_matches = Self::match_reference(statement_reference, system_transactions, false);
 
         // Intersection: present in both sets
         amount_matches
@@ -256,7 +279,7 @@ impl BankStatementReconciliationEngine {
     }
 
     /// Combined match: amount tolerance AND date range
-    #[must_use] 
+    #[must_use]
     pub fn match_combined_amount_date(
         statement_amount: f64,
         statement_date: chrono::NaiveDate,
@@ -264,12 +287,10 @@ impl BankStatementReconciliationEngine {
         tolerance_days: i32,
         system_transactions: &[(f64, &str, Option<&str>, Option<chrono::NaiveDate>)],
     ) -> Vec<(usize, f64)> {
-        let amount_matches = Self::match_amount_tolerance(
-            statement_amount, tolerance_pct, system_transactions,
-        );
-        let date_matches = Self::match_date_range(
-            statement_date, tolerance_days, system_transactions,
-        );
+        let amount_matches =
+            Self::match_amount_tolerance(statement_amount, tolerance_pct, system_transactions);
+        let date_matches =
+            Self::match_date_range(statement_date, tolerance_days, system_transactions);
 
         amount_matches
             .into_iter()
@@ -285,7 +306,7 @@ impl BankStatementReconciliationEngine {
     /// against system transactions using the provided matching rules.
     ///
     /// Returns a `ReconciliationRunResult` summarising the outcome.
-    #[must_use] 
+    #[must_use]
     pub fn run_auto_reconciliation(
         statement_lines: &[StatementLineInput],
         system_transactions: &[SystemTransactionInput],
@@ -311,7 +332,14 @@ impl BankStatementReconciliationEngine {
                     .iter()
                     .enumerate()
                     .filter(|(i, _)| !consumed[*i])
-                    .map(|(_, t)| (t.amount, t.txn_type.as_str(), t.reference.as_deref(), t.date))
+                    .map(|(_, t)| {
+                        (
+                            t.amount,
+                            t.txn_type.as_str(),
+                            t.reference.as_deref(),
+                            t.date,
+                        )
+                    })
                     .collect();
 
             // Build a mapping from filtered index → original index
@@ -330,11 +358,13 @@ impl BankStatementReconciliationEngine {
                 }
 
                 let matches = match rule.match_strategy.as_str() {
-                    "exact_amount" => {
-                        Self::match_exact_amount(line.amount, &line.transaction_type, &available_txns)
-                            .map(|i| vec![(i, 0.0)])
-                            .unwrap_or_default()
-                    }
+                    "exact_amount" => Self::match_exact_amount(
+                        line.amount,
+                        &line.transaction_type,
+                        &available_txns,
+                    )
+                    .map(|i| vec![(i, 0.0)])
+                    .unwrap_or_default(),
                     "amount_tolerance" => {
                         let tolerance = rule.tolerance_pct.unwrap_or(1.0);
                         Self::match_amount_tolerance(line.amount, tolerance, &available_txns)
@@ -360,7 +390,10 @@ impl BankStatementReconciliationEngine {
                         let tolerance = rule.tolerance_pct.unwrap_or(1.0);
                         if let Some(ref line_ref) = line.reference {
                             Self::match_combined_amount_reference(
-                                line.amount, line_ref, tolerance, &available_txns,
+                                line.amount,
+                                line_ref,
+                                tolerance,
+                                &available_txns,
                             )
                         } else {
                             vec![]
@@ -370,7 +403,11 @@ impl BankStatementReconciliationEngine {
                         let tolerance = rule.tolerance_pct.unwrap_or(1.0);
                         let days = rule.date_tolerance_days.unwrap_or(3);
                         Self::match_combined_amount_date(
-                            line.amount, line.date, tolerance, days, &available_txns,
+                            line.amount,
+                            line.date,
+                            tolerance,
+                            days,
+                            &available_txns,
                         )
                     }
                     _ => vec![],
@@ -392,7 +429,8 @@ impl BankStatementReconciliationEngine {
                         // Multiple potential matches — mark as partial/exception
                         // but keep the best match
                         if confidence > 50.0 {
-                            best_match = Some((original_idx, confidence.min(70.0), rule.rule_name.as_str()));
+                            best_match =
+                                Some((original_idx, confidence.min(70.0), rule.rule_name.as_str()));
                         }
                     }
                 }
@@ -452,7 +490,7 @@ impl BankStatementReconciliationEngine {
     // ========================================================================
 
     /// Calculate the reconciliation difference between bank and book
-    #[must_use] 
+    #[must_use]
     pub fn calculate_reconciliation_difference(
         bank_closing_balance: f64,
         book_balance: f64,
@@ -463,12 +501,10 @@ impl BankStatementReconciliationEngine {
         errors_adjustments: f64,
     ) -> f64 {
         let adjusted_bank = bank_closing_balance;
-        let adjusted_book = book_balance
-            + deposits_in_transit
-            - outstanding_withdrawals
-            - bank_charges
-            + bank_interest
-            + errors_adjustments;
+        let adjusted_book =
+            book_balance + deposits_in_transit - outstanding_withdrawals - bank_charges
+                + bank_interest
+                + errors_adjustments;
         adjusted_bank - adjusted_book
     }
 
@@ -481,9 +517,7 @@ impl BankStatementReconciliationEngine {
     pub fn parse_mt940_amount(raw: &str) -> AtlasResult<f64> {
         let cleaned = raw.trim().replace(',', ".");
         cleaned.parse::<f64>().map_err(|_| {
-            atlas_shared::AtlasError::ValidationFailed(
-                format!("Invalid MT940 amount: '{raw}'"),
-            )
+            atlas_shared::AtlasError::ValidationFailed(format!("Invalid MT940 amount: '{raw}'"))
         })
     }
 
@@ -493,9 +527,9 @@ impl BankStatementReconciliationEngine {
         match indicator {
             'C' | 'c' => Ok("credit".to_string()),
             'D' | 'd' => Ok("debit".to_string()),
-            _ => Err(atlas_shared::AtlasError::ValidationFailed(
-                format!("Invalid MT940 credit/debit indicator: '{indicator}'"),
-            )),
+            _ => Err(atlas_shared::AtlasError::ValidationFailed(format!(
+                "Invalid MT940 credit/debit indicator: '{indicator}'"
+            ))),
         }
     }
 
@@ -503,9 +537,9 @@ impl BankStatementReconciliationEngine {
     pub fn validate_bai2_record_type(code: &str) -> AtlasResult<()> {
         match code {
             "01" | "02" | "03" | "16" | "49" | "88" | "98" | "99" => Ok(()),
-            _ => Err(atlas_shared::AtlasError::ValidationFailed(
-                format!("Invalid BAI2 record type: '{code}'"),
-            )),
+            _ => Err(atlas_shared::AtlasError::ValidationFailed(format!(
+                "Invalid BAI2 record type: '{code}'"
+            ))),
         }
     }
 }

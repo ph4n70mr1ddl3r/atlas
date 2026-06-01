@@ -12,8 +12,8 @@
 //!
 //! Oracle Fusion equivalent: GRC > Risk Manager, Advanced Controls, Issue Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::RiskManagementEngine;
-pub use repository::{RiskManagementRepository, PostgresRiskManagementRepository};
+pub use repository::{PostgresRiskManagementRepository, RiskManagementRepository};

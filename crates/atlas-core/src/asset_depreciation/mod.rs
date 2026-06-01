@@ -8,8 +8,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Fixed Assets > Depreciation
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::AssetDepreciationEngine;
 pub use repository::{AssetDepreciationRepository, PostgresAssetDepreciationRepository};

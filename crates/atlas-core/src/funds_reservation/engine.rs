@@ -4,12 +4,11 @@
 //!
 //! Oracle Fusion Cloud equivalent: Financials > Budgetary Control > Funds Reservation
 
-use atlas_shared::{
-    FundReservation, FundReservationLine, FundAvailability,
-    BudgetaryControlDashboard,
-    AtlasError, AtlasResult,
-};
 use super::FundsReservationRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, BudgetaryControlDashboard, FundAvailability, FundReservation,
+    FundReservationLine,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -19,29 +18,38 @@ use uuid::Uuid;
 // ============================================================================
 
 const VALID_STATUSES: &[&str] = &[
-    "draft", "active", "partially_consumed", "fully_consumed",
-    "released", "expired", "cancelled",
+    "draft",
+    "active",
+    "partially_consumed",
+    "fully_consumed",
+    "released",
+    "expired",
+    "cancelled",
 ];
 
-const VALID_CONTROL_LEVELS: &[&str] = &[
-    "advisory", "absolute",
-];
+const VALID_CONTROL_LEVELS: &[&str] = &["advisory", "absolute"];
 
 const VALID_SOURCE_TYPES: &[&str] = &[
-    "purchase_requisition", "purchase_order", "contract",
-    "expense_report", "journal_entry", "manual", "other",
+    "purchase_requisition",
+    "purchase_order",
+    "contract",
+    "expense_report",
+    "journal_entry",
+    "manual",
+    "other",
 ];
 
 /// Helper to validate a value against allowed set
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
-        return Err(AtlasError::ValidationFailed(format!(
-            "{field} is required"
-        )));
+        return Err(AtlasError::ValidationFailed(format!("{field} is required")));
     }
     if !allowed.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field, value, allowed.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field,
+            value,
+            allowed.join(", ")
         )));
     }
     Ok(())
@@ -87,13 +95,19 @@ impl FundsReservationEngine {
     ) -> AtlasResult<FundReservation> {
         // Validate required fields
         if reservation_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Reservation number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Reservation number is required".to_string(),
+            ));
         }
         if budget_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Budget code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Budget code is required".to_string(),
+            ));
         }
         if currency_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Currency code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
         }
 
         // Validate enum fields
@@ -119,41 +133,58 @@ impl FundsReservationEngine {
         }
 
         // Check for duplicate reservation number
-        if self.repository.get_reservation_by_number(org_id, reservation_number).await?.is_some() {
+        if self
+            .repository
+            .get_reservation_by_number(org_id, reservation_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Reservation '{reservation_number}' already exists"
             )));
         }
 
         // Perform fund availability check
-        let fund_check = self.repository.check_fund_availability(
-            org_id, budget_id, "*", // wildcard - check overall budget
-            reservation_date, fiscal_year, period_name,
-        ).await.unwrap_or(FundAvailability {
-            organization_id: org_id,
-            budget_id,
-            budget_code: budget_code.to_string(),
-            account_code: "*".to_string(),
-            budget_amount: 0.0,
-            total_reserved: 0.0,
-            total_consumed: 0.0,
-            total_released: 0.0,
-            available_balance: reserved_amount, // assume available if no budget data
-            check_passed: true,
-            control_level: control_level.to_string(),
-            message: "No budget data found - allowing reservation".to_string(),
-            as_of_date: reservation_date,
-            fiscal_year,
-            period_name: period_name.map(String::from),
-        });
+        let fund_check = self
+            .repository
+            .check_fund_availability(
+                org_id,
+                budget_id,
+                "*", // wildcard - check overall budget
+                reservation_date,
+                fiscal_year,
+                period_name,
+            )
+            .await
+            .unwrap_or(FundAvailability {
+                organization_id: org_id,
+                budget_id,
+                budget_code: budget_code.to_string(),
+                account_code: "*".to_string(),
+                budget_amount: 0.0,
+                total_reserved: 0.0,
+                total_consumed: 0.0,
+                total_released: 0.0,
+                available_balance: reserved_amount, // assume available if no budget data
+                check_passed: true,
+                control_level: control_level.to_string(),
+                message: "No budget data found - allowing reservation".to_string(),
+                as_of_date: reservation_date,
+                fiscal_year,
+                period_name: period_name.map(String::from),
+            });
 
         let fund_check_passed = fund_check.available_balance >= reserved_amount;
         let fund_check_message = if fund_check_passed {
-            Some(format!("Fund check passed. Available: {:.2}, Requested: {:.2}",
-                        fund_check.available_balance, reserved_amount))
+            Some(format!(
+                "Fund check passed. Available: {:.2}, Requested: {:.2}",
+                fund_check.available_balance, reserved_amount
+            ))
         } else {
-            Some(format!("Fund check failed. Available: {:.2}, Requested: {:.2}. Control: {}",
-                        fund_check.available_balance, reserved_amount, control_level))
+            Some(format!(
+                "Fund check failed. Available: {:.2}, Requested: {:.2}. Control: {}",
+                fund_check.available_balance, reserved_amount, control_level
+            ))
         };
 
         // For absolute control, block if insufficient funds
@@ -164,22 +195,38 @@ impl FundsReservationEngine {
             )));
         }
 
-        info!("Creating fund reservation '{}' for org {} [budget={}, amount={:.2}, control={}]",
-              reservation_number, org_id, budget_code, reserved_amount, control_level);
+        info!(
+            "Creating fund reservation '{}' for org {} [budget={}, amount={:.2}, control={}]",
+            reservation_number, org_id, budget_code, reserved_amount, control_level
+        );
 
-        self.repository.create_reservation(
-            org_id, reservation_number,
-            budget_id, budget_code, budget_version_id,
-            description,
-            source_type, source_id, source_number,
-            reserved_amount, currency_code,
-            reservation_date, expiry_date,
-            "active", control_level,
-            fiscal_year, period_name,
-            department_id, department_name,
-            fund_check_passed, fund_check_message.as_deref(),
-            serde_json::json!({}), created_by,
-        ).await
+        self.repository
+            .create_reservation(
+                org_id,
+                reservation_number,
+                budget_id,
+                budget_code,
+                budget_version_id,
+                description,
+                source_type,
+                source_id,
+                source_number,
+                reserved_amount,
+                currency_code,
+                reservation_date,
+                expiry_date,
+                "active",
+                control_level,
+                fiscal_year,
+                period_name,
+                department_id,
+                department_name,
+                fund_check_passed,
+                fund_check_message.as_deref(),
+                serde_json::json!({}),
+                created_by,
+            )
+            .await
     }
 
     /// Get a reservation by ID
@@ -188,8 +235,14 @@ impl FundsReservationEngine {
     }
 
     /// Get a reservation by number
-    pub async fn get_reservation_by_number(&self, org_id: Uuid, reservation_number: &str) -> AtlasResult<Option<FundReservation>> {
-        self.repository.get_reservation_by_number(org_id, reservation_number).await
+    pub async fn get_reservation_by_number(
+        &self,
+        org_id: Uuid,
+        reservation_number: &str,
+    ) -> AtlasResult<Option<FundReservation>> {
+        self.repository
+            .get_reservation_by_number(org_id, reservation_number)
+            .await
     }
 
     /// List reservations with optional filters
@@ -200,7 +253,9 @@ impl FundsReservationEngine {
         budget_id: Option<&Uuid>,
         department_id: Option<&Uuid>,
     ) -> AtlasResult<Vec<FundReservation>> {
-        self.repository.list_reservations(org_id, status, budget_id, department_id).await
+        self.repository
+            .list_reservations(org_id, status, budget_id, department_id)
+            .await
     }
 
     /// Consume funds from a reservation (when actual expenditure occurs)
@@ -215,7 +270,10 @@ impl FundsReservationEngine {
             ));
         }
 
-        let reservation = self.repository.get_reservation(id).await?
+        let reservation = self
+            .repository
+            .get_reservation(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
 
         if reservation.status != "active" && reservation.status != "partially_consumed" {
@@ -233,12 +291,25 @@ impl FundsReservationEngine {
         }
 
         let new_consumed = reservation.consumed_amount + consume_amount;
-        let new_remaining = reservation.reserved_amount - new_consumed - reservation.released_amount;
+        let new_remaining =
+            reservation.reserved_amount - new_consumed - reservation.released_amount;
 
-        info!("Consuming {:.2} from reservation {} (remaining: {:.2} -> {:.2})",
-              consume_amount, reservation.reservation_number, reservation.remaining_amount, new_remaining);
+        info!(
+            "Consuming {:.2} from reservation {} (remaining: {:.2} -> {:.2})",
+            consume_amount,
+            reservation.reservation_number,
+            reservation.remaining_amount,
+            new_remaining
+        );
 
-        self.repository.update_reservation_amounts(id, new_consumed, reservation.released_amount, new_remaining).await
+        self.repository
+            .update_reservation_amounts(
+                id,
+                new_consumed,
+                reservation.released_amount,
+                new_remaining,
+            )
+            .await
     }
 
     /// Release funds from a reservation (partial or full release)
@@ -253,10 +324,16 @@ impl FundsReservationEngine {
             ));
         }
 
-        let reservation = self.repository.get_reservation(id).await?
+        let reservation = self
+            .repository
+            .get_reservation(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
 
-        if reservation.status == "cancelled" || reservation.status == "fully_consumed" || reservation.status == "released" {
+        if reservation.status == "cancelled"
+            || reservation.status == "fully_consumed"
+            || reservation.status == "released"
+        {
             return Err(AtlasError::ValidationFailed(format!(
                 "Cannot release from reservation in '{}' status.",
                 reservation.status
@@ -271,18 +348,33 @@ impl FundsReservationEngine {
         }
 
         let new_released = reservation.released_amount + release_amount;
-        let new_remaining = reservation.reserved_amount - reservation.consumed_amount - new_released;
+        let new_remaining =
+            reservation.reserved_amount - reservation.consumed_amount - new_released;
 
-        info!("Releasing {:.2} from reservation {} (remaining: {:.2} -> {:.2})",
-              release_amount, reservation.reservation_number, reservation.remaining_amount, new_remaining);
+        info!(
+            "Releasing {:.2} from reservation {} (remaining: {:.2} -> {:.2})",
+            release_amount,
+            reservation.reservation_number,
+            reservation.remaining_amount,
+            new_remaining
+        );
 
-        let result = self.repository.update_reservation_amounts(
-            id, reservation.consumed_amount, new_released, new_remaining,
-        ).await?;
+        let result = self
+            .repository
+            .update_reservation_amounts(
+                id,
+                reservation.consumed_amount,
+                new_released,
+                new_remaining,
+            )
+            .await?;
 
         // If fully released, update status
         if new_remaining <= 0.0 {
-            return self.repository.update_reservation_status(id, "released").await;
+            return self
+                .repository
+                .update_reservation_status(id, "released")
+                .await;
         }
 
         Ok(result)
@@ -295,33 +387,58 @@ impl FundsReservationEngine {
         cancelled_by: Option<Uuid>,
         reason: Option<&str>,
     ) -> AtlasResult<FundReservation> {
-        let reservation = self.repository.get_reservation(id).await?
+        let reservation = self
+            .repository
+            .get_reservation(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Reservation {id} not found")))?;
 
         if reservation.status == "cancelled" {
-            return Err(AtlasError::ValidationFailed("Reservation is already cancelled".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Reservation is already cancelled".to_string(),
+            ));
         }
         if reservation.status == "fully_consumed" {
-            return Err(AtlasError::ValidationFailed("Cannot cancel a fully consumed reservation".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Cannot cancel a fully consumed reservation".to_string(),
+            ));
         }
 
-        info!("Cancelling reservation {} [reason: {}]",
-              reservation.reservation_number, reason.unwrap_or("N/A"));
+        info!(
+            "Cancelling reservation {} [reason: {}]",
+            reservation.reservation_number,
+            reason.unwrap_or("N/A")
+        );
 
-        self.repository.cancel_reservation(id, cancelled_by, reason).await
+        self.repository
+            .cancel_reservation(id, cancelled_by, reason)
+            .await
     }
 
     /// Update reservation status
-    pub async fn update_reservation_status(&self, id: Uuid, status: &str) -> AtlasResult<FundReservation> {
+    pub async fn update_reservation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<FundReservation> {
         validate_enum("status", status, VALID_STATUSES)?;
         info!("Updating reservation {} status to {}", id, status);
         self.repository.update_reservation_status(id, status).await
     }
 
     /// Delete a reservation by number
-    pub async fn delete_reservation(&self, org_id: Uuid, reservation_number: &str) -> AtlasResult<()> {
-        info!("Deleting reservation '{}' for org {}", reservation_number, org_id);
-        self.repository.delete_reservation(org_id, reservation_number).await
+    pub async fn delete_reservation(
+        &self,
+        org_id: Uuid,
+        reservation_number: &str,
+    ) -> AtlasResult<()> {
+        info!(
+            "Deleting reservation '{}' for org {}",
+            reservation_number, org_id
+        );
+        self.repository
+            .delete_reservation(org_id, reservation_number)
+            .await
     }
 
     // ========================================================================
@@ -344,32 +461,51 @@ impl FundsReservationEngine {
         reserved_amount: f64,
     ) -> AtlasResult<FundReservationLine> {
         if account_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Account code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Account code is required".to_string(),
+            ));
         }
         if reserved_amount <= 0.0 {
-            return Err(AtlasError::ValidationFailed("Line reserved amount must be positive".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Line reserved amount must be positive".to_string(),
+            ));
         }
 
         // Verify reservation exists
-        self.repository.get_reservation(reservation_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Reservation {reservation_id} not found"
-            )))?;
+        self.repository
+            .get_reservation(reservation_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Reservation {reservation_id} not found"))
+            })?;
 
-        info!("Adding line {} to reservation {} [account={}, amount={:.2}]",
-              line_number, reservation_id, account_code, reserved_amount);
+        info!(
+            "Adding line {} to reservation {} [account={}, amount={:.2}]",
+            line_number, reservation_id, account_code, reserved_amount
+        );
 
-        self.repository.create_reservation_line(
-            org_id, reservation_id, line_number,
-            account_code, account_description,
-            budget_line_id, department_id, project_id, cost_center,
-            reserved_amount,
-            serde_json::json!({}),
-        ).await
+        self.repository
+            .create_reservation_line(
+                org_id,
+                reservation_id,
+                line_number,
+                account_code,
+                account_description,
+                budget_line_id,
+                department_id,
+                project_id,
+                cost_center,
+                reserved_amount,
+                serde_json::json!({}),
+            )
+            .await
     }
 
     /// List lines for a reservation
-    pub async fn list_reservation_lines(&self, reservation_id: Uuid) -> AtlasResult<Vec<FundReservationLine>> {
+    pub async fn list_reservation_lines(
+        &self,
+        reservation_id: Uuid,
+    ) -> AtlasResult<Vec<FundReservationLine>> {
         self.repository.list_reservation_lines(reservation_id).await
     }
 
@@ -387,11 +523,20 @@ impl FundsReservationEngine {
         fiscal_year: Option<i32>,
         period_name: Option<&str>,
     ) -> AtlasResult<FundAvailability> {
-        info!("Checking fund availability for budget {} account {} as of {}",
-              budget_id, account_code, as_of_date);
-        self.repository.check_fund_availability(
-            org_id, budget_id, account_code, as_of_date, fiscal_year, period_name,
-        ).await
+        info!(
+            "Checking fund availability for budget {} account {} as of {}",
+            budget_id, account_code, as_of_date
+        );
+        self.repository
+            .check_fund_availability(
+                org_id,
+                budget_id,
+                account_code,
+                as_of_date,
+                fiscal_year,
+                period_name,
+            )
+            .await
     }
 
     // ========================================================================
@@ -500,14 +645,29 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_validation_empty_number() {
         let engine = create_engine();
-        let result = engine.create_reservation(
-            test_org_id(), "", test_budget_id(), "BUD-001", None,
-            None, None, None, None,
-            5000.0, "USD",
-            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(), None,
-            "advisory", Some(2024), Some("Q1-2024"),
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_reservation(
+                test_org_id(),
+                "",
+                test_budget_id(),
+                "BUD-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                5000.0,
+                "USD",
+                NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+                None,
+                "advisory",
+                Some(2024),
+                Some("Q1-2024"),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("number")),
@@ -518,14 +678,29 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_validation_empty_budget_code() {
         let engine = create_engine();
-        let result = engine.create_reservation(
-            test_org_id(), "FR-001", test_budget_id(), "", None,
-            None, None, None, None,
-            5000.0, "USD",
-            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(), None,
-            "advisory", Some(2024), Some("Q1-2024"),
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_reservation(
+                test_org_id(),
+                "FR-001",
+                test_budget_id(),
+                "",
+                None,
+                None,
+                None,
+                None,
+                None,
+                5000.0,
+                "USD",
+                NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+                None,
+                "advisory",
+                Some(2024),
+                Some("Q1-2024"),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Budget code")),
@@ -536,14 +711,29 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_validation_bad_control_level() {
         let engine = create_engine();
-        let result = engine.create_reservation(
-            test_org_id(), "FR-001", test_budget_id(), "BUD-001", None,
-            None, None, None, None,
-            5000.0, "USD",
-            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(), None,
-            "permissive", Some(2024), Some("Q1-2024"),
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_reservation(
+                test_org_id(),
+                "FR-001",
+                test_budget_id(),
+                "BUD-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                5000.0,
+                "USD",
+                NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+                None,
+                "permissive",
+                Some(2024),
+                Some("Q1-2024"),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("control_level")),
@@ -554,14 +744,29 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_validation_bad_source_type() {
         let engine = create_engine();
-        let result = engine.create_reservation(
-            test_org_id(), "FR-001", test_budget_id(), "BUD-001", None,
-            None, Some("invalid_source"), None, None,
-            5000.0, "USD",
-            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(), None,
-            "advisory", Some(2024), Some("Q1-2024"),
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_reservation(
+                test_org_id(),
+                "FR-001",
+                test_budget_id(),
+                "BUD-001",
+                None,
+                None,
+                Some("invalid_source"),
+                None,
+                None,
+                5000.0,
+                "USD",
+                NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+                None,
+                "advisory",
+                Some(2024),
+                Some("Q1-2024"),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("source_type")),
@@ -572,14 +777,29 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_validation_negative_amount() {
         let engine = create_engine();
-        let result = engine.create_reservation(
-            test_org_id(), "FR-001", test_budget_id(), "BUD-001", None,
-            None, None, None, None,
-            -500.0, "USD",
-            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(), None,
-            "advisory", Some(2024), Some("Q1-2024"),
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_reservation(
+                test_org_id(),
+                "FR-001",
+                test_budget_id(),
+                "BUD-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                -500.0,
+                "USD",
+                NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+                None,
+                "advisory",
+                Some(2024),
+                Some("Q1-2024"),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("positive")),
@@ -590,15 +810,29 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_validation_expiry_before_reservation() {
         let engine = create_engine();
-        let result = engine.create_reservation(
-            test_org_id(), "FR-001", test_budget_id(), "BUD-001", None,
-            None, None, None, None,
-            5000.0, "USD",
-            NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
-            Some(NaiveDate::from_ymd_opt(2024, 5, 1).unwrap()),
-            "advisory", Some(2024), Some("Q2-2024"),
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_reservation(
+                test_org_id(),
+                "FR-001",
+                test_budget_id(),
+                "BUD-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                5000.0,
+                "USD",
+                NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(),
+                Some(NaiveDate::from_ymd_opt(2024, 5, 1).unwrap()),
+                "advisory",
+                Some(2024),
+                Some("Q2-2024"),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Expiry date")),
@@ -609,14 +843,29 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_validation_empty_currency() {
         let engine = create_engine();
-        let result = engine.create_reservation(
-            test_org_id(), "FR-001", test_budget_id(), "BUD-001", None,
-            None, None, None, None,
-            5000.0, "",
-            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(), None,
-            "advisory", Some(2024), Some("Q1-2024"),
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_reservation(
+                test_org_id(),
+                "FR-001",
+                test_budget_id(),
+                "BUD-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                5000.0,
+                "",
+                NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+                None,
+                "advisory",
+                Some(2024),
+                Some("Q1-2024"),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Currency")),
@@ -627,17 +876,29 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_success() {
         let engine = create_engine();
-        let result = engine.create_reservation(
-            test_org_id(), "FR-001", test_budget_id(), "BUD-001", None,
-            Some("Reserve funds for Q1 IT purchases"),
-            Some("purchase_requisition"), None, Some("PR-00123"),
-            50000.0, "USD",
-            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
-            Some(NaiveDate::from_ymd_opt(2024, 12, 31).unwrap()),
-            "advisory", Some(2024), Some("Q1-2024"),
-            None, Some("IT Department"),
-            Some(test_user_id()),
-        ).await;
+        let result = engine
+            .create_reservation(
+                test_org_id(),
+                "FR-001",
+                test_budget_id(),
+                "BUD-001",
+                None,
+                Some("Reserve funds for Q1 IT purchases"),
+                Some("purchase_requisition"),
+                None,
+                Some("PR-00123"),
+                50000.0,
+                "USD",
+                NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+                Some(NaiveDate::from_ymd_opt(2024, 12, 31).unwrap()),
+                "advisory",
+                Some(2024),
+                Some("Q1-2024"),
+                None,
+                Some("IT Department"),
+                Some(test_user_id()),
+            )
+            .await;
         assert!(result.is_ok());
         let reservation = result.unwrap();
         assert_eq!(reservation.reservation_number, "FR-001");
@@ -652,24 +913,55 @@ mod tests {
     async fn test_create_reservation_duplicate_conflict() {
         let engine = create_engine();
         // First creation succeeds (mock returns it)
-        engine.create_reservation(
-            test_org_id(), "FR-DUP", test_budget_id(), "BUD-001", None,
-            None, None, None, None,
-            1000.0, "USD",
-            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(), None,
-            "advisory", Some(2024), None,
-            None, None, None,
-        ).await.unwrap();
+        engine
+            .create_reservation(
+                test_org_id(),
+                "FR-DUP",
+                test_budget_id(),
+                "BUD-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                1000.0,
+                "USD",
+                NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+                None,
+                "advisory",
+                Some(2024),
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         // Mock returns existing reservation for duplicate check
-        let result = engine.create_reservation(
-            test_org_id(), "FR-DUP", test_budget_id(), "BUD-001", None,
-            None, None, None, None,
-            2000.0, "USD",
-            NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(), None,
-            "advisory", Some(2024), None,
-            None, None, None,
-        ).await;
+        let result = engine
+            .create_reservation(
+                test_org_id(),
+                "FR-DUP",
+                test_budget_id(),
+                "BUD-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                2000.0,
+                "USD",
+                NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
+                None,
+                "advisory",
+                Some(2024),
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::Conflict(msg) => assert!(msg.contains("FR-DUP")),
@@ -741,7 +1033,9 @@ mod tests {
     #[tokio::test]
     async fn test_update_reservation_status_bad_status() {
         let engine = create_engine();
-        let result = engine.update_reservation_status(Uuid::new_v4(), "unknown").await;
+        let result = engine
+            .update_reservation_status(Uuid::new_v4(), "unknown")
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("status")),
@@ -754,11 +1048,20 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_line_validation_empty_account() {
         let engine = create_engine();
-        let result = engine.create_reservation_line(
-            test_org_id(), Uuid::new_v4(), 1,
-            "", None, None, None, None, None,
-            1000.0,
-        ).await;
+        let result = engine
+            .create_reservation_line(
+                test_org_id(),
+                Uuid::new_v4(),
+                1,
+                "",
+                None,
+                None,
+                None,
+                None,
+                None,
+                1000.0,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Account code")),
@@ -769,11 +1072,20 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_line_validation_negative_amount() {
         let engine = create_engine();
-        let result = engine.create_reservation_line(
-            test_org_id(), Uuid::new_v4(), 1,
-            "1000-100", None, None, None, None, None,
-            -1000.0,
-        ).await;
+        let result = engine
+            .create_reservation_line(
+                test_org_id(),
+                Uuid::new_v4(),
+                1,
+                "1000-100",
+                None,
+                None,
+                None,
+                None,
+                None,
+                -1000.0,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("positive")),
@@ -784,11 +1096,20 @@ mod tests {
     #[tokio::test]
     async fn test_create_reservation_line_reservation_not_found() {
         let engine = create_engine();
-        let result = engine.create_reservation_line(
-            test_org_id(), Uuid::new_v4(), 1,
-            "1000-100", Some("Cash"), None, None, None, None,
-            1000.0,
-        ).await;
+        let result = engine
+            .create_reservation_line(
+                test_org_id(),
+                Uuid::new_v4(),
+                1,
+                "1000-100",
+                Some("Cash"),
+                None,
+                None,
+                None,
+                None,
+                1000.0,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::EntityNotFound(msg) => assert!(msg.contains("not found")),

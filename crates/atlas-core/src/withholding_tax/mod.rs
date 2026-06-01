@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Payables > Withholding Tax
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::WithholdingTaxEngine;
-pub use repository::{WithholdingTaxRepository, PostgresWithholdingTaxRepository};
+pub use repository::{PostgresWithholdingTaxRepository, WithholdingTaxRepository};

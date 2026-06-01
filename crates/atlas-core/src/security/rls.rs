@@ -27,7 +27,7 @@ pub struct RlsFilterBuilder {
 }
 
 impl RlsFilterBuilder {
-    #[must_use] 
+    #[must_use]
     pub const fn new() -> Self {
         Self { rules: Vec::new() }
     }
@@ -53,17 +53,16 @@ impl RlsFilterBuilder {
     /// **Stability guarantee**: rules are applied in insertion order so that
     /// `$N` placeholders produced here always line up with the values
     /// returned by `bind_rls_values`.
-    #[must_use] 
+    #[must_use]
     pub fn build_filter(&self, entity: &str, ctx: &SecurityContext) -> Option<String> {
         let (_, rules) = self.rules.iter().find(|(e, _)| e == entity)?;
 
         let mut conditions: Vec<String> = vec![];
-        for rule in rules.iter()
-            .filter(|rule| {
-                rule.roles.is_empty() || rule.roles.iter().any(|r| ctx.roles.contains(r))
-            })
-        {
-            let (cond, _n) = self.substitute_placeholders(&rule.condition, ctx, conditions.len() as i32 + 1);
+        for rule in rules.iter().filter(|rule| {
+            rule.roles.is_empty() || rule.roles.iter().any(|r| ctx.roles.contains(r))
+        }) {
+            let (cond, _n) =
+                self.substitute_placeholders(&rule.condition, ctx, conditions.len() as i32 + 1);
             conditions.push(cond);
         }
 
@@ -77,7 +76,12 @@ impl RlsFilterBuilder {
     /// Substitute placeholders in a condition with `$N` parameter markers.
     ///
     /// Returns the substituted condition string and the next parameter index.
-    fn substitute_placeholders(&self, condition: &str, ctx: &SecurityContext, start_idx: i32) -> (String, i32) {
+    fn substitute_placeholders(
+        &self,
+        condition: &str,
+        ctx: &SecurityContext,
+        start_idx: i32,
+    ) -> (String, i32) {
         let mut result = condition.to_string();
         let mut idx = start_idx;
 
@@ -98,18 +102,16 @@ impl RlsFilterBuilder {
     /// in the same order as the `$N` placeholders produced by `build_filter`.
     ///
     /// The caller is responsible for binding these values to the query.
-    #[must_use] 
+    #[must_use]
     pub fn bind_rls_values(&self, entity: &str, ctx: &SecurityContext) -> Vec<uuid::Uuid> {
         let Some((_, rules)) = self.rules.iter().find(|(e, _)| e == entity) else {
             return vec![];
         };
 
         let mut values = Vec::new();
-        for rule in rules.iter()
-            .filter(|rule| {
-                rule.roles.is_empty() || rule.roles.iter().any(|r| ctx.roles.contains(r))
-            })
-        {
+        for rule in rules.iter().filter(|rule| {
+            rule.roles.is_empty() || rule.roles.iter().any(|r| ctx.roles.contains(r))
+        }) {
             if rule.condition.contains("{{user_id}}") {
                 if let Some(uid) = ctx.user_id {
                     values.push(uid);
@@ -127,18 +129,16 @@ impl RlsFilterBuilder {
     /// Build INSERT check (for checking if user can insert).
     ///
     /// Same parameterized approach as `build_filter`.
-    #[must_use] 
+    #[must_use]
     pub fn build_insert_check(&self, entity: &str, ctx: &SecurityContext) -> Option<String> {
         let (_, rules) = self.rules.iter().find(|(e, _)| e == entity)?;
 
         let mut conditions: Vec<String> = vec![];
-        for rule in rules.iter()
-            .filter(|rule| rule.for_insert)
-            .filter(|rule| {
-                rule.roles.is_empty() || rule.roles.iter().any(|r| ctx.roles.contains(r))
-            })
-        {
-            let (cond, _) = self.substitute_placeholders(&rule.condition, ctx, conditions.len() as i32 + 1);
+        for rule in rules.iter().filter(|rule| rule.for_insert).filter(|rule| {
+            rule.roles.is_empty() || rule.roles.iter().any(|r| ctx.roles.contains(r))
+        }) {
+            let (cond, _) =
+                self.substitute_placeholders(&rule.condition, ctx, conditions.len() as i32 + 1);
             conditions.push(cond);
         }
 
@@ -155,7 +155,7 @@ pub mod patterns {
     use crate::security::rls::RlsRule;
 
     /// Organization-based RLS
-    #[must_use] 
+    #[must_use]
     pub fn org_filter(field: &str) -> RlsRule {
         RlsRule {
             condition: format!("{field} = {{{{organization_id}}}}"),
@@ -167,7 +167,7 @@ pub mod patterns {
     }
 
     /// Owner-based RLS
-    #[must_use] 
+    #[must_use]
     pub fn owner_filter(field: &str) -> RlsRule {
         RlsRule {
             condition: format!("{field} = {{{{user_id}}}}"),
@@ -179,11 +179,14 @@ pub mod patterns {
     }
 
     /// Role-based RLS
-    #[must_use] 
+    #[must_use]
     pub fn role_filter(condition: &str, roles: Vec<&str>) -> RlsRule {
         RlsRule {
             condition: condition.to_string(),
-            roles: roles.into_iter().map(std::string::ToString::to_string).collect(),
+            roles: roles
+                .into_iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
             for_insert: true,
             for_update: true,
             for_delete: true,
@@ -204,7 +207,9 @@ mod tests {
     fn create_context() -> SecurityContext {
         SecurityContext {
             user_id: Some(uuid::Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap()),
-            organization_id: Some(uuid::Uuid::parse_str("22222222-2222-2222-2222-222222222222").unwrap()),
+            organization_id: Some(
+                uuid::Uuid::parse_str("22222222-2222-2222-2222-222222222222").unwrap(),
+            ),
             roles: vec!["user".to_string()],
             session_id: None,
         }
@@ -214,10 +219,10 @@ mod tests {
     fn test_org_filter() {
         let mut builder = RlsFilterBuilder::new();
         builder.add_rule("orders", patterns::org_filter("organization_id"));
-        
+
         let ctx = create_context();
         let filter = builder.build_filter("orders", &ctx);
-        
+
         assert!(filter.is_some());
         let f = filter.unwrap();
         // Parameterized — should contain $1, not the raw UUID
@@ -229,10 +234,10 @@ mod tests {
     fn test_owner_filter() {
         let mut builder = RlsFilterBuilder::new();
         builder.add_rule("tasks", patterns::owner_filter("assigned_to"));
-        
+
         let ctx = create_context();
         let filter = builder.build_filter("tasks", &ctx);
-        
+
         assert!(filter.is_some());
         let f = filter.unwrap();
         // Parameterized — should contain $1, not the raw UUID
@@ -243,10 +248,13 @@ mod tests {
     #[test]
     fn test_role_filter() {
         let mut builder = RlsFilterBuilder::new();
-        builder.add_rule("employees", patterns::role_filter(
-            "department_id IN (SELECT id FROM user_departments WHERE user_id = '{{user_id}}')",
-            vec!["manager", "hr_admin"]
-        ));
+        builder.add_rule(
+            "employees",
+            patterns::role_filter(
+                "department_id IN (SELECT id FROM user_departments WHERE user_id = '{{user_id}}')",
+                vec!["manager", "hr_admin"],
+            ),
+        );
 
         // User without matching role
         let ctx = create_context();

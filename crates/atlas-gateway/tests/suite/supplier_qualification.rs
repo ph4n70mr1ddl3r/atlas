@@ -11,30 +11,28 @@
 //! - Dashboard summary
 //! - Validation edge cases
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 use uuid::Uuid;
 
 async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
-    sqlx::query(include_str!("../../../../migrations/039_supplier_qualification.sql"))
-        .execute(&state.db_pool)
-        .await
-        .ok();
+    sqlx::query(include_str!(
+        "../../../../migrations/039_supplier_qualification.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .ok();
     let app = build_router(state.clone());
     (state, app)
 }
 
-async fn create_test_area(
-    app: &axum::Router,
-    code: &str,
-    name: &str,
-) -> serde_json::Value {
+async fn create_test_area(app: &axum::Router, code: &str, name: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({
         "area_code": code,
@@ -46,15 +44,23 @@ async fn create_test_area(
         "is_mandatory": true,
         "renewal_period_days": 365,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/supplier-qualification/areas")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/supplier-qualification/areas")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to create area");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -71,15 +77,27 @@ async fn create_test_initiative(
         "qualification_purpose": "new_supplier",
         "deadline": "2025-12-31",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/supplier-qualification/initiatives")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Failed to create initiative");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/supplier-qualification/initiatives")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Failed to create initiative"
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -99,15 +117,26 @@ async fn create_test_question(
         "max_score": "10",
         "display_order": number,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/areas/{}/questions", area_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/areas/{}/questions",
+                    area_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to create question");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -123,15 +152,26 @@ async fn invite_test_supplier(
         "supplier_contact_name": "John Doe",
         "supplier_contact_email": "john@example.com",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/initiatives/{}/invitations", initiative_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/initiatives/{}/invitations",
+                    initiative_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to invite supplier");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -158,15 +198,23 @@ async fn test_get_qualification_area() {
     create_test_area(&app, "QA-002", "Financial Assessment").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/supplier-qualification/areas/QA-002")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/supplier-qualification/areas/QA-002")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["area_code"], "QA-002");
     assert_eq!(body["name"], "Financial Assessment");
 }
@@ -178,15 +226,23 @@ async fn test_list_qualification_areas() {
     create_test_area(&app, "QA-LIST2", "Area 2").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/supplier-qualification/areas")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/supplier-qualification/areas")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -196,11 +252,18 @@ async fn test_delete_qualification_area() {
     create_test_area(&app, "QA-DEL", "Deletable Area").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/supplier-qualification/areas/QA-DEL")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/supplier-qualification/areas/QA-DEL")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
 }
@@ -224,15 +287,26 @@ async fn test_create_and_list_questions() {
 
     // List questions
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/supplier-qualification/areas/{}/questions", area_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/areas/{}/questions",
+                    area_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["data"].as_array().unwrap().len(), 2);
 }
 
@@ -256,25 +330,49 @@ async fn test_initiative_create_activate_complete_lifecycle() {
 
     // Activate
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/initiatives/{}/activate", init_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/initiatives/{}/activate",
+                    init_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "active");
 
     // Complete
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/initiatives/{}/complete", init_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/initiatives/{}/complete",
+                    init_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "completed");
     assert!(body["completed_at"].is_string());
 }
@@ -289,14 +387,26 @@ async fn test_initiative_cancel() {
     let init_id: Uuid = initiative["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/initiatives/{}/cancel", init_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/initiatives/{}/cancel",
+                    init_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "cancelled");
 }
 
@@ -310,15 +420,23 @@ async fn test_list_initiatives_with_filter() {
     create_test_initiative(&app, area_id, "Initiative B").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/supplier-qualification/initiatives?status=draft")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/supplier-qualification/initiatives?status=draft")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -343,11 +461,21 @@ async fn test_full_supplier_qualification_workflow() {
     let init_id: Uuid = initiative["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/initiatives/{}/activate", init_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/initiatives/{}/activate",
+                    init_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Invite supplier
@@ -370,53 +498,103 @@ async fn test_full_supplier_qualification_workflow() {
     ).await.unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/invitations/{}/responses", inv_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "question_id": q2_id.to_string(),
-            "response_text": "15 years"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/invitations/{}/responses",
+                    inv_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "question_id": q2_id.to_string(),
+                        "response_text": "15 years"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
 
     // Submit invitation response
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/invitations/{}/submit", inv_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/invitations/{}/submit",
+                    inv_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "pending_response");
 
     // Start evaluation
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/invitations/{}/evaluate", inv_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/invitations/{}/evaluate",
+                    inv_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "under_evaluation");
 
     // Qualify the supplier
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/invitations/{}/qualify", inv_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "evaluation_notes": "Supplier meets all qualification criteria"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/invitations/{}/qualify",
+                    inv_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "evaluation_notes": "Supplier meets all qualification criteria"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "qualified");
 }
 
@@ -431,40 +609,81 @@ async fn test_disqualify_supplier() {
 
     let (k, v) = auth_header(&admin_claims());
     // Activate
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/initiatives/{}/activate", init_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/initiatives/{}/activate",
+                    init_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     let invitation = invite_test_supplier(&app, init_id, "Bad Supplier Inc").await;
     let inv_id: Uuid = invitation["id"].as_str().unwrap().parse().unwrap();
 
     // Submit → evaluate → disqualify
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/invitations/{}/submit", inv_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/invitations/{}/submit",
+                    inv_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/invitations/{}/evaluate", inv_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/invitations/{}/evaluate",
+                    inv_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/invitations/{}/disqualify", inv_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "reason": "Failed to meet minimum quality standards"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/invitations/{}/disqualify",
+                    inv_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "reason": "Failed to meet minimum quality standards"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "disqualified");
 }
 
@@ -490,19 +709,30 @@ async fn test_create_certification() {
         "notes": "Full scope certification"
     });
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/supplier-qualification/certifications")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/supplier-qualification/certifications")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::CREATED);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["certification_type"], "ISO 9001");
-    assert_eq!(body["certification_name"], "ISO 9001:2015 Quality Management");
+    assert_eq!(
+        body["certification_name"],
+        "ISO 9001:2015 Quality Management"
+    );
     assert_eq!(body["status"], "active");
     assert_eq!(body["supplier_name"], "Certified Supplier Co");
 }
@@ -521,26 +751,42 @@ async fn test_list_certifications() {
             "certification_type": *cert_type,
             "certification_name": format!("{} Certificate", cert_type),
         });
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri("/api/v1/supplier-qualification/certifications")
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&payload).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/supplier-qualification/certifications")
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // List all
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/supplier-qualification/certifications?supplier_id={}", supplier_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/certifications?supplier_id={}",
+                    supplier_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["data"].as_array().unwrap().len(), 2);
 }
 
@@ -556,28 +802,48 @@ async fn test_revoke_certification() {
         "certification_type": "ISO 9001",
         "certification_name": "ISO 9001 Certificate",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/supplier-qualification/certifications")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/supplier-qualification/certifications")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let cert: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let cert: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let cert_id = cert["id"].as_str().unwrap();
 
     // Revoke
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/certifications/{}/revoke", cert_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/certifications/{}/revoke",
+                    cert_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "revoked");
 }
 
@@ -594,32 +860,54 @@ async fn test_renew_certification() {
         "certification_name": "ISO 9001 Certificate",
         "expiry_date": "2025-06-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/supplier-qualification/certifications")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/supplier-qualification/certifications")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let cert: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let cert: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let cert_id = cert["id"].as_str().unwrap();
 
     // Renew
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/certifications/{}/renew", cert_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "expiry_date": "2028-06-01"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/certifications/{}/renew",
+                    cert_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "expiry_date": "2028-06-01"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "active");
 }
 
@@ -635,15 +923,23 @@ async fn test_qualification_dashboard() {
     create_test_area(&app, "QA-DASH", "Dashboard Area").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/supplier-qualification/dashboard")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/supplier-qualification/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     // Verify all expected fields are present
     assert!(body.get("total_active_areas").is_some());
@@ -669,13 +965,19 @@ async fn test_create_area_with_empty_code_fails() {
         "scoring_model": "manual",
         "passing_score": "70",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/supplier-qualification/areas")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/supplier-qualification/areas")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -690,13 +992,19 @@ async fn test_create_area_with_invalid_type_fails() {
         "scoring_model": "manual",
         "passing_score": "70",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/supplier-qualification/areas")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/supplier-qualification/areas")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -704,11 +1012,21 @@ async fn test_create_area_with_invalid_type_fails() {
 async fn test_activate_nonexistent_initiative_fails() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/initiatives/{}/activate", Uuid::new_v4()))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/initiatives/{}/activate",
+                    Uuid::new_v4()
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -722,37 +1040,76 @@ async fn test_disqualify_without_reason_fails() {
     let init_id: Uuid = initiative["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/initiatives/{}/activate", init_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/initiatives/{}/activate",
+                    init_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     let invitation = invite_test_supplier(&app, init_id, "Test Supplier").await;
     let inv_id: Uuid = invitation["id"].as_str().unwrap().parse().unwrap();
 
     // Submit and evaluate
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/invitations/{}/submit", inv_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/invitations/{}/submit",
+                    inv_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/invitations/{}/evaluate", inv_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/invitations/{}/evaluate",
+                    inv_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to disqualify with empty reason
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/supplier-qualification/invitations/{}/disqualify", inv_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "reason": ""
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/supplier-qualification/invitations/{}/disqualify",
+                    inv_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "reason": ""
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }

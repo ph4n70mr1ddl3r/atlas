@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Treasury > Cash Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::CashManagementEngine;
 pub use repository::{CashManagementRepository, PostgresCashManagementRepository};

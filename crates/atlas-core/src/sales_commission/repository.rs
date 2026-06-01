@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for sales commission data: reps, plans, tiers,
 //! assignments, quotas, transactions, payouts, and payout lines.
 
-use atlas_shared::{
-    SalesRepresentative, CommissionPlan, CommissionRateTier, PlanAssignment,
-    SalesQuota, CommissionTransaction, CommissionPayout, CommissionPayoutLine,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, CommissionPayout, CommissionPayoutLine, CommissionPlan,
+    CommissionRateTier, CommissionTransaction, PlanAssignment, SalesQuota, SalesRepresentative,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -34,9 +33,17 @@ pub trait SalesCommissionRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesRepresentative>;
 
-    async fn get_rep(&self, org_id: Uuid, rep_code: &str) -> AtlasResult<Option<SalesRepresentative>>;
+    async fn get_rep(
+        &self,
+        org_id: Uuid,
+        rep_code: &str,
+    ) -> AtlasResult<Option<SalesRepresentative>>;
     async fn get_rep_by_id(&self, id: Uuid) -> AtlasResult<Option<SalesRepresentative>>;
-    async fn list_reps(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<SalesRepresentative>>;
+    async fn list_reps(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<SalesRepresentative>>;
     async fn delete_rep(&self, org_id: Uuid, rep_code: &str) -> AtlasResult<()>;
 
     // ── Commission Plans ──
@@ -58,7 +65,11 @@ pub trait SalesCommissionRepository: Send + Sync {
 
     async fn get_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CommissionPlan>>;
     async fn get_plan_by_id(&self, id: Uuid) -> AtlasResult<Option<CommissionPlan>>;
-    async fn list_plans(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CommissionPlan>>;
+    async fn list_plans(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CommissionPlan>>;
     async fn update_plan_status(&self, id: Uuid, status: &str) -> AtlasResult<CommissionPlan>;
     async fn delete_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -89,7 +100,11 @@ pub trait SalesCommissionRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PlanAssignment>;
 
-    async fn list_assignments(&self, org_id: Uuid, rep_id: Option<Uuid>) -> AtlasResult<Vec<PlanAssignment>>;
+    async fn list_assignments(
+        &self,
+        org_id: Uuid,
+        rep_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<PlanAssignment>>;
 
     // ── Sales Quotas ──
 
@@ -108,8 +123,18 @@ pub trait SalesCommissionRepository: Send + Sync {
     ) -> AtlasResult<SalesQuota>;
 
     async fn get_quota(&self, id: Uuid) -> AtlasResult<Option<SalesQuota>>;
-    async fn list_quotas(&self, org_id: Uuid, rep_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<SalesQuota>>;
-    async fn update_quota_achievement(&self, id: Uuid, achieved: &str, percent: &str) -> AtlasResult<SalesQuota>;
+    async fn list_quotas(
+        &self,
+        org_id: Uuid,
+        rep_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SalesQuota>>;
+    async fn update_quota_achievement(
+        &self,
+        id: Uuid,
+        achieved: &str,
+        percent: &str,
+    ) -> AtlasResult<SalesQuota>;
 
     // ── Commission Transactions ──
 
@@ -139,7 +164,12 @@ pub trait SalesCommissionRepository: Send + Sync {
         rep_id: Option<Uuid>,
         status: Option<&str>,
     ) -> AtlasResult<Vec<CommissionTransaction>>;
-    async fn update_transaction_status(&self, id: Uuid, status: &str, payout_id: Option<Uuid>) -> AtlasResult<CommissionTransaction>;
+    async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        payout_id: Option<Uuid>,
+    ) -> AtlasResult<CommissionTransaction>;
 
     // ── Payouts ──
 
@@ -155,7 +185,11 @@ pub trait SalesCommissionRepository: Send + Sync {
     ) -> AtlasResult<CommissionPayout>;
 
     async fn get_payout(&self, id: Uuid) -> AtlasResult<Option<CommissionPayout>>;
-    async fn list_payouts(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CommissionPayout>>;
+    async fn list_payouts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CommissionPayout>>;
     async fn update_payout_totals(
         &self,
         id: Uuid,
@@ -197,7 +231,7 @@ pub struct PostgresSalesCommissionRepository {
 }
 
 impl PostgresSalesCommissionRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -225,7 +259,9 @@ impl PostgresSalesCommissionRepository {
     }
 
     fn row_to_plan(&self, row: &sqlx::postgres::PgRow) -> CommissionPlan {
-        let default_rate: serde_json::Value = row.try_get("default_rate").unwrap_or(serde_json::json!("0"));
+        let default_rate: serde_json::Value = row
+            .try_get("default_rate")
+            .unwrap_or(serde_json::json!("0"));
         CommissionPlan {
             id: row.get("id"),
             organization_id: row.get("organization_id"),
@@ -248,8 +284,11 @@ impl PostgresSalesCommissionRepository {
     }
 
     fn row_to_tier(&self, row: &sqlx::postgres::PgRow) -> CommissionRateTier {
-        let from_amount: serde_json::Value = row.try_get("from_amount").unwrap_or(serde_json::json!("0"));
-        let rate_percent: serde_json::Value = row.try_get("rate_percent").unwrap_or(serde_json::json!("0"));
+        let from_amount: serde_json::Value =
+            row.try_get("from_amount").unwrap_or(serde_json::json!("0"));
+        let rate_percent: serde_json::Value = row
+            .try_get("rate_percent")
+            .unwrap_or(serde_json::json!("0"));
         CommissionRateTier {
             id: row.get("id"),
             organization_id: row.get("organization_id"),
@@ -280,9 +319,15 @@ impl PostgresSalesCommissionRepository {
     }
 
     fn row_to_quota(&self, row: &sqlx::postgres::PgRow) -> SalesQuota {
-        let target: serde_json::Value = row.try_get("target_amount").unwrap_or(serde_json::json!("0"));
-        let achieved: serde_json::Value = row.try_get("achieved_amount").unwrap_or(serde_json::json!("0"));
-        let pct: serde_json::Value = row.try_get("achievement_percent").unwrap_or(serde_json::json!("0"));
+        let target: serde_json::Value = row
+            .try_get("target_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let achieved: serde_json::Value = row
+            .try_get("achieved_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let pct: serde_json::Value = row
+            .try_get("achievement_percent")
+            .unwrap_or(serde_json::json!("0"));
         SalesQuota {
             id: row.get("id"),
             organization_id: row.get("organization_id"),
@@ -306,9 +351,15 @@ impl PostgresSalesCommissionRepository {
 
     fn row_to_transaction(&self, row: &sqlx::postgres::PgRow) -> CommissionTransaction {
         let sale: serde_json::Value = row.try_get("sale_amount").unwrap_or(serde_json::json!("0"));
-        let basis: serde_json::Value = row.try_get("commission_basis_amount").unwrap_or(serde_json::json!("0"));
-        let rate: serde_json::Value = row.try_get("commission_rate").unwrap_or(serde_json::json!("0"));
-        let amt: serde_json::Value = row.try_get("commission_amount").unwrap_or(serde_json::json!("0"));
+        let basis: serde_json::Value = row
+            .try_get("commission_basis_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let rate: serde_json::Value = row
+            .try_get("commission_rate")
+            .unwrap_or(serde_json::json!("0"));
+        let amt: serde_json::Value = row
+            .try_get("commission_amount")
+            .unwrap_or(serde_json::json!("0"));
         CommissionTransaction {
             id: row.get("id"),
             organization_id: row.get("organization_id"),
@@ -335,7 +386,9 @@ impl PostgresSalesCommissionRepository {
     }
 
     fn row_to_payout(&self, row: &sqlx::postgres::PgRow) -> CommissionPayout {
-        let total: serde_json::Value = row.try_get("total_payout_amount").unwrap_or(serde_json::json!("0"));
+        let total: serde_json::Value = row
+            .try_get("total_payout_amount")
+            .unwrap_or(serde_json::json!("0"));
         CommissionPayout {
             id: row.get("id"),
             organization_id: row.get("organization_id"),
@@ -359,9 +412,15 @@ impl PostgresSalesCommissionRepository {
     }
 
     fn row_to_payout_line(&self, row: &sqlx::postgres::PgRow) -> CommissionPayoutLine {
-        let gross: serde_json::Value = row.try_get("gross_commission").unwrap_or(serde_json::json!("0"));
-        let adj: serde_json::Value = row.try_get("adjustment_amount").unwrap_or(serde_json::json!("0"));
-        let net: serde_json::Value = row.try_get("net_commission").unwrap_or(serde_json::json!("0"));
+        let gross: serde_json::Value = row
+            .try_get("gross_commission")
+            .unwrap_or(serde_json::json!("0"));
+        let adj: serde_json::Value = row
+            .try_get("adjustment_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let net: serde_json::Value = row
+            .try_get("net_commission")
+            .unwrap_or(serde_json::json!("0"));
         CommissionPayoutLine {
             id: row.get("id"),
             organization_id: row.get("organization_id"),
@@ -417,11 +476,18 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(rep_code).bind(employee_id)
-        .bind(first_name).bind(last_name).bind(email)
-        .bind(territory_code).bind(territory_name)
-        .bind(manager_id).bind(manager_name)
-        .bind(hire_date).bind(created_by)
+        .bind(org_id)
+        .bind(rep_code)
+        .bind(employee_id)
+        .bind(first_name)
+        .bind(last_name)
+        .bind(email)
+        .bind(territory_code)
+        .bind(territory_name)
+        .bind(manager_id)
+        .bind(manager_name)
+        .bind(hire_date)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -429,7 +495,11 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         Ok(self.row_to_rep(&row))
     }
 
-    async fn get_rep(&self, org_id: Uuid, rep_code: &str) -> AtlasResult<Option<SalesRepresentative>> {
+    async fn get_rep(
+        &self,
+        org_id: Uuid,
+        rep_code: &str,
+    ) -> AtlasResult<Option<SalesRepresentative>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.sales_reps WHERE organization_id = $1 AND rep_code = $2 AND is_active = true"
         )
@@ -449,7 +519,11 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         Ok(row.map(|r| self.row_to_rep(&r)))
     }
 
-    async fn list_reps(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<SalesRepresentative>> {
+    async fn list_reps(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<SalesRepresentative>> {
         let rows = if active_only {
             sqlx::query(
                 "SELECT * FROM _atlas.sales_reps WHERE organization_id = $1 AND is_active = true ORDER BY rep_code"
@@ -507,9 +581,16 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(plan_type).bind(basis).bind(calculation_method)
-        .bind(default_rate).bind(effective_from).bind(effective_to)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(plan_type)
+        .bind(basis)
+        .bind(calculation_method)
+        .bind(default_rate)
+        .bind(effective_from)
+        .bind(effective_to)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -538,7 +619,11 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         Ok(row.map(|r| self.row_to_plan(&r)))
     }
 
-    async fn list_plans(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CommissionPlan>> {
+    async fn list_plans(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CommissionPlan>> {
         let rows = match status {
             Some(s) => sqlx::query(
                 "SELECT * FROM _atlas.commission_plans WHERE organization_id = $1 AND status = $2 AND is_active = true ORDER BY code"
@@ -598,9 +683,13 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(plan_id).bind(tier_number)
-        .bind(from_amount).bind(to_amount)
-        .bind(rate_percent).bind(flat_amount)
+        .bind(org_id)
+        .bind(plan_id)
+        .bind(tier_number)
+        .bind(from_amount)
+        .bind(to_amount)
+        .bind(rate_percent)
+        .bind(flat_amount)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -609,7 +698,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
 
     async fn list_rate_tiers(&self, plan_id: Uuid) -> AtlasResult<Vec<CommissionRateTier>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.commission_rate_tiers WHERE plan_id = $1 ORDER BY tier_number"
+            "SELECT * FROM _atlas.commission_rate_tiers WHERE plan_id = $1 ORDER BY tier_number",
         )
         .bind(plan_id)
         .fetch_all(&self.pool)
@@ -637,15 +726,23 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(rep_id).bind(plan_id)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(rep_id)
+        .bind(plan_id)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_assignment(&row))
     }
 
-    async fn list_assignments(&self, org_id: Uuid, rep_id: Option<Uuid>) -> AtlasResult<Vec<PlanAssignment>> {
+    async fn list_assignments(
+        &self,
+        org_id: Uuid,
+        rep_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<PlanAssignment>> {
         let rows = match rep_id {
             Some(rid) => sqlx::query(
                 "SELECT * FROM _atlas.plan_assignments WHERE organization_id = $1 AND rep_id = $2 ORDER BY effective_from DESC"
@@ -686,10 +783,16 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(rep_id).bind(plan_id)
-        .bind(quota_number).bind(period_name)
-        .bind(period_start_date).bind(period_end_date)
-        .bind(quota_type).bind(target_amount).bind(created_by)
+        .bind(org_id)
+        .bind(rep_id)
+        .bind(plan_id)
+        .bind(quota_number)
+        .bind(period_name)
+        .bind(period_start_date)
+        .bind(period_end_date)
+        .bind(quota_type)
+        .bind(target_amount)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -705,7 +808,12 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         Ok(row.map(|r| self.row_to_quota(&r)))
     }
 
-    async fn list_quotas(&self, org_id: Uuid, rep_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<SalesQuota>> {
+    async fn list_quotas(
+        &self,
+        org_id: Uuid,
+        rep_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SalesQuota>> {
         let rows = match (rep_id, status) {
             (Some(rid), Some(s)) => sqlx::query(
                 "SELECT * FROM _atlas.sales_quotas WHERE organization_id = $1 AND rep_id = $2 AND status = $3 ORDER BY period_start_date DESC"
@@ -732,7 +840,12 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         Ok(rows.iter().map(|r| self.row_to_quota(r)).collect())
     }
 
-    async fn update_quota_achievement(&self, id: Uuid, achieved: &str, percent: &str) -> AtlasResult<SalesQuota> {
+    async fn update_quota_achievement(
+        &self,
+        id: Uuid,
+        achieved: &str,
+        percent: &str,
+    ) -> AtlasResult<SalesQuota> {
         let row = sqlx::query(
             r"UPDATE _atlas.sales_quotas
                SET achieved_amount = $2::numeric, achievement_percent = $3::numeric, updated_at = now()
@@ -778,13 +891,21 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(rep_id).bind(plan_id).bind(quota_id)
+        .bind(org_id)
+        .bind(rep_id)
+        .bind(plan_id)
+        .bind(quota_id)
         .bind(transaction_number)
-        .bind(source_type).bind(source_id).bind(source_number)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
         .bind(transaction_date)
-        .bind(sale_amount).bind(commission_basis_amount)
-        .bind(commission_rate).bind(commission_amount)
-        .bind(currency_code).bind(created_by)
+        .bind(sale_amount)
+        .bind(commission_basis_amount)
+        .bind(commission_rate)
+        .bind(commission_amount)
+        .bind(currency_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -832,7 +953,12 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         Ok(rows.iter().map(|r| self.row_to_transaction(r)).collect())
     }
 
-    async fn update_transaction_status(&self, id: Uuid, status: &str, payout_id: Option<Uuid>) -> AtlasResult<CommissionTransaction> {
+    async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        payout_id: Option<Uuid>,
+    ) -> AtlasResult<CommissionTransaction> {
         let row = sqlx::query(
             "UPDATE _atlas.commission_transactions SET status = $2, payout_id = $3, updated_at = now() WHERE id = $1 RETURNING *"
         )
@@ -864,9 +990,13 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(payout_number).bind(period_name)
-        .bind(period_start_date).bind(period_end_date)
-        .bind(currency_code).bind(created_by)
+        .bind(org_id)
+        .bind(payout_number)
+        .bind(period_name)
+        .bind(period_start_date)
+        .bind(period_end_date)
+        .bind(currency_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -882,7 +1012,11 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
         Ok(row.map(|r| self.row_to_payout(&r)))
     }
 
-    async fn list_payouts(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CommissionPayout>> {
+    async fn list_payouts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CommissionPayout>> {
         let rows = match status {
             Some(s) => sqlx::query(
                 "SELECT * FROM _atlas.commission_payouts WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC"
@@ -912,7 +1046,10 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
                    transaction_count = $4, updated_at = now()
                WHERE id = $1",
         )
-        .bind(id).bind(total_amount).bind(rep_count).bind(transaction_count)
+        .bind(id)
+        .bind(total_amount)
+        .bind(rep_count)
+        .bind(transaction_count)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -933,7 +1070,10 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
                    updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(status).bind(approved_by).bind(rejected_reason)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(rejected_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -967,10 +1107,16 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(payout_id).bind(rep_id)
-        .bind(rep_name).bind(plan_id).bind(plan_code)
-        .bind(gross_commission).bind(adjustment_amount)
-        .bind(net_commission).bind(currency_code)
+        .bind(org_id)
+        .bind(payout_id)
+        .bind(rep_id)
+        .bind(rep_name)
+        .bind(plan_id)
+        .bind(plan_code)
+        .bind(gross_commission)
+        .bind(adjustment_amount)
+        .bind(net_commission)
+        .bind(currency_code)
         .bind(transaction_count)
         .fetch_one(&self.pool)
         .await
@@ -980,7 +1126,7 @@ impl SalesCommissionRepository for PostgresSalesCommissionRepository {
 
     async fn list_payout_lines(&self, payout_id: Uuid) -> AtlasResult<Vec<CommissionPayoutLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.commission_payout_lines WHERE payout_id = $1 ORDER BY rep_name"
+            "SELECT * FROM _atlas.commission_payout_lines WHERE payout_id = $1 ORDER BY rep_name",
         )
         .bind(payout_id)
         .fetch_all(&self.pool)

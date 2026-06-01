@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: HCM > Goal Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::GoalManagementEngine;
 pub use repository::{GoalManagementRepository, PostgresGoalManagementRepository};

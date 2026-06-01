@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: SCM > Landed Cost Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::LandedCostEngine;
 pub use repository::{LandedCostRepository, PostgresLandedCostRepository};

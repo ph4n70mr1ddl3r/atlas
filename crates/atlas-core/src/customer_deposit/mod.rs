@@ -16,11 +16,11 @@ mod engine;
 
 pub use engine::CustomerDepositEngine;
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 
 /// Customer deposit header
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,43 +99,203 @@ pub struct CustomerDepositDashboard {
 /// Repository trait
 #[async_trait]
 pub trait CustomerDepositRepository: Send + Sync {
-    async fn create_deposit(&self, org_id: Uuid, deposit_number: &str, customer_id: Uuid, customer_name: &str, customer_site_id: Option<Uuid>, description: Option<&str>, currency_code: &str, deposit_amount: &str, exchange_rate: Option<&str>, deposit_account_code: Option<&str>, receivable_account_code: Option<&str>, deposit_date: chrono::NaiveDate, expiration_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>) -> AtlasResult<CustomerDeposit>;
+    async fn create_deposit(
+        &self,
+        org_id: Uuid,
+        deposit_number: &str,
+        customer_id: Uuid,
+        customer_name: &str,
+        customer_site_id: Option<Uuid>,
+        description: Option<&str>,
+        currency_code: &str,
+        deposit_amount: &str,
+        exchange_rate: Option<&str>,
+        deposit_account_code: Option<&str>,
+        receivable_account_code: Option<&str>,
+        deposit_date: chrono::NaiveDate,
+        expiration_date: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<CustomerDeposit>;
     async fn get_deposit(&self, id: Uuid) -> AtlasResult<Option<CustomerDeposit>>;
-    async fn get_deposit_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<CustomerDeposit>>;
-    async fn list_deposits(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<CustomerDeposit>>;
+    async fn get_deposit_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<CustomerDeposit>>;
+    async fn list_deposits(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<CustomerDeposit>>;
     async fn update_deposit_status(&self, id: Uuid, status: &str) -> AtlasResult<CustomerDeposit>;
-    async fn update_deposit_amounts(&self, id: Uuid, applied: &str, unapplied: &str, status: &str) -> AtlasResult<()>;
-    async fn update_receipt_info(&self, id: Uuid, receipt_ref: Option<&str>, received_by: Option<Uuid>) -> AtlasResult<CustomerDeposit>;
-    async fn update_refund_info(&self, id: Uuid, refund_ref: Option<&str>, refunded_by: Option<Uuid>) -> AtlasResult<CustomerDeposit>;
-    async fn create_application(&self, org_id: Uuid, deposit_id: Uuid, deposit_number: Option<&str>, invoice_id: Uuid, invoice_number: Option<&str>, applied_amount: &str, application_date: chrono::NaiveDate, gl_account_code: Option<&str>, applied_by: Option<Uuid>) -> AtlasResult<DepositApplication>;
+    async fn update_deposit_amounts(
+        &self,
+        id: Uuid,
+        applied: &str,
+        unapplied: &str,
+        status: &str,
+    ) -> AtlasResult<()>;
+    async fn update_receipt_info(
+        &self,
+        id: Uuid,
+        receipt_ref: Option<&str>,
+        received_by: Option<Uuid>,
+    ) -> AtlasResult<CustomerDeposit>;
+    async fn update_refund_info(
+        &self,
+        id: Uuid,
+        refund_ref: Option<&str>,
+        refunded_by: Option<Uuid>,
+    ) -> AtlasResult<CustomerDeposit>;
+    async fn create_application(
+        &self,
+        org_id: Uuid,
+        deposit_id: Uuid,
+        deposit_number: Option<&str>,
+        invoice_id: Uuid,
+        invoice_number: Option<&str>,
+        applied_amount: &str,
+        application_date: chrono::NaiveDate,
+        gl_account_code: Option<&str>,
+        applied_by: Option<Uuid>,
+    ) -> AtlasResult<DepositApplication>;
     async fn get_application(&self, id: Uuid) -> AtlasResult<Option<DepositApplication>>;
-    async fn list_applications_by_deposit(&self, deposit_id: Uuid) -> AtlasResult<Vec<DepositApplication>>;
-    async fn list_applications_by_invoice(&self, invoice_id: Uuid) -> AtlasResult<Vec<DepositApplication>>;
-    async fn update_application_status(&self, id: Uuid, status: &str, reversed_by: Option<Uuid>, reversal_reason: Option<&str>) -> AtlasResult<DepositApplication>;
+    async fn list_applications_by_deposit(
+        &self,
+        deposit_id: Uuid,
+    ) -> AtlasResult<Vec<DepositApplication>>;
+    async fn list_applications_by_invoice(
+        &self,
+        invoice_id: Uuid,
+    ) -> AtlasResult<Vec<DepositApplication>>;
+    async fn update_application_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        reversed_by: Option<Uuid>,
+        reversal_reason: Option<&str>,
+    ) -> AtlasResult<DepositApplication>;
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CustomerDepositDashboard>;
 }
 
 /// `PostgreSQL` implementation (stub)
 #[allow(dead_code)]
-pub struct PostgresCustomerDepositRepository { #[allow(dead_code)]
-    pool: PgPool }
-impl PostgresCustomerDepositRepository { #[must_use] 
-pub const fn new(pool: PgPool) -> Self { Self { pool } } }
+pub struct PostgresCustomerDepositRepository {
+    #[allow(dead_code)]
+    pool: PgPool,
+}
+impl PostgresCustomerDepositRepository {
+    #[must_use]
+    pub const fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
 
 #[async_trait]
 impl CustomerDepositRepository for PostgresCustomerDepositRepository {
-    async fn create_deposit(&self, _: Uuid, _: &str, _: Uuid, _: &str, _: Option<Uuid>, _: Option<&str>, _: &str, _: &str, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: chrono::NaiveDate, _: Option<chrono::NaiveDate>, _: Option<Uuid>) -> AtlasResult<CustomerDeposit> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_deposit(&self, _: Uuid) -> AtlasResult<Option<CustomerDeposit>> { Ok(None) }
-    async fn get_deposit_by_number(&self, _: Uuid, _: &str) -> AtlasResult<Option<CustomerDeposit>> { Ok(None) }
-    async fn list_deposits(&self, _: Uuid, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<Vec<CustomerDeposit>> { Ok(vec![]) }
-    async fn update_deposit_status(&self, _: Uuid, _: &str) -> AtlasResult<CustomerDeposit> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn update_deposit_amounts(&self, _: Uuid, _: &str, _: &str, _: &str) -> AtlasResult<()> { Ok(()) }
-    async fn update_receipt_info(&self, _: Uuid, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<CustomerDeposit> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn update_refund_info(&self, _: Uuid, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<CustomerDeposit> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn create_application(&self, _: Uuid, _: Uuid, _: Option<&str>, _: Uuid, _: Option<&str>, _: &str, _: chrono::NaiveDate, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<DepositApplication> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_application(&self, _: Uuid) -> AtlasResult<Option<DepositApplication>> { Ok(None) }
-    async fn list_applications_by_deposit(&self, _: Uuid) -> AtlasResult<Vec<DepositApplication>> { Ok(vec![]) }
-    async fn list_applications_by_invoice(&self, _: Uuid) -> AtlasResult<Vec<DepositApplication>> { Ok(vec![]) }
-    async fn update_application_status(&self, _: Uuid, _: &str, _: Option<Uuid>, _: Option<&str>) -> AtlasResult<DepositApplication> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn get_dashboard(&self, _: Uuid) -> AtlasResult<CustomerDepositDashboard> { Ok(CustomerDepositDashboard { total_deposits: 0, draft_deposits: 0, open_deposits: 0, total_deposit_amount: "0".into(), total_applied_amount: "0".into(), total_unapplied_amount: "0".into(), total_refunded_amount: "0".into(), deposits_by_customer: serde_json::json!([]), aging_buckets: serde_json::json!([]) }) }
+    async fn create_deposit(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: Uuid,
+        _: &str,
+        _: Option<Uuid>,
+        _: Option<&str>,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: chrono::NaiveDate,
+        _: Option<chrono::NaiveDate>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<CustomerDeposit> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_deposit(&self, _: Uuid) -> AtlasResult<Option<CustomerDeposit>> {
+        Ok(None)
+    }
+    async fn get_deposit_by_number(
+        &self,
+        _: Uuid,
+        _: &str,
+    ) -> AtlasResult<Option<CustomerDeposit>> {
+        Ok(None)
+    }
+    async fn list_deposits(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<Vec<CustomerDeposit>> {
+        Ok(vec![])
+    }
+    async fn update_deposit_status(&self, _: Uuid, _: &str) -> AtlasResult<CustomerDeposit> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn update_deposit_amounts(&self, _: Uuid, _: &str, _: &str, _: &str) -> AtlasResult<()> {
+        Ok(())
+    }
+    async fn update_receipt_info(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<CustomerDeposit> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn update_refund_info(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<CustomerDeposit> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn create_application(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: Option<&str>,
+        _: Uuid,
+        _: Option<&str>,
+        _: &str,
+        _: chrono::NaiveDate,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<DepositApplication> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_application(&self, _: Uuid) -> AtlasResult<Option<DepositApplication>> {
+        Ok(None)
+    }
+    async fn list_applications_by_deposit(&self, _: Uuid) -> AtlasResult<Vec<DepositApplication>> {
+        Ok(vec![])
+    }
+    async fn list_applications_by_invoice(&self, _: Uuid) -> AtlasResult<Vec<DepositApplication>> {
+        Ok(vec![])
+    }
+    async fn update_application_status(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: Option<Uuid>,
+        _: Option<&str>,
+    ) -> AtlasResult<DepositApplication> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn get_dashboard(&self, _: Uuid) -> AtlasResult<CustomerDepositDashboard> {
+        Ok(CustomerDepositDashboard {
+            total_deposits: 0,
+            draft_deposits: 0,
+            open_deposits: 0,
+            total_deposit_amount: "0".into(),
+            total_applied_amount: "0".into(),
+            total_unapplied_amount: "0".into(),
+            total_refunded_amount: "0".into(),
+            deposits_by_customer: serde_json::json!([]),
+            aging_buckets: serde_json::json!([]),
+        })
+    }
 }

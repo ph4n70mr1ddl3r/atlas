@@ -1,7 +1,7 @@
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use rust_decimal::Decimal;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExpensePolicyRule {
@@ -50,7 +50,10 @@ impl ExpensePolicyService {
         receipt: bool,
     ) -> Result<ExpensePolicyRule, String> {
         let mut rules = self.rules.write().unwrap();
-        if rules.iter().any(|r| r.org_id == org_id && r.rule_code == code) {
+        if rules
+            .iter()
+            .any(|r| r.org_id == org_id && r.rule_code == code)
+        {
             return Err("Rule already exists".to_string());
         }
 
@@ -79,23 +82,28 @@ impl ExpensePolicyService {
         let rules = self.rules.read().unwrap();
         let mut results = Vec::new();
 
-        for rule in rules.iter().filter(|r| r.org_id == org_id && (r.expense_category == "all" || r.expense_category == category)) {
+        for rule in rules.iter().filter(|r| {
+            r.org_id == org_id && (r.expense_category == "all" || r.expense_category == category)
+        }) {
             match rule.rule_type.as_str() {
                 "amount_limit" if amount > rule.maximum_amount => {
                     results.push(PolicyEvaluationResult {
                         is_compliant: false,
                         severity: rule.severity.clone(),
-                        message: format!("Amount {} exceeds limit of {}", amount, rule.maximum_amount),
+                        message: format!(
+                            "Amount {} exceeds limit of {}",
+                            amount, rule.maximum_amount
+                        ),
                     });
-                },
+                }
                 "receipt_required" if rule.requires_receipt && !has_receipt => {
                     results.push(PolicyEvaluationResult {
                         is_compliant: false,
                         severity: rule.severity.clone(),
                         message: "Receipt is required for this expense".to_string(),
                     });
-                },
-                "amount_limit" | "receipt_required" => {},
+                }
+                "amount_limit" | "receipt_required" => {}
                 _ => {}
             }
         }
@@ -113,9 +121,19 @@ mod tests {
     fn test_evaluate_amount_limit() {
         let service = ExpensePolicyService::new();
         let org_id = Uuid::new_v4();
-        
-        service.create_rule(org_id, "MEAL_LIMIT".to_string(), "amount_limit".to_string(), "meals".to_string(), "violation".to_string(), dec!(50), false).unwrap();
-        
+
+        service
+            .create_rule(
+                org_id,
+                "MEAL_LIMIT".to_string(),
+                "amount_limit".to_string(),
+                "meals".to_string(),
+                "violation".to_string(),
+                dec!(50),
+                false,
+            )
+            .unwrap();
+
         // Compliant
         let r1 = service.evaluate_line(org_id, "meals", dec!(40), false);
         assert!(r1.is_empty());
@@ -130,8 +148,18 @@ mod tests {
     fn test_evaluate_receipt_required() {
         let service = ExpensePolicyService::new();
         let org_id = Uuid::new_v4();
-        
-        service.create_rule(org_id, "RCPT_REQ".to_string(), "receipt_required".to_string(), "all".to_string(), "block".to_string(), dec!(0), true).unwrap();
+
+        service
+            .create_rule(
+                org_id,
+                "RCPT_REQ".to_string(),
+                "receipt_required".to_string(),
+                "all".to_string(),
+                "block".to_string(),
+                dec!(0),
+                true,
+            )
+            .unwrap();
 
         // No receipt -> Block
         let r = service.evaluate_line(org_id, "hotel", dec!(200), false);

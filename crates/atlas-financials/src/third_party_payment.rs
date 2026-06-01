@@ -10,7 +10,7 @@ pub struct ThirdPartyPaymentResult {
 
 impl ThirdPartyPaymentService {
     /// Processes a third-party payment.
-    /// This is an Oracle Fusion Financials feature that allows payments to be 
+    /// This is an Oracle Fusion Financials feature that allows payments to be
     /// routed to a third-party payee on behalf of the original supplier or employee.
     #[must_use]
     pub fn process_payment(
@@ -38,7 +38,7 @@ impl ThirdPartyPaymentService {
                 status: "REJECTED_INACTIVE_RELATIONSHIP".to_string(),
             };
         }
-        
+
         ThirdPartyPaymentResult {
             payment_id: format!("TPP-{}-{}", original_payee_id, third_party_payee_id),
             original_payee_id: original_payee_id.to_string(),
@@ -65,7 +65,8 @@ mod tests {
 
     #[test]
     fn test_process_payment_valid() {
-        let result = ThirdPartyPaymentService::process_payment("SUPP-001", "SUPP-002-FACTOR", 10000.0, true);
+        let result =
+            ThirdPartyPaymentService::process_payment("SUPP-001", "SUPP-002-FACTOR", 10000.0, true);
         assert_eq!(result.original_payee_id, "SUPP-001");
         assert_eq!(result.third_party_payee_id, "SUPP-002-FACTOR");
         assert_eq!(result.amount, 10000.0);
@@ -75,7 +76,8 @@ mod tests {
 
     #[test]
     fn test_process_payment_invalid_amount() {
-        let result = ThirdPartyPaymentService::process_payment("SUPP-003", "SUPP-004", -500.0, true);
+        let result =
+            ThirdPartyPaymentService::process_payment("SUPP-003", "SUPP-004", -500.0, true);
         assert_eq!(result.amount, 0.0);
         assert_eq!(result.payment_id, "");
         assert_eq!(result.status, "REJECTED_INVALID_AMOUNT");
@@ -83,7 +85,8 @@ mod tests {
 
     #[test]
     fn test_process_payment_inactive_relationship() {
-        let result = ThirdPartyPaymentService::process_payment("SUPP-005", "SUPP-006", 5000.0, false);
+        let result =
+            ThirdPartyPaymentService::process_payment("SUPP-005", "SUPP-006", 5000.0, false);
         assert_eq!(result.amount, 5000.0);
         assert_eq!(result.payment_id, "");
         assert_eq!(result.status, "REJECTED_INACTIVE_RELATIONSHIP");
@@ -91,7 +94,8 @@ mod tests {
 
     #[test]
     fn test_validate_relationship_valid() {
-        let is_valid = ThirdPartyPaymentService::validate_relationship("EMP-100", "GARNISHMENT-ORG");
+        let is_valid =
+            ThirdPartyPaymentService::validate_relationship("EMP-100", "GARNISHMENT-ORG");
         assert!(is_valid);
     }
 

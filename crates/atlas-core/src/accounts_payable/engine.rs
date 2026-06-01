@@ -5,30 +5,37 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Payables > Invoices, Payments, Holds
 
-use atlas_shared::{
-    ApInvoice, ApInvoiceLine, ApInvoiceDistribution, ApInvoiceHold, ApPayment,
-    ApAgingSummary, ApAgingBySupplier,
-    AtlasError, AtlasResult,
-};
 use super::AccountsPayableRepository;
+use atlas_shared::{
+    ApAgingBySupplier, ApAgingSummary, ApInvoice, ApInvoiceDistribution, ApInvoiceHold,
+    ApInvoiceLine, ApPayment, AtlasError, AtlasResult,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid invoice types
 const VALID_INVOICE_TYPES: &[&str] = &[
-    "standard", "credit_memo", "debit_memo", "prepayment", "expense_report", "po_default",
+    "standard",
+    "credit_memo",
+    "debit_memo",
+    "prepayment",
+    "expense_report",
+    "po_default",
 ];
 
 /// Valid invoice statuses for transitions
 const VALID_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "paid", "cancelled", "on_hold",
+    "draft",
+    "submitted",
+    "approved",
+    "paid",
+    "cancelled",
+    "on_hold",
 ];
 
 /// Valid line types
-const VALID_LINE_TYPES: &[&str] = &[
-    "item", "freight", "tax", "miscellaneous", "withholding",
-];
+const VALID_LINE_TYPES: &[&str] = &["item", "freight", "tax", "miscellaneous", "withholding"];
 
 /// Valid hold types
 const VALID_HOLD_TYPES: &[&str] = &[
@@ -36,9 +43,8 @@ const VALID_HOLD_TYPES: &[&str] = &[
 ];
 
 /// Valid payment statuses
-const VALID_PAYMENT_STATUSES: &[&str] = &[
-    "draft", "submitted", "confirmed", "cancelled", "reversed",
-];
+const VALID_PAYMENT_STATUSES: &[&str] =
+    &["draft", "submitted", "confirmed", "cancelled", "reversed"];
 
 /// Accounts Payable engine for managing supplier invoices, payments, and holds
 pub struct AccountsPayableEngine {
@@ -90,16 +96,18 @@ impl AccountsPayableEngine {
         }
         if !VALID_INVOICE_TYPES.contains(&invoice_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid invoice_type '{}'. Must be one of: {}", invoice_type, VALID_INVOICE_TYPES.join(", ")
+                "Invalid invoice_type '{}'. Must be one of: {}",
+                invoice_type,
+                VALID_INVOICE_TYPES.join(", ")
             )));
         }
 
-        let inv_amount: f64 = invoice_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "invoice_amount must be a valid number".to_string(),
-        ))?;
-        let tax: f64 = tax_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "tax_amount must be a valid number".to_string(),
-        ))?;
+        let inv_amount: f64 = invoice_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("invoice_amount must be a valid number".to_string())
+        })?;
+        let tax: f64 = tax_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("tax_amount must be a valid number".to_string())
+        })?;
 
         // Credit memos should have negative amounts
         if invoice_type == "credit_memo" && inv_amount > 0.0 {
@@ -110,21 +118,41 @@ impl AccountsPayableEngine {
 
         let total = inv_amount + tax;
 
-        info!("Creating AP invoice '{}' for org {} supplier {}", invoice_number, org_id, supplier_id);
+        info!(
+            "Creating AP invoice '{}' for org {} supplier {}",
+            invoice_number, org_id, supplier_id
+        );
 
-        self.repository.create_invoice(
-            org_id, invoice_number, invoice_date, invoice_type,
-            description, supplier_id, supplier_number, supplier_name, supplier_site,
-            invoice_currency_code, payment_currency_code,
-            exchange_rate, exchange_rate_type, exchange_date,
-            &format!("{inv_amount:.2}"),
-            &format!("{tax:.2}"),
-            &format!("{total:.2}"),
-            payment_terms, payment_method,
-            payment_due_date, discount_date, gl_date,
-            po_number, receipt_number, source,
-            created_by,
-        ).await
+        self.repository
+            .create_invoice(
+                org_id,
+                invoice_number,
+                invoice_date,
+                invoice_type,
+                description,
+                supplier_id,
+                supplier_number,
+                supplier_name,
+                supplier_site,
+                invoice_currency_code,
+                payment_currency_code,
+                exchange_rate,
+                exchange_rate_type,
+                exchange_date,
+                &format!("{inv_amount:.2}"),
+                &format!("{tax:.2}"),
+                &format!("{total:.2}"),
+                payment_terms,
+                payment_method,
+                payment_due_date,
+                discount_date,
+                gl_date,
+                po_number,
+                receipt_number,
+                source,
+                created_by,
+            )
+            .await
     }
 
     /// Get an invoice by ID
@@ -133,8 +161,14 @@ impl AccountsPayableEngine {
     }
 
     /// Get an invoice by number within an org
-    pub async fn get_invoice_by_number(&self, org_id: Uuid, invoice_number: &str) -> AtlasResult<Option<ApInvoice>> {
-        self.repository.get_invoice_by_number(org_id, invoice_number).await
+    pub async fn get_invoice_by_number(
+        &self,
+        org_id: Uuid,
+        invoice_number: &str,
+    ) -> AtlasResult<Option<ApInvoice>> {
+        self.repository
+            .get_invoice_by_number(org_id, invoice_number)
+            .await
     }
 
     /// List invoices with optional filters
@@ -148,18 +182,24 @@ impl AccountsPayableEngine {
         if let Some(s) = status {
             if !VALID_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_STATUSES.join(", ")
                 )));
             }
         }
         if let Some(t) = invoice_type {
             if !VALID_INVOICE_TYPES.contains(&t) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid invoice_type '{}'. Must be one of: {}", t, VALID_INVOICE_TYPES.join(", ")
+                    "Invalid invoice_type '{}'. Must be one of: {}",
+                    t,
+                    VALID_INVOICE_TYPES.join(", ")
                 )));
             }
         }
-        self.repository.list_invoices(org_id, supplier_id, status, invoice_type).await
+        self.repository
+            .list_invoices(org_id, supplier_id, status, invoice_type)
+            .await
     }
 
     // ========================================================================
@@ -168,15 +208,17 @@ impl AccountsPayableEngine {
 
     /// Submit an invoice for approval
     pub async fn submit_invoice(&self, invoice_id: Uuid) -> AtlasResult<ApInvoice> {
-        let invoice = self.repository.get_invoice(invoice_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Invoice {invoice_id} not found")
-            ))?;
+        let invoice = self
+            .repository
+            .get_invoice(invoice_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {invoice_id} not found")))?;
 
         if invoice.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit invoice in '{}' status. Must be 'draft'.", invoice.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit invoice in '{}' status. Must be 'draft'.",
+                invoice.status
+            )));
         }
 
         // Check invoice has at least one line
@@ -195,7 +237,8 @@ impl AccountsPayableEngine {
             ));
         }
 
-        let dist_total: f64 = distributions.iter()
+        let dist_total: f64 = distributions
+            .iter()
             .filter(|d| d.distribution_type == "charge")
             .map(|d| d.amount.parse().unwrap_or(0.0))
             .sum();
@@ -208,32 +251,43 @@ impl AccountsPayableEngine {
         }
 
         info!("Submitting AP invoice {}", invoice_id);
-        self.repository.update_invoice_status(invoice_id, "submitted", None, None, None, None).await
+        self.repository
+            .update_invoice_status(invoice_id, "submitted", None, None, None, None)
+            .await
     }
 
     /// Approve an invoice
-    pub async fn approve_invoice(&self, invoice_id: Uuid, approved_by: Uuid) -> AtlasResult<ApInvoice> {
-        let invoice = self.repository.get_invoice(invoice_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Invoice {invoice_id} not found")
-            ))?;
+    pub async fn approve_invoice(
+        &self,
+        invoice_id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<ApInvoice> {
+        let invoice = self
+            .repository
+            .get_invoice(invoice_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {invoice_id} not found")))?;
 
         if invoice.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve invoice in '{}' status. Must be 'submitted'.", invoice.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve invoice in '{}' status. Must be 'submitted'.",
+                invoice.status
+            )));
         }
 
         // Check for active holds
         let holds = self.repository.list_active_holds(invoice_id).await?;
         if !holds.is_empty() {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve invoice: {} active hold(s) must be released first", holds.len())
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve invoice: {} active hold(s) must be released first",
+                holds.len()
+            )));
         }
 
         info!("Approving AP invoice {} by {}", invoice_id, approved_by);
-        self.repository.update_invoice_status(invoice_id, "approved", Some(approved_by), None, None, None).await
+        self.repository
+            .update_invoice_status(invoice_id, "approved", Some(approved_by), None, None, None)
+            .await
     }
 
     /// Cancel an invoice
@@ -243,10 +297,11 @@ impl AccountsPayableEngine {
         cancelled_by: Uuid,
         reason: Option<&str>,
     ) -> AtlasResult<ApInvoice> {
-        let invoice = self.repository.get_invoice(invoice_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Invoice {invoice_id} not found")
-            ))?;
+        let invoice = self
+            .repository
+            .get_invoice(invoice_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {invoice_id} not found")))?;
 
         if invoice.status == "cancelled" {
             return Err(AtlasError::WorkflowError(
@@ -260,27 +315,44 @@ impl AccountsPayableEngine {
         }
 
         info!("Cancelling AP invoice {} by {}", invoice_id, cancelled_by);
-        self.repository.update_invoice_status(
-            invoice_id, "cancelled", None,
-            Some(reason.unwrap_or("Cancelled")), Some(cancelled_by), None,
-        ).await
+        self.repository
+            .update_invoice_status(
+                invoice_id,
+                "cancelled",
+                None,
+                Some(reason.unwrap_or("Cancelled")),
+                Some(cancelled_by),
+                None,
+            )
+            .await
     }
 
     /// Mark invoice as paid (typically called from payment processing)
-    pub async fn mark_invoice_paid(&self, invoice_id: Uuid, amount_paid: &str) -> AtlasResult<ApInvoice> {
-        let invoice = self.repository.get_invoice(invoice_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Invoice {invoice_id} not found")
-            ))?;
+    pub async fn mark_invoice_paid(
+        &self,
+        invoice_id: Uuid,
+        amount_paid: &str,
+    ) -> AtlasResult<ApInvoice> {
+        let invoice = self
+            .repository
+            .get_invoice(invoice_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {invoice_id} not found")))?;
 
         if invoice.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot pay invoice in '{}' status. Must be 'approved'.", invoice.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot pay invoice in '{}' status. Must be 'approved'.",
+                invoice.status
+            )));
         }
 
-        info!("Marking AP invoice {} as paid (amount: {})", invoice_id, amount_paid);
-        self.repository.update_invoice_paid(invoice_id, amount_paid).await
+        info!(
+            "Marking AP invoice {} as paid (amount: {})",
+            invoice_id, amount_paid
+        );
+        self.repository
+            .update_invoice_paid(invoice_id, amount_paid)
+            .await
     }
 
     // ========================================================================
@@ -305,10 +377,11 @@ impl AccountsPayableEngine {
         tax_amount: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApInvoiceLine> {
-        let invoice = self.repository.get_invoice(invoice_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Invoice {invoice_id} not found")
-            ))?;
+        let invoice = self
+            .repository
+            .get_invoice(invoice_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {invoice_id} not found")))?;
 
         if invoice.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -318,13 +391,15 @@ impl AccountsPayableEngine {
 
         if !VALID_LINE_TYPES.contains(&line_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid line_type '{}'. Must be one of: {}", line_type, VALID_LINE_TYPES.join(", ")
+                "Invalid line_type '{}'. Must be one of: {}",
+                line_type,
+                VALID_LINE_TYPES.join(", ")
             )));
         }
 
-        let amount_val: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amount_val: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
 
         // Determine line number
         let existing_lines = self.repository.list_lines(invoice_id).await?;
@@ -332,13 +407,26 @@ impl AccountsPayableEngine {
 
         info!("Adding line {} to AP invoice {}", line_number, invoice_id);
 
-        let line = self.repository.create_line(
-            org_id, invoice_id, line_number, line_type,
-            description, &format!("{amount_val:.2}"),
-            unit_price, quantity_invoiced, unit_of_measure,
-            po_line_id, po_line_number, product_code,
-            tax_code, tax_amount, created_by,
-        ).await?;
+        let line = self
+            .repository
+            .create_line(
+                org_id,
+                invoice_id,
+                line_number,
+                line_type,
+                description,
+                &format!("{amount_val:.2}"),
+                unit_price,
+                quantity_invoiced,
+                unit_of_measure,
+                po_line_id,
+                po_line_number,
+                product_code,
+                tax_code,
+                tax_amount,
+                created_by,
+            )
+            .await?;
 
         // Recalculate invoice totals
         self.recalculate_invoice_totals(invoice_id).await?;
@@ -348,10 +436,11 @@ impl AccountsPayableEngine {
 
     /// Delete an invoice line
     pub async fn delete_line(&self, invoice_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
-        let invoice = self.repository.get_invoice(invoice_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Invoice {invoice_id} not found")
-            ))?;
+        let invoice = self
+            .repository
+            .get_invoice(invoice_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {invoice_id} not found")))?;
 
         if invoice.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -397,10 +486,11 @@ impl AccountsPayableEngine {
         accounting_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApInvoiceDistribution> {
-        let invoice = self.repository.get_invoice(invoice_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Invoice {invoice_id} not found")
-            ))?;
+        let invoice = self
+            .repository
+            .get_invoice(invoice_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {invoice_id} not found")))?;
 
         if invoice.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -408,29 +498,52 @@ impl AccountsPayableEngine {
             ));
         }
 
-        let amount_val: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amount_val: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
 
         // Determine distribution line number
         let existing_dists = self.repository.list_distributions(invoice_id).await?;
         let dist_line_number = (existing_dists.len() + 1) as i32;
 
-        info!("Adding distribution {} to AP invoice {}", dist_line_number, invoice_id);
+        info!(
+            "Adding distribution {} to AP invoice {}",
+            dist_line_number, invoice_id
+        );
 
-        self.repository.create_distribution(
-            org_id, invoice_id, invoice_line_id, dist_line_number,
-            distribution_type, account_combination, description,
-            &format!("{amount_val:.2}"), None, currency_code,
-            exchange_rate, gl_account, cost_center, department,
-            project_id, task_id, expenditure_type, tax_code,
-            tax_recoverable, tax_recoverable_amount,
-            accounting_date, created_by,
-        ).await
+        self.repository
+            .create_distribution(
+                org_id,
+                invoice_id,
+                invoice_line_id,
+                dist_line_number,
+                distribution_type,
+                account_combination,
+                description,
+                &format!("{amount_val:.2}"),
+                None,
+                currency_code,
+                exchange_rate,
+                gl_account,
+                cost_center,
+                department,
+                project_id,
+                task_id,
+                expenditure_type,
+                tax_code,
+                tax_recoverable,
+                tax_recoverable_amount,
+                accounting_date,
+                created_by,
+            )
+            .await
     }
 
     /// List distributions for an invoice
-    pub async fn list_distributions(&self, invoice_id: Uuid) -> AtlasResult<Vec<ApInvoiceDistribution>> {
+    pub async fn list_distributions(
+        &self,
+        invoice_id: Uuid,
+    ) -> AtlasResult<Vec<ApInvoiceDistribution>> {
         self.repository.list_distributions(invoice_id).await
     }
 
@@ -447,14 +560,17 @@ impl AccountsPayableEngine {
         hold_reason: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApInvoiceHold> {
-        let _invoice = self.repository.get_invoice(invoice_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Invoice {invoice_id} not found")
-            ))?;
+        let _invoice = self
+            .repository
+            .get_invoice(invoice_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {invoice_id} not found")))?;
 
         if !VALID_HOLD_TYPES.contains(&hold_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid hold_type '{}'. Must be one of: {}", hold_type, VALID_HOLD_TYPES.join(", ")
+                "Invalid hold_type '{}'. Must be one of: {}",
+                hold_type,
+                VALID_HOLD_TYPES.join(", ")
             )));
         }
         if hold_reason.is_empty() {
@@ -465,17 +581,18 @@ impl AccountsPayableEngine {
 
         info!("Applying {} hold to AP invoice {}", hold_type, invoice_id);
 
-        let hold = self.repository.create_hold(
-            org_id, invoice_id, hold_type, hold_reason, created_by,
-        ).await?;
+        let hold = self
+            .repository
+            .create_hold(org_id, invoice_id, hold_type, hold_reason, created_by)
+            .await?;
 
         // Set invoice status to on_hold if currently submitted or approved
         let invoice = self.repository.get_invoice(invoice_id).await?;
         if let Some(inv) = invoice {
             if inv.status == "submitted" || inv.status == "approved" {
-                self.repository.update_invoice_status(
-                    invoice_id, "on_hold", None, None, None, None,
-                ).await?;
+                self.repository
+                    .update_invoice_status(invoice_id, "on_hold", None, None, None, None)
+                    .await?;
             }
         }
 
@@ -489,30 +606,39 @@ impl AccountsPayableEngine {
         released_by: Uuid,
         release_reason: Option<&str>,
     ) -> AtlasResult<ApInvoiceHold> {
-        let hold = self.repository.get_hold(hold_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Hold {hold_id} not found")
-            ))?;
+        let hold = self
+            .repository
+            .get_hold(hold_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Hold {hold_id} not found")))?;
 
         if hold.hold_status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot release hold in '{}' status. Must be 'active'.", hold.hold_status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot release hold in '{}' status. Must be 'active'.",
+                hold.hold_status
+            )));
         }
 
-        info!("Releasing hold {} on AP invoice {}", hold_id, hold.invoice_id);
+        info!(
+            "Releasing hold {} on AP invoice {}",
+            hold_id, hold.invoice_id
+        );
 
-        let released = self.repository.update_hold_status(
-            hold_id, "released", Some(released_by), release_reason,
-        ).await?;
+        let released = self
+            .repository
+            .update_hold_status(hold_id, "released", Some(released_by), release_reason)
+            .await?;
 
         // Check if invoice has any remaining active holds
-        let active_holds = self.repository.list_active_holds(released.invoice_id).await?;
+        let active_holds = self
+            .repository
+            .list_active_holds(released.invoice_id)
+            .await?;
         if active_holds.is_empty() {
             // Restore to submitted status
-            self.repository.update_invoice_status(
-                released.invoice_id, "submitted", None, None, None, None,
-            ).await?;
+            self.repository
+                .update_invoice_status(released.invoice_id, "submitted", None, None, None, None)
+                .await?;
         }
 
         Ok(released)
@@ -551,9 +677,9 @@ impl AccountsPayableEngine {
             ));
         }
 
-        let pay_amount: f64 = payment_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "payment_amount must be a valid number".to_string(),
-        ))?;
+        let pay_amount: f64 = payment_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("payment_amount must be a valid number".to_string())
+        })?;
         if pay_amount <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Payment amount must be positive".to_string(),
@@ -563,40 +689,55 @@ impl AccountsPayableEngine {
         // Validate all invoices exist, belong to supplier, and are approved
         let mut total_due = 0.0_f64;
         for inv_id in invoice_ids {
-            let inv = self.repository.get_invoice(*inv_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Invoice {inv_id} not found")
-                ))?;
+            let inv =
+                self.repository.get_invoice(*inv_id).await?.ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Invoice {inv_id} not found"))
+                })?;
             if inv.supplier_id != supplier_id {
-                return Err(AtlasError::ValidationFailed(
-                    format!("Invoice {inv_id} does not belong to supplier {supplier_id}")
-                ));
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Invoice {inv_id} does not belong to supplier {supplier_id}"
+                )));
             }
             if inv.status != "approved" {
-                return Err(AtlasError::WorkflowError(
-                    format!("Invoice {} is in '{}' status, must be 'approved' for payment", inv_id, inv.status)
-                ));
+                return Err(AtlasError::WorkflowError(format!(
+                    "Invoice {} is in '{}' status, must be 'approved' for payment",
+                    inv_id, inv.status
+                )));
             }
             let remaining: f64 = inv.amount_remaining.parse().unwrap_or(0.0);
             total_due += remaining;
         }
 
         if pay_amount > total_due + 0.01 {
-            return Err(AtlasError::ValidationFailed(
-                format!("Payment amount ({pay_amount:.2}) exceeds total amount due ({total_due:.2})")
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Payment amount ({pay_amount:.2}) exceeds total amount due ({total_due:.2})"
+            )));
         }
 
-        info!("Creating AP payment '{}' for supplier {} amount {}", payment_number, supplier_id, payment_amount);
+        info!(
+            "Creating AP payment '{}' for supplier {} amount {}",
+            payment_number, supplier_id, payment_amount
+        );
 
-        let payment = self.repository.create_payment(
-            org_id, payment_number, payment_date, payment_method,
-            payment_currency_code, payment_amount,
-            bank_account_id, bank_account_name, payment_document,
-            supplier_id, supplier_number, supplier_name,
-            &serde_json::json!(invoice_ids),
-            created_by,
-        ).await?;
+        let payment = self
+            .repository
+            .create_payment(
+                org_id,
+                payment_number,
+                payment_date,
+                payment_method,
+                payment_currency_code,
+                payment_amount,
+                bank_account_id,
+                bank_account_name,
+                payment_document,
+                supplier_id,
+                supplier_number,
+                supplier_name,
+                &serde_json::json!(invoice_ids),
+                created_by,
+            )
+            .await?;
 
         // Mark invoices as paid
         for inv_id in invoice_ids {
@@ -606,7 +747,12 @@ impl AccountsPayableEngine {
                 let paid_so_far: f64 = inv.amount_paid.parse().unwrap_or(0.0);
                 let _new_paid = paid_so_far + remaining.min(pay_amount / invoice_ids.len() as f64);
                 // Simple model: mark entire invoice as paid
-                self.repository.update_invoice_paid(*inv_id, &format!("{:.2}", inv.total_amount.parse().unwrap_or(0.0))).await?;
+                self.repository
+                    .update_invoice_paid(
+                        *inv_id,
+                        &format!("{:.2}", inv.total_amount.parse().unwrap_or(0.0)),
+                    )
+                    .await?;
             }
         }
 
@@ -628,45 +774,65 @@ impl AccountsPayableEngine {
         if let Some(s) = status {
             if !VALID_PAYMENT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid payment status '{}'. Must be one of: {}", s, VALID_PAYMENT_STATUSES.join(", ")
+                    "Invalid payment status '{}'. Must be one of: {}",
+                    s,
+                    VALID_PAYMENT_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_payments(org_id, supplier_id, status).await
+        self.repository
+            .list_payments(org_id, supplier_id, status)
+            .await
     }
 
     /// Confirm a payment
-    pub async fn confirm_payment(&self, payment_id: Uuid, confirmed_by: Uuid) -> AtlasResult<ApPayment> {
-        let payment = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment {payment_id} not found")
-            ))?;
+    pub async fn confirm_payment(
+        &self,
+        payment_id: Uuid,
+        confirmed_by: Uuid,
+    ) -> AtlasResult<ApPayment> {
+        let payment = self
+            .repository
+            .get_payment(payment_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if payment.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot confirm payment in '{}' status. Must be 'submitted'.", payment.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot confirm payment in '{}' status. Must be 'submitted'.",
+                payment.status
+            )));
         }
 
         info!("Confirming AP payment {} by {}", payment_id, confirmed_by);
-        self.repository.update_payment_status(payment_id, "confirmed", Some(confirmed_by), None).await
+        self.repository
+            .update_payment_status(payment_id, "confirmed", Some(confirmed_by), None)
+            .await
     }
 
     /// Cancel a payment
-    pub async fn cancel_payment(&self, payment_id: Uuid, reason: Option<&str>) -> AtlasResult<ApPayment> {
-        let payment = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment {payment_id} not found")
-            ))?;
+    pub async fn cancel_payment(
+        &self,
+        payment_id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<ApPayment> {
+        let payment = self
+            .repository
+            .get_payment(payment_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if payment.status == "confirmed" || payment.status == "cancelled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel payment in '{}' status.", payment.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel payment in '{}' status.",
+                payment.status
+            )));
         }
 
         info!("Cancelling AP payment {}", payment_id);
-        self.repository.update_payment_status(payment_id, "cancelled", None, reason).await
+        self.repository
+            .update_payment_status(payment_id, "cancelled", None, reason)
+            .await
     }
 
     // ========================================================================
@@ -679,7 +845,10 @@ impl AccountsPayableEngine {
         org_id: Uuid,
         as_of_date: chrono::NaiveDate,
     ) -> AtlasResult<ApAgingSummary> {
-        let invoices = self.repository.list_invoices(org_id, None, None, None).await?;
+        let invoices = self
+            .repository
+            .list_invoices(org_id, None, None, None)
+            .await?;
 
         let mut current = 0.0_f64;
         let mut aging_1_30 = 0.0_f64;
@@ -687,7 +856,8 @@ impl AccountsPayableEngine {
         let mut aging_61_90 = 0.0_f64;
         let mut aging_91_plus = 0.0_f64;
         let mut total_outstanding = 0.0_f64;
-        let mut supplier_map: std::collections::HashMap<Uuid, ApAgingBySupplier> = std::collections::HashMap::new();
+        let mut supplier_map: std::collections::HashMap<Uuid, ApAgingBySupplier> =
+            std::collections::HashMap::new();
         let mut invoice_count = 0i32;
 
         for inv in &invoices {
@@ -719,26 +889,56 @@ impl AccountsPayableEngine {
             }
 
             // Per-supplier aggregation
-            let entry = supplier_map.entry(inv.supplier_id).or_insert_with(|| ApAgingBySupplier {
-                supplier_id: inv.supplier_id,
-                supplier_name: inv.supplier_name.clone().unwrap_or_default(),
-                supplier_number: inv.supplier_number.clone(),
-                total_outstanding: "0.00".to_string(),
-                current_amount: "0.00".to_string(),
-                aging_1_30: "0.00".to_string(),
-                aging_31_60: "0.00".to_string(),
-                aging_61_90: "0.00".to_string(),
-                aging_91_plus: "0.00".to_string(),
-                invoice_count: 0,
-            });
-            entry.total_outstanding = format!("{:.2}", remaining + entry.total_outstanding.parse::<f64>().unwrap_or(0.0));
+            let entry = supplier_map
+                .entry(inv.supplier_id)
+                .or_insert_with(|| ApAgingBySupplier {
+                    supplier_id: inv.supplier_id,
+                    supplier_name: inv.supplier_name.clone().unwrap_or_default(),
+                    supplier_number: inv.supplier_number.clone(),
+                    total_outstanding: "0.00".to_string(),
+                    current_amount: "0.00".to_string(),
+                    aging_1_30: "0.00".to_string(),
+                    aging_31_60: "0.00".to_string(),
+                    aging_61_90: "0.00".to_string(),
+                    aging_91_plus: "0.00".to_string(),
+                    invoice_count: 0,
+                });
+            entry.total_outstanding = format!(
+                "{:.2}",
+                remaining + entry.total_outstanding.parse::<f64>().unwrap_or(0.0)
+            );
             entry.invoice_count += 1;
             match days_overdue {
-                0 => entry.current_amount = format!("{:.2}", remaining + entry.current_amount.parse::<f64>().unwrap_or(0.0)),
-                1..=30 => entry.aging_1_30 = format!("{:.2}", remaining + entry.aging_1_30.parse::<f64>().unwrap_or(0.0)),
-                31..=60 => entry.aging_31_60 = format!("{:.2}", remaining + entry.aging_31_60.parse::<f64>().unwrap_or(0.0)),
-                61..=90 => entry.aging_61_90 = format!("{:.2}", remaining + entry.aging_61_90.parse::<f64>().unwrap_or(0.0)),
-                _ => entry.aging_91_plus = format!("{:.2}", remaining + entry.aging_91_plus.parse::<f64>().unwrap_or(0.0)),
+                0 => {
+                    entry.current_amount = format!(
+                        "{:.2}",
+                        remaining + entry.current_amount.parse::<f64>().unwrap_or(0.0)
+                    )
+                }
+                1..=30 => {
+                    entry.aging_1_30 = format!(
+                        "{:.2}",
+                        remaining + entry.aging_1_30.parse::<f64>().unwrap_or(0.0)
+                    )
+                }
+                31..=60 => {
+                    entry.aging_31_60 = format!(
+                        "{:.2}",
+                        remaining + entry.aging_31_60.parse::<f64>().unwrap_or(0.0)
+                    )
+                }
+                61..=90 => {
+                    entry.aging_61_90 = format!(
+                        "{:.2}",
+                        remaining + entry.aging_61_90.parse::<f64>().unwrap_or(0.0)
+                    )
+                }
+                _ => {
+                    entry.aging_91_plus = format!(
+                        "{:.2}",
+                        remaining + entry.aging_91_plus.parse::<f64>().unwrap_or(0.0)
+                    )
+                }
             }
         }
 
@@ -777,12 +977,14 @@ impl AccountsPayableEngine {
             }
         }
 
-        self.repository.update_invoice_amounts(
-            invoice_id,
-            &format!("{line_total:.2}"),
-            &format!("{tax_total:.2}"),
-            &format!("{:.2}", line_total + tax_total),
-        ).await?;
+        self.repository
+            .update_invoice_amounts(
+                invoice_id,
+                &format!("{line_total:.2}"),
+                &format!("{tax_total:.2}"),
+                &format!("{:.2}", line_total + tax_total),
+            )
+            .await?;
 
         Ok(())
     }

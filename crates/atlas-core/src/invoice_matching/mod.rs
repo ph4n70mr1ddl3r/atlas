@@ -19,11 +19,11 @@ mod engine;
 
 pub use engine::InvoiceMatchingEngine;
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 
 /// Invoice matching header
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,45 +121,239 @@ pub struct InvoiceMatchingDashboard {
 /// Repository trait
 #[async_trait]
 pub trait InvoiceMatchingRepository: Send + Sync {
-    async fn create_match(&self, org_id: Uuid, match_number: &str, invoice_id: Uuid, invoice_number: Option<&str>, purchase_order_id: Uuid, po_number: Option<&str>, supplier_id: Uuid, supplier_name: &str, match_type: &str, invoice_amount: &str, po_amount: &str, receipt_amount: Option<&str>, inspection_amount: Option<&str>, price_tolerance_pct: &str, quantity_tolerance_pct: &str, amount_tolerance: &str, receipt_id: Option<Uuid>, receipt_number: Option<&str>, inspection_id: Option<Uuid>, inspection_status: Option<&str>, created_by: Option<Uuid>) -> AtlasResult<InvoiceMatch>;
+    async fn create_match(
+        &self,
+        org_id: Uuid,
+        match_number: &str,
+        invoice_id: Uuid,
+        invoice_number: Option<&str>,
+        purchase_order_id: Uuid,
+        po_number: Option<&str>,
+        supplier_id: Uuid,
+        supplier_name: &str,
+        match_type: &str,
+        invoice_amount: &str,
+        po_amount: &str,
+        receipt_amount: Option<&str>,
+        inspection_amount: Option<&str>,
+        price_tolerance_pct: &str,
+        quantity_tolerance_pct: &str,
+        amount_tolerance: &str,
+        receipt_id: Option<Uuid>,
+        receipt_number: Option<&str>,
+        inspection_id: Option<Uuid>,
+        inspection_status: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<InvoiceMatch>;
     async fn get_match(&self, id: Uuid) -> AtlasResult<Option<InvoiceMatch>>;
-    async fn get_match_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<InvoiceMatch>>;
-    async fn list_matches(&self, org_id: Uuid, status: Option<&str>, match_type: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<InvoiceMatch>>;
+    async fn get_match_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<InvoiceMatch>>;
+    async fn list_matches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        match_type: Option<&str>,
+        supplier_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<InvoiceMatch>>;
     async fn update_match_status(&self, id: Uuid, status: &str) -> AtlasResult<InvoiceMatch>;
-    async fn update_match_variances(&self, id: Uuid, price_var: Option<&str>, qty_var: Option<&str>, amt_var: Option<&str>, status: &str) -> AtlasResult<()>;
-    async fn update_match_hold(&self, id: Uuid, reason: Option<&str>, held_by: Option<Uuid>) -> AtlasResult<InvoiceMatch>;
-    async fn update_match_override(&self, id: Uuid, reason: Option<&str>, overridden_by: Option<Uuid>) -> AtlasResult<InvoiceMatch>;
-    async fn update_match_matched(&self, id: Uuid, matched_by: Option<Uuid>) -> AtlasResult<InvoiceMatch>;
+    async fn update_match_variances(
+        &self,
+        id: Uuid,
+        price_var: Option<&str>,
+        qty_var: Option<&str>,
+        amt_var: Option<&str>,
+        status: &str,
+    ) -> AtlasResult<()>;
+    async fn update_match_hold(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+        held_by: Option<Uuid>,
+    ) -> AtlasResult<InvoiceMatch>;
+    async fn update_match_override(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+        overridden_by: Option<Uuid>,
+    ) -> AtlasResult<InvoiceMatch>;
+    async fn update_match_matched(
+        &self,
+        id: Uuid,
+        matched_by: Option<Uuid>,
+    ) -> AtlasResult<InvoiceMatch>;
     async fn cancel_match(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<InvoiceMatch>;
-    async fn create_match_line(&self, org_id: Uuid, match_id: Uuid, invoice_line_id: Option<Uuid>, po_line_id: Option<Uuid>, receipt_line_id: Option<Uuid>, inspection_line_id: Option<Uuid>, line_number: i32, item_description: Option<&str>, invoice_qty: &str, po_qty: &str, receipt_qty: Option<&str>, inspected_qty: Option<&str>, invoice_price: &str, po_price: &str, invoice_amt: &str, po_amt: &str, status: &str, price_var: Option<&str>, qty_var: Option<&str>, notes: Option<&str>) -> AtlasResult<InvoiceMatchLine>;
+    async fn create_match_line(
+        &self,
+        org_id: Uuid,
+        match_id: Uuid,
+        invoice_line_id: Option<Uuid>,
+        po_line_id: Option<Uuid>,
+        receipt_line_id: Option<Uuid>,
+        inspection_line_id: Option<Uuid>,
+        line_number: i32,
+        item_description: Option<&str>,
+        invoice_qty: &str,
+        po_qty: &str,
+        receipt_qty: Option<&str>,
+        inspected_qty: Option<&str>,
+        invoice_price: &str,
+        po_price: &str,
+        invoice_amt: &str,
+        po_amt: &str,
+        status: &str,
+        price_var: Option<&str>,
+        qty_var: Option<&str>,
+        notes: Option<&str>,
+    ) -> AtlasResult<InvoiceMatchLine>;
     async fn get_match_line(&self, id: Uuid) -> AtlasResult<Option<InvoiceMatchLine>>;
     async fn list_match_lines(&self, match_id: Uuid) -> AtlasResult<Vec<InvoiceMatchLine>>;
-    async fn update_match_line_status(&self, id: Uuid, status: &str) -> AtlasResult<InvoiceMatchLine>;
+    async fn update_match_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<InvoiceMatchLine>;
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<InvoiceMatchingDashboard>;
 }
 
 /// `PostgreSQL` implementation (stub)
 #[allow(dead_code)]
-pub struct PostgresInvoiceMatchingRepository { #[allow(dead_code)]
-    pool: PgPool }
-impl PostgresInvoiceMatchingRepository { #[must_use] 
-pub const fn new(pool: PgPool) -> Self { Self { pool } } }
+pub struct PostgresInvoiceMatchingRepository {
+    #[allow(dead_code)]
+    pool: PgPool,
+}
+impl PostgresInvoiceMatchingRepository {
+    #[must_use]
+    pub const fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
 
 #[async_trait]
 impl InvoiceMatchingRepository for PostgresInvoiceMatchingRepository {
-    async fn create_match(&self, _: Uuid, _: &str, _: Uuid, _: Option<&str>, _: Uuid, _: Option<&str>, _: Uuid, _: &str, _: &str, _: &str, _: &str, _: Option<&str>, _: Option<&str>, _: &str, _: &str, _: &str, _: Option<Uuid>, _: Option<&str>, _: Option<Uuid>, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<InvoiceMatch> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_match(&self, _: Uuid) -> AtlasResult<Option<InvoiceMatch>> { Ok(None) }
-    async fn get_match_by_number(&self, _: Uuid, _: &str) -> AtlasResult<Option<InvoiceMatch>> { Ok(None) }
-    async fn list_matches(&self, _: Uuid, _: Option<&str>, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<Vec<InvoiceMatch>> { Ok(vec![]) }
-    async fn update_match_status(&self, _: Uuid, _: &str) -> AtlasResult<InvoiceMatch> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn update_match_variances(&self, _: Uuid, _: Option<&str>, _: Option<&str>, _: Option<&str>, _: &str) -> AtlasResult<()> { Ok(()) }
-    async fn update_match_hold(&self, _: Uuid, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<InvoiceMatch> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn update_match_override(&self, _: Uuid, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<InvoiceMatch> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn update_match_matched(&self, _: Uuid, _: Option<Uuid>) -> AtlasResult<InvoiceMatch> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn cancel_match(&self, _: Uuid, _: Option<&str>) -> AtlasResult<InvoiceMatch> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn create_match_line(&self, _: Uuid, _: Uuid, _: Option<Uuid>, _: Option<Uuid>, _: Option<Uuid>, _: Option<Uuid>, _: i32, _: Option<&str>, _: &str, _: &str, _: Option<&str>, _: Option<&str>, _: &str, _: &str, _: &str, _: &str, _: &str, _: Option<&str>, _: Option<&str>, _: Option<&str>) -> AtlasResult<InvoiceMatchLine> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_match_line(&self, _: Uuid) -> AtlasResult<Option<InvoiceMatchLine>> { Ok(None) }
-    async fn list_match_lines(&self, _: Uuid) -> AtlasResult<Vec<InvoiceMatchLine>> { Ok(vec![]) }
-    async fn update_match_line_status(&self, _: Uuid, _: &str) -> AtlasResult<InvoiceMatchLine> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn get_dashboard(&self, _: Uuid) -> AtlasResult<InvoiceMatchingDashboard> { Ok(InvoiceMatchingDashboard { total_matches: 0, matched_count: 0, pending_count: 0, exception_count: 0, overridden_count: 0, total_invoice_amount: "0".into(), total_variance_amount: "0".into(), matches_by_type: serde_json::json!([]), recent_exceptions: serde_json::json!([]) }) }
+    async fn create_match(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: Uuid,
+        _: Option<&str>,
+        _: Uuid,
+        _: Option<&str>,
+        _: Uuid,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: Option<Uuid>,
+        _: Option<&str>,
+        _: Option<Uuid>,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<InvoiceMatch> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_match(&self, _: Uuid) -> AtlasResult<Option<InvoiceMatch>> {
+        Ok(None)
+    }
+    async fn get_match_by_number(&self, _: Uuid, _: &str) -> AtlasResult<Option<InvoiceMatch>> {
+        Ok(None)
+    }
+    async fn list_matches(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<Vec<InvoiceMatch>> {
+        Ok(vec![])
+    }
+    async fn update_match_status(&self, _: Uuid, _: &str) -> AtlasResult<InvoiceMatch> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn update_match_variances(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: &str,
+    ) -> AtlasResult<()> {
+        Ok(())
+    }
+    async fn update_match_hold(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<InvoiceMatch> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn update_match_override(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<InvoiceMatch> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn update_match_matched(&self, _: Uuid, _: Option<Uuid>) -> AtlasResult<InvoiceMatch> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn cancel_match(&self, _: Uuid, _: Option<&str>) -> AtlasResult<InvoiceMatch> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn create_match_line(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: Option<Uuid>,
+        _: Option<Uuid>,
+        _: Option<Uuid>,
+        _: Option<Uuid>,
+        _: i32,
+        _: Option<&str>,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: Option<&str>,
+    ) -> AtlasResult<InvoiceMatchLine> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_match_line(&self, _: Uuid) -> AtlasResult<Option<InvoiceMatchLine>> {
+        Ok(None)
+    }
+    async fn list_match_lines(&self, _: Uuid) -> AtlasResult<Vec<InvoiceMatchLine>> {
+        Ok(vec![])
+    }
+    async fn update_match_line_status(&self, _: Uuid, _: &str) -> AtlasResult<InvoiceMatchLine> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn get_dashboard(&self, _: Uuid) -> AtlasResult<InvoiceMatchingDashboard> {
+        Ok(InvoiceMatchingDashboard {
+            total_matches: 0,
+            matched_count: 0,
+            pending_count: 0,
+            exception_count: 0,
+            overridden_count: 0,
+            total_invoice_amount: "0".into(),
+            total_variance_amount: "0".into(),
+            matches_by_type: serde_json::json!([]),
+            recent_exceptions: serde_json::json!([]),
+        })
+    }
 }

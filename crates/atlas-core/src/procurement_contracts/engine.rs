@@ -10,45 +10,46 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: SCM > Procurement > Contracts
 
-use atlas_shared::{
-    ContractType, ProcurementContract, ContractLine, ContractMilestone,
-    ContractRenewal, ContractSpend, ContractDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::ProcurementContractRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ContractDashboardSummary, ContractLine, ContractMilestone,
+    ContractRenewal, ContractSpend, ContractType, ProcurementContract,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid contract classifications
-const VALID_CLASSIFICATIONS: &[&str] = &[
-    "blanket", "purchase_agreement", "service", "lease", "other",
-];
+const VALID_CLASSIFICATIONS: &[&str] =
+    &["blanket", "purchase_agreement", "service", "lease", "other"];
 
 /// Valid contract statuses
 const VALID_STATUSES: &[&str] = &[
-    "draft", "pending_approval", "active", "expired", "terminated", "closed",
+    "draft",
+    "pending_approval",
+    "active",
+    "expired",
+    "terminated",
+    "closed",
 ];
 
 /// Valid milestone types
-const VALID_MILESTONE_TYPES: &[&str] = &[
-    "delivery", "payment", "review", "acceptance", "custom",
-];
+const VALID_MILESTONE_TYPES: &[&str] = &["delivery", "payment", "review", "acceptance", "custom"];
 
 /// Valid milestone statuses
 const VALID_MILESTONE_STATUSES: &[&str] = &[
-    "pending", "in_progress", "completed", "overdue", "cancelled",
+    "pending",
+    "in_progress",
+    "completed",
+    "overdue",
+    "cancelled",
 ];
 
 /// Valid renewal types
-const VALID_RENEWAL_TYPES: &[&str] = &[
-    "automatic", "manual", "negotiated",
-];
+const VALID_RENEWAL_TYPES: &[&str] = &["automatic", "manual", "negotiated"];
 
 /// Valid price types
-const VALID_PRICE_TYPES: &[&str] = &[
-    "fixed", "variable", "tiered",
-];
+const VALID_PRICE_TYPES: &[&str] = &["fixed", "variable", "tiered"];
 
 /// Procurement Contracts Engine
 pub struct ProcurementContractEngine {
@@ -93,25 +94,42 @@ impl ProcurementContractEngine {
         if !VALID_CLASSIFICATIONS.contains(&contract_classification) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid classification '{}'. Must be one of: {}",
-                contract_classification, VALID_CLASSIFICATIONS.join(", ")
+                contract_classification,
+                VALID_CLASSIFICATIONS.join(", ")
             )));
         }
 
         info!("Creating contract type '{}' for org {}", code, org_id);
 
-        self.repository.create_contract_type(
-            org_id, code, name, description, contract_classification,
-            requires_approval, default_duration_days,
-            allow_amount_commitment, allow_quantity_commitment,
-            allow_line_additions, allow_price_adjustment,
-            allow_renewal, allow_termination, max_renewals,
-            default_payment_terms_code, default_currency_code,
-            created_by,
-        ).await
+        self.repository
+            .create_contract_type(
+                org_id,
+                code,
+                name,
+                description,
+                contract_classification,
+                requires_approval,
+                default_duration_days,
+                allow_amount_commitment,
+                allow_quantity_commitment,
+                allow_line_additions,
+                allow_price_adjustment,
+                allow_renewal,
+                allow_termination,
+                max_renewals,
+                default_payment_terms_code,
+                default_currency_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get a contract type by code
-    pub async fn get_contract_type(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ContractType>> {
+    pub async fn get_contract_type(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ContractType>> {
         self.repository.get_contract_type(org_id, code).await
     }
 
@@ -162,13 +180,15 @@ impl ProcurementContractEngine {
         if !VALID_CLASSIFICATIONS.contains(&contract_classification) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid classification '{}'. Must be one of: {}",
-                contract_classification, VALID_CLASSIFICATIONS.join(", ")
+                contract_classification,
+                VALID_CLASSIFICATIONS.join(", ")
             )));
         }
         if !VALID_PRICE_TYPES.contains(&price_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid price type '{}'. Must be one of: {}",
-                price_type, VALID_PRICE_TYPES.join(", ")
+                price_type,
+                VALID_PRICE_TYPES.join(", ")
             )));
         }
         if currency_code.is_empty() {
@@ -176,9 +196,11 @@ impl ProcurementContractEngine {
                 "Currency code is required".to_string(),
             ));
         }
-        let committed: f64 = total_committed_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Total committed amount must be a valid number".to_string(),
-        ))?;
+        let committed: f64 = total_committed_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed(
+                "Total committed amount must be a valid number".to_string(),
+            )
+        })?;
         if committed < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Total committed amount must be non-negative".to_string(),
@@ -195,18 +217,36 @@ impl ProcurementContractEngine {
 
         let contract_number = format!("PC-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating procurement contract {} for supplier {} in org {}",
-            contract_number, supplier_id, org_id);
+        info!(
+            "Creating procurement contract {} for supplier {} in org {}",
+            contract_number, supplier_id, org_id
+        );
 
-        self.repository.create_contract(
-            org_id, &contract_number, title, description,
-            contract_type_code, contract_classification,
-            supplier_id, supplier_number, supplier_name, supplier_contact,
-            buyer_id, buyer_name, start_date, end_date,
-            total_committed_amount, currency_code,
-            payment_terms_code, price_type, max_renewals, notes,
-            created_by,
-        ).await
+        self.repository
+            .create_contract(
+                org_id,
+                &contract_number,
+                title,
+                description,
+                contract_type_code,
+                contract_classification,
+                supplier_id,
+                supplier_number,
+                supplier_name,
+                supplier_contact,
+                buyer_id,
+                buyer_name,
+                start_date,
+                end_date,
+                total_committed_amount,
+                currency_code,
+                payment_terms_code,
+                price_type,
+                max_renewals,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a contract by ID
@@ -215,8 +255,14 @@ impl ProcurementContractEngine {
     }
 
     /// Get a contract by number
-    pub async fn get_contract_by_number(&self, org_id: Uuid, contract_number: &str) -> AtlasResult<Option<ProcurementContract>> {
-        self.repository.get_contract_by_number(org_id, contract_number).await
+    pub async fn get_contract_by_number(
+        &self,
+        org_id: Uuid,
+        contract_number: &str,
+    ) -> AtlasResult<Option<ProcurementContract>> {
+        self.repository
+            .get_contract_by_number(org_id, contract_number)
+            .await
     }
 
     /// List contracts with optional filters
@@ -229,86 +275,126 @@ impl ProcurementContractEngine {
         if let Some(s) = status {
             if !VALID_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_contracts(org_id, status, supplier_id).await
+        self.repository
+            .list_contracts(org_id, status, supplier_id)
+            .await
     }
 
     /// Submit a contract for approval
     pub async fn submit_contract(&self, contract_id: Uuid) -> AtlasResult<ProcurementContract> {
-        let contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract {contract_id} not found")
-            ))?;
+        let contract = self
+            .repository
+            .get_contract(contract_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract {contract_id} not found"))
+            })?;
 
         if contract.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot submit contract in '{}' status. Must be 'draft'.", contract.status
+                "Cannot submit contract in '{}' status. Must be 'draft'.",
+                contract.status
             )));
         }
 
-        info!("Submitting contract {} for approval", contract.contract_number);
+        info!(
+            "Submitting contract {} for approval",
+            contract.contract_number
+        );
 
         // Check if the contract type requires approval
         let needs_approval = if let Some(ref type_code) = contract.contract_type_code {
-            let ct = self.repository.get_contract_type(contract.organization_id, type_code).await?;
+            let ct = self
+                .repository
+                .get_contract_type(contract.organization_id, type_code)
+                .await?;
             ct.is_none_or(|t| t.requires_approval)
         } else {
             true // Default: require approval
         };
 
-        let new_status = if needs_approval { "pending_approval" } else { "active" };
-        self.repository.update_contract_status(
-            contract_id, new_status, None, None, None, None,
-        ).await
+        let new_status = if needs_approval {
+            "pending_approval"
+        } else {
+            "active"
+        };
+        self.repository
+            .update_contract_status(contract_id, new_status, None, None, None, None)
+            .await
     }
 
     /// Approve a contract (activate it)
-    pub async fn approve_contract(&self, contract_id: Uuid, approved_by: Uuid) -> AtlasResult<ProcurementContract> {
-        let contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract {contract_id} not found")
-            ))?;
+    pub async fn approve_contract(
+        &self,
+        contract_id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<ProcurementContract> {
+        let contract = self
+            .repository
+            .get_contract(contract_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract {contract_id} not found"))
+            })?;
 
         if contract.status != "pending_approval" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot approve contract in '{}' status. Must be 'pending_approval'.", contract.status
+                "Cannot approve contract in '{}' status. Must be 'pending_approval'.",
+                contract.status
             )));
         }
 
-        info!("Approving contract {} by {}", contract.contract_number, approved_by);
+        info!(
+            "Approving contract {} by {}",
+            contract.contract_number, approved_by
+        );
 
-        self.repository.update_contract_status(
-            contract_id, "active", Some(approved_by), None, None, None,
-        ).await
+        self.repository
+            .update_contract_status(contract_id, "active", Some(approved_by), None, None, None)
+            .await
     }
 
     /// Reject a contract
-    pub async fn reject_contract(&self, contract_id: Uuid, reason: &str) -> AtlasResult<ProcurementContract> {
+    pub async fn reject_contract(
+        &self,
+        contract_id: Uuid,
+        reason: &str,
+    ) -> AtlasResult<ProcurementContract> {
         if reason.is_empty() {
             return Err(AtlasError::ValidationFailed(
                 "Rejection reason is required".to_string(),
             ));
         }
 
-        let contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract {contract_id} not found")
-            ))?;
+        let contract = self
+            .repository
+            .get_contract(contract_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract {contract_id} not found"))
+            })?;
 
         if contract.status != "pending_approval" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot reject contract in '{}' status.", contract.status
+                "Cannot reject contract in '{}' status.",
+                contract.status
             )));
         }
 
-        info!("Rejecting contract {} - reason: {}", contract.contract_number, reason);
+        info!(
+            "Rejecting contract {} - reason: {}",
+            contract.contract_number, reason
+        );
 
-        self.repository.update_contract_status(
-            contract_id, "draft", None, Some(reason), None, None,
-        ).await
+        self.repository
+            .update_contract_status(contract_id, "draft", None, Some(reason), None, None)
+            .await
     }
 
     /// Terminate an active contract
@@ -324,42 +410,60 @@ impl ProcurementContractEngine {
             ));
         }
 
-        let contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract {contract_id} not found")
-            ))?;
+        let contract = self
+            .repository
+            .get_contract(contract_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract {contract_id} not found"))
+            })?;
 
         if contract.status != "active" && contract.status != "expired" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot terminate contract in '{}' status. Must be 'active' or 'expired'.", contract.status
+                "Cannot terminate contract in '{}' status. Must be 'active' or 'expired'.",
+                contract.status
             )));
         }
 
-        info!("Terminating contract {} - reason: {}", contract.contract_number, reason);
+        info!(
+            "Terminating contract {} - reason: {}",
+            contract.contract_number, reason
+        );
 
-        self.repository.update_contract_status(
-            contract_id, "terminated", None, None, Some(terminated_by), Some(reason),
-        ).await
+        self.repository
+            .update_contract_status(
+                contract_id,
+                "terminated",
+                None,
+                None,
+                Some(terminated_by),
+                Some(reason),
+            )
+            .await
     }
 
     /// Close a contract
     pub async fn close_contract(&self, contract_id: Uuid) -> AtlasResult<ProcurementContract> {
-        let contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract {contract_id} not found")
-            ))?;
+        let contract = self
+            .repository
+            .get_contract(contract_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract {contract_id} not found"))
+            })?;
 
         if contract.status != "active" && contract.status != "expired" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot close contract in '{}' status.", contract.status
+                "Cannot close contract in '{}' status.",
+                contract.status
             )));
         }
 
         info!("Closing contract {}", contract.contract_number);
 
-        self.repository.update_contract_status(
-            contract_id, "closed", None, None, None, None,
-        ).await
+        self.repository
+            .update_contract_status(contract_id, "closed", None, None, None, None)
+            .await
     }
 
     // ========================================================================
@@ -385,10 +489,13 @@ impl ProcurementContractEngine {
         notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractLine> {
-        let contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract {contract_id} not found")
-            ))?;
+        let contract = self
+            .repository
+            .get_contract(contract_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract {contract_id} not found"))
+            })?;
 
         if contract.status != "draft" && contract.status != "pending_approval" {
             // Check if type allows line additions after activation
@@ -400,7 +507,8 @@ impl ProcurementContractEngine {
             };
             if !allow {
                 return Err(AtlasError::WorkflowError(format!(
-                    "Cannot add lines to contract in '{}' status", contract.status
+                    "Cannot add lines to contract in '{}' status",
+                    contract.status
                 )));
             }
         }
@@ -411,17 +519,16 @@ impl ProcurementContractEngine {
             ));
         }
 
-        let price: f64 = unit_price.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Unit price must be a valid number".to_string(),
-        ))?;
+        let price: f64 = unit_price.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Unit price must be a valid number".to_string())
+        })?;
         if price < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Unit price must be non-negative".to_string(),
             ));
         }
 
-        let qty: f64 = quantity_committed
-            .map_or(0.0, |q| q.parse::<f64>().unwrap_or(0.0));
+        let qty: f64 = quantity_committed.map_or(0.0, |q| q.parse::<f64>().unwrap_or(0.0));
 
         let line_amount = if qty > 0.0 {
             format!("{:.2}", qty * price)
@@ -433,31 +540,53 @@ impl ProcurementContractEngine {
         let existing_lines = self.repository.list_contract_lines(contract_id).await?;
         let line_number = (existing_lines.len() as i32) + 1;
 
-        info!("Adding line {} to contract {}", line_number, contract.contract_number);
+        info!(
+            "Adding line {} to contract {}",
+            line_number, contract.contract_number
+        );
 
-        let line = self.repository.create_contract_line(
-            org_id, contract_id, line_number,
-            item_description, item_code, category, uom,
-            quantity_committed, "0",
-            unit_price, &line_amount, "0",
-            delivery_date, supplier_part_number,
-            account_code, cost_center, project_id, notes,
-            created_by,
-        ).await?;
+        let line = self
+            .repository
+            .create_contract_line(
+                org_id,
+                contract_id,
+                line_number,
+                item_description,
+                item_code,
+                category,
+                uom,
+                quantity_committed,
+                "0",
+                unit_price,
+                &line_amount,
+                "0",
+                delivery_date,
+                supplier_part_number,
+                account_code,
+                cost_center,
+                project_id,
+                notes,
+                created_by,
+            )
+            .await?;
 
         // Recalculate total committed amount
         let all_lines = self.repository.list_contract_lines(contract_id).await?;
-        let total_committed: f64 = all_lines.iter()
+        let total_committed: f64 = all_lines
+            .iter()
             .map(|l| l.line_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
-        self.repository.update_contract_totals(
-            contract_id,
-            Some(&format!("{total_committed:.2}")),
-            None, None,
-            Some(all_lines.len() as i32),
-            None,
-        ).await?;
+        self.repository
+            .update_contract_totals(
+                contract_id,
+                Some(&format!("{total_committed:.2}")),
+                None,
+                None,
+                Some(all_lines.len() as i32),
+                None,
+            )
+            .await?;
 
         Ok(line)
     }
@@ -469,15 +598,21 @@ impl ProcurementContractEngine {
 
     /// Delete a contract line
     pub async fn delete_contract_line(&self, line_id: Uuid) -> AtlasResult<()> {
-        let line = self.repository.get_contract_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract line {line_id} not found")
-            ))?;
+        let line = self
+            .repository
+            .get_contract_line(line_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract line {line_id} not found"))
+            })?;
 
-        let contract = self.repository.get_contract(line.contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract {} not found", line.contract_id)
-            ))?;
+        let contract = self
+            .repository
+            .get_contract(line.contract_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract {} not found", line.contract_id))
+            })?;
 
         if contract.status != "draft" && contract.status != "pending_approval" {
             return Err(AtlasError::WorkflowError(
@@ -485,23 +620,33 @@ impl ProcurementContractEngine {
             ));
         }
 
-        info!("Deleting line {} from contract {}", line.line_number, contract.contract_number);
+        info!(
+            "Deleting line {} from contract {}",
+            line.line_number, contract.contract_number
+        );
 
         self.repository.delete_contract_line(line_id).await?;
 
         // Recalculate totals
-        let remaining = self.repository.list_contract_lines(line.contract_id).await?;
-        let total_committed: f64 = remaining.iter()
+        let remaining = self
+            .repository
+            .list_contract_lines(line.contract_id)
+            .await?;
+        let total_committed: f64 = remaining
+            .iter()
             .map(|l| l.line_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
-        self.repository.update_contract_totals(
-            line.contract_id,
-            Some(&format!("{total_committed:.2}")),
-            None, None,
-            Some(remaining.len() as i32),
-            None,
-        ).await?;
+        self.repository
+            .update_contract_totals(
+                line.contract_id,
+                Some(&format!("{total_committed:.2}")),
+                None,
+                None,
+                Some(remaining.len() as i32),
+                None,
+            )
+            .await?;
 
         Ok(())
     }
@@ -526,21 +671,26 @@ impl ProcurementContractEngine {
         is_billable: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractMilestone> {
-        let contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract {contract_id} not found")
-            ))?;
+        let contract = self
+            .repository
+            .get_contract(contract_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract {contract_id} not found"))
+            })?;
 
         if contract.status == "terminated" || contract.status == "closed" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot add milestones to contract in '{}' status", contract.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot add milestones to contract in '{}' status",
+                contract.status
+            )));
         }
 
         if !VALID_MILESTONE_TYPES.contains(&milestone_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid milestone type '{}'. Must be one of: {}",
-                milestone_type, VALID_MILESTONE_TYPES.join(", ")
+                milestone_type,
+                VALID_MILESTONE_TYPES.join(", ")
             )));
         }
 
@@ -550,9 +700,9 @@ impl ProcurementContractEngine {
             ));
         }
 
-        let amount_val: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amount_val: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
         if amount_val < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Amount must be non-negative".to_string(),
@@ -563,23 +713,42 @@ impl ProcurementContractEngine {
         let existing = self.repository.list_milestones(contract_id).await?;
         let milestone_number = (existing.len() as i32) + 1;
 
-        info!("Adding milestone {} '{}' to contract {}",
-            milestone_number, name, contract.contract_number);
+        info!(
+            "Adding milestone {} '{}' to contract {}",
+            milestone_number, name, contract.contract_number
+        );
 
-        let milestone = self.repository.create_milestone(
-            org_id, contract_id, contract_line_id,
-            milestone_number, name, description,
-            milestone_type, target_date,
-            amount, percent_of_total,
-            deliverable, is_billable, created_by,
-        ).await?;
+        let milestone = self
+            .repository
+            .create_milestone(
+                org_id,
+                contract_id,
+                contract_line_id,
+                milestone_number,
+                name,
+                description,
+                milestone_type,
+                target_date,
+                amount,
+                percent_of_total,
+                deliverable,
+                is_billable,
+                created_by,
+            )
+            .await?;
 
         // Update milestone count
         let all_milestones = self.repository.list_milestones(contract_id).await?;
-        self.repository.update_contract_totals(
-            contract_id, None, None, None, None,
-            Some(all_milestones.len() as i32),
-        ).await?;
+        self.repository
+            .update_contract_totals(
+                contract_id,
+                None,
+                None,
+                None,
+                None,
+                Some(all_milestones.len() as i32),
+            )
+            .await?;
 
         Ok(milestone)
     }
@@ -599,18 +768,24 @@ impl ProcurementContractEngine {
         if !VALID_MILESTONE_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid milestone status '{}'. Must be one of: {}",
-                status, VALID_MILESTONE_STATUSES.join(", ")
+                status,
+                VALID_MILESTONE_STATUSES.join(", ")
             )));
         }
 
-        let milestone = self.repository.get_milestone(milestone_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Milestone {milestone_id} not found")
-            ))?;
+        let milestone = self
+            .repository
+            .get_milestone(milestone_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Milestone {milestone_id} not found"))
+            })?;
 
         info!("Updating milestone {} status to {}", milestone.name, status);
 
-        self.repository.update_milestone_status(milestone_id, status, actual_date).await
+        self.repository
+            .update_milestone_status(milestone_id, status, actual_date)
+            .await
     }
 
     // ========================================================================
@@ -630,34 +805,38 @@ impl ProcurementContractEngine {
         if !VALID_RENEWAL_TYPES.contains(&renewal_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid renewal type '{}'. Must be one of: {}",
-                renewal_type, VALID_RENEWAL_TYPES.join(", ")
+                renewal_type,
+                VALID_RENEWAL_TYPES.join(", ")
             )));
         }
 
-        let contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract {contract_id} not found")
-            ))?;
+        let contract = self
+            .repository
+            .get_contract(contract_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract {contract_id} not found"))
+            })?;
 
         if contract.status != "active" && contract.status != "expired" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot renew contract in '{}' status", contract.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot renew contract in '{}' status",
+                contract.status
+            )));
         }
 
         // Check renewal limits
         if let Some(max) = contract.max_renewals {
             if contract.renewal_count >= max {
-                return Err(AtlasError::ValidationFailed(
-                    format!("Contract has reached maximum renewals ({max})")
-                ));
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Contract has reached maximum renewals ({max})"
+                )));
             }
         }
 
-        let previous_end_date = contract.end_date
-            .ok_or_else(|| AtlasError::ValidationFailed(
-                "Contract must have an end date to be renewed".to_string(),
-            ))?;
+        let previous_end_date = contract.end_date.ok_or_else(|| {
+            AtlasError::ValidationFailed("Contract must have an end date to be renewed".to_string())
+        })?;
 
         if new_end_date <= previous_end_date {
             return Err(AtlasError::ValidationFailed(
@@ -667,23 +846,34 @@ impl ProcurementContractEngine {
 
         let renewal_number = contract.renewal_count + 1;
 
-        info!("Renewing contract {} (renewal #{}) to {}",
-            contract.contract_number, renewal_number, new_end_date);
+        info!(
+            "Renewing contract {} (renewal #{}) to {}",
+            contract.contract_number, renewal_number, new_end_date
+        );
 
-        let renewal = self.repository.create_renewal(
-            contract.organization_id, contract_id, renewal_number,
-            previous_end_date, new_end_date,
-            renewal_type, terms_changed, renewed_by, notes,
-        ).await?;
+        let renewal = self
+            .repository
+            .create_renewal(
+                contract.organization_id,
+                contract_id,
+                renewal_number,
+                previous_end_date,
+                new_end_date,
+                renewal_type,
+                terms_changed,
+                renewed_by,
+                notes,
+            )
+            .await?;
 
         // Update contract dates and renewal count
-        self.repository.update_contract_dates(
-            contract_id, None, Some(new_end_date),
-        ).await?;
+        self.repository
+            .update_contract_dates(contract_id, None, Some(new_end_date))
+            .await?;
 
-        self.repository.update_contract_status(
-            contract_id, "active", None, None, None, None,
-        ).await?;
+        self.repository
+            .update_contract_status(contract_id, "active", None, None, None, None)
+            .await?;
 
         self.repository.increment_renewal_count(contract_id).await?;
 
@@ -714,46 +904,69 @@ impl ProcurementContractEngine {
         description: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractSpend> {
-        let contract = self.repository.get_contract(contract_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Contract {contract_id} not found")
-            ))?;
+        let contract = self
+            .repository
+            .get_contract(contract_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Contract {contract_id} not found"))
+            })?;
 
         if contract.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot record spend against contract in '{}' status", contract.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot record spend against contract in '{}' status",
+                contract.status
+            )));
         }
 
-        let amount_val: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amount_val: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
         if amount_val <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Spend amount must be positive".to_string(),
             ));
         }
 
-        info!("Recording spend of {} against contract {}", amount, contract.contract_number);
+        info!(
+            "Recording spend of {} against contract {}",
+            amount, contract.contract_number
+        );
 
-        let spend = self.repository.create_spend_entry(
-            org_id, contract_id, contract_line_id,
-            source_type, source_id, source_number,
-            transaction_date, amount, quantity,
-            description, created_by,
-        ).await?;
+        let spend = self
+            .repository
+            .create_spend_entry(
+                org_id,
+                contract_id,
+                contract_line_id,
+                source_type,
+                source_id,
+                source_number,
+                transaction_date,
+                amount,
+                quantity,
+                description,
+                created_by,
+            )
+            .await?;
 
         // Update contract released amount
         let all_spend = self.repository.list_spend_entries(contract_id).await?;
-        let total_released: f64 = all_spend.iter()
+        let total_released: f64 = all_spend
+            .iter()
             .map(|s| s.amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
-        self.repository.update_contract_totals(
-            contract_id, None,
-            Some(&format!("{total_released:.2}")),
-            None, None, None,
-        ).await?;
+        self.repository
+            .update_contract_totals(
+                contract_id,
+                None,
+                Some(&format!("{total_released:.2}")),
+                None,
+                None,
+                None,
+            )
+            .await?;
 
         Ok(spend)
     }
@@ -768,19 +981,23 @@ impl ProcurementContractEngine {
     // ========================================================================
 
     /// Get dashboard summary for procurement contracts
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ContractDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ContractDashboardSummary> {
         let all_contracts = self.repository.list_contracts(org_id, None, None).await?;
 
         let total_count = all_contracts.len() as i32;
-        let active_count = all_contracts.iter().filter(|c| c.status == "active").count() as i32;
+        let active_count = all_contracts
+            .iter()
+            .filter(|c| c.status == "active")
+            .count() as i32;
 
         let today = chrono::Utc::now().date_naive();
         let thirty_days = today + chrono::Duration::days(30);
-        let expiring_count = all_contracts.iter()
-            .filter(|c| {
-                c.status == "active" &&
-                c.end_date.is_some_and(|d| d <= thirty_days)
-            })
+        let expiring_count = all_contracts
+            .iter()
+            .filter(|c| c.status == "active" && c.end_date.is_some_and(|d| d <= thirty_days))
             .count() as i32;
 
         let mut total_committed = 0.0_f64;
@@ -800,30 +1017,39 @@ impl ProcurementContractEngine {
         };
 
         // Group by status
-        let mut by_status: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+        let mut by_status: std::collections::HashMap<String, i32> =
+            std::collections::HashMap::new();
         for c in &all_contracts {
             *by_status.entry(c.status.clone()).or_insert(0) += 1;
         }
-        let contracts_by_status: serde_json::Value = by_status.into_iter()
+        let contracts_by_status: serde_json::Value = by_status
+            .into_iter()
             .map(|(k, v)| serde_json::json!({"status": k, "count": v}))
             .collect();
 
         // Group by type
         let mut by_type: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
         for c in &all_contracts {
-            let key = c.contract_type_code.clone().unwrap_or_else(|| "untyped".to_string());
+            let key = c
+                .contract_type_code
+                .clone()
+                .unwrap_or_else(|| "untyped".to_string());
             *by_type.entry(key).or_insert(0) += 1;
         }
-        let contracts_by_type: serde_json::Value = by_type.into_iter()
+        let contracts_by_type: serde_json::Value = by_type
+            .into_iter()
             .map(|(k, v)| serde_json::json!({"type": k, "count": v}))
             .collect();
 
         // Top suppliers by committed amount
-        let mut by_supplier: std::collections::HashMap<String, (String, f64)> = std::collections::HashMap::new();
+        let mut by_supplier: std::collections::HashMap<String, (String, f64)> =
+            std::collections::HashMap::new();
         for c in &all_contracts {
             if c.status == "active" {
                 let entry = by_supplier.entry(c.supplier_id.to_string()).or_insert((
-                    c.supplier_name.clone().unwrap_or_else(|| c.supplier_id.to_string()),
+                    c.supplier_name
+                        .clone()
+                        .unwrap_or_else(|| c.supplier_id.to_string()),
                     0.0,
                 ));
                 entry.1 += c.total_committed_amount.parse::<f64>().unwrap_or(0.0);
@@ -833,8 +1059,16 @@ impl ProcurementContractEngine {
             serde_json::json!({"supplier_id": id, "supplier_name": name, "committed": format!("{:.2}", amt)})
         }).collect();
         suppliers.sort_by(|a, b| {
-            let va: f64 = a["committed"].as_str().unwrap_or("0").parse().unwrap_or(0.0);
-            let vb: f64 = b["committed"].as_str().unwrap_or("0").parse().unwrap_or(0.0);
+            let va: f64 = a["committed"]
+                .as_str()
+                .unwrap_or("0")
+                .parse()
+                .unwrap_or(0.0);
+            let vb: f64 = b["committed"]
+                .as_str()
+                .unwrap_or("0")
+                .parse()
+                .unwrap_or(0.0);
             vb.partial_cmp(&va).unwrap_or(std::cmp::Ordering::Equal)
         });
         suppliers.truncate(10);

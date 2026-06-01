@@ -8,8 +8,8 @@
 //!
 //! Oracle Fusion equivalent: Treasury > Bank Guarantees
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::BankGuaranteeEngine;
 pub use repository::{BankGuaranteeRepository, PostgresBankGuaranteeRepository};

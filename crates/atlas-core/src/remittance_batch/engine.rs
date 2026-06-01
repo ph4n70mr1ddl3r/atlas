@@ -5,11 +5,10 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Receivables > Receipts > Remittance Batches
 
-use atlas_shared::{
-    RemittanceBatch, RemittanceBatchReceipt, RemittanceBatchSummary,
-    AtlasError, AtlasResult,
-};
 use super::RemittanceBatchRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, RemittanceBatch, RemittanceBatchReceipt, RemittanceBatchSummary,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -19,8 +18,14 @@ const VALID_REMITTANCE_METHODS: &[&str] = &["standard", "factoring", "standard_w
 
 /// Valid batch statuses (ordered lifecycle)
 const VALID_STATUSES: &[&str] = &[
-    "draft", "approved", "formatted", "transmitted",
-    "confirmed", "settled", "reversed", "cancelled",
+    "draft",
+    "approved",
+    "formatted",
+    "transmitted",
+    "confirmed",
+    "settled",
+    "reversed",
+    "cancelled",
 ];
 
 /// Valid receipt statuses in a batch
@@ -53,7 +58,7 @@ pub fn validate_status_transition(current: &str, target: &str) -> AtlasResult<()
 
 /// Calculate total amount and count from a list of included receipt amounts.
 /// Returns (`total_amount`, `receipt_count`).
-#[must_use] 
+#[must_use]
 pub fn calculate_batch_totals(receipt_amounts: &[(f64, &str)]) -> (f64, i32) {
     let mut total = 0.0_f64;
     let mut count = 0_i32;
@@ -101,7 +106,8 @@ impl RemittanceBatchEngine {
         if !VALID_REMITTANCE_METHODS.contains(&remittance_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid remittance method '{}'. Must be one of: {}",
-                remittance_method, VALID_REMITTANCE_METHODS.join(", ")
+                remittance_method,
+                VALID_REMITTANCE_METHODS.join(", ")
             )));
         }
 
@@ -114,13 +120,25 @@ impl RemittanceBatchEngine {
             batch_number, org_id
         );
 
-        self.repository.create_batch(
-            org_id, &batch_number, batch_name,
-            bank_account_id, bank_account_name, bank_name,
-            remittance_method, currency_code, batch_date, gl_date,
-            receipt_currency_code, exchange_rate_type,
-            format_program, notes, created_by,
-        ).await
+        self.repository
+            .create_batch(
+                org_id,
+                &batch_number,
+                batch_name,
+                bank_account_id,
+                bank_account_name,
+                bank_name,
+                remittance_method,
+                currency_code,
+                batch_date,
+                gl_date,
+                receipt_currency_code,
+                exchange_rate_type,
+                format_program,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a batch by ID
@@ -134,7 +152,9 @@ impl RemittanceBatchEngine {
         org_id: Uuid,
         batch_number: &str,
     ) -> AtlasResult<Option<RemittanceBatch>> {
-        self.repository.get_batch_by_number(org_id, batch_number).await
+        self.repository
+            .get_batch_by_number(org_id, batch_number)
+            .await
     }
 
     /// List batches with optional filters
@@ -149,7 +169,8 @@ impl RemittanceBatchEngine {
             if !VALID_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_STATUSES.join(", ")
+                    s,
+                    VALID_STATUSES.join(", ")
                 )));
             }
         }
@@ -157,11 +178,14 @@ impl RemittanceBatchEngine {
             if !VALID_REMITTANCE_METHODS.contains(&rm) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid remittance method '{}'. Must be one of: {}",
-                    rm, VALID_REMITTANCE_METHODS.join(", ")
+                    rm,
+                    VALID_REMITTANCE_METHODS.join(", ")
                 )));
             }
         }
-        self.repository.list_batches(org_id, status, currency_code, remittance_method).await
+        self.repository
+            .list_batches(org_id, status, currency_code, remittance_method)
+            .await
     }
 
     // ========================================================================
@@ -190,7 +214,11 @@ impl RemittanceBatchEngine {
     }
 
     /// Transmit a batch (formatted → transmitted)
-    pub async fn transmit_batch(&self, id: Uuid, reference_number: Option<&str>) -> AtlasResult<RemittanceBatch> {
+    pub async fn transmit_batch(
+        &self,
+        id: Uuid,
+        reference_number: Option<&str>,
+    ) -> AtlasResult<RemittanceBatch> {
         let batch = self.get_batch_or_error(id).await?;
         validate_status_transition(&batch.status, "transmitted")?;
         info!("Transmitting remittance batch {}", batch.batch_number);
@@ -217,7 +245,11 @@ impl RemittanceBatchEngine {
     }
 
     /// Reverse a batch (settled → reversed)
-    pub async fn reverse_batch(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<RemittanceBatch> {
+    pub async fn reverse_batch(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<RemittanceBatch> {
         let batch = self.get_batch_or_error(id).await?;
         validate_status_transition(&batch.status, "reversed")?;
         info!("Reversing remittance batch {}", batch.batch_number);
@@ -228,7 +260,11 @@ impl RemittanceBatchEngine {
     }
 
     /// Cancel a batch (draft/approved → cancelled)
-    pub async fn cancel_batch(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<RemittanceBatch> {
+    pub async fn cancel_batch(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<RemittanceBatch> {
         let batch = self.get_batch_or_error(id).await?;
         validate_status_transition(&batch.status, "cancelled")?;
         info!("Cancelling remittance batch {}", batch.batch_number);
@@ -272,9 +308,9 @@ impl RemittanceBatchEngine {
             ));
         }
 
-        let amt: f64 = receipt_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Receipt amount must be a valid number".to_string(),
-        ))?;
+        let amt: f64 = receipt_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Receipt amount must be a valid number".to_string())
+        })?;
 
         if amt <= 0.0 {
             return Err(AtlasError::ValidationFailed(
@@ -282,9 +318,9 @@ impl RemittanceBatchEngine {
             ));
         }
 
-        let applied: f64 = applied_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Applied amount must be a valid number".to_string(),
-        ))?;
+        let applied: f64 = applied_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Applied amount must be a valid number".to_string())
+        })?;
 
         if applied < 0.0 {
             return Err(AtlasError::ValidationFailed(
@@ -293,11 +329,14 @@ impl RemittanceBatchEngine {
         }
 
         // Check for duplicate receipt
-        let existing = self.repository.get_batch_receipt_by_receipt_id(batch_id, receipt_id).await?;
+        let existing = self
+            .repository
+            .get_batch_receipt_by_receipt_id(batch_id, receipt_id)
+            .await?;
         if existing.is_some() {
-            return Err(AtlasError::ValidationFailed(
-                format!("Receipt {receipt_id} is already in this batch")
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Receipt {receipt_id} is already in this batch"
+            )));
         }
 
         let next_order = self.repository.get_next_receipt_order(batch_id).await?;
@@ -307,13 +346,26 @@ impl RemittanceBatchEngine {
             batch.batch_number, receipt_amount
         );
 
-        let result = self.repository.create_batch_receipt(
-            org_id, batch_id, receipt_id, receipt_number,
-            customer_id, customer_number, customer_name,
-            receipt_date, receipt_amount, applied_amount,
-            receipt_method, currency_code, exchange_rate,
-            next_order, metadata,
-        ).await?;
+        let result = self
+            .repository
+            .create_batch_receipt(
+                org_id,
+                batch_id,
+                receipt_id,
+                receipt_number,
+                customer_id,
+                customer_number,
+                customer_name,
+                receipt_date,
+                receipt_amount,
+                applied_amount,
+                receipt_method,
+                currency_code,
+                exchange_rate,
+                next_order,
+                metadata,
+            )
+            .await?;
 
         // Recalculate batch totals
         self.recalculate_batch_totals(batch_id).await?;
@@ -331,7 +383,9 @@ impl RemittanceBatchEngine {
             ));
         }
 
-        self.repository.delete_batch_receipt(batch_id, receipt_id).await?;
+        self.repository
+            .delete_batch_receipt(batch_id, receipt_id)
+            .await?;
 
         // Recalculate batch totals
         self.recalculate_batch_totals(batch_id).await?;
@@ -340,7 +394,10 @@ impl RemittanceBatchEngine {
     }
 
     /// List receipts in a batch
-    pub async fn list_batch_receipts(&self, batch_id: Uuid) -> AtlasResult<Vec<RemittanceBatchReceipt>> {
+    pub async fn list_batch_receipts(
+        &self,
+        batch_id: Uuid,
+    ) -> AtlasResult<Vec<RemittanceBatchReceipt>> {
         self.repository.list_batch_receipts(batch_id).await
     }
 
@@ -351,13 +408,17 @@ impl RemittanceBatchEngine {
     /// Mark remittance advice as sent
     pub async fn mark_advice_sent(&self, id: Uuid) -> AtlasResult<RemittanceBatch> {
         let batch = self.get_batch_or_error(id).await?;
-        if batch.status != "confirmed" && batch.status != "settled" && batch.status != "transmitted" {
+        if batch.status != "confirmed" && batch.status != "settled" && batch.status != "transmitted"
+        {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot send remittance advice for batch in '{}' status. Must be transmitted, confirmed, or settled.",
                 batch.status
             )));
         }
-        info!("Marking remittance advice as sent for batch {}", batch.batch_number);
+        info!(
+            "Marking remittance advice as sent for batch {}",
+            batch.batch_number
+        );
         self.repository.update_advice_sent(id).await
     }
 
@@ -375,10 +436,10 @@ impl RemittanceBatchEngine {
     // ========================================================================
 
     async fn get_batch_or_error(&self, id: Uuid) -> AtlasResult<RemittanceBatch> {
-        self.repository.get_batch(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Remittance batch {id} not found")
-            ))
+        self.repository
+            .get_batch(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Remittance batch {id} not found")))
     }
 
     async fn recalculate_batch_totals(&self, batch_id: Uuid) -> AtlasResult<()> {
@@ -392,7 +453,9 @@ impl RemittanceBatchEngine {
                 count += 1;
             }
         }
-        self.repository.update_batch_totals(batch_id, total, count).await
+        self.repository
+            .update_batch_totals(batch_id, total, count)
+            .await
     }
 }
 
@@ -537,10 +600,7 @@ mod tests {
 
     #[test]
     fn test_calculate_batch_totals_all_excluded() {
-        let receipts: Vec<(f64, &str)> = vec![
-            (100.0, "excluded"),
-            (200.0, "reversed"),
-        ];
+        let receipts: Vec<(f64, &str)> = vec![(100.0, "excluded"), (200.0, "reversed")];
         let (total, count) = calculate_batch_totals(&receipts);
         assert!((total).abs() < 0.01);
         assert_eq!(count, 0);

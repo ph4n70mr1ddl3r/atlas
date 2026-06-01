@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: General Ledger > Financial Consolidation
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::FinancialConsolidationEngine;
 pub use repository::{FinancialConsolidationRepository, PostgresFinancialConsolidationRepository};

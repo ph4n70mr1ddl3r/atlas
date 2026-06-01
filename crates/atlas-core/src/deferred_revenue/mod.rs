@@ -5,8 +5,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Revenue Management > Deferral Schedules
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::DeferredRevenueEngine;
 pub use repository::{DeferredRevenueRepository, PostgresDeferredRevenueRepository};

@@ -5,39 +5,38 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Treasury > Cash Management
 
-use atlas_shared::{
-    CashPosition, CashPositionSummary,
-    CashForecastTemplate, CashForecastSource,
-    CashForecast, CashForecastLine, CashForecastSummary,
-    AtlasError, AtlasResult,
-};
 use super::CashManagementRepository;
-use std::sync::Arc;
+use atlas_shared::{
+    AtlasError, AtlasResult, CashForecast, CashForecastLine, CashForecastSource,
+    CashForecastSummary, CashForecastTemplate, CashPosition, CashPositionSummary,
+};
 use chrono::Datelike;
+use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid bucket types for forecast templates
-const VALID_BUCKET_TYPES: &[&str] = &[
-    "daily", "weekly", "monthly",
-];
+const VALID_BUCKET_TYPES: &[&str] = &["daily", "weekly", "monthly"];
 
 /// Valid source types for forecast sources
 const VALID_SOURCE_TYPES: &[&str] = &[
-    "accounts_payable", "accounts_receivable", "payroll",
-    "purchasing", "manual", "budget", "intercompany",
-    "fixed_assets", "tax", "other",
+    "accounts_payable",
+    "accounts_receivable",
+    "payroll",
+    "purchasing",
+    "manual",
+    "budget",
+    "intercompany",
+    "fixed_assets",
+    "tax",
+    "other",
 ];
 
 /// Valid cash flow directions
-const VALID_CASH_FLOW_DIRECTIONS: &[&str] = &[
-    "inflow", "outflow", "both",
-];
+const VALID_CASH_FLOW_DIRECTIONS: &[&str] = &["inflow", "outflow", "both"];
 
 /// Valid forecast statuses
-const VALID_FORECAST_STATUSES: &[&str] = &[
-    "draft", "generated", "approved", "superseded",
-];
+const VALID_FORECAST_STATUSES: &[&str] = &["draft", "generated", "approved", "superseded"];
 
 /// Cash Management Engine
 pub struct CashManagementEngine {
@@ -86,34 +85,51 @@ impl CashManagementEngine {
             ));
         }
 
-        let _book: f64 = book_balance.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Book balance must be a valid number".to_string(),
-        ))?;
-        let _available: f64 = available_balance.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Available balance must be a valid number".to_string(),
-        ))?;
+        let _book: f64 = book_balance.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Book balance must be a valid number".to_string())
+        })?;
+        let _available: f64 = available_balance.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Available balance must be a valid number".to_string())
+        })?;
 
         if let Some(avg) = average_balance {
-            let _: f64 = avg.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Average balance must be a valid number".to_string(),
-            ))?;
+            let _: f64 = avg.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Average balance must be a valid number".to_string())
+            })?;
         }
         if let Some(prior) = prior_day_balance {
-            let _: f64 = prior.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Prior day balance must be a valid number".to_string(),
-            ))?;
+            let _: f64 = prior.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Prior day balance must be a valid number".to_string())
+            })?;
         }
 
-        info!("Upserting cash position for account {} on {}", account_number, position_date);
+        info!(
+            "Upserting cash position for account {} on {}",
+            account_number, position_date
+        );
 
-        self.repository.upsert_cash_position(
-            org_id, bank_account_id, account_number, account_name,
-            currency_code, book_balance, available_balance,
-            float_amount, one_day_float, two_day_float,
-            position_date, average_balance, prior_day_balance,
-            projected_inflows, projected_outflows, projected_net,
-            is_reconciled, created_by,
-        ).await
+        self.repository
+            .upsert_cash_position(
+                org_id,
+                bank_account_id,
+                account_number,
+                account_name,
+                currency_code,
+                book_balance,
+                available_balance,
+                float_amount,
+                one_day_float,
+                two_day_float,
+                position_date,
+                average_balance,
+                prior_day_balance,
+                projected_inflows,
+                projected_outflows,
+                projected_net,
+                is_reconciled,
+                created_by,
+            )
+            .await
     }
 
     /// Get cash position for a specific bank account and date
@@ -123,7 +139,9 @@ impl CashManagementEngine {
         bank_account_id: Uuid,
         position_date: chrono::NaiveDate,
     ) -> AtlasResult<Option<CashPosition>> {
-        self.repository.get_cash_position(org_id, bank_account_id, position_date).await
+        self.repository
+            .get_cash_position(org_id, bank_account_id, position_date)
+            .await
     }
 
     /// Get a cash position by ID
@@ -137,7 +155,9 @@ impl CashManagementEngine {
         org_id: Uuid,
         position_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Vec<CashPosition>> {
-        self.repository.list_cash_positions(org_id, position_date).await
+        self.repository
+            .list_cash_positions(org_id, position_date)
+            .await
     }
 
     /// Generate a cash position summary across all accounts for a given date
@@ -146,7 +166,10 @@ impl CashManagementEngine {
         org_id: Uuid,
         position_date: chrono::NaiveDate,
     ) -> AtlasResult<CashPositionSummary> {
-        let positions = self.repository.list_cash_positions(org_id, Some(position_date)).await?;
+        let positions = self
+            .repository
+            .list_cash_positions(org_id, Some(position_date))
+            .await?;
 
         let mut total_book = 0.0_f64;
         let mut total_available = 0.0_f64;
@@ -154,7 +177,8 @@ impl CashManagementEngine {
         let mut total_inflows = 0.0_f64;
         let mut total_outflows = 0.0_f64;
         let mut total_net = 0.0_f64;
-        let mut by_currency: std::collections::HashMap<String, (f64, f64)> = std::collections::HashMap::new();
+        let mut by_currency: std::collections::HashMap<String, (f64, f64)> =
+            std::collections::HashMap::new();
         let mut by_account = Vec::new();
 
         for pos in &positions {
@@ -172,7 +196,9 @@ impl CashManagementEngine {
             total_outflows += outflows;
             total_net += net;
 
-            let curr_entry = by_currency.entry(pos.currency_code.clone()).or_insert((0.0, 0.0));
+            let curr_entry = by_currency
+                .entry(pos.currency_code.clone())
+                .or_insert((0.0, 0.0));
             curr_entry.0 += book;
             curr_entry.1 += available;
 
@@ -186,12 +212,15 @@ impl CashManagementEngine {
             }));
         }
 
-        let by_currency_json: serde_json::Value = by_currency.into_iter()
-            .map(|(k, (book, avail))| serde_json::json!({
-                "currency": k,
-                "book_balance": format!("{:.2}", book),
-                "available_balance": format!("{:.2}", avail),
-            }))
+        let by_currency_json: serde_json::Value = by_currency
+            .into_iter()
+            .map(|(k, (book, avail))| {
+                serde_json::json!({
+                    "currency": k,
+                    "book_balance": format!("{:.2}", book),
+                    "available_balance": format!("{:.2}", avail),
+                })
+            })
             .collect();
 
         Ok(CashPositionSummary {
@@ -235,7 +264,8 @@ impl CashManagementEngine {
         if !VALID_BUCKET_TYPES.contains(&bucket_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid bucket type '{}'. Must be one of: {}",
-                bucket_type, VALID_BUCKET_TYPES.join(", ")
+                bucket_type,
+                VALID_BUCKET_TYPES.join(", ")
             )));
         }
         if !(1..=365).contains(&number_of_periods) {
@@ -246,29 +276,47 @@ impl CashManagementEngine {
 
         info!("Creating forecast template '{}' for org {}", code, org_id);
 
-        self.repository.create_forecast_template(
-            org_id, code, name, description, bucket_type,
-            number_of_periods, start_offset_days, is_default,
-            columns, created_by,
-        ).await
+        self.repository
+            .create_forecast_template(
+                org_id,
+                code,
+                name,
+                description,
+                bucket_type,
+                number_of_periods,
+                start_offset_days,
+                is_default,
+                columns,
+                created_by,
+            )
+            .await
     }
 
     /// Get a forecast template by code
-    pub async fn get_forecast_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CashForecastTemplate>> {
+    pub async fn get_forecast_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CashForecastTemplate>> {
         self.repository.get_forecast_template(org_id, code).await
     }
 
     /// List all forecast templates
-    pub async fn list_forecast_templates(&self, org_id: Uuid) -> AtlasResult<Vec<CashForecastTemplate>> {
+    pub async fn list_forecast_templates(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<CashForecastTemplate>> {
         self.repository.list_forecast_templates(org_id).await
     }
 
     /// Delete (soft-delete) a forecast template
     pub async fn delete_forecast_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        self.repository.get_forecast_template(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Forecast template '{code}' not found")
-            ))?;
+        self.repository
+            .get_forecast_template(org_id, code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Forecast template '{code}' not found"))
+            })?;
 
         info!("Deleting forecast template {} in org {}", code, org_id);
         self.repository.delete_forecast_template(org_id, code).await
@@ -296,10 +344,13 @@ impl CashManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CashForecastSource> {
         // Verify template exists
-        let template = self.repository.get_forecast_template_by_id(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Forecast template {template_id} not found")
-            ))?;
+        let template = self
+            .repository
+            .get_forecast_template_by_id(template_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Forecast template {template_id} not found"))
+            })?;
 
         if code.is_empty() || name.is_empty() {
             return Err(AtlasError::ValidationFailed(
@@ -309,13 +360,15 @@ impl CashManagementEngine {
         if !VALID_SOURCE_TYPES.contains(&source_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid source type '{}'. Must be one of: {}",
-                source_type, VALID_SOURCE_TYPES.join(", ")
+                source_type,
+                VALID_SOURCE_TYPES.join(", ")
             )));
         }
         if !VALID_CASH_FLOW_DIRECTIONS.contains(&cash_flow_direction) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid cash flow direction '{}'. Must be one of: {}",
-                cash_flow_direction, VALID_CASH_FLOW_DIRECTIONS.join(", ")
+                cash_flow_direction,
+                VALID_CASH_FLOW_DIRECTIONS.join(", ")
             )));
         }
         if lead_time_days < 0 {
@@ -324,18 +377,35 @@ impl CashManagementEngine {
             ));
         }
 
-        info!("Creating forecast source '{}' for template {}", code, template.code);
+        info!(
+            "Creating forecast source '{}' for template {}",
+            code, template.code
+        );
 
-        self.repository.create_forecast_source(
-            org_id, template_id, code, name, description,
-            source_type, cash_flow_direction, is_actual, display_order,
-            lead_time_days, payment_terms_reference, account_code_filter,
-            created_by,
-        ).await
+        self.repository
+            .create_forecast_source(
+                org_id,
+                template_id,
+                code,
+                name,
+                description,
+                source_type,
+                cash_flow_direction,
+                is_actual,
+                display_order,
+                lead_time_days,
+                payment_terms_reference,
+                account_code_filter,
+                created_by,
+            )
+            .await
     }
 
     /// List forecast sources for a template
-    pub async fn list_forecast_sources(&self, template_id: Uuid) -> AtlasResult<Vec<CashForecastSource>> {
+    pub async fn list_forecast_sources(
+        &self,
+        template_id: Uuid,
+    ) -> AtlasResult<Vec<CashForecastSource>> {
         self.repository.list_forecast_sources(template_id).await
     }
 
@@ -346,13 +416,20 @@ impl CashManagementEngine {
         template_id: Uuid,
         code: &str,
     ) -> AtlasResult<()> {
-        self.repository.get_forecast_source(org_id, template_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Forecast source '{code}' not found")
-            ))?;
+        self.repository
+            .get_forecast_source(org_id, template_id, code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Forecast source '{code}' not found"))
+            })?;
 
-        info!("Deleting forecast source {} from template {}", code, template_id);
-        self.repository.delete_forecast_source(org_id, template_id, code).await
+        info!(
+            "Deleting forecast source {} from template {}",
+            code, template_id
+        );
+        self.repository
+            .delete_forecast_source(org_id, template_id, code)
+            .await
     }
 
     // ========================================================================
@@ -368,10 +445,13 @@ impl CashManagementEngine {
         description: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CashForecast> {
-        let template = self.repository.get_forecast_template(org_id, template_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Forecast template '{template_code}' not found")
-            ))?;
+        let template = self
+            .repository
+            .get_forecast_template(org_id, template_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Forecast template '{template_code}' not found"))
+            })?;
 
         let sources = self.repository.list_forecast_sources(template.id).await?;
         if sources.is_empty() {
@@ -397,14 +477,21 @@ impl CashManagementEngine {
         };
 
         // Get the opening balance from cash positions
-        let positions = self.repository.list_cash_positions(org_id, Some(start_date)).await?;
-        let opening_balance: f64 = positions.iter()
+        let positions = self
+            .repository
+            .list_cash_positions(org_id, Some(start_date))
+            .await?;
+        let opening_balance: f64 = positions
+            .iter()
             .map(|p| p.available_balance.parse::<f64>().unwrap_or(0.0))
             .sum();
 
         let forecast_number = format!("CF-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Generating cash forecast {} from template '{}'", forecast_number, template_code);
+        info!(
+            "Generating cash forecast {} from template '{}'",
+            forecast_number, template_code
+        );
 
         // Generate forecast lines for each source and period
         let mut total_inflows = 0.0_f64;
@@ -416,21 +503,43 @@ impl CashManagementEngine {
         let mut deficit_count = 0i32;
         let mut surplus_count = 0i32;
 
-        let periods = generate_periods(&template.bucket_type, start_date, template.number_of_periods);
+        let periods = generate_periods(
+            &template.bucket_type,
+            start_date,
+            template.number_of_periods,
+        );
 
         // Create the forecast header first (we need the ID for lines)
         // Use placeholder values, then update after generating lines
-        let forecast = self.repository.create_forecast(
-            org_id, &forecast_number, template.id, &template.name,
-            name, description,
-            start_date, end_date,
-            &format!("{opening_balance:.2}"),
-            "0", "0", "0", "0", "0", "0",
-            0, 0, created_by,
-        ).await?;
+        let forecast = self
+            .repository
+            .create_forecast(
+                org_id,
+                &forecast_number,
+                template.id,
+                &template.name,
+                name,
+                description,
+                start_date,
+                end_date,
+                &format!("{opening_balance:.2}"),
+                "0",
+                "0",
+                "0",
+                "0",
+                "0",
+                "0",
+                0,
+                0,
+                created_by,
+            )
+            .await?;
 
         // Mark previous forecasts as superseded
-        let _ = self.repository.supersede_previous_forecasts(template.id, forecast.id).await;
+        let _ = self
+            .repository
+            .supersede_previous_forecasts(template.id, forecast.id)
+            .await;
 
         // Generate lines for each source and period
         for period in &periods {
@@ -448,7 +557,11 @@ impl CashManagementEngine {
                 );
 
                 let direction = if source.cash_flow_direction == "both" {
-                    if source.source_type.contains("receivable") { "inflow" } else { "outflow" }
+                    if source.source_type.contains("receivable") {
+                        "inflow"
+                    } else {
+                        "outflow"
+                    }
                 } else {
                     &source.cash_flow_direction
                 };
@@ -459,18 +572,26 @@ impl CashManagementEngine {
                     period_outflows += amount;
                 }
 
-                self.repository.create_forecast_line(
-                    org_id, forecast.id, source.id,
-                    &source.name, &source.source_type,
-                    direction,
-                    period.0, period.1, &period.2, period.3,
-                    &format!("{amount:.2}"),
-                    "0", // will be updated below
-                    source.is_actual,
-                    "USD",
-                    tx_count,
-                    created_by,
-                ).await?;
+                self.repository
+                    .create_forecast_line(
+                        org_id,
+                        forecast.id,
+                        source.id,
+                        &source.name,
+                        &source.source_type,
+                        direction,
+                        period.0,
+                        period.1,
+                        &period.2,
+                        period.3,
+                        &format!("{amount:.2}"),
+                        "0", // will be updated below
+                        source.is_actual,
+                        "USD",
+                        tx_count,
+                        created_by,
+                    )
+                    .await?;
             }
 
             let period_net = period_inflows - period_outflows;
@@ -520,8 +641,13 @@ impl CashManagementEngine {
         forecast.deficit_count = deficit_count;
         forecast.surplus_count = surplus_count;
 
-        info!("Cash forecast {} generated: inflows={}, outflows={}, closing={}",
-            forecast_number, forecast.total_inflows, forecast.total_outflows, forecast.closing_balance);
+        info!(
+            "Cash forecast {} generated: inflows={}, outflows={}, closing={}",
+            forecast_number,
+            forecast.total_inflows,
+            forecast.total_outflows,
+            forecast.closing_balance
+        );
 
         Ok(forecast)
     }
@@ -542,19 +668,29 @@ impl CashManagementEngine {
             if !VALID_FORECAST_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_FORECAST_STATUSES.join(", ")
+                    s,
+                    VALID_FORECAST_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_forecasts(org_id, template_id, status).await
+        self.repository
+            .list_forecasts(org_id, template_id, status)
+            .await
     }
 
     /// Approve a forecast
-    pub async fn approve_forecast(&self, forecast_id: Uuid, approved_by: Uuid) -> AtlasResult<CashForecast> {
-        let forecast = self.repository.get_forecast(forecast_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Cash forecast {forecast_id} not found")
-            ))?;
+    pub async fn approve_forecast(
+        &self,
+        forecast_id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<CashForecast> {
+        let forecast = self
+            .repository
+            .get_forecast(forecast_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Cash forecast {forecast_id} not found"))
+            })?;
 
         if forecast.status != "generated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -564,41 +700,63 @@ impl CashManagementEngine {
         }
 
         info!("Approving cash forecast {}", forecast.forecast_number);
-        self.repository.update_forecast_status(forecast_id, "approved", Some(approved_by)).await
+        self.repository
+            .update_forecast_status(forecast_id, "approved", Some(approved_by))
+            .await
     }
 
     /// List forecast lines for a forecast
-    pub async fn list_forecast_lines(&self, forecast_id: Uuid) -> AtlasResult<Vec<CashForecastLine>> {
+    pub async fn list_forecast_lines(
+        &self,
+        forecast_id: Uuid,
+    ) -> AtlasResult<Vec<CashForecastLine>> {
         self.repository.list_forecast_lines(forecast_id).await
     }
 
     /// Get a cash forecast summary for dashboard display
-    pub async fn get_forecast_summary(&self, org_id: Uuid, template_code: &str) -> AtlasResult<CashForecastSummary> {
-        let template = self.repository.get_forecast_template(org_id, template_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Forecast template '{template_code}' not found")
-            ))?;
+    pub async fn get_forecast_summary(
+        &self,
+        org_id: Uuid,
+        template_code: &str,
+    ) -> AtlasResult<CashForecastSummary> {
+        let template = self
+            .repository
+            .get_forecast_template(org_id, template_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Forecast template '{template_code}' not found"))
+            })?;
 
         // Find the latest forecast for this template
-        let forecasts = self.repository.list_forecasts(org_id, Some(template.id), Some("generated")).await?;
-        let forecast = forecasts.into_iter().next()
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("No generated forecast found for template '{template_code}'")
-            ))?;
+        let forecasts = self
+            .repository
+            .list_forecasts(org_id, Some(template.id), Some("generated"))
+            .await?;
+        let forecast = forecasts.into_iter().next().ok_or_else(|| {
+            AtlasError::EntityNotFound(format!(
+                "No generated forecast found for template '{template_code}'"
+            ))
+        })?;
 
         let lines = self.repository.list_forecast_lines(forecast.id).await?;
 
         // Aggregate lines by source
-        let mut inflows_by_source: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
-        let mut outflows_by_source: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+        let mut inflows_by_source: std::collections::HashMap<String, f64> =
+            std::collections::HashMap::new();
+        let mut outflows_by_source: std::collections::HashMap<String, f64> =
+            std::collections::HashMap::new();
         let mut balance_trend = Vec::new();
 
         for line in &lines {
             let amount: f64 = line.amount.parse().unwrap_or(0.0);
             if line.cash_flow_direction == "inflow" {
-                *inflows_by_source.entry(line.source_name.clone()).or_insert(0.0) += amount;
+                *inflows_by_source
+                    .entry(line.source_name.clone())
+                    .or_insert(0.0) += amount;
             } else {
-                *outflows_by_source.entry(line.source_name.clone()).or_insert(0.0) += amount;
+                *outflows_by_source
+                    .entry(line.source_name.clone())
+                    .or_insert(0.0) += amount;
             }
         }
 
@@ -636,14 +794,16 @@ impl CashManagementEngine {
             deficit_count: forecast.deficit_count,
             surplus_count: forecast.surplus_count,
             inflows_by_source: serde_json::Value::Array(
-                inflows_by_source.into_iter()
+                inflows_by_source
+                    .into_iter()
                     .map(|(k, v)| serde_json::json!({"source": k, "amount": format!("{:.2}", v)}))
-                    .collect()
+                    .collect(),
             ),
             outflows_by_source: serde_json::Value::Array(
-                outflows_by_source.into_iter()
+                outflows_by_source
+                    .into_iter()
                     .map(|(k, v)| serde_json::json!({"source": k, "amount": format!("{:.2}", v)}))
-                    .collect()
+                    .collect(),
             ),
             balance_trend: serde_json::Value::Array(balance_trend),
         })
@@ -680,9 +840,12 @@ fn generate_periods(
             for i in 0..number_of_periods {
                 let week_start = start_date + chrono::Duration::weeks(i64::from(i));
                 let week_end = week_start + chrono::Duration::days(6);
-                let label = format!("Week {} ({} - {})", i + 1,
+                let label = format!(
+                    "Week {} ({} - {})",
+                    i + 1,
                     week_start.format("%m/%d"),
-                    week_end.format("%m/%d"));
+                    week_end.format("%m/%d")
+                );
                 periods.push((week_start, week_end, label, i + 1));
             }
         }
@@ -690,7 +853,10 @@ fn generate_periods(
             let mut current = start_date;
             for i in 0..number_of_periods {
                 let month_start = if i == 0 { current } else { next_month(current) };
-                if i > 0 { current = month_start; } let _ = current;
+                if i > 0 {
+                    current = month_start;
+                }
+                let _ = current;
                 let month_end = next_month(month_start) - chrono::Duration::days(1);
                 let label = month_start.format("%b %Y").to_string();
                 periods.push((month_start, month_end, label, i + 1));
@@ -806,16 +972,23 @@ mod tests {
     #[test]
     fn test_next_month() {
         let jan = chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap();
-        assert_eq!(next_month(jan), chrono::NaiveDate::from_ymd_opt(2025, 2, 1).unwrap());
+        assert_eq!(
+            next_month(jan),
+            chrono::NaiveDate::from_ymd_opt(2025, 2, 1).unwrap()
+        );
 
         let dec = chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
-        assert_eq!(next_month(dec), chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap());
+        assert_eq!(
+            next_month(dec),
+            chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+        );
     }
 
     #[test]
     fn test_simulate_forecast_amount() {
         let (ar_amt, ar_count) = simulate_forecast_amount(
-            "accounts_receivable", "inflow",
+            "accounts_receivable",
+            "inflow",
             chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
             chrono::NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
         );
@@ -823,7 +996,8 @@ mod tests {
         assert!(ar_count > 0);
 
         let (manual_amt, _) = simulate_forecast_amount(
-            "manual", "both",
+            "manual",
+            "both",
             chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
             chrono::NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
         );
@@ -838,7 +1012,10 @@ mod tests {
         let org_id = Uuid::new_v4();
         let date = chrono::Utc::now().date_naive();
         let summary = rt.block_on(async {
-            engine.get_cash_position_summary(org_id, date).await.unwrap()
+            engine
+                .get_cash_position_summary(org_id, date)
+                .await
+                .unwrap()
         });
 
         assert_eq!(summary.account_count, 0);

@@ -2,12 +2,11 @@
 //!
 //! `PostgreSQL` storage for shipping execution data.
 
-use atlas_shared::{
-    ShippingCarrier, ShippingMethod, Shipment, ShipmentLine,
-    PackingSlip, PackingSlipLine, ShippingDashboard,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, PackingSlip, PackingSlipLine, Shipment, ShipmentLine, ShippingCarrier,
+    ShippingDashboard, ShippingMethod,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -16,20 +15,37 @@ use uuid::Uuid;
 pub trait ShippingRepository: Send + Sync {
     // Carriers
     async fn create_carrier(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        carrier_type: &str, tracking_url_template: Option<&str>,
-        contact_name: Option<&str>, contact_phone: Option<&str>, contact_email: Option<&str>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        carrier_type: &str,
+        tracking_url_template: Option<&str>,
+        contact_name: Option<&str>,
+        contact_phone: Option<&str>,
+        contact_email: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ShippingCarrier>;
     async fn get_carrier(&self, id: Uuid) -> AtlasResult<Option<ShippingCarrier>>;
-    async fn get_carrier_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ShippingCarrier>>;
+    async fn get_carrier_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ShippingCarrier>>;
     async fn list_carriers(&self, org_id: Uuid) -> AtlasResult<Vec<ShippingCarrier>>;
     async fn delete_carrier(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Shipping Methods
     async fn create_method(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        carrier_id: Option<Uuid>, transit_time_days: i32, is_express: bool,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        carrier_id: Option<Uuid>,
+        transit_time_days: i32,
+        is_express: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ShippingMethod>;
     async fn get_method(&self, id: Uuid) -> AtlasResult<Option<ShippingMethod>>;
@@ -38,25 +54,47 @@ pub trait ShippingRepository: Send + Sync {
 
     // Shipments
     async fn create_shipment(
-        &self, org_id: Uuid, shipment_number: &str, description: Option<&str>,
-        carrier_id: Option<Uuid>, carrier_name: Option<&str>,
-        shipping_method_id: Option<Uuid>, shipping_method_name: Option<&str>,
-        order_id: Option<Uuid>, order_number: Option<&str>,
-        customer_id: Option<Uuid>, customer_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        shipment_number: &str,
+        description: Option<&str>,
+        carrier_id: Option<Uuid>,
+        carrier_name: Option<&str>,
+        shipping_method_id: Option<Uuid>,
+        shipping_method_name: Option<&str>,
+        order_id: Option<Uuid>,
+        order_number: Option<&str>,
+        customer_id: Option<Uuid>,
+        customer_name: Option<&str>,
         ship_from_warehouse: Option<&str>,
-        ship_to_name: Option<&str>, ship_to_address: Option<&str>,
-        ship_to_city: Option<&str>, ship_to_state: Option<&str>,
-        ship_to_postal_code: Option<&str>, ship_to_country: Option<&str>,
+        ship_to_name: Option<&str>,
+        ship_to_address: Option<&str>,
+        ship_to_city: Option<&str>,
+        ship_to_state: Option<&str>,
+        ship_to_postal_code: Option<&str>,
+        ship_to_country: Option<&str>,
         estimated_delivery: Option<chrono::NaiveDate>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<Shipment>;
     async fn get_shipment(&self, id: Uuid) -> AtlasResult<Option<Shipment>>;
-    async fn get_shipment_by_number(&self, org_id: Uuid, shipment_number: &str) -> AtlasResult<Option<Shipment>>;
-    async fn list_shipments(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<Shipment>>;
+    async fn get_shipment_by_number(
+        &self,
+        org_id: Uuid,
+        shipment_number: &str,
+    ) -> AtlasResult<Option<Shipment>>;
+    async fn list_shipments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<Shipment>>;
     async fn update_shipment_status(&self, id: Uuid, status: &str) -> AtlasResult<Shipment>;
-    async fn confirm_shipment(&self, id: Uuid, confirmed_by: Option<Uuid>) -> AtlasResult<Shipment>;
+    async fn confirm_shipment(&self, id: Uuid, confirmed_by: Option<Uuid>)
+        -> AtlasResult<Shipment>;
     async fn ship_confirm(
-        &self, id: Uuid, tracking_number: Option<&str>,
+        &self,
+        id: Uuid,
+        tracking_number: Option<&str>,
         shipped_by: Option<Uuid>,
     ) -> AtlasResult<Shipment>;
     async fn deliver(&self, id: Uuid, delivered_by: Option<Uuid>) -> AtlasResult<Shipment>;
@@ -64,27 +102,49 @@ pub trait ShippingRepository: Send + Sync {
 
     // Shipment Lines
     async fn add_shipment_line(
-        &self, org_id: Uuid, shipment_id: Uuid, line_number: i32,
-        order_line_id: Option<Uuid>, item_code: &str, item_name: Option<&str>,
-        item_description: Option<&str>, requested_quantity: &str,
-        unit_of_measure: Option<&str>, weight: Option<&str>,
-        weight_unit: Option<&str>, lot_number: Option<&str>,
-        serial_number: Option<&str>, is_fragile: bool, is_hazardous: bool,
+        &self,
+        org_id: Uuid,
+        shipment_id: Uuid,
+        line_number: i32,
+        order_line_id: Option<Uuid>,
+        item_code: &str,
+        item_name: Option<&str>,
+        item_description: Option<&str>,
+        requested_quantity: &str,
+        unit_of_measure: Option<&str>,
+        weight: Option<&str>,
+        weight_unit: Option<&str>,
+        lot_number: Option<&str>,
+        serial_number: Option<&str>,
+        is_fragile: bool,
+        is_hazardous: bool,
         notes: Option<&str>,
     ) -> AtlasResult<ShipmentLine>;
     async fn list_shipment_lines(&self, shipment_id: Uuid) -> AtlasResult<Vec<ShipmentLine>>;
     async fn get_shipment_line(&self, id: Uuid) -> AtlasResult<Option<ShipmentLine>>;
     async fn delete_shipment_line(&self, id: Uuid) -> AtlasResult<()>;
-    async fn update_line_shipped_quantity(&self, id: Uuid, shipped_qty: &str) -> AtlasResult<ShipmentLine>;
+    async fn update_line_shipped_quantity(
+        &self,
+        id: Uuid,
+        shipped_qty: &str,
+    ) -> AtlasResult<ShipmentLine>;
 
     // Packing Slips
     async fn create_packing_slip(
-        &self, org_id: Uuid, shipment_id: Uuid, packing_slip_number: &str,
-        package_number: i32, package_type: Option<&str>,
-        weight: Option<&str>, weight_unit: Option<&str>,
-        dimensions_length: Option<&str>, dimensions_width: Option<&str>,
-        dimensions_height: Option<&str>, dimensions_unit: Option<&str>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        shipment_id: Uuid,
+        packing_slip_number: &str,
+        package_number: i32,
+        package_type: Option<&str>,
+        weight: Option<&str>,
+        weight_unit: Option<&str>,
+        dimensions_length: Option<&str>,
+        dimensions_width: Option<&str>,
+        dimensions_height: Option<&str>,
+        dimensions_unit: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<PackingSlip>;
     async fn list_packing_slips(&self, shipment_id: Uuid) -> AtlasResult<Vec<PackingSlip>>;
     async fn get_packing_slip(&self, id: Uuid) -> AtlasResult<Option<PackingSlip>>;
@@ -92,11 +152,20 @@ pub trait ShippingRepository: Send + Sync {
 
     // Packing Slip Lines
     async fn add_packing_slip_line(
-        &self, org_id: Uuid, packing_slip_id: Uuid, shipment_line_id: Uuid,
-        line_number: i32, item_code: &str, item_name: Option<&str>,
-        packed_quantity: &str, notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        packing_slip_id: Uuid,
+        shipment_line_id: Uuid,
+        line_number: i32,
+        item_code: &str,
+        item_name: Option<&str>,
+        packed_quantity: &str,
+        notes: Option<&str>,
     ) -> AtlasResult<PackingSlipLine>;
-    async fn list_packing_slip_lines(&self, packing_slip_id: Uuid) -> AtlasResult<Vec<PackingSlipLine>>;
+    async fn list_packing_slip_lines(
+        &self,
+        packing_slip_id: Uuid,
+    ) -> AtlasResult<Vec<PackingSlipLine>>;
     async fn delete_packing_slip_line(&self, id: Uuid) -> AtlasResult<()>;
 
     // Dashboard
@@ -109,7 +178,7 @@ pub struct PostgresShippingRepository {
 }
 
 impl PostgresShippingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -182,9 +251,13 @@ fn row_to_shipment(row: &sqlx::postgres::PgRow) -> Shipment {
         ship_to_country: row.get("ship_to_country"),
         tracking_number: row.get("tracking_number"),
         total_weight: get_num(row, "total_weight"),
-        weight_unit: row.try_get("weight_unit").unwrap_or_else(|_| "kg".to_string()),
+        weight_unit: row
+            .try_get("weight_unit")
+            .unwrap_or_else(|_| "kg".to_string()),
         total_volume: get_num(row, "total_volume"),
-        volume_unit: row.try_get("volume_unit").unwrap_or_else(|_| "m3".to_string()),
+        volume_unit: row
+            .try_get("volume_unit")
+            .unwrap_or_else(|_| "m3".to_string()),
         total_packages: row.get("total_packages"),
         shipped_date: row.get("shipped_date"),
         estimated_delivery: row.get("estimated_delivery"),
@@ -214,9 +287,13 @@ fn row_to_shipment_line(row: &sqlx::postgres::PgRow) -> ShipmentLine {
         requested_quantity: get_num(row, "requested_quantity"),
         shipped_quantity: get_num(row, "shipped_quantity"),
         backordered_quantity: get_num(row, "backordered_quantity"),
-        unit_of_measure: row.try_get("unit_of_measure").unwrap_or_else(|_| "EA".to_string()),
+        unit_of_measure: row
+            .try_get("unit_of_measure")
+            .unwrap_or_else(|_| "EA".to_string()),
         weight: get_num(row, "weight"),
-        weight_unit: row.try_get("weight_unit").unwrap_or_else(|_| "kg".to_string()),
+        weight_unit: row
+            .try_get("weight_unit")
+            .unwrap_or_else(|_| "kg".to_string()),
         lot_number: row.get("lot_number"),
         serial_number: row.get("serial_number"),
         is_fragile: row.get("is_fragile"),
@@ -235,13 +312,19 @@ fn row_to_packing_slip(row: &sqlx::postgres::PgRow) -> PackingSlip {
         shipment_id: row.get("shipment_id"),
         packing_slip_number: row.get("packing_slip_number"),
         package_number: row.get("package_number"),
-        package_type: row.try_get("package_type").unwrap_or_else(|_| "box".to_string()),
+        package_type: row
+            .try_get("package_type")
+            .unwrap_or_else(|_| "box".to_string()),
         weight: get_num(row, "weight"),
-        weight_unit: row.try_get("weight_unit").unwrap_or_else(|_| "kg".to_string()),
+        weight_unit: row
+            .try_get("weight_unit")
+            .unwrap_or_else(|_| "kg".to_string()),
         dimensions_length: get_num(row, "dimensions_length"),
         dimensions_width: get_num(row, "dimensions_width"),
         dimensions_height: get_num(row, "dimensions_height"),
-        dimensions_unit: row.try_get("dimensions_unit").unwrap_or_else(|_| "cm".to_string()),
+        dimensions_unit: row
+            .try_get("dimensions_unit")
+            .unwrap_or_else(|_| "cm".to_string()),
         notes: row.get("notes"),
         metadata: row.get("metadata"),
         created_by: row.get("created_by"),
@@ -272,9 +355,16 @@ impl ShippingRepository for PostgresShippingRepository {
     // ========================================================================
 
     async fn create_carrier(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        carrier_type: &str, tracking_url_template: Option<&str>,
-        contact_name: Option<&str>, contact_phone: Option<&str>, contact_email: Option<&str>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        carrier_type: &str,
+        tracking_url_template: Option<&str>,
+        contact_name: Option<&str>,
+        contact_phone: Option<&str>,
+        contact_email: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ShippingCarrier> {
         let row = sqlx::query(
@@ -283,11 +373,18 @@ impl ShippingRepository for PostgresShippingRepository {
                  tracking_url_template, contact_name, contact_phone, contact_email, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(carrier_type).bind(tracking_url_template)
-        .bind(contact_name).bind(contact_phone).bind(contact_email)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(carrier_type)
+        .bind(tracking_url_template)
+        .bind(contact_name)
+        .bind(contact_phone)
+        .bind(contact_email)
         .bind(created_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_carrier(&row))
     }
@@ -296,12 +393,18 @@ impl ShippingRepository for PostgresShippingRepository {
         let row = sqlx::query(
             "SELECT * FROM _atlas.shipping_carriers WHERE id = $1 AND is_active = true",
         )
-        .bind(id).fetch_optional(&self.pool).await
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_carrier(&r)))
     }
 
-    async fn get_carrier_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ShippingCarrier>> {
+    async fn get_carrier_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ShippingCarrier>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.shipping_carriers WHERE organization_id = $1 AND code = $2 AND is_active = true",
         )
@@ -320,9 +423,14 @@ impl ShippingRepository for PostgresShippingRepository {
     }
 
     async fn delete_carrier(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        sqlx::query("DELETE FROM _atlas.shipping_carriers WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code).execute(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "DELETE FROM _atlas.shipping_carriers WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -331,8 +439,14 @@ impl ShippingRepository for PostgresShippingRepository {
     // ========================================================================
 
     async fn create_method(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        carrier_id: Option<Uuid>, transit_time_days: i32, is_express: bool,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        carrier_id: Option<Uuid>,
+        transit_time_days: i32,
+        is_express: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ShippingMethod> {
         let row = sqlx::query(
@@ -348,11 +462,12 @@ impl ShippingRepository for PostgresShippingRepository {
     }
 
     async fn get_method(&self, id: Uuid) -> AtlasResult<Option<ShippingMethod>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.shipping_methods WHERE id = $1 AND is_active = true",
-        )
-        .bind(id).fetch_optional(&self.pool).await
-        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        let row =
+            sqlx::query("SELECT * FROM _atlas.shipping_methods WHERE id = $1 AND is_active = true")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_method(&r)))
     }
 
@@ -367,7 +482,10 @@ impl ShippingRepository for PostgresShippingRepository {
 
     async fn delete_method(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.shipping_methods WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code).execute(&self.pool).await
+            .bind(org_id)
+            .bind(code)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -377,17 +495,28 @@ impl ShippingRepository for PostgresShippingRepository {
     // ========================================================================
 
     async fn create_shipment(
-        &self, org_id: Uuid, shipment_number: &str, description: Option<&str>,
-        carrier_id: Option<Uuid>, carrier_name: Option<&str>,
-        shipping_method_id: Option<Uuid>, shipping_method_name: Option<&str>,
-        order_id: Option<Uuid>, order_number: Option<&str>,
-        customer_id: Option<Uuid>, customer_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        shipment_number: &str,
+        description: Option<&str>,
+        carrier_id: Option<Uuid>,
+        carrier_name: Option<&str>,
+        shipping_method_id: Option<Uuid>,
+        shipping_method_name: Option<&str>,
+        order_id: Option<Uuid>,
+        order_number: Option<&str>,
+        customer_id: Option<Uuid>,
+        customer_name: Option<&str>,
         ship_from_warehouse: Option<&str>,
-        ship_to_name: Option<&str>, ship_to_address: Option<&str>,
-        ship_to_city: Option<&str>, ship_to_state: Option<&str>,
-        ship_to_postal_code: Option<&str>, ship_to_country: Option<&str>,
+        ship_to_name: Option<&str>,
+        ship_to_address: Option<&str>,
+        ship_to_city: Option<&str>,
+        ship_to_state: Option<&str>,
+        ship_to_postal_code: Option<&str>,
+        ship_to_country: Option<&str>,
         estimated_delivery: Option<chrono::NaiveDate>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<Shipment> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.shipments
@@ -417,21 +546,34 @@ impl ShippingRepository for PostgresShippingRepository {
 
     async fn get_shipment(&self, id: Uuid) -> AtlasResult<Option<Shipment>> {
         let row = sqlx::query("SELECT * FROM _atlas.shipments WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_shipment(&r)))
     }
 
-    async fn get_shipment_by_number(&self, org_id: Uuid, shipment_number: &str) -> AtlasResult<Option<Shipment>> {
+    async fn get_shipment_by_number(
+        &self,
+        org_id: Uuid,
+        shipment_number: &str,
+    ) -> AtlasResult<Option<Shipment>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.shipments WHERE organization_id = $1 AND shipment_number = $2",
         )
-        .bind(org_id).bind(shipment_number).fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(shipment_number)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_shipment(&r)))
     }
 
-    async fn list_shipments(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<Shipment>> {
+    async fn list_shipments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<Shipment>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.shipments WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC",
@@ -448,24 +590,36 @@ impl ShippingRepository for PostgresShippingRepository {
         let row = sqlx::query(
             "UPDATE _atlas.shipments SET status = $2, updated_at = now() WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(status).fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_shipment(&row))
     }
 
-    async fn confirm_shipment(&self, id: Uuid, confirmed_by: Option<Uuid>) -> AtlasResult<Shipment> {
+    async fn confirm_shipment(
+        &self,
+        id: Uuid,
+        confirmed_by: Option<Uuid>,
+    ) -> AtlasResult<Shipment> {
         let row = sqlx::query(
             r"UPDATE _atlas.shipments
                SET status = 'confirmed', confirmed_by = $2, confirmed_at = now(), updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(confirmed_by).fetch_one(&self.pool).await
+        .bind(id)
+        .bind(confirmed_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_shipment(&row))
     }
 
     async fn ship_confirm(
-        &self, id: Uuid, tracking_number: Option<&str>,
+        &self,
+        id: Uuid,
+        tracking_number: Option<&str>,
         shipped_by: Option<Uuid>,
     ) -> AtlasResult<Shipment> {
         let row = sqlx::query(
@@ -474,8 +628,11 @@ impl ShippingRepository for PostgresShippingRepository {
                    shipped_by = $3, shipped_date = now(), updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(tracking_number).bind(shipped_by)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(tracking_number)
+        .bind(shipped_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_shipment(&row))
     }
@@ -492,9 +649,14 @@ impl ShippingRepository for PostgresShippingRepository {
     }
 
     async fn delete_shipment(&self, org_id: Uuid, shipment_number: &str) -> AtlasResult<()> {
-        sqlx::query("DELETE FROM _atlas.shipments WHERE organization_id = $1 AND shipment_number = $2")
-            .bind(org_id).bind(shipment_number).execute(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "DELETE FROM _atlas.shipments WHERE organization_id = $1 AND shipment_number = $2",
+        )
+        .bind(org_id)
+        .bind(shipment_number)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -503,12 +665,22 @@ impl ShippingRepository for PostgresShippingRepository {
     // ========================================================================
 
     async fn add_shipment_line(
-        &self, org_id: Uuid, shipment_id: Uuid, line_number: i32,
-        order_line_id: Option<Uuid>, item_code: &str, item_name: Option<&str>,
-        item_description: Option<&str>, requested_quantity: &str,
-        unit_of_measure: Option<&str>, weight: Option<&str>,
-        weight_unit: Option<&str>, lot_number: Option<&str>,
-        serial_number: Option<&str>, is_fragile: bool, is_hazardous: bool,
+        &self,
+        org_id: Uuid,
+        shipment_id: Uuid,
+        line_number: i32,
+        order_line_id: Option<Uuid>,
+        item_code: &str,
+        item_name: Option<&str>,
+        item_description: Option<&str>,
+        requested_quantity: &str,
+        unit_of_measure: Option<&str>,
+        weight: Option<&str>,
+        weight_unit: Option<&str>,
+        lot_number: Option<&str>,
+        serial_number: Option<&str>,
+        is_fragile: bool,
+        is_hazardous: bool,
         notes: Option<&str>,
     ) -> AtlasResult<ShipmentLine> {
         let row = sqlx::query(
@@ -519,13 +691,24 @@ impl ShippingRepository for PostgresShippingRepository {
                  is_fragile, is_hazardous, notes)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *",
         )
-        .bind(org_id).bind(shipment_id).bind(line_number).bind(order_line_id)
-        .bind(item_code).bind(item_name).bind(item_description)
+        .bind(org_id)
+        .bind(shipment_id)
+        .bind(line_number)
+        .bind(order_line_id)
+        .bind(item_code)
+        .bind(item_name)
+        .bind(item_description)
         .bind(requested_quantity.parse::<f64>().unwrap_or(0.0))
-        .bind(unit_of_measure).bind(weight.map(|w| w.parse::<f64>().unwrap_or(0.0)))
-        .bind(weight_unit).bind(lot_number).bind(serial_number)
-        .bind(is_fragile).bind(is_hazardous).bind(notes)
-        .fetch_one(&self.pool).await
+        .bind(unit_of_measure)
+        .bind(weight.map(|w| w.parse::<f64>().unwrap_or(0.0)))
+        .bind(weight_unit)
+        .bind(lot_number)
+        .bind(serial_number)
+        .bind(is_fragile)
+        .bind(is_hazardous)
+        .bind(notes)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_shipment_line(&row))
     }
@@ -534,26 +717,36 @@ impl ShippingRepository for PostgresShippingRepository {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.shipment_lines WHERE shipment_id = $1 ORDER BY line_number",
         )
-        .bind(shipment_id).fetch_all(&self.pool).await
+        .bind(shipment_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_shipment_line).collect())
     }
 
     async fn get_shipment_line(&self, id: Uuid) -> AtlasResult<Option<ShipmentLine>> {
         let row = sqlx::query("SELECT * FROM _atlas.shipment_lines WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_shipment_line(&r)))
     }
 
     async fn delete_shipment_line(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.shipment_lines WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
-    async fn update_line_shipped_quantity(&self, id: Uuid, shipped_qty: &str) -> AtlasResult<ShipmentLine> {
+    async fn update_line_shipped_quantity(
+        &self,
+        id: Uuid,
+        shipped_qty: &str,
+    ) -> AtlasResult<ShipmentLine> {
         let row = sqlx::query(
             r"UPDATE _atlas.shipment_lines
                SET shipped_quantity = $2,
@@ -561,8 +754,10 @@ impl ShippingRepository for PostgresShippingRepository {
                    updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(shipped_qty.parse::<f64>().unwrap_or(0.0))
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(shipped_qty.parse::<f64>().unwrap_or(0.0))
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_shipment_line(&row))
     }
@@ -572,12 +767,20 @@ impl ShippingRepository for PostgresShippingRepository {
     // ========================================================================
 
     async fn create_packing_slip(
-        &self, org_id: Uuid, shipment_id: Uuid, packing_slip_number: &str,
-        package_number: i32, package_type: Option<&str>,
-        weight: Option<&str>, weight_unit: Option<&str>,
-        dimensions_length: Option<&str>, dimensions_width: Option<&str>,
-        dimensions_height: Option<&str>, dimensions_unit: Option<&str>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        shipment_id: Uuid,
+        packing_slip_number: &str,
+        package_number: i32,
+        package_type: Option<&str>,
+        weight: Option<&str>,
+        weight_unit: Option<&str>,
+        dimensions_length: Option<&str>,
+        dimensions_width: Option<&str>,
+        dimensions_height: Option<&str>,
+        dimensions_unit: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<PackingSlip> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.packing_slips
@@ -587,7 +790,10 @@ impl ShippingRepository for PostgresShippingRepository {
                  notes, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *",
         )
-        .bind(org_id).bind(shipment_id).bind(packing_slip_number).bind(package_number)
+        .bind(org_id)
+        .bind(shipment_id)
+        .bind(packing_slip_number)
+        .bind(package_number)
         .bind(package_type)
         .bind(weight.map(|w| w.parse::<f64>().unwrap_or(0.0)))
         .bind(weight_unit)
@@ -595,8 +801,10 @@ impl ShippingRepository for PostgresShippingRepository {
         .bind(dimensions_width.map(|d| d.parse::<f64>().unwrap_or(0.0)))
         .bind(dimensions_height.map(|d| d.parse::<f64>().unwrap_or(0.0)))
         .bind(dimensions_unit)
-        .bind(notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_packing_slip(&row))
     }
@@ -605,21 +813,27 @@ impl ShippingRepository for PostgresShippingRepository {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.packing_slips WHERE shipment_id = $1 ORDER BY package_number",
         )
-        .bind(shipment_id).fetch_all(&self.pool).await
+        .bind(shipment_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_packing_slip).collect())
     }
 
     async fn get_packing_slip(&self, id: Uuid) -> AtlasResult<Option<PackingSlip>> {
         let row = sqlx::query("SELECT * FROM _atlas.packing_slips WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_packing_slip(&r)))
     }
 
     async fn delete_packing_slip(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.packing_slips WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -629,9 +843,15 @@ impl ShippingRepository for PostgresShippingRepository {
     // ========================================================================
 
     async fn add_packing_slip_line(
-        &self, org_id: Uuid, packing_slip_id: Uuid, shipment_line_id: Uuid,
-        line_number: i32, item_code: &str, item_name: Option<&str>,
-        packed_quantity: &str, notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        packing_slip_id: Uuid,
+        shipment_line_id: Uuid,
+        line_number: i32,
+        item_code: &str,
+        item_name: Option<&str>,
+        packed_quantity: &str,
+        notes: Option<&str>,
     ) -> AtlasResult<PackingSlipLine> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.packing_slip_lines
@@ -639,15 +859,24 @@ impl ShippingRepository for PostgresShippingRepository {
                  line_number, item_code, item_name, packed_quantity, notes)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
         )
-        .bind(org_id).bind(packing_slip_id).bind(shipment_line_id)
-        .bind(line_number).bind(item_code).bind(item_name)
-        .bind(packed_quantity.parse::<f64>().unwrap_or(0.0)).bind(notes)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(packing_slip_id)
+        .bind(shipment_line_id)
+        .bind(line_number)
+        .bind(item_code)
+        .bind(item_name)
+        .bind(packed_quantity.parse::<f64>().unwrap_or(0.0))
+        .bind(notes)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_packing_slip_line(&row))
     }
 
-    async fn list_packing_slip_lines(&self, packing_slip_id: Uuid) -> AtlasResult<Vec<PackingSlipLine>> {
+    async fn list_packing_slip_lines(
+        &self,
+        packing_slip_id: Uuid,
+    ) -> AtlasResult<Vec<PackingSlipLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.packing_slip_lines WHERE packing_slip_id = $1 ORDER BY line_number",
         )
@@ -658,7 +887,9 @@ impl ShippingRepository for PostgresShippingRepository {
 
     async fn delete_packing_slip_line(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.packing_slip_lines WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -668,7 +899,6 @@ impl ShippingRepository for PostgresShippingRepository {
     // ========================================================================
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ShippingDashboard> {
-
         let summary_row = sqlx::query(
             r"SELECT
                 COUNT(*) as total,
@@ -691,22 +921,29 @@ impl ShippingRepository for PostgresShippingRepository {
             r"SELECT status, COUNT(*) as cnt FROM _atlas.shipments
                WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let shipments_by_status: serde_json::Value = status_rows.iter().map(|r| {
-            serde_json::json!({
-                "status": r.get::<String, _>("status"),
-                "count": r.get::<i64, _>("cnt"),
+        let shipments_by_status: serde_json::Value = status_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "status": r.get::<String, _>("status"),
+                    "count": r.get::<i64, _>("cnt"),
+                })
             })
-        }).collect();
+            .collect();
 
         // Recent shipments
         let recent_rows = sqlx::query(
             "SELECT id, shipment_number, status, carrier_name, customer_name, created_at \
              FROM _atlas.shipments WHERE organization_id = $1 ORDER BY created_at DESC LIMIT 10",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let recent_shipments: serde_json::Value = recent_rows.iter().map(|r| {
@@ -726,15 +963,20 @@ impl ShippingRepository for PostgresShippingRepository {
                WHERE organization_id = $1 AND carrier_name IS NOT NULL
                GROUP BY carrier_name ORDER BY cnt DESC LIMIT 10",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let top_carriers: serde_json::Value = carrier_rows.iter().map(|r| {
-            serde_json::json!({
-                "name": r.get::<String, _>("carrier_name"),
-                "shipmentCount": r.get::<i64, _>("cnt"),
+        let top_carriers: serde_json::Value = carrier_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "name": r.get::<String, _>("carrier_name"),
+                    "shipmentCount": r.get::<i64, _>("cnt"),
+                })
             })
-        }).collect();
+            .collect();
 
         Ok(ShippingDashboard {
             total_shipments: summary_row.get::<i64, _>("total") as i32,

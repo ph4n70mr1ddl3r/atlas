@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use atlas_core::shared::*;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct SharedState {

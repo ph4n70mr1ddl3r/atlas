@@ -39,7 +39,8 @@ impl JournalApprovalService {
         let matching_rules: Vec<&JournalApprovalRule> = rules
             .iter()
             .filter(|r| {
-                let source_match = r.source_name.as_deref().unwrap_or(&batch.source) == batch.source;
+                let source_match =
+                    r.source_name.as_deref().unwrap_or(&batch.source) == batch.source;
                 let min_match = batch.total_accounted_cr >= r.min_amount;
                 let max_match = match r.max_amount {
                     Some(max) => batch.total_accounted_cr <= max,
@@ -83,16 +84,14 @@ mod tests {
 
     #[test]
     fn test_auto_approved_small_amount() {
-        let rules = vec![
-            JournalApprovalRule {
-                rule_name: "Auto-Approve Under 1000".to_string(),
-                source_name: None, // Applies to all
-                min_amount: 0.0,
-                max_amount: Some(1000.0),
-                is_auto_approved: true,
-                approver_role: None,
-            }
-        ];
+        let rules = vec![JournalApprovalRule {
+            rule_name: "Auto-Approve Under 1000".to_string(),
+            source_name: None, // Applies to all
+            min_amount: 0.0,
+            max_amount: Some(1000.0),
+            is_auto_approved: true,
+            approver_role: None,
+        }];
 
         let batch = JournalBatch {
             batch_id: "JB-100".to_string(),
@@ -104,21 +103,22 @@ mod tests {
 
         assert_eq!(result.status, "AUTO_APPROVED");
         assert_eq!(result.assigned_role, None);
-        assert_eq!(result.rule_applied, Some("Auto-Approve Under 1000".to_string()));
+        assert_eq!(
+            result.rule_applied,
+            Some("Auto-Approve Under 1000".to_string())
+        );
     }
 
     #[test]
     fn test_routed_for_approval_manager() {
-        let rules = vec![
-            JournalApprovalRule {
-                rule_name: "Manager Approval for 1K-5K".to_string(),
-                source_name: None,
-                min_amount: 1000.01,
-                max_amount: Some(5000.0),
-                is_auto_approved: false,
-                approver_role: Some("FINANCE_MANAGER".to_string()),
-            }
-        ];
+        let rules = vec![JournalApprovalRule {
+            rule_name: "Manager Approval for 1K-5K".to_string(),
+            source_name: None,
+            min_amount: 1000.01,
+            max_amount: Some(5000.0),
+            is_auto_approved: false,
+            approver_role: Some("FINANCE_MANAGER".to_string()),
+        }];
 
         let batch = JournalBatch {
             batch_id: "JB-101".to_string(),
@@ -130,21 +130,22 @@ mod tests {
 
         assert_eq!(result.status, "ROUTED_FOR_APPROVAL");
         assert_eq!(result.assigned_role, Some("FINANCE_MANAGER".to_string()));
-        assert_eq!(result.rule_applied, Some("Manager Approval for 1K-5K".to_string()));
+        assert_eq!(
+            result.rule_applied,
+            Some("Manager Approval for 1K-5K".to_string())
+        );
     }
 
     #[test]
     fn test_routed_for_approval_controller_unbounded() {
-        let rules = vec![
-            JournalApprovalRule {
-                rule_name: "Controller Approval over 5K".to_string(),
-                source_name: None,
-                min_amount: 5000.01,
-                max_amount: None, // Unbounded
-                is_auto_approved: false,
-                approver_role: Some("FINANCIAL_CONTROLLER".to_string()),
-            }
-        ];
+        let rules = vec![JournalApprovalRule {
+            rule_name: "Controller Approval over 5K".to_string(),
+            source_name: None,
+            min_amount: 5000.01,
+            max_amount: None, // Unbounded
+            is_auto_approved: false,
+            approver_role: Some("FINANCIAL_CONTROLLER".to_string()),
+        }];
 
         let batch = JournalBatch {
             batch_id: "JB-102".to_string(),
@@ -155,22 +156,26 @@ mod tests {
         let result = JournalApprovalService::determine_routing(&batch, &rules);
 
         assert_eq!(result.status, "ROUTED_FOR_APPROVAL");
-        assert_eq!(result.assigned_role, Some("FINANCIAL_CONTROLLER".to_string()));
-        assert_eq!(result.rule_applied, Some("Controller Approval over 5K".to_string()));
+        assert_eq!(
+            result.assigned_role,
+            Some("FINANCIAL_CONTROLLER".to_string())
+        );
+        assert_eq!(
+            result.rule_applied,
+            Some("Controller Approval over 5K".to_string())
+        );
     }
 
     #[test]
     fn test_source_specific_rule() {
-        let rules = vec![
-            JournalApprovalRule {
-                rule_name: "Payables Integration Auto-Approve".to_string(),
-                source_name: Some("Payables".to_string()),
-                min_amount: 0.0,
-                max_amount: None,
-                is_auto_approved: true,
-                approver_role: None,
-            }
-        ];
+        let rules = vec![JournalApprovalRule {
+            rule_name: "Payables Integration Auto-Approve".to_string(),
+            source_name: Some("Payables".to_string()),
+            min_amount: 0.0,
+            max_amount: None,
+            is_auto_approved: true,
+            approver_role: None,
+        }];
 
         let batch = JournalBatch {
             batch_id: "JB-103".to_string(),
@@ -181,21 +186,22 @@ mod tests {
         let result = JournalApprovalService::determine_routing(&batch, &rules);
 
         assert_eq!(result.status, "AUTO_APPROVED");
-        assert_eq!(result.rule_applied, Some("Payables Integration Auto-Approve".to_string()));
+        assert_eq!(
+            result.rule_applied,
+            Some("Payables Integration Auto-Approve".to_string())
+        );
     }
 
     #[test]
     fn test_no_rule_found() {
-        let rules = vec![
-            JournalApprovalRule {
-                rule_name: "Only Spreadsheets".to_string(),
-                source_name: Some("Spreadsheet".to_string()),
-                min_amount: 0.0,
-                max_amount: Some(100.0),
-                is_auto_approved: true,
-                approver_role: None,
-            }
-        ];
+        let rules = vec![JournalApprovalRule {
+            rule_name: "Only Spreadsheets".to_string(),
+            source_name: Some("Spreadsheet".to_string()),
+            min_amount: 0.0,
+            max_amount: Some(100.0),
+            is_auto_approved: true,
+            approver_role: None,
+        }];
 
         // This batch does not match the source or the amount
         let batch = JournalBatch {

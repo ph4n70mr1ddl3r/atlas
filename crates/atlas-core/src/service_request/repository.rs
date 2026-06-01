@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for service categories, requests, updates,
 //! and assignments.
 
-use atlas_shared::{
-    ServiceCategory, ServiceRequest, ServiceRequestUpdate,
-    ServiceRequestAssignment, ServiceRequestDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, ServiceCategory, ServiceRequest, ServiceRequestAssignment,
+    ServiceRequestDashboard, ServiceRequestUpdate,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -65,7 +64,11 @@ pub trait ServiceRequestRepository: Send + Sync {
     ) -> AtlasResult<ServiceRequest>;
 
     async fn get_request(&self, id: Uuid) -> AtlasResult<Option<ServiceRequest>>;
-    async fn get_request_by_number(&self, org_id: Uuid, request_number: &str) -> AtlasResult<Option<ServiceRequest>>;
+    async fn get_request_by_number(
+        &self,
+        org_id: Uuid,
+        request_number: &str,
+    ) -> AtlasResult<Option<ServiceRequest>>;
     async fn list_requests(
         &self,
         org_id: Uuid,
@@ -109,7 +112,11 @@ pub trait ServiceRequestRepository: Send + Sync {
         body: &str,
         is_internal: bool,
     ) -> AtlasResult<ServiceRequestUpdate>;
-    async fn list_updates(&self, request_id: Uuid, include_internal: bool) -> AtlasResult<Vec<ServiceRequestUpdate>>;
+    async fn list_updates(
+        &self,
+        request_id: Uuid,
+        include_internal: bool,
+    ) -> AtlasResult<Vec<ServiceRequestUpdate>>;
 
     // Assignments
     async fn create_assignment(
@@ -123,7 +130,10 @@ pub trait ServiceRequestRepository: Send + Sync {
         assigned_by_name: Option<&str>,
         assignment_type: &str,
     ) -> AtlasResult<ServiceRequestAssignment>;
-    async fn list_assignments(&self, request_id: Uuid) -> AtlasResult<Vec<ServiceRequestAssignment>>;
+    async fn list_assignments(
+        &self,
+        request_id: Uuid,
+    ) -> AtlasResult<Vec<ServiceRequestAssignment>>;
 
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ServiceRequestDashboard>;
@@ -135,7 +145,7 @@ pub struct PostgresServiceRequestRepository {
 }
 
 impl PostgresServiceRequestRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -260,8 +270,13 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(parent_category_id).bind(default_priority).bind(default_sla_hours)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(parent_category_id)
+        .bind(default_priority)
+        .bind(default_sla_hours)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -282,13 +297,11 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
     }
 
     async fn get_category_by_id(&self, id: Uuid) -> AtlasResult<Option<ServiceCategory>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.service_categories WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.service_categories WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_category(&r)))
     }
 
@@ -362,14 +375,31 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(request_number).bind(title).bind(description)
-        .bind(category_id).bind(category_name).bind(priority).bind(status)
-        .bind(request_type).bind(channel)
-        .bind(customer_id).bind(customer_name).bind(contact_id).bind(contact_name)
-        .bind(assigned_to).bind(assigned_to_name).bind(assigned_group)
-        .bind(product_id).bind(product_name).bind(serial_number)
-        .bind(sla_due_date).bind(parent_request_id)
-        .bind(related_object_type).bind(related_object_id).bind(created_by)
+        .bind(org_id)
+        .bind(request_number)
+        .bind(title)
+        .bind(description)
+        .bind(category_id)
+        .bind(category_name)
+        .bind(priority)
+        .bind(status)
+        .bind(request_type)
+        .bind(channel)
+        .bind(customer_id)
+        .bind(customer_name)
+        .bind(contact_id)
+        .bind(contact_name)
+        .bind(assigned_to)
+        .bind(assigned_to_name)
+        .bind(assigned_group)
+        .bind(product_id)
+        .bind(product_name)
+        .bind(serial_number)
+        .bind(sla_due_date)
+        .bind(parent_request_id)
+        .bind(related_object_type)
+        .bind(related_object_id)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -378,17 +408,19 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
     }
 
     async fn get_request(&self, id: Uuid) -> AtlasResult<Option<ServiceRequest>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.service_requests WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.service_requests WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_request(&r)))
     }
 
-    async fn get_request_by_number(&self, org_id: Uuid, request_number: &str) -> AtlasResult<Option<ServiceRequest>> {
+    async fn get_request_by_number(
+        &self,
+        org_id: Uuid,
+        request_number: &str,
+    ) -> AtlasResult<Option<ServiceRequest>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.service_requests WHERE organization_id = $1 AND request_number = $2"
         )
@@ -408,9 +440,8 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         assigned_to: Option<Uuid>,
         category_id: Option<Uuid>,
     ) -> AtlasResult<Vec<ServiceRequest>> {
-        let mut query_str = String::from(
-            "SELECT * FROM _atlas.service_requests WHERE organization_id = $1"
-        );
+        let mut query_str =
+            String::from("SELECT * FROM _atlas.service_requests WHERE organization_id = $1");
         let mut bind_idx = 2;
 
         let status_val;
@@ -435,7 +466,9 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             bind_idx += 1;
         }
         if assigned_to.is_some() {
-            query_str.push_str(&format!(" AND (assigned_to = ${bind_idx} OR assigned_group IS NOT NULL)"));
+            query_str.push_str(&format!(
+                " AND (assigned_to = ${bind_idx} OR assigned_group IS NOT NULL)"
+            ));
             bind_idx += 1;
         }
         if category_id.is_some() {
@@ -445,11 +478,21 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         query_str.push_str(" ORDER BY created_at DESC");
 
         let mut query = sqlx::query(&query_str).bind(org_id);
-        if !status_val.is_empty() { query = query.bind(&status_val); }
-        if !priority_val.is_empty() { query = query.bind(&priority_val); }
-        if let Some(cid) = customer_id { query = query.bind(cid); }
-        if let Some(aid) = assigned_to { query = query.bind(aid); }
-        if let Some(catid) = category_id { query = query.bind(catid); }
+        if !status_val.is_empty() {
+            query = query.bind(&status_val);
+        }
+        if !priority_val.is_empty() {
+            query = query.bind(&priority_val);
+        }
+        if let Some(cid) = customer_id {
+            query = query.bind(cid);
+        }
+        if let Some(aid) = assigned_to {
+            query = query.bind(aid);
+        }
+        if let Some(catid) = category_id {
+            query = query.bind(catid);
+        }
 
         let rows = query
             .fetch_all(&self.pool)
@@ -475,7 +518,10 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(resolved_at).bind(closed_at)
+        .bind(id)
+        .bind(status)
+        .bind(resolved_at)
+        .bind(closed_at)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -499,7 +545,10 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(resolution).bind(resolution_code).bind(resolved_at)
+        .bind(id)
+        .bind(resolution)
+        .bind(resolution_code)
+        .bind(resolved_at)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -521,7 +570,10 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(assigned_to).bind(assigned_to_name).bind(assigned_group)
+        .bind(id)
+        .bind(assigned_to)
+        .bind(assigned_to_name)
+        .bind(assigned_group)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -552,8 +604,14 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(request_id).bind(update_type)
-        .bind(author_id).bind(author_name).bind(subject).bind(body).bind(is_internal)
+        .bind(org_id)
+        .bind(request_id)
+        .bind(update_type)
+        .bind(author_id)
+        .bind(author_name)
+        .bind(subject)
+        .bind(body)
+        .bind(is_internal)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -561,7 +619,11 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         Ok(self.row_to_update(&row))
     }
 
-    async fn list_updates(&self, request_id: Uuid, include_internal: bool) -> AtlasResult<Vec<ServiceRequestUpdate>> {
+    async fn list_updates(
+        &self,
+        request_id: Uuid,
+        include_internal: bool,
+    ) -> AtlasResult<Vec<ServiceRequestUpdate>> {
         let rows = if include_internal {
             sqlx::query(
                 "SELECT * FROM _atlas.service_request_updates WHERE request_id = $1 ORDER BY created_at ASC"
@@ -603,8 +665,14 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(request_id).bind(assigned_to).bind(assigned_to_name)
-        .bind(assigned_group).bind(assigned_by).bind(assigned_by_name).bind(assignment_type)
+        .bind(org_id)
+        .bind(request_id)
+        .bind(assigned_to)
+        .bind(assigned_to_name)
+        .bind(assigned_group)
+        .bind(assigned_by)
+        .bind(assigned_by_name)
+        .bind(assignment_type)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -612,7 +680,10 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
         Ok(self.row_to_assignment(&row))
     }
 
-    async fn list_assignments(&self, request_id: Uuid) -> AtlasResult<Vec<ServiceRequestAssignment>> {
+    async fn list_assignments(
+        &self,
+        request_id: Uuid,
+    ) -> AtlasResult<Vec<ServiceRequestAssignment>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.service_request_assignments WHERE request_id = $1 ORDER BY created_at DESC"
         )
@@ -635,7 +706,7 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             FROM _atlas.service_requests
             WHERE organization_id = $1
             GROUP BY status
-            "
+            ",
         )
         .bind(org_id)
         .fetch_all(&self.pool)
@@ -700,7 +771,7 @@ impl ServiceRequestRepository for PostgresServiceRequestRepository {
             FROM _atlas.service_requests
             WHERE organization_id = $1
             GROUP BY category_name
-            "
+            ",
         )
         .bind(org_id)
         .fetch_all(&self.pool)

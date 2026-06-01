@@ -1,5 +1,5 @@
 //! Atlas SCM - Supply Chain Management
-//! 
+//!
 //! Provides inventory management, supplier management, purchase and sales
 //! order processing, and warehouse operations.
 

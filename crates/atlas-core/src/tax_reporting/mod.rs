@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Tax > Tax Reporting
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::TaxReportingEngine;
-pub use repository::{TaxReportingRepository, PostgresTaxReportingRepository};
+pub use repository::{PostgresTaxReportingRepository, TaxReportingRepository};

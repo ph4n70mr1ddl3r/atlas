@@ -3,16 +3,14 @@
 //! Business logic for managing approval authority limits and checking
 //! whether a user/role is authorised to approve a given transaction amount.
 
-use atlas_shared::{
-    ApprovalAuthorityLimit, AuthorityCheckAudit,
-    ApprovalAuthorityDashboard,
-    CreateApprovalAuthorityLimitRequest,
-    AtlasError, AtlasResult,
-};
 use super::ApprovalAuthorityRepository;
+use atlas_shared::{
+    ApprovalAuthorityDashboard, ApprovalAuthorityLimit, AtlasError, AtlasResult,
+    AuthorityCheckAudit, CreateApprovalAuthorityLimitRequest,
+};
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::info;
+use uuid::Uuid;
 
 /// Valid owner types
 const VALID_OWNER_TYPES: &[&str] = &["user", "role"];
@@ -66,7 +64,9 @@ impl ApprovalAuthorityEngine {
     ) -> AtlasResult<ApprovalAuthorityLimit> {
         // --- validations ---
         if request.limit_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("limit_code is required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "limit_code is required".into(),
+            ));
         }
         if request.name.is_empty() {
             return Err(AtlasError::ValidationFailed("name is required".into()));
@@ -96,10 +96,9 @@ impl ApprovalAuthorityEngine {
             )));
         }
 
-        let limit_amount = request.approval_limit_amount.parse::<f64>()
-            .map_err(|_| AtlasError::ValidationFailed(
-                "approval_limit_amount must be a valid number".into(),
-            ))?;
+        let limit_amount = request.approval_limit_amount.parse::<f64>().map_err(|_| {
+            AtlasError::ValidationFailed("approval_limit_amount must be a valid number".into())
+        })?;
         if limit_amount <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "approval_limit_amount must be greater than 0".into(),
@@ -107,7 +106,9 @@ impl ApprovalAuthorityEngine {
         }
 
         if request.currency_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("currency_code is required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "currency_code is required".into(),
+            ));
         }
 
         if let (Some(from), Some(to)) = (request.effective_from, request.effective_to) {
@@ -119,46 +120,65 @@ impl ApprovalAuthorityEngine {
         }
 
         // Uniqueness check
-        if self.repository.get_limit_by_code(org_id, &request.limit_code).await?.is_some() {
+        if self
+            .repository
+            .get_limit_by_code(org_id, &request.limit_code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
-                "Approval authority limit with code '{}' already exists", request.limit_code
+                "Approval authority limit with code '{}' already exists",
+                request.limit_code
             )));
         }
 
-        let user_id = request.user_id.as_ref()
+        let user_id = request
+            .user_id
+            .as_ref()
             .map(|s| Uuid::parse_str(s))
             .transpose()
             .map_err(|_| AtlasError::ValidationFailed("user_id must be a valid UUID".into()))?;
 
-        let business_unit_id = request.business_unit_id.as_ref()
+        let business_unit_id = request
+            .business_unit_id
+            .as_ref()
             .map(|s| Uuid::parse_str(s))
             .transpose()
-            .map_err(|_| AtlasError::ValidationFailed("business_unit_id must be a valid UUID".into()))?;
+            .map_err(|_| {
+                AtlasError::ValidationFailed("business_unit_id must be a valid UUID".into())
+            })?;
 
         info!(
             "Creating approval authority limit {} ({} {} for {} {})",
-            request.limit_code, request.owner_type,
-            request.user_id.as_deref().unwrap_or(request.role_name.as_deref().unwrap_or("")),
-            request.document_type, request.approval_limit_amount
+            request.limit_code,
+            request.owner_type,
+            request
+                .user_id
+                .as_deref()
+                .unwrap_or(request.role_name.as_deref().unwrap_or("")),
+            request.document_type,
+            request.approval_limit_amount
         );
 
-        self.repository.create_limit(
-            org_id,
-            &request.limit_code,
-            &request.name,
-            request.description.as_deref(),
-            &request.owner_type,
-            user_id,
-            request.role_name.as_deref(),
-            &request.document_type,
-            &request.approval_limit_amount,
-            &request.currency_code,
-            business_unit_id,
-            request.cost_center.as_deref(),
-            request.effective_from,
-            request.effective_to,
-            created_by,
-        ).await
+        self.repository
+            .create_limit(
+                org_id,
+                &request.limit_code,
+                &request.name,
+                request.description.as_deref(),
+                &request.owner_type,
+                user_id,
+                request.role_name.as_deref(),
+                &request.document_type,
+                &request.approval_limit_amount,
+                &request.currency_code,
+                business_unit_id,
+                request.cost_center.as_deref(),
+                request.effective_from,
+                request.effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a limit by ID.
@@ -167,7 +187,11 @@ impl ApprovalAuthorityEngine {
     }
 
     /// Get a limit by code.
-    pub async fn get_limit_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ApprovalAuthorityLimit>> {
+    pub async fn get_limit_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ApprovalAuthorityLimit>> {
         self.repository.get_limit_by_code(org_id, code).await
     }
 
@@ -181,12 +205,23 @@ impl ApprovalAuthorityEngine {
         user_id: Option<Uuid>,
         role_name: Option<&str>,
     ) -> AtlasResult<Vec<ApprovalAuthorityLimit>> {
-        self.repository.list_limits(org_id, status, owner_type, document_type, user_id, role_name).await
+        self.repository
+            .list_limits(
+                org_id,
+                status,
+                owner_type,
+                document_type,
+                user_id,
+                role_name,
+            )
+            .await
     }
 
     /// Activate a limit.
     pub async fn activate_limit(&self, id: Uuid) -> AtlasResult<ApprovalAuthorityLimit> {
-        let limit = self.get_limit(id).await?
+        let limit = self
+            .get_limit(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Limit {id} not found")))?;
 
         if limit.status == "active" {
@@ -199,11 +234,15 @@ impl ApprovalAuthorityEngine {
 
     /// Deactivate a limit.
     pub async fn deactivate_limit(&self, id: Uuid) -> AtlasResult<ApprovalAuthorityLimit> {
-        let limit = self.get_limit(id).await?
+        let limit = self
+            .get_limit(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Limit {id} not found")))?;
 
         if limit.status == "inactive" {
-            return Err(AtlasError::WorkflowError("Limit is already inactive".into()));
+            return Err(AtlasError::WorkflowError(
+                "Limit is already inactive".into(),
+            ));
         }
 
         info!("Deactivated approval authority limit {}", limit.limit_code);
@@ -243,29 +282,46 @@ impl ApprovalAuthorityEngine {
         cost_center: Option<&str>,
         document_id: Option<Uuid>,
     ) -> AtlasResult<AuthorityCheckAudit> {
-        let requested_amount = amount.parse::<f64>()
+        let requested_amount = amount
+            .parse::<f64>()
             .map_err(|_| AtlasError::ValidationFailed("amount must be a valid number".into()))?;
 
         if requested_amount <= 0.0 {
-            return Err(AtlasError::ValidationFailed("amount must be greater than 0".into()));
+            return Err(AtlasError::ValidationFailed(
+                "amount must be greater than 0".into(),
+            ));
         }
 
         // Try user-specific limits first (with BU, then without)
-        let user_limit = self.resolve_limit(
-            org_id, Some(user_id), None, document_type,
-            business_unit_id, cost_center,
-        ).await?;
+        let user_limit = self
+            .resolve_limit(
+                org_id,
+                Some(user_id),
+                None,
+                document_type,
+                business_unit_id,
+                cost_center,
+            )
+            .await?;
 
         // Then role-based limits
         let role_limit = if user_limit.is_none() {
             let mut best: Option<ApprovalAuthorityLimit> = None;
             for role in user_roles {
-                if let Some(lim) = self.resolve_limit(
-                    org_id, None, Some(role.as_str()), document_type,
-                    business_unit_id, cost_center,
-                ).await? {
+                if let Some(lim) = self
+                    .resolve_limit(
+                        org_id,
+                        None,
+                        Some(role.as_str()),
+                        document_type,
+                        business_unit_id,
+                        cost_center,
+                    )
+                    .await?
+                {
                     let lim_amount: f64 = lim.approval_limit_amount.parse().unwrap_or(0.0);
-                    let best_amount: f64 = best.as_ref()
+                    let best_amount: f64 = best
+                        .as_ref()
                         .map_or(0.0, |b| b.approval_limit_amount.parse().unwrap_or(0.0));
                     if lim_amount > best_amount {
                         best = Some(lim);
@@ -279,48 +335,67 @@ impl ApprovalAuthorityEngine {
 
         let applicable = user_limit.or(role_limit);
 
-        let (result, reason, limit_id, applicable_limit_str): (String, Option<String>, Option<Uuid>, String) = match &applicable {
+        let (result, reason, limit_id, applicable_limit_str): (
+            String,
+            Option<String>,
+            Option<Uuid>,
+            String,
+        ) = match &applicable {
             Some(lim) => {
                 let limit_amount: f64 = lim.approval_limit_amount.parse().unwrap_or(0.0);
                 if requested_amount <= limit_amount {
-                    ("approved".to_string(),
-                     Some(format!("Within {} limit of {}", lim.owner_type, lim.approval_limit_amount)),
-                     Some(lim.id),
-                     lim.approval_limit_amount.clone())
+                    (
+                        "approved".to_string(),
+                        Some(format!(
+                            "Within {} limit of {}",
+                            lim.owner_type, lim.approval_limit_amount
+                        )),
+                        Some(lim.id),
+                        lim.approval_limit_amount.clone(),
+                    )
                 } else {
-                    ("denied".to_string(),
-                     Some(format!("Requested {} exceeds {} limit of {}",
-                                  requested_amount, lim.owner_type, lim.approval_limit_amount)),
-                     Some(lim.id),
-                     lim.approval_limit_amount.clone())
+                    (
+                        "denied".to_string(),
+                        Some(format!(
+                            "Requested {} exceeds {} limit of {}",
+                            requested_amount, lim.owner_type, lim.approval_limit_amount
+                        )),
+                        Some(lim.id),
+                        lim.approval_limit_amount.clone(),
+                    )
                 }
             }
-            None => {
-                ("denied".to_string(),
-                 Some("No applicable approval authority limit found".to_string()),
-                 None,
-                 "0".to_string())
-            }
+            None => (
+                "denied".to_string(),
+                Some("No applicable approval authority limit found".to_string()),
+                None,
+                "0".to_string(),
+            ),
         };
 
         info!(
             "Authority check: user={} doc={} amount={} => {} ({})",
-            user_id, document_type, amount, result,
+            user_id,
+            document_type,
+            amount,
+            result,
             reason.as_deref().unwrap_or("")
         );
 
-        self.repository.create_check_audit(
-            org_id,
-            limit_id,
-            user_id,
-            user_roles.first().map(std::string::String::as_str),
-            document_type,
-            document_id,
-            amount,
-            &applicable_limit_str,
-            &result,
-            reason.as_deref(),
-        ).await
+        self.repository
+            .create_check_audit(
+                org_id,
+                limit_id,
+                user_id,
+                user_roles.first().map(std::string::String::as_str),
+                document_type,
+                document_id,
+                amount,
+                &applicable_limit_str,
+                &result,
+                reason.as_deref(),
+            )
+            .await
     }
 
     /// List check audit entries.
@@ -332,7 +407,9 @@ impl ApprovalAuthorityEngine {
         result: Option<&str>,
         limit: Option<i32>,
     ) -> AtlasResult<Vec<AuthorityCheckAudit>> {
-        self.repository.list_check_audits(org_id, user_id, document_type, result, limit).await
+        self.repository
+            .list_check_audits(org_id, user_id, document_type, result, limit)
+            .await
     }
 
     // ========================================================================
@@ -360,10 +437,18 @@ impl ApprovalAuthorityEngine {
     ) -> AtlasResult<Option<ApprovalAuthorityLimit>> {
         let owner_type = if user_id.is_some() { "user" } else { "role" };
 
-        let limits = self.repository.find_applicable_limits(
-            org_id, owner_type, user_id, role_name,
-            document_type, business_unit_id, cost_center,
-        ).await?;
+        let limits = self
+            .repository
+            .find_applicable_limits(
+                org_id,
+                owner_type,
+                user_id,
+                role_name,
+                document_type,
+                business_unit_id,
+                cost_center,
+            )
+            .await?;
 
         // Filter to currently effective and pick the one with the highest amount
         let today = chrono::Utc::now().date_naive();
@@ -375,22 +460,30 @@ impl ApprovalAuthorityEngine {
             }
             // Effective date check
             if let Some(from) = lim.effective_from {
-                if today < from { continue; }
+                if today < from {
+                    continue;
+                }
             }
             if let Some(to) = lim.effective_to {
-                if today > to { continue; }
+                if today > to {
+                    continue;
+                }
             }
 
             let lim_amount: f64 = lim.approval_limit_amount.parse().unwrap_or(0.0);
-            let best_amount: f64 = best.as_ref()
+            let best_amount: f64 = best
+                .as_ref()
                 .map_or(0.0, |b| b.approval_limit_amount.parse().unwrap_or(0.0));
 
             // Prefer BU-scoped limits over global ones when amounts are equal
             let lim_bu_score = i32::from(lim.business_unit_id.is_some());
-            let best_bu_score = best.as_ref()
+            let best_bu_score = best
+                .as_ref()
                 .map_or(0, |b| i32::from(b.business_unit_id.is_some()));
 
-            if lim_amount > best_amount || (lim_amount == best_amount && lim_bu_score > best_bu_score) {
+            if lim_amount > best_amount
+                || (lim_amount == best_amount && lim_bu_score > best_bu_score)
+            {
                 best = Some(lim);
             }
         }

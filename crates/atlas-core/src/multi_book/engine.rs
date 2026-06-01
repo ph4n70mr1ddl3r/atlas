@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: General Ledger > Multi-Book Accounting
 
-use atlas_shared::{
-    AccountingBook, AccountMapping, BookJournalEntry, BookJournalLine,
-    PropagationLog, MultiBookSummary,
-    AtlasError, AtlasResult,
-};
 use super::MultiBookAccountingRepository;
+use atlas_shared::{
+    AccountMapping, AccountingBook, AtlasError, AtlasResult, BookJournalEntry, BookJournalLine,
+    MultiBookSummary, PropagationLog,
+};
 use std::sync::Arc;
 use tracing::info;
 
@@ -89,7 +88,9 @@ impl MultiBookAccountingEngine {
         }
         if !VALID_BOOK_TYPES.contains(&book_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid book_type '{}'. Must be one of: {}", book_type, VALID_BOOK_TYPES.join(", ")
+                "Invalid book_type '{}'. Must be one of: {}",
+                book_type,
+                VALID_BOOK_TYPES.join(", ")
             )));
         }
         if chart_of_accounts_code.is_empty() {
@@ -109,7 +110,9 @@ impl MultiBookAccountingEngine {
         }
         if !VALID_MAPPING_LEVELS.contains(&mapping_level) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid mapping_level '{}'. Must be one of: {}", mapping_level, VALID_MAPPING_LEVELS.join(", ")
+                "Invalid mapping_level '{}'. Must be one of: {}",
+                mapping_level,
+                VALID_MAPPING_LEVELS.join(", ")
             )));
         }
 
@@ -123,13 +126,26 @@ impl MultiBookAccountingEngine {
             }
         }
 
-        info!("Creating accounting book '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating accounting book '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_book(
-            org_id, &code_upper, name, description, book_type,
-            chart_of_accounts_code, calendar_code, currency_code,
-            auto_propagation_enabled, mapping_level, created_by,
-        ).await
+        self.repository
+            .create_book(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                book_type,
+                chart_of_accounts_code,
+                calendar_code,
+                currency_code,
+                auto_propagation_enabled,
+                mapping_level,
+                created_by,
+            )
+            .await
     }
 
     /// Get an accounting book by code
@@ -151,14 +167,16 @@ impl MultiBookAccountingEngine {
     pub async fn update_book_status(&self, id: Uuid, status: &str) -> AtlasResult<AccountingBook> {
         if !VALID_BOOK_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid book status '{}'. Must be one of: {}", status, VALID_BOOK_STATUSES.join(", ")
+                "Invalid book status '{}'. Must be one of: {}",
+                status,
+                VALID_BOOK_STATUSES.join(", ")
             )));
         }
 
-        let book = self.repository.get_book_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting book {id} not found")
-            ))?;
+        let book =
+            self.repository.get_book_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Accounting book {id} not found"))
+            })?;
 
         // Cannot deactivate a primary book
         if book.book_type == "primary" && status == "inactive" {
@@ -173,10 +191,9 @@ impl MultiBookAccountingEngine {
 
     /// Delete (deactivate) an accounting book
     pub async fn delete_book(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        let book = self.get_book(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting book '{code}' not found")
-            ))?;
+        let book = self.get_book(org_id, code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Accounting book '{code}' not found"))
+        })?;
 
         if book.book_type == "primary" {
             return Err(AtlasError::ValidationFailed(
@@ -185,7 +202,9 @@ impl MultiBookAccountingEngine {
         }
 
         info!("Deactivating accounting book '{}' for org {}", code, org_id);
-        self.repository.delete_book(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_book(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -223,14 +242,24 @@ impl MultiBookAccountingEngine {
         }
 
         // Validate source and target books exist
-        let source_book = self.repository.get_book_by_id(source_book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Source accounting book {source_book_id} not found")
-            ))?;
-        let _target_book = self.repository.get_book_by_id(target_book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Target accounting book {target_book_id} not found")
-            ))?;
+        let source_book = self
+            .repository
+            .get_book_by_id(source_book_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Source accounting book {source_book_id} not found"
+                ))
+            })?;
+        let _target_book = self
+            .repository
+            .get_book_by_id(target_book_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Target accounting book {target_book_id} not found"
+                ))
+            })?;
 
         if let (Some(from), Some(to)) = (effective_from, effective_to) {
             if from > to {
@@ -240,15 +269,25 @@ impl MultiBookAccountingEngine {
             }
         }
 
-        info!("Creating account mapping: {} -> {} from book {} to book {}",
-            source_account_code, target_account_code, source_book.code, target_book_id);
+        info!(
+            "Creating account mapping: {} -> {} from book {} to book {}",
+            source_account_code, target_account_code, source_book.code, target_book_id
+        );
 
-        self.repository.create_account_mapping(
-            org_id, source_book_id, target_book_id,
-            source_account_code, target_account_code,
-            segment_mappings, priority,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_account_mapping(
+                org_id,
+                source_book_id,
+                target_book_id,
+                source_account_code,
+                target_account_code,
+                segment_mappings,
+                priority,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get mapping rules for a source-target book pair
@@ -258,7 +297,9 @@ impl MultiBookAccountingEngine {
         source_book_id: Option<Uuid>,
         target_book_id: Option<Uuid>,
     ) -> AtlasResult<Vec<AccountMapping>> {
-        self.repository.list_account_mappings(org_id, source_book_id, target_book_id).await
+        self.repository
+            .list_account_mappings(org_id, source_book_id, target_book_id)
+            .await
     }
 
     /// Delete an account mapping rule
@@ -285,15 +326,19 @@ impl MultiBookAccountingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BookJournalEntry> {
         // Validate book exists and is active
-        let book = self.repository.get_book_by_id(book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting book {book_id} not found")
-            ))?;
+        let book = self
+            .repository
+            .get_book_by_id(book_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Accounting book {book_id} not found"))
+            })?;
 
         if book.status != "active" {
-            return Err(AtlasError::ValidationFailed(
-                format!("Accounting book '{}' is not active (status: {})", book.code, book.status)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Accounting book '{}' is not active (status: {})",
+                book.code, book.status
+            )));
         }
 
         if lines.is_empty() {
@@ -303,10 +348,12 @@ impl MultiBookAccountingEngine {
         }
 
         // Validate balanced entry
-        let total_debit: f64 = lines.iter()
+        let total_debit: f64 = lines
+            .iter()
             .map(|l| l.debit_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_credit: f64 = lines.iter()
+        let total_credit: f64 = lines
+            .iter()
             .map(|l| l.credit_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
@@ -318,37 +365,66 @@ impl MultiBookAccountingEngine {
         }
 
         // Generate entry number
-        let entry_number = format!("{}-JE-{}", book.code, chrono::Utc::now().timestamp() % 100000);
+        let entry_number = format!(
+            "{}-JE-{}",
+            book.code,
+            chrono::Utc::now().timestamp() % 100000
+        );
 
-        info!("Creating journal entry {} in book {} for org {}", entry_number, book.code, org_id);
+        info!(
+            "Creating journal entry {} in book {} for org {}",
+            entry_number, book.code, org_id
+        );
 
-        let entry = self.repository.create_journal_entry(
-            org_id, book_id, &entry_number, header_description,
-            None, None, external_reference,
-            accounting_date, period_name,
-            &format!("{total_debit:.2}"),
-            &format!("{total_credit:.2}"),
-            "draft", false, currency_code, None,
-            serde_json::json!({}),
-            created_by,
-        ).await?;
+        let entry = self
+            .repository
+            .create_journal_entry(
+                org_id,
+                book_id,
+                &entry_number,
+                header_description,
+                None,
+                None,
+                external_reference,
+                accounting_date,
+                period_name,
+                &format!("{total_debit:.2}"),
+                &format!("{total_credit:.2}"),
+                "draft",
+                false,
+                currency_code,
+                None,
+                serde_json::json!({}),
+                created_by,
+            )
+            .await?;
 
         // Create lines
         for (i, line) in lines.iter().enumerate() {
-            self.repository.create_journal_line(
-                org_id, entry.id, (i + 1) as i32,
-                &line.account_code, line.account_name.as_deref(),
-                &line.debit_amount, &line.credit_amount, line.description.as_deref(),
-                line.tax_code.as_deref(), None,
-                serde_json::json!({}),
-            ).await?;
+            self.repository
+                .create_journal_line(
+                    org_id,
+                    entry.id,
+                    (i + 1) as i32,
+                    &line.account_code,
+                    line.account_name.as_deref(),
+                    &line.debit_amount,
+                    &line.credit_amount,
+                    line.description.as_deref(),
+                    line.tax_code.as_deref(),
+                    None,
+                    serde_json::json!({}),
+                )
+                .await?;
         }
 
         // Reload entry with lines
-        self.repository.get_journal_entry_by_id(entry.id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                "Journal entry not found after creation".to_string()
-            ))
+        self.repository
+            .get_journal_entry_by_id(entry.id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound("Journal entry not found after creation".to_string())
+            })
     }
 
     /// Get a journal entry by ID (with lines)
@@ -363,7 +439,9 @@ impl MultiBookAccountingEngine {
         book_id: Uuid,
         status: Option<&str>,
     ) -> AtlasResult<Vec<BookJournalEntry>> {
-        self.repository.list_journal_entries(org_id, book_id, status).await
+        self.repository
+            .list_journal_entries(org_id, book_id, status)
+            .await
     }
 
     /// Get journal lines for an entry
@@ -372,23 +450,33 @@ impl MultiBookAccountingEngine {
     }
 
     /// Post a journal entry (change status from draft to posted)
-    pub async fn post_journal_entry(&self, id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<BookJournalEntry> {
-        let entry = self.repository.get_journal_entry_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {id} not found")
-            ))?;
+    pub async fn post_journal_entry(
+        &self,
+        id: Uuid,
+        posted_by: Option<Uuid>,
+    ) -> AtlasResult<BookJournalEntry> {
+        let entry = self
+            .repository
+            .get_journal_entry_by_id(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Journal entry {id} not found")))?;
 
         if entry.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot post entry in '{}' status. Must be 'draft'.", entry.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot post entry in '{}' status. Must be 'draft'.",
+                entry.status
+            )));
         }
 
-        info!("Posting journal entry {} in book {}", entry.entry_number, entry.book_id);
+        info!(
+            "Posting journal entry {} in book {}",
+            entry.entry_number, entry.book_id
+        );
 
-        let posted = self.repository.update_journal_entry_status(
-            id, "posted", posted_by,
-        ).await?;
+        let posted = self
+            .repository
+            .update_journal_entry_status(id, "posted", posted_by)
+            .await?;
 
         // Check if auto-propagation should be triggered
         let book = self.repository.get_book_by_id(entry.book_id).await?;
@@ -402,56 +490,89 @@ impl MultiBookAccountingEngine {
     }
 
     /// Reverse a posted journal entry
-    pub async fn reverse_journal_entry(&self, id: Uuid, created_by: Option<Uuid>) -> AtlasResult<BookJournalEntry> {
-        let entry = self.repository.get_journal_entry_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {id} not found")
-            ))?;
+    pub async fn reverse_journal_entry(
+        &self,
+        id: Uuid,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<BookJournalEntry> {
+        let entry = self
+            .repository
+            .get_journal_entry_by_id(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Journal entry {id} not found")))?;
 
         if entry.status != "posted" && entry.status != "propagated" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reverse entry in '{}' status. Must be 'posted' or 'propagated'.", entry.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reverse entry in '{}' status. Must be 'posted' or 'propagated'.",
+                entry.status
+            )));
         }
 
-        info!("Reversing journal entry {} in book {}", entry.entry_number, entry.book_id);
+        info!(
+            "Reversing journal entry {} in book {}",
+            entry.entry_number, entry.book_id
+        );
 
         // Create reversal entry
-        let reversal_number = format!("{}-REV-{}", entry.entry_number, chrono::Utc::now().timestamp() % 10000);
+        let reversal_number = format!(
+            "{}-REV-{}",
+            entry.entry_number,
+            chrono::Utc::now().timestamp() % 10000
+        );
         let lines = self.repository.list_journal_lines(id).await?;
 
-        let reversal_entry = self.repository.create_journal_entry(
-            entry.organization_id, entry.book_id,
-            &reversal_number,
-            Some(&format!("Reversal of {}", entry.entry_number)),
-            None, None, None,
-            entry.accounting_date, entry.period_name.as_deref(),
-            &entry.total_credit, // swap debit/credit
-            &entry.total_debit,
-            "draft", false, &entry.currency_code, None,
-            serde_json::json!({ "reversal_of": entry.id.to_string() }),
-            created_by,
-        ).await?;
+        let reversal_entry = self
+            .repository
+            .create_journal_entry(
+                entry.organization_id,
+                entry.book_id,
+                &reversal_number,
+                Some(&format!("Reversal of {}", entry.entry_number)),
+                None,
+                None,
+                None,
+                entry.accounting_date,
+                entry.period_name.as_deref(),
+                &entry.total_credit, // swap debit/credit
+                &entry.total_debit,
+                "draft",
+                false,
+                &entry.currency_code,
+                None,
+                serde_json::json!({ "reversal_of": entry.id.to_string() }),
+                created_by,
+            )
+            .await?;
 
         // Create reversal lines (swap debit/credit)
         for line in &lines {
-            self.repository.create_journal_line(
-                entry.organization_id, reversal_entry.id, line.line_number,
-                &line.account_code, line.account_name.as_deref(),
-                &line.credit_amount, &line.debit_amount,
-                line.description.as_deref(), line.tax_code.as_deref(),
-                Some(line.id),
-                serde_json::json!({ "reversal_of": line.id.to_string() }),
-            ).await?;
+            self.repository
+                .create_journal_line(
+                    entry.organization_id,
+                    reversal_entry.id,
+                    line.line_number,
+                    &line.account_code,
+                    line.account_name.as_deref(),
+                    &line.credit_amount,
+                    &line.debit_amount,
+                    line.description.as_deref(),
+                    line.tax_code.as_deref(),
+                    Some(line.id),
+                    serde_json::json!({ "reversal_of": line.id.to_string() }),
+                )
+                .await?;
         }
 
         // Mark original as reversed
-        self.repository.update_journal_entry_status(id, "reversed", None).await?;
+        self.repository
+            .update_journal_entry_status(id, "reversed", None)
+            .await?;
 
         // Post the reversal immediately
-        let posted_reversal = self.repository.update_journal_entry_status(
-            reversal_entry.id, "posted", created_by,
-        ).await?;
+        let posted_reversal = self
+            .repository
+            .update_journal_entry_status(reversal_entry.id, "posted", created_by)
+            .await?;
 
         Ok(posted_reversal)
     }
@@ -461,10 +582,14 @@ impl MultiBookAccountingEngine {
     // ========================================================================
 
     /// Propagate a posted primary-book journal entry to all secondary books
-    async fn propagate_to_secondary_books(&self, entry: &BookJournalEntry) -> AtlasResult<Vec<PropagationLog>> {
+    async fn propagate_to_secondary_books(
+        &self,
+        entry: &BookJournalEntry,
+    ) -> AtlasResult<Vec<PropagationLog>> {
         let org_id = entry.organization_id;
         let books = self.repository.list_books(org_id).await?;
-        let secondary_books: Vec<_> = books.iter()
+        let secondary_books: Vec<_> = books
+            .iter()
             .filter(|b| b.book_type == "secondary" && b.is_enabled && b.auto_propagation_enabled)
             .collect();
 
@@ -476,7 +601,9 @@ impl MultiBookAccountingEngine {
         let mut logs = Vec::new();
 
         for target_book in secondary_books {
-            let log = self.propagate_entry_to_book(entry, &lines, target_book).await?;
+            let log = self
+                .propagate_entry_to_book(entry, &lines, target_book)
+                .await?;
             logs.push(log);
         }
 
@@ -490,8 +617,10 @@ impl MultiBookAccountingEngine {
         source_lines: &[BookJournalLine],
         target_book: &AccountingBook,
     ) -> AtlasResult<PropagationLog> {
-        info!("Propagating entry {} to book {}",
-            source_entry.entry_number, target_book.code);
+        info!(
+            "Propagating entry {} to book {}",
+            source_entry.entry_number, target_book.code
+        );
 
         let mut propagated_lines = 0;
         let mut unmapped_lines = 0;
@@ -499,12 +628,15 @@ impl MultiBookAccountingEngine {
 
         for line in source_lines {
             // Look up account mapping
-            let mapping = self.repository.find_account_mapping(
-                source_entry.organization_id,
-                source_entry.book_id,
-                target_book.id,
-                &line.account_code,
-            ).await?;
+            let mapping = self
+                .repository
+                .find_account_mapping(
+                    source_entry.organization_id,
+                    source_entry.book_id,
+                    target_book.id,
+                    &line.account_code,
+                )
+                .await?;
 
             if let Some(m) = mapping {
                 target_line_data.push(JournalLineData {
@@ -519,38 +651,49 @@ impl MultiBookAccountingEngine {
             } else {
                 // No mapping found - skip this line
                 unmapped_lines += 1;
-                info!("No mapping found for account {} from book {} to book {}, skipping line",
-                    line.account_code, source_entry.book_id, target_book.id);
+                info!(
+                    "No mapping found for account {} from book {} to book {}, skipping line",
+                    line.account_code, source_entry.book_id, target_book.id
+                );
             }
         }
 
         if target_line_data.is_empty() {
             // No lines could be mapped
-            let log = self.repository.create_propagation_log(
-                source_entry.organization_id,
-                source_entry.book_id,
-                target_book.id,
-                source_entry.id,
-                None,
-                "skipped",
-                0,
-                unmapped_lines,
-                Some("No account mappings found for any lines"),
-                serde_json::json!({}),
-            ).await?;
+            let log = self
+                .repository
+                .create_propagation_log(
+                    source_entry.organization_id,
+                    source_entry.book_id,
+                    target_book.id,
+                    source_entry.id,
+                    None,
+                    "skipped",
+                    0,
+                    unmapped_lines,
+                    Some("No account mappings found for any lines"),
+                    serde_json::json!({}),
+                )
+                .await?;
             return Ok(log);
         }
 
         // Check if balanced after propagation
-        let total_debit: f64 = target_line_data.iter()
+        let total_debit: f64 = target_line_data
+            .iter()
             .map(|l| l.debit_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_credit: f64 = target_line_data.iter()
+        let total_credit: f64 = target_line_data
+            .iter()
             .map(|l| l.credit_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
         // Create the propagated entry
-        let propagated_number = format!("{}-PROP-{}", target_book.code, chrono::Utc::now().timestamp() % 100000);
+        let propagated_number = format!(
+            "{}-PROP-{}",
+            target_book.code,
+            chrono::Utc::now().timestamp() % 100000
+        );
 
         // Determine conversion rate if currencies differ
         let conversion_rate = if source_entry.currency_code == target_book.currency_code {
@@ -559,58 +702,66 @@ impl MultiBookAccountingEngine {
             Some("1.0".to_string()) // Simplified - would integrate with currency engine
         };
 
-        let target_entry = self.repository.create_journal_entry(
-            source_entry.organization_id,
-            target_book.id,
-            &propagated_number,
-            Some(&format!("Propagated from {}", source_entry.entry_number)),
-            Some(source_entry.book_id),
-            Some(source_entry.id),
-            None,
-            source_entry.accounting_date,
-            source_entry.period_name.as_deref(),
-            &format!("{total_debit:.2}"),
-            &format!("{total_credit:.2}"),
-            "propagated",
-            true,
-            &target_book.currency_code,
-            conversion_rate.as_deref(),
-            serde_json::json!({}),
-            source_entry.created_by,
-        ).await?;
+        let target_entry = self
+            .repository
+            .create_journal_entry(
+                source_entry.organization_id,
+                target_book.id,
+                &propagated_number,
+                Some(&format!("Propagated from {}", source_entry.entry_number)),
+                Some(source_entry.book_id),
+                Some(source_entry.id),
+                None,
+                source_entry.accounting_date,
+                source_entry.period_name.as_deref(),
+                &format!("{total_debit:.2}"),
+                &format!("{total_credit:.2}"),
+                "propagated",
+                true,
+                &target_book.currency_code,
+                conversion_rate.as_deref(),
+                serde_json::json!({}),
+                source_entry.created_by,
+            )
+            .await?;
 
         // Create target lines
         for (i, line) in target_line_data.iter().enumerate() {
             // Find the source line for cross-reference
             let source_line = source_lines.get(i);
-            self.repository.create_journal_line(
-                source_entry.organization_id,
-                target_entry.id,
-                (i + 1) as i32,
-                &line.account_code,
-                line.account_name.as_deref(),
-                &line.debit_amount,
-                &line.credit_amount,
-                line.description.as_deref(),
-                line.tax_code.as_deref(),
-                source_line.map(|l| l.id),
-                serde_json::json!({}),
-            ).await?;
+            self.repository
+                .create_journal_line(
+                    source_entry.organization_id,
+                    target_entry.id,
+                    (i + 1) as i32,
+                    &line.account_code,
+                    line.account_name.as_deref(),
+                    &line.debit_amount,
+                    &line.credit_amount,
+                    line.description.as_deref(),
+                    line.tax_code.as_deref(),
+                    source_line.map(|l| l.id),
+                    serde_json::json!({}),
+                )
+                .await?;
         }
 
         // Create propagation log
-        let log = self.repository.create_propagation_log(
-            source_entry.organization_id,
-            source_entry.book_id,
-            target_book.id,
-            source_entry.id,
-            Some(target_entry.id),
-            "completed",
-            propagated_lines,
-            unmapped_lines,
-            None,
-            serde_json::json!({}),
-        ).await?;
+        let log = self
+            .repository
+            .create_propagation_log(
+                source_entry.organization_id,
+                source_entry.book_id,
+                target_book.id,
+                source_entry.id,
+                Some(target_entry.id),
+                "completed",
+                propagated_lines,
+                unmapped_lines,
+                None,
+                serde_json::json!({}),
+            )
+            .await?;
 
         Ok(log)
     }
@@ -621,10 +772,13 @@ impl MultiBookAccountingEngine {
         entry_id: Uuid,
         target_book_id: Uuid,
     ) -> AtlasResult<PropagationLog> {
-        let entry = self.repository.get_journal_entry_by_id(entry_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {entry_id} not found")
-            ))?;
+        let entry = self
+            .repository
+            .get_journal_entry_by_id(entry_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Journal entry {entry_id} not found"))
+            })?;
 
         if entry.status != "posted" {
             return Err(AtlasError::ValidationFailed(
@@ -632,13 +786,19 @@ impl MultiBookAccountingEngine {
             ));
         }
 
-        let target_book = self.repository.get_book_by_id(target_book_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Target accounting book {target_book_id} not found")
-            ))?;
+        let target_book = self
+            .repository
+            .get_book_by_id(target_book_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Target accounting book {target_book_id} not found"
+                ))
+            })?;
 
         let lines = self.repository.list_journal_lines(entry_id).await?;
-        self.propagate_entry_to_book(&entry, &lines, &target_book).await
+        self.propagate_entry_to_book(&entry, &lines, &target_book)
+            .await
     }
 
     /// List propagation logs
@@ -648,7 +808,9 @@ impl MultiBookAccountingEngine {
         source_book_id: Option<Uuid>,
         target_book_id: Option<Uuid>,
     ) -> AtlasResult<Vec<PropagationLog>> {
-        self.repository.list_propagation_logs(org_id, source_book_id, target_book_id).await
+        self.repository
+            .list_propagation_logs(org_id, source_book_id, target_book_id)
+            .await
     }
 
     // ========================================================================
@@ -661,8 +823,14 @@ impl MultiBookAccountingEngine {
         let primary = books.iter().find(|b| b.book_type == "primary");
         let secondary_count = books.iter().filter(|b| b.book_type == "secondary").count();
 
-        let mappings = self.repository.list_account_mappings(org_id, None, None).await?;
-        let logs = self.repository.list_propagation_logs(org_id, None, None).await?;
+        let mappings = self
+            .repository
+            .list_account_mappings(org_id, None, None)
+            .await?;
+        let logs = self
+            .repository
+            .list_propagation_logs(org_id, None, None)
+            .await?;
 
         let completed = logs.iter().filter(|l| l.status == "completed").count();
         let total = logs.len();
@@ -675,7 +843,10 @@ impl MultiBookAccountingEngine {
         let mut unposted_by_book = serde_json::Map::new();
         let mut entry_counts = serde_json::Map::new();
         for book in &books {
-            let entries = self.repository.list_journal_entries(org_id, book.id, None).await?;
+            let entries = self
+                .repository
+                .list_journal_entries(org_id, book.id, None)
+                .await?;
             let unposted = entries.iter().filter(|e| e.status == "draft").count();
             unposted_by_book.insert(book.code.clone(), serde_json::json!(unposted));
             entry_counts.insert(book.code.clone(), serde_json::json!(entries.len()));

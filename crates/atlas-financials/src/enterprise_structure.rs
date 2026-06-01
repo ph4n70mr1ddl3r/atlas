@@ -1,7 +1,7 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LegalEntity {
@@ -57,13 +57,21 @@ impl EnterpriseStructureService {
         is_primary_legal_entity: bool,
     ) -> Result<LegalEntity, String> {
         let mut entities = self.legal_entities.write().unwrap();
-        
-        if entities.iter().any(|e| e.organization_id == organization_id && e.name == name) {
-            return Err("Legal entity with this name already exists for the organization".to_string());
+
+        if entities
+            .iter()
+            .any(|e| e.organization_id == organization_id && e.name == name)
+        {
+            return Err(
+                "Legal entity with this name already exists for the organization".to_string(),
+            );
         }
 
         if is_primary_legal_entity {
-            if let Some(existing_primary) = entities.iter_mut().find(|e| e.organization_id == organization_id && e.is_primary_legal_entity) {
+            if let Some(existing_primary) = entities
+                .iter_mut()
+                .find(|e| e.organization_id == organization_id && e.is_primary_legal_entity)
+            {
                 existing_primary.is_primary_legal_entity = false;
             }
         }
@@ -95,9 +103,14 @@ impl EnterpriseStructureService {
         default_ledger_id: Option<Uuid>,
     ) -> Result<BusinessUnit, String> {
         let mut units = self.business_units.write().unwrap();
-        
-        if units.iter().any(|u| u.organization_id == organization_id && u.code == code) {
-            return Err("Business unit with this code already exists for the organization".to_string());
+
+        if units
+            .iter()
+            .any(|u| u.organization_id == organization_id && u.code == code)
+        {
+            return Err(
+                "Business unit with this code already exists for the organization".to_string(),
+            );
         }
 
         if let Some(le_id) = default_legal_entity_id {
@@ -124,7 +137,8 @@ impl EnterpriseStructureService {
 
     pub fn get_business_units_for_legal_entity(&self, legal_entity_id: Uuid) -> Vec<BusinessUnit> {
         let units = self.business_units.read().unwrap();
-        units.iter()
+        units
+            .iter()
             .filter(|u| u.default_legal_entity_id == Some(legal_entity_id) && u.is_active)
             .cloned()
             .collect()
@@ -139,7 +153,7 @@ mod tests {
     fn test_create_legal_entity() {
         let service = EnterpriseStructureService::new();
         let org_id = Uuid::new_v4();
-        
+
         let result = service.create_legal_entity(
             org_id,
             "Global Corp US".to_string(),
@@ -158,9 +172,11 @@ mod tests {
     fn test_duplicate_legal_entity_name() {
         let service = EnterpriseStructureService::new();
         let org_id = Uuid::new_v4();
-        
-        service.create_legal_entity(org_id, "Corp".to_string(), None, None, false).unwrap();
-        
+
+        service
+            .create_legal_entity(org_id, "Corp".to_string(), None, None, false)
+            .unwrap();
+
         let result = service.create_legal_entity(org_id, "Corp".to_string(), None, None, false);
         assert!(result.is_err());
     }
@@ -169,13 +185,17 @@ mod tests {
     fn test_primary_legal_entity_replacement() {
         let service = EnterpriseStructureService::new();
         let org_id = Uuid::new_v4();
-        
-        let first = service.create_legal_entity(org_id, "First".to_string(), None, None, true).unwrap();
-        let second = service.create_legal_entity(org_id, "Second".to_string(), None, None, true).unwrap();
+
+        let first = service
+            .create_legal_entity(org_id, "First".to_string(), None, None, true)
+            .unwrap();
+        let second = service
+            .create_legal_entity(org_id, "Second".to_string(), None, None, true)
+            .unwrap();
 
         let entities = service.legal_entities.read().unwrap();
         let updated_first = entities.iter().find(|e| e.id == first.id).unwrap();
-        
+
         assert!(!updated_first.is_primary_legal_entity);
         assert!(second.is_primary_legal_entity);
     }
@@ -184,8 +204,10 @@ mod tests {
     fn test_create_business_unit() {
         let service = EnterpriseStructureService::new();
         let org_id = Uuid::new_v4();
-        
-        let le = service.create_legal_entity(org_id, "US Entity".to_string(), None, None, true).unwrap();
+
+        let le = service
+            .create_legal_entity(org_id, "US Entity".to_string(), None, None, true)
+            .unwrap();
 
         let result = service.create_business_unit(
             org_id,
@@ -205,7 +227,7 @@ mod tests {
     fn test_create_business_unit_invalid_le() {
         let service = EnterpriseStructureService::new();
         let org_id = Uuid::new_v4();
-        
+
         let result = service.create_business_unit(
             org_id,
             "US Sales".to_string(),
@@ -222,12 +244,41 @@ mod tests {
     fn test_get_business_units_for_legal_entity() {
         let service = EnterpriseStructureService::new();
         let org_id = Uuid::new_v4();
-        
-        let le = service.create_legal_entity(org_id, "UK Entity".to_string(), None, None, true).unwrap();
 
-        service.create_business_unit(org_id, "UK Sales".to_string(), "UK_SALES".to_string(), None, Some(le.id), None).unwrap();
-        service.create_business_unit(org_id, "UK Marketing".to_string(), "UK_MKTG".to_string(), None, Some(le.id), None).unwrap();
-        service.create_business_unit(org_id, "US Sales".to_string(), "US_SALES".to_string(), None, None, None).unwrap();
+        let le = service
+            .create_legal_entity(org_id, "UK Entity".to_string(), None, None, true)
+            .unwrap();
+
+        service
+            .create_business_unit(
+                org_id,
+                "UK Sales".to_string(),
+                "UK_SALES".to_string(),
+                None,
+                Some(le.id),
+                None,
+            )
+            .unwrap();
+        service
+            .create_business_unit(
+                org_id,
+                "UK Marketing".to_string(),
+                "UK_MKTG".to_string(),
+                None,
+                Some(le.id),
+                None,
+            )
+            .unwrap();
+        service
+            .create_business_unit(
+                org_id,
+                "US Sales".to_string(),
+                "US_SALES".to_string(),
+                None,
+                None,
+                None,
+            )
+            .unwrap();
 
         let units = service.get_business_units_for_legal_entity(le.id);
         assert_eq!(units.len(), 2);

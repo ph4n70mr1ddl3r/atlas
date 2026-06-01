@@ -5,19 +5,18 @@
 //! API endpoints for managing payments, payment batches,
 //! and payment reversals.
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
+use tracing::{error, info};
 use uuid::Uuid;
-use tracing::{info, error};
 
 #[derive(Debug, Deserialize)]
 pub struct CreatePaymentRequest {
@@ -40,7 +39,9 @@ pub struct CreatePaymentRequest {
     pub batch_id: Option<Uuid>,
 }
 
-fn default_zero() -> String { "0.00".to_string() }
+fn default_zero() -> String {
+    "0.00".to_string()
+}
 
 /// Create a new payment
 pub async fn create_payment(
@@ -51,28 +52,36 @@ pub async fn create_payment(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    info!("Creating payment for org {} supplier {}", org_id, payload.supplier_id);
+    info!(
+        "Creating payment for org {} supplier {}",
+        org_id, payload.supplier_id
+    );
 
-    match state.financials.payment_engine.create_payment(
-        org_id,
-        payload.batch_id,
-        payload.supplier_id,
-        payload.supplier_number.as_deref(),
-        payload.supplier_name.as_deref(),
-        payload.supplier_site.as_deref(),
-        payload.payment_date,
-        &payload.payment_method,
-        &payload.currency_code,
-        &payload.payment_amount,
-        &payload.discount_taken,
-        payload.bank_account_id,
-        payload.bank_account_name.as_deref(),
-        payload.cash_account_code.as_deref(),
-        payload.ap_account_code.as_deref(),
-        payload.discount_account_code.as_deref(),
-        payload.check_number.as_deref(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .payment_engine
+        .create_payment(
+            org_id,
+            payload.batch_id,
+            payload.supplier_id,
+            payload.supplier_number.as_deref(),
+            payload.supplier_name.as_deref(),
+            payload.supplier_site.as_deref(),
+            payload.payment_date,
+            &payload.payment_method,
+            &payload.currency_code,
+            &payload.payment_amount,
+            &payload.discount_taken,
+            payload.bank_account_id,
+            payload.bank_account_name.as_deref(),
+            payload.cash_account_code.as_deref(),
+            payload.ap_account_code.as_deref(),
+            payload.discount_account_code.as_deref(),
+            payload.check_number.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(payment) => Ok(created_json(payment)),
         Err(e) => {
             error!("Failed to create payment: {}", e);
@@ -95,12 +104,12 @@ pub async fn list_payments(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.payment_engine.list_payments(
-        org_id,
-        query.status.as_deref(),
-        query.supplier_id,
-        None,
-    ).await {
+    match state
+        .financials
+        .payment_engine
+        .list_payments(org_id, query.status.as_deref(), query.supplier_id, None)
+        .await
+    {
         Ok(payments) => Ok(Json(serde_json::json!({ "data": payments }))),
         Err(e) => {
             error!("Failed to list payments: {}", e);
@@ -146,7 +155,12 @@ pub async fn clear_payment(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.payment_engine.clear_payment(id, Some(user_id)).await {
+    match state
+        .financials
+        .payment_engine
+        .clear_payment(id, Some(user_id))
+        .await
+    {
         Ok(payment) => Ok(to_json(payment)),
         Err(e) => {
             error!("Failed to clear payment: {}", e);
@@ -164,7 +178,12 @@ pub async fn void_payment(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let reason = body["reason"].as_str().unwrap_or("Voided");
-    match state.financials.payment_engine.void_payment(id, user_id, reason).await {
+    match state
+        .financials
+        .payment_engine
+        .void_payment(id, user_id, reason)
+        .await
+    {
         Ok(payment) => Ok(to_json(payment)),
         Err(e) => {
             error!("Failed to void payment: {}", e);

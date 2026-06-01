@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for price lists, price list lines, price tiers,
 //! discount rules, charge definitions, pricing strategies, and calculation logs.
 
-use atlas_shared::{
-    PriceList, PriceListLine, PriceTier, DiscountRule, ChargeDefinition,
-    PricingStrategy, PriceCalculationLog,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, ChargeDefinition, DiscountRule, PriceCalculationLog, PriceList,
+    PriceListLine, PriceTier, PricingStrategy,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -33,7 +32,12 @@ pub trait PricingRepository: Send + Sync {
 
     async fn get_price_list(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PriceList>>;
     async fn get_price_list_by_id(&self, id: Uuid) -> AtlasResult<Option<PriceList>>;
-    async fn list_price_lists(&self, org_id: Uuid, list_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<PriceList>>;
+    async fn list_price_lists(
+        &self,
+        org_id: Uuid,
+        list_type: Option<&str>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PriceList>>;
     async fn update_price_list_status(&self, id: Uuid, status: &str) -> AtlasResult<PriceList>;
     async fn delete_price_list(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -60,7 +64,11 @@ pub trait PricingRepository: Send + Sync {
 
     async fn get_price_list_line(&self, id: Uuid) -> AtlasResult<Option<PriceListLine>>;
     async fn list_price_list_lines(&self, price_list_id: Uuid) -> AtlasResult<Vec<PriceListLine>>;
-    async fn find_price_list_line_by_item(&self, price_list_id: Uuid, item_code: &str) -> AtlasResult<Option<PriceListLine>>;
+    async fn find_price_list_line_by_item(
+        &self,
+        price_list_id: Uuid,
+        item_code: &str,
+    ) -> AtlasResult<Option<PriceListLine>>;
     async fn delete_price_list_line(&self, id: Uuid) -> AtlasResult<()>;
 
     // Price Tiers
@@ -98,9 +106,17 @@ pub trait PricingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DiscountRule>;
 
-    async fn get_discount_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<DiscountRule>>;
+    async fn get_discount_rule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<DiscountRule>>;
     async fn get_discount_rule_by_id(&self, id: Uuid) -> AtlasResult<Option<DiscountRule>>;
-    async fn list_discount_rules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DiscountRule>>;
+    async fn list_discount_rules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DiscountRule>>;
     async fn increment_discount_usage(&self, id: Uuid) -> AtlasResult<()>;
     async fn delete_discount_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -125,8 +141,16 @@ pub trait PricingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ChargeDefinition>;
 
-    async fn get_charge_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ChargeDefinition>>;
-    async fn list_charge_definitions(&self, org_id: Uuid, charge_type: Option<&str>) -> AtlasResult<Vec<ChargeDefinition>>;
+    async fn get_charge_definition(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ChargeDefinition>>;
+    async fn list_charge_definitions(
+        &self,
+        org_id: Uuid,
+        charge_type: Option<&str>,
+    ) -> AtlasResult<Vec<ChargeDefinition>>;
     async fn delete_charge_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Pricing Strategies
@@ -147,7 +171,11 @@ pub trait PricingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PricingStrategy>;
 
-    async fn get_pricing_strategy(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PricingStrategy>>;
+    async fn get_pricing_strategy(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PricingStrategy>>;
     async fn list_pricing_strategies(&self, org_id: Uuid) -> AtlasResult<Vec<PricingStrategy>>;
 
     // Price Calculation Logs
@@ -173,7 +201,12 @@ pub trait PricingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PriceCalculationLog>;
 
-    async fn list_calculation_logs(&self, org_id: Uuid, entity_type: Option<&str>, entity_id: Option<Uuid>) -> AtlasResult<Vec<PriceCalculationLog>>;
+    async fn list_calculation_logs(
+        &self,
+        org_id: Uuid,
+        entity_type: Option<&str>,
+        entity_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<PriceCalculationLog>>;
 }
 
 /// `PostgreSQL` implementation
@@ -182,7 +215,7 @@ pub struct PostgresPricingRepository {
 }
 
 impl PostgresPricingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -209,11 +242,18 @@ impl PostgresPricingRepository {
     }
 
     fn row_to_price_list_line(&self, row: &sqlx::postgres::PgRow) -> PriceListLine {
-        let list_price: serde_json::Value = row.try_get("list_price").unwrap_or(serde_json::json!("0"));
-        let unit_price: serde_json::Value = row.try_get("unit_price").unwrap_or(serde_json::json!("0"));
-        let cost_price: serde_json::Value = row.try_get("cost_price").unwrap_or(serde_json::json!("0"));
-        let margin: serde_json::Value = row.try_get("margin_percent").unwrap_or(serde_json::json!("0"));
-        let min_qty: serde_json::Value = row.try_get("minimum_quantity").unwrap_or(serde_json::json!("1"));
+        let list_price: serde_json::Value =
+            row.try_get("list_price").unwrap_or(serde_json::json!("0"));
+        let unit_price: serde_json::Value =
+            row.try_get("unit_price").unwrap_or(serde_json::json!("0"));
+        let cost_price: serde_json::Value =
+            row.try_get("cost_price").unwrap_or(serde_json::json!("0"));
+        let margin: serde_json::Value = row
+            .try_get("margin_percent")
+            .unwrap_or(serde_json::json!("0"));
+        let min_qty: serde_json::Value = row
+            .try_get("minimum_quantity")
+            .unwrap_or(serde_json::json!("1"));
 
         PriceListLine {
             id: row.get("id"),
@@ -241,9 +281,13 @@ impl PostgresPricingRepository {
     }
 
     fn row_to_price_tier(&self, row: &sqlx::postgres::PgRow) -> PriceTier {
-        let from_qty: serde_json::Value = row.try_get("from_quantity").unwrap_or(serde_json::json!("0"));
+        let from_qty: serde_json::Value = row
+            .try_get("from_quantity")
+            .unwrap_or(serde_json::json!("0"));
         let price: serde_json::Value = row.try_get("price").unwrap_or(serde_json::json!("0"));
-        let disc_pct: serde_json::Value = row.try_get("discount_percent").unwrap_or(serde_json::json!("0"));
+        let disc_pct: serde_json::Value = row
+            .try_get("discount_percent")
+            .unwrap_or(serde_json::json!("0"));
 
         PriceTier {
             id: row.get("id"),
@@ -261,7 +305,9 @@ impl PostgresPricingRepository {
     }
 
     fn row_to_discount_rule(&self, row: &sqlx::postgres::PgRow) -> DiscountRule {
-        let disc_val: serde_json::Value = row.try_get("discount_value").unwrap_or(serde_json::json!("0"));
+        let disc_val: serde_json::Value = row
+            .try_get("discount_value")
+            .unwrap_or(serde_json::json!("0"));
 
         DiscountRule {
             id: row.get("id"),
@@ -289,9 +335,15 @@ impl PostgresPricingRepository {
     }
 
     fn row_to_charge_definition(&self, row: &sqlx::postgres::PgRow) -> ChargeDefinition {
-        let charge_amt: serde_json::Value = row.try_get("charge_amount").unwrap_or(serde_json::json!("0"));
-        let charge_pct: serde_json::Value = row.try_get("charge_percent").unwrap_or(serde_json::json!("0"));
-        let min_charge: serde_json::Value = row.try_get("minimum_charge").unwrap_or(serde_json::json!("0"));
+        let charge_amt: serde_json::Value = row
+            .try_get("charge_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let charge_pct: serde_json::Value = row
+            .try_get("charge_percent")
+            .unwrap_or(serde_json::json!("0"));
+        let min_charge: serde_json::Value = row
+            .try_get("minimum_charge")
+            .unwrap_or(serde_json::json!("0"));
 
         ChargeDefinition {
             id: row.get("id"),
@@ -319,8 +371,12 @@ impl PostgresPricingRepository {
     }
 
     fn row_to_pricing_strategy(&self, row: &sqlx::postgres::PgRow) -> PricingStrategy {
-        let markup: serde_json::Value = row.try_get("markup_percent").unwrap_or(serde_json::json!("0"));
-        let markdown: serde_json::Value = row.try_get("markdown_percent").unwrap_or(serde_json::json!("0"));
+        let markup: serde_json::Value = row
+            .try_get("markup_percent")
+            .unwrap_or(serde_json::json!("0"));
+        let markdown: serde_json::Value = row
+            .try_get("markdown_percent")
+            .unwrap_or(serde_json::json!("0"));
 
         PricingStrategy {
             id: row.get("id"),
@@ -345,10 +401,18 @@ impl PostgresPricingRepository {
     }
 
     fn row_to_calculation_log(&self, row: &sqlx::postgres::PgRow) -> PriceCalculationLog {
-        let list_price: serde_json::Value = row.try_get("unit_list_price").unwrap_or(serde_json::json!("0"));
-        let sell_price: serde_json::Value = row.try_get("unit_selling_price").unwrap_or(serde_json::json!("0"));
-        let disc_amt: serde_json::Value = row.try_get("discount_amount").unwrap_or(serde_json::json!("0"));
-        let charge_amt: serde_json::Value = row.try_get("charge_amount").unwrap_or(serde_json::json!("0"));
+        let list_price: serde_json::Value = row
+            .try_get("unit_list_price")
+            .unwrap_or(serde_json::json!("0"));
+        let sell_price: serde_json::Value = row
+            .try_get("unit_selling_price")
+            .unwrap_or(serde_json::json!("0"));
+        let disc_amt: serde_json::Value = row
+            .try_get("discount_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let charge_amt: serde_json::Value = row
+            .try_get("charge_amount")
+            .unwrap_or(serde_json::json!("0"));
 
         PriceCalculationLog {
             id: row.get("id"),
@@ -408,9 +472,16 @@ impl PricingRepository for PostgresPricingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(currency_code)
-        .bind(list_type).bind(pricing_basis)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(currency_code)
+        .bind(list_type)
+        .bind(pricing_basis)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -430,17 +501,20 @@ impl PricingRepository for PostgresPricingRepository {
     }
 
     async fn get_price_list_by_id(&self, id: Uuid) -> AtlasResult<Option<PriceList>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.price_lists WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.price_lists WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_price_list(&r)))
     }
 
-    async fn list_price_lists(&self, org_id: Uuid, list_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<PriceList>> {
+    async fn list_price_lists(
+        &self,
+        org_id: Uuid,
+        list_type: Option<&str>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PriceList>> {
         let rows = match (list_type, status) {
             (Some(lt), Some(s)) => sqlx::query(
                 "SELECT * FROM _atlas.price_lists WHERE organization_id = $1 AND list_type = $2 AND status = $3 AND is_active = true ORDER BY code"
@@ -525,12 +599,22 @@ impl PricingRepository for PostgresPricingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(price_list_id).bind(line_number)
-        .bind(item_id).bind(item_code).bind(item_description)
+        .bind(org_id)
+        .bind(price_list_id)
+        .bind(line_number)
+        .bind(item_id)
+        .bind(item_code)
+        .bind(item_description)
         .bind(pricing_unit_of_measure)
-        .bind(list_price).bind(unit_price).bind(cost_price).bind(margin_percent)
-        .bind(minimum_quantity).bind(maximum_quantity)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(list_price)
+        .bind(unit_price)
+        .bind(cost_price)
+        .bind(margin_percent)
+        .bind(minimum_quantity)
+        .bind(maximum_quantity)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -539,13 +623,12 @@ impl PricingRepository for PostgresPricingRepository {
     }
 
     async fn get_price_list_line(&self, id: Uuid) -> AtlasResult<Option<PriceListLine>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.price_list_lines WHERE id = $1 AND is_active = true"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row =
+            sqlx::query("SELECT * FROM _atlas.price_list_lines WHERE id = $1 AND is_active = true")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_price_list_line(&r)))
     }
 
@@ -557,10 +640,17 @@ impl PricingRepository for PostgresPricingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_price_list_line(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_price_list_line(r))
+            .collect())
     }
 
-    async fn find_price_list_line_by_item(&self, price_list_id: Uuid, item_code: &str) -> AtlasResult<Option<PriceListLine>> {
+    async fn find_price_list_line_by_item(
+        &self,
+        price_list_id: Uuid,
+        item_code: &str,
+    ) -> AtlasResult<Option<PriceListLine>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.price_list_lines WHERE price_list_id = $1 AND item_code = $2 AND is_active = true"
         )
@@ -606,9 +696,14 @@ impl PricingRepository for PostgresPricingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(price_list_line_id).bind(tier_number)
-        .bind(from_quantity).bind(to_quantity).bind(price)
-        .bind(discount_percent).bind(price_type)
+        .bind(org_id)
+        .bind(price_list_line_id)
+        .bind(tier_number)
+        .bind(from_quantity)
+        .bind(to_quantity)
+        .bind(price)
+        .bind(discount_percent)
+        .bind(price_type)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -617,7 +712,7 @@ impl PricingRepository for PostgresPricingRepository {
 
     async fn list_price_tiers(&self, price_list_line_id: Uuid) -> AtlasResult<Vec<PriceTier>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.price_tiers WHERE price_list_line_id = $1 ORDER BY tier_number"
+            "SELECT * FROM _atlas.price_tiers WHERE price_list_line_id = $1 ORDER BY tier_number",
         )
         .bind(price_list_line_id)
         .fetch_all(&self.pool)
@@ -627,13 +722,11 @@ impl PricingRepository for PostgresPricingRepository {
     }
 
     async fn delete_price_tiers_by_line(&self, price_list_line_id: Uuid) -> AtlasResult<()> {
-        sqlx::query(
-            "DELETE FROM _atlas.price_tiers WHERE price_list_line_id = $1"
-        )
-        .bind(price_list_line_id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query("DELETE FROM _atlas.price_tiers WHERE price_list_line_id = $1")
+            .bind(price_list_line_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -674,18 +767,31 @@ impl PricingRepository for PostgresPricingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(discount_type).bind(discount_value)
-        .bind(application_method).bind(stacking_rule).bind(priority)
-        .bind(condition).bind(effective_from).bind(effective_to)
-        .bind(max_usage).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(discount_type)
+        .bind(discount_value)
+        .bind(application_method)
+        .bind(stacking_rule)
+        .bind(priority)
+        .bind(condition)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(max_usage)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_discount_rule(&row))
     }
 
-    async fn get_discount_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<DiscountRule>> {
+    async fn get_discount_rule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<DiscountRule>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.discount_rules WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -697,17 +803,19 @@ impl PricingRepository for PostgresPricingRepository {
     }
 
     async fn get_discount_rule_by_id(&self, id: Uuid) -> AtlasResult<Option<DiscountRule>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.discount_rules WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.discount_rules WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_discount_rule(&r)))
     }
 
-    async fn list_discount_rules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DiscountRule>> {
+    async fn list_discount_rules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DiscountRule>> {
         let rows = match status {
             Some(s) => sqlx::query(
                 "SELECT * FROM _atlas.discount_rules WHERE organization_id = $1 AND status = $2 AND is_active = true ORDER BY priority, code"
@@ -789,19 +897,33 @@ impl PricingRepository for PostgresPricingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(charge_type).bind(charge_category).bind(calculation_method)
-        .bind(charge_amount).bind(charge_percent)
-        .bind(minimum_charge).bind(maximum_charge)
-        .bind(taxable).bind(condition)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(charge_type)
+        .bind(charge_category)
+        .bind(calculation_method)
+        .bind(charge_amount)
+        .bind(charge_percent)
+        .bind(minimum_charge)
+        .bind(maximum_charge)
+        .bind(taxable)
+        .bind(condition)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_charge_definition(&row))
     }
 
-    async fn get_charge_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ChargeDefinition>> {
+    async fn get_charge_definition(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ChargeDefinition>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.charge_definitions WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -812,7 +934,11 @@ impl PricingRepository for PostgresPricingRepository {
         Ok(row.map(|r| self.row_to_charge_definition(&r)))
     }
 
-    async fn list_charge_definitions(&self, org_id: Uuid, charge_type: Option<&str>) -> AtlasResult<Vec<ChargeDefinition>> {
+    async fn list_charge_definitions(
+        &self,
+        org_id: Uuid,
+        charge_type: Option<&str>,
+    ) -> AtlasResult<Vec<ChargeDefinition>> {
         let rows = match charge_type {
             Some(ct) => sqlx::query(
                 "SELECT * FROM _atlas.charge_definitions WHERE organization_id = $1 AND charge_type = $2 AND is_active = true ORDER BY code"
@@ -826,7 +952,10 @@ impl PricingRepository for PostgresPricingRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_charge_definition(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_charge_definition(r))
+            .collect())
     }
 
     async fn delete_charge_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -877,18 +1006,30 @@ impl PricingRepository for PostgresPricingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(strategy_type).bind(priority).bind(condition)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(strategy_type)
+        .bind(priority)
+        .bind(condition)
         .bind(price_list_id)
-        .bind(markup_percent).bind(markdown_percent)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(markup_percent)
+        .bind(markdown_percent)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_pricing_strategy(&row))
     }
 
-    async fn get_pricing_strategy(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PricingStrategy>> {
+    async fn get_pricing_strategy(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PricingStrategy>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.pricing_strategies WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -907,7 +1048,10 @@ impl PricingRepository for PostgresPricingRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_pricing_strategy(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_pricing_strategy(r))
+            .collect())
     }
 
     // ========================================================================
@@ -951,19 +1095,36 @@ impl PricingRepository for PostgresPricingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(entity_type).bind(entity_id).bind(line_id)
-        .bind(item_id).bind(item_code).bind(requested_quantity)
-        .bind(unit_list_price).bind(unit_selling_price).bind(discount_amount)
-        .bind(discount_rule_id).bind(charge_amount).bind(charge_definition_id)
-        .bind(strategy_id).bind(price_list_id).bind(calculation_steps)
-        .bind(currency_code).bind(created_by)
+        .bind(org_id)
+        .bind(entity_type)
+        .bind(entity_id)
+        .bind(line_id)
+        .bind(item_id)
+        .bind(item_code)
+        .bind(requested_quantity)
+        .bind(unit_list_price)
+        .bind(unit_selling_price)
+        .bind(discount_amount)
+        .bind(discount_rule_id)
+        .bind(charge_amount)
+        .bind(charge_definition_id)
+        .bind(strategy_id)
+        .bind(price_list_id)
+        .bind(calculation_steps)
+        .bind(currency_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_calculation_log(&row))
     }
 
-    async fn list_calculation_logs(&self, org_id: Uuid, entity_type: Option<&str>, entity_id: Option<Uuid>) -> AtlasResult<Vec<PriceCalculationLog>> {
+    async fn list_calculation_logs(
+        &self,
+        org_id: Uuid,
+        entity_type: Option<&str>,
+        entity_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<PriceCalculationLog>> {
         let rows = match (entity_type, entity_id) {
             (Some(et), Some(eid)) => sqlx::query(
                 "SELECT * FROM _atlas.price_calculation_logs WHERE organization_id = $1 AND entity_type = $2 AND entity_id = $3 ORDER BY calculation_date DESC"
@@ -982,6 +1143,9 @@ impl PricingRepository for PostgresPricingRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_calculation_log(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_calculation_log(r))
+            .collect())
     }
 }

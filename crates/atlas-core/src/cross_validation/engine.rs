@@ -6,12 +6,11 @@
 //! Oracle Fusion equivalent: General Ledger > Setup > Chart of Accounts >
 //!   Cross-Validation Rules
 
-use atlas_shared::{
-    CrossValidationRule, CrossValidationRuleLine, CrossValidationResult,
-    CrossValidationDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::CrossValidationRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CrossValidationDashboardSummary, CrossValidationResult,
+    CrossValidationRule, CrossValidationRuleLine,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -55,18 +54,25 @@ impl CrossValidationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CrossValidationRule> {
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Rule code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Rule code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Rule name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Rule name is required".to_string(),
+            ));
         }
         if error_message.is_empty() {
-            return Err(AtlasError::ValidationFailed("Error message is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Error message is required".to_string(),
+            ));
         }
         if !VALID_RULE_TYPES.contains(&rule_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid rule type '{}'. Must be one of: {}",
-                rule_type, VALID_RULE_TYPES.join(", ")
+                rule_type,
+                VALID_RULE_TYPES.join(", ")
             )));
         }
         if segment_names.is_empty() {
@@ -75,7 +81,9 @@ impl CrossValidationEngine {
             ));
         }
         if priority < 0 {
-            return Err(AtlasError::ValidationFailed("Priority must be >= 0".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Priority must be >= 0".to_string(),
+            ));
         }
         if let (Some(from), Some(to)) = (effective_from, effective_to) {
             if to < from {
@@ -92,16 +100,34 @@ impl CrossValidationEngine {
             )));
         }
 
-        info!("Creating cross-validation rule {} ({}) for org {}", code, name, org_id);
+        info!(
+            "Creating cross-validation rule {} ({}) for org {}",
+            code, name, org_id
+        );
 
-        self.repository.create_rule(
-            org_id, code, name, description, rule_type, error_message,
-            priority, segment_names, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_rule(
+                org_id,
+                code,
+                name,
+                description,
+                rule_type,
+                error_message,
+                priority,
+                segment_names,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a rule by code
-    pub async fn get_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CrossValidationRule>> {
+    pub async fn get_rule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CrossValidationRule>> {
         self.repository.get_rule(org_id, code).await
     }
 
@@ -121,11 +147,15 @@ impl CrossValidationEngine {
 
     /// Enable a rule
     pub async fn enable_rule(&self, id: Uuid) -> AtlasResult<CrossValidationRule> {
-        let rule = self.get_rule_by_id(id).await?
+        let rule = self
+            .get_rule_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Rule {id} not found")))?;
 
         if rule.is_enabled {
-            return Err(AtlasError::WorkflowError("Rule is already enabled".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Rule is already enabled".to_string(),
+            ));
         }
 
         info!("Enabled cross-validation rule {}", rule.code);
@@ -134,11 +164,15 @@ impl CrossValidationEngine {
 
     /// Disable a rule
     pub async fn disable_rule(&self, id: Uuid) -> AtlasResult<CrossValidationRule> {
-        let rule = self.get_rule_by_id(id).await?
+        let rule = self
+            .get_rule_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Rule {id} not found")))?;
 
         if !rule.is_enabled {
-            return Err(AtlasError::WorkflowError("Rule is already disabled".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Rule is already disabled".to_string(),
+            ));
         }
 
         info!("Disabled cross-validation rule {}", rule.code);
@@ -167,31 +201,40 @@ impl CrossValidationEngine {
         if !VALID_LINE_TYPES.contains(&line_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid line type '{}'. Must be one of: {}",
-                line_type, VALID_LINE_TYPES.join(", ")
+                line_type,
+                VALID_LINE_TYPES.join(", ")
             )));
         }
 
-        let rule = self.repository.get_rule(org_id, rule_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Rule '{rule_code}' not found"
-            )))?;
+        let rule = self
+            .repository
+            .get_rule(org_id, rule_code)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Rule '{rule_code}' not found")))?;
 
         if patterns.len() != rule.segment_names.len() {
             return Err(AtlasError::ValidationFailed(format!(
                 "Pattern count ({}) must match segment count ({})",
-                patterns.len(), rule.segment_names.len()
+                patterns.len(),
+                rule.segment_names.len()
             )));
         }
 
-        info!("Adding {} line to cross-validation rule {}", line_type, rule_code);
+        info!(
+            "Adding {} line to cross-validation rule {}",
+            line_type, rule_code
+        );
 
-        self.repository.create_rule_line(
-            org_id, rule.id, line_type, &patterns, display_order,
-        ).await
+        self.repository
+            .create_rule_line(org_id, rule.id, line_type, &patterns, display_order)
+            .await
     }
 
     /// List lines for a rule
-    pub async fn list_rule_lines(&self, rule_id: Uuid) -> AtlasResult<Vec<CrossValidationRuleLine>> {
+    pub async fn list_rule_lines(
+        &self,
+        rule_id: Uuid,
+    ) -> AtlasResult<Vec<CrossValidationRuleLine>> {
         self.repository.list_rule_lines(rule_id).await
     }
 
@@ -227,15 +270,13 @@ impl CrossValidationEngine {
         let mut allow_matches: Vec<Uuid> = Vec::new();
 
         // Collect applicable rules (enabled and within effective dates)
-        let mut applicable_rules: Vec<&CrossValidationRule> = rules.iter()
-            .filter(|r| {
-                
-                match (r.effective_from, r.effective_to) {
-                    (Some(from), Some(to)) => today >= from && today <= to,
-                    (Some(from), None) => today >= from,
-                    (None, Some(to)) => today <= to,
-                    (None, None) => true,
-                }
+        let mut applicable_rules: Vec<&CrossValidationRule> = rules
+            .iter()
+            .filter(|r| match (r.effective_from, r.effective_to) {
+                (Some(from), Some(to)) => today >= from && today <= to,
+                (Some(from), None) => today >= from,
+                (None, Some(to)) => today <= to,
+                (None, None) => true,
             })
             .collect();
 
@@ -244,29 +285,27 @@ impl CrossValidationEngine {
 
         // First pass: identify all matching "allow" rules
         for rule in &applicable_rules {
-            if rule.rule_type == "allow"
-                && self.rule_matches(rule, segment_values).await? {
-                    allow_matches.push(rule.id);
-                }
+            if rule.rule_type == "allow" && self.rule_matches(rule, segment_values).await? {
+                allow_matches.push(rule.id);
+            }
         }
 
         // Second pass: check "deny" rules
         for rule in &applicable_rules {
-            if rule.rule_type == "deny"
-                && self.rule_matches(rule, segment_values).await? {
-                    // Check if any allow rule overrides this deny
-                    let is_overridden = allow_matches.iter().any(|_allow_id| {
-                        // Simple override: allow rule with same or higher priority (lower number)
-                        // In Oracle Fusion, allow rules override all deny rules
-                        // We use a simpler model: any matching allow overrides any matching deny
-                        true
-                    });
+            if rule.rule_type == "deny" && self.rule_matches(rule, segment_values).await? {
+                // Check if any allow rule overrides this deny
+                let is_overridden = allow_matches.iter().any(|_allow_id| {
+                    // Simple override: allow rule with same or higher priority (lower number)
+                    // In Oracle Fusion, allow rules override all deny rules
+                    // We use a simpler model: any matching allow overrides any matching deny
+                    true
+                });
 
-                    if !is_overridden {
-                        violated_rules.push(rule.code.clone());
-                        error_messages.push(rule.error_message.clone());
-                    }
+                if !is_overridden {
+                    violated_rules.push(rule.code.clone());
+                    error_messages.push(rule.error_message.clone());
                 }
+            }
         }
 
         let is_valid = violated_rules.is_empty();
@@ -293,23 +332,25 @@ impl CrossValidationEngine {
             return Ok(false);
         }
 
-        let from_lines: Vec<&CrossValidationRuleLine> = lines.iter()
-            .filter(|l| l.line_type == "from")
-            .collect();
-        let to_lines: Vec<&CrossValidationRuleLine> = lines.iter()
-            .filter(|l| l.line_type == "to")
-            .collect();
+        let from_lines: Vec<&CrossValidationRuleLine> =
+            lines.iter().filter(|l| l.line_type == "from").collect();
+        let to_lines: Vec<&CrossValidationRuleLine> =
+            lines.iter().filter(|l| l.line_type == "to").collect();
 
         let from_matches = if from_lines.is_empty() {
             true // No from constraint = always matches
         } else {
-            from_lines.iter().any(|line| Self::pattern_matches(&line.patterns, segment_values))
+            from_lines
+                .iter()
+                .any(|line| Self::pattern_matches(&line.patterns, segment_values))
         };
 
         let to_matches = if to_lines.is_empty() {
             true // No to constraint = always matches
         } else {
-            to_lines.iter().any(|line| Self::pattern_matches(&line.patterns, segment_values))
+            to_lines
+                .iter()
+                .any(|line| Self::pattern_matches(&line.patterns, segment_values))
         };
 
         Ok(from_matches && to_matches)
@@ -318,7 +359,7 @@ impl CrossValidationEngine {
     /// Check if a pattern matches a set of segment values.
     /// Each pattern element is matched against the corresponding segment value.
     /// "%" matches any value, exact strings must match exactly (case-insensitive).
-    #[must_use] 
+    #[must_use]
     pub fn pattern_matches(patterns: &[String], values: &[String]) -> bool {
         if patterns.len() != values.len() {
             return false;
@@ -340,7 +381,10 @@ impl CrossValidationEngine {
     // ========================================================================
 
     /// Get dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<CrossValidationDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<CrossValidationDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 }
@@ -366,16 +410,32 @@ mod tests {
     #[test]
     fn test_pattern_matches_exact() {
         assert!(CrossValidationEngine::pattern_matches(
-            &["1000".to_string(), "MARKETING".to_string(), "5000".to_string()],
-            &["1000".to_string(), "MARKETING".to_string(), "5000".to_string()],
+            &[
+                "1000".to_string(),
+                "MARKETING".to_string(),
+                "5000".to_string()
+            ],
+            &[
+                "1000".to_string(),
+                "MARKETING".to_string(),
+                "5000".to_string()
+            ],
         ));
     }
 
     #[test]
     fn test_pattern_matches_case_insensitive() {
         assert!(CrossValidationEngine::pattern_matches(
-            &["1000".to_string(), "marketing".to_string(), "5000".to_string()],
-            &["1000".to_string(), "MARKETING".to_string(), "5000".to_string()],
+            &[
+                "1000".to_string(),
+                "marketing".to_string(),
+                "5000".to_string()
+            ],
+            &[
+                "1000".to_string(),
+                "MARKETING".to_string(),
+                "5000".to_string()
+            ],
         ));
     }
 
@@ -383,7 +443,11 @@ mod tests {
     fn test_pattern_matches_wildcard_all() {
         assert!(CrossValidationEngine::pattern_matches(
             &["%".to_string(), "%".to_string(), "%".to_string()],
-            &["1000".to_string(), "MARKETING".to_string(), "5000".to_string()],
+            &[
+                "1000".to_string(),
+                "MARKETING".to_string(),
+                "5000".to_string()
+            ],
         ));
     }
 
@@ -392,15 +456,27 @@ mod tests {
         // Company 1000, any department, account 5000
         assert!(CrossValidationEngine::pattern_matches(
             &["1000".to_string(), "%".to_string(), "5000".to_string()],
-            &["1000".to_string(), "MARKETING".to_string(), "5000".to_string()],
+            &[
+                "1000".to_string(),
+                "MARKETING".to_string(),
+                "5000".to_string()
+            ],
         ));
         assert!(CrossValidationEngine::pattern_matches(
             &["1000".to_string(), "%".to_string(), "5000".to_string()],
-            &["1000".to_string(), "ENGINEERING".to_string(), "5000".to_string()],
+            &[
+                "1000".to_string(),
+                "ENGINEERING".to_string(),
+                "5000".to_string()
+            ],
         ));
         assert!(!CrossValidationEngine::pattern_matches(
             &["1000".to_string(), "%".to_string(), "5000".to_string()],
-            &["2000".to_string(), "MARKETING".to_string(), "5000".to_string()],
+            &[
+                "2000".to_string(),
+                "MARKETING".to_string(),
+                "5000".to_string()
+            ],
         ));
     }
 

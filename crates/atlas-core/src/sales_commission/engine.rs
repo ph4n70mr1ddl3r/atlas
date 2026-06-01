@@ -5,14 +5,13 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Incentive Compensation
 
+use super::SalesCommissionRepository;
 use atlas_shared::{
-    SalesRepresentative, CommissionPlan, CommissionRateTier, PlanAssignment,
-    SalesQuota, CommissionTransaction, CommissionPayout, CommissionPayoutLine,
-    CommissionDashboardSummary, CommissionTopPerformer,
-    AtlasError, AtlasResult,
+    AtlasError, AtlasResult, CommissionDashboardSummary, CommissionPayout, CommissionPayoutLine,
+    CommissionPlan, CommissionRateTier, CommissionTopPerformer, CommissionTransaction,
+    PlanAssignment, SalesQuota, SalesRepresentative,
 };
 use chrono::Datelike;
-use super::SalesCommissionRepository;
 
 /// Accumulated totals per sales representative during payout processing.
 ///
@@ -30,24 +29,16 @@ use tracing::info;
 use uuid::Uuid;
 
 /// Valid plan types
-const VALID_PLAN_TYPES: &[&str] = &[
-    "revenue", "margin", "quantity", "flat_bonus",
-];
+const VALID_PLAN_TYPES: &[&str] = &["revenue", "margin", "quantity", "flat_bonus"];
 
 /// Valid bases for commission calculation
-const VALID_BASES: &[&str] = &[
-    "revenue", "gross_margin", "net_margin", "quantity",
-];
+const VALID_BASES: &[&str] = &["revenue", "gross_margin", "net_margin", "quantity"];
 
 /// Valid calculation methods
-const VALID_CALC_METHODS: &[&str] = &[
-    "percentage", "tiered", "flat_rate", "graduated",
-];
+const VALID_CALC_METHODS: &[&str] = &["percentage", "tiered", "flat_rate", "graduated"];
 
 /// Valid quota types
-const VALID_QUOTA_TYPES: &[&str] = &[
-    "revenue", "units", "margin", "activities",
-];
+const VALID_QUOTA_TYPES: &[&str] = &["revenue", "units", "margin", "activities"];
 
 /// Sales Commission engine
 pub struct SalesCommissionEngine {
@@ -91,31 +82,55 @@ impl SalesCommissionEngine {
             ));
         }
 
-        info!("Creating sales rep '{}' ({}) for org {}", code_upper, first_name, org_id);
+        info!(
+            "Creating sales rep '{}' ({}) for org {}",
+            code_upper, first_name, org_id
+        );
 
-        self.repository.create_rep(
-            org_id, &code_upper, employee_id,
-            first_name, last_name, email,
-            territory_code, territory_name,
-            manager_id, manager_name, hire_date,
-            created_by,
-        ).await
+        self.repository
+            .create_rep(
+                org_id,
+                &code_upper,
+                employee_id,
+                first_name,
+                last_name,
+                email,
+                territory_code,
+                territory_name,
+                manager_id,
+                manager_name,
+                hire_date,
+                created_by,
+            )
+            .await
     }
 
     /// Get a rep by code
-    pub async fn get_rep(&self, org_id: Uuid, rep_code: &str) -> AtlasResult<Option<SalesRepresentative>> {
-        self.repository.get_rep(org_id, &rep_code.to_uppercase()).await
+    pub async fn get_rep(
+        &self,
+        org_id: Uuid,
+        rep_code: &str,
+    ) -> AtlasResult<Option<SalesRepresentative>> {
+        self.repository
+            .get_rep(org_id, &rep_code.to_uppercase())
+            .await
     }
 
     /// List reps
-    pub async fn list_reps(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<SalesRepresentative>> {
+    pub async fn list_reps(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<SalesRepresentative>> {
         self.repository.list_reps(org_id, active_only).await
     }
 
     /// Delete (soft-delete) a rep
     pub async fn delete_rep(&self, org_id: Uuid, rep_code: &str) -> AtlasResult<()> {
         info!("Deleting sales rep '{}' for org {}", rep_code, org_id);
-        self.repository.delete_rep(org_id, &rep_code.to_uppercase()).await
+        self.repository
+            .delete_rep(org_id, &rep_code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -150,36 +165,55 @@ impl SalesCommissionEngine {
         }
         if !VALID_PLAN_TYPES.contains(&plan_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid plan_type '{}'. Must be one of: {}", plan_type, VALID_PLAN_TYPES.join(", ")
+                "Invalid plan_type '{}'. Must be one of: {}",
+                plan_type,
+                VALID_PLAN_TYPES.join(", ")
             )));
         }
         if !VALID_BASES.contains(&basis) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid basis '{}'. Must be one of: {}", basis, VALID_BASES.join(", ")
+                "Invalid basis '{}'. Must be one of: {}",
+                basis,
+                VALID_BASES.join(", ")
             )));
         }
         if !VALID_CALC_METHODS.contains(&calculation_method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid calculation_method '{}'. Must be one of: {}", calculation_method, VALID_CALC_METHODS.join(", ")
+                "Invalid calculation_method '{}'. Must be one of: {}",
+                calculation_method,
+                VALID_CALC_METHODS.join(", ")
             )));
         }
 
-        let rate: f64 = default_rate.parse().map_err(|_| AtlasError::ValidationFailed(
-            "default_rate must be a valid number".to_string(),
-        ))?;
+        let rate: f64 = default_rate.parse().map_err(|_| {
+            AtlasError::ValidationFailed("default_rate must be a valid number".to_string())
+        })?;
         if rate < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "default_rate cannot be negative".to_string(),
             ));
         }
 
-        info!("Creating commission plan '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating commission plan '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_plan(
-            org_id, &code_upper, name, description,
-            plan_type, basis, calculation_method, default_rate,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_plan(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                plan_type,
+                basis,
+                calculation_method,
+                default_rate,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a plan by code
@@ -188,19 +222,27 @@ impl SalesCommissionEngine {
     }
 
     /// List plans
-    pub async fn list_plans(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CommissionPlan>> {
+    pub async fn list_plans(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CommissionPlan>> {
         self.repository.list_plans(org_id, status).await
     }
 
     /// Activate a commission plan
     pub async fn activate_plan(&self, id: Uuid) -> AtlasResult<CommissionPlan> {
-        let plan = self.repository.get_plan_by_id(id).await?
+        let plan = self
+            .repository
+            .get_plan_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {id} not found")))?;
 
         if plan.status != "draft" && plan.status != "inactive" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot activate plan in '{}' status", plan.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot activate plan in '{}' status",
+                plan.status
+            )));
         }
 
         info!("Activating commission plan {}", plan.code);
@@ -209,13 +251,17 @@ impl SalesCommissionEngine {
 
     /// Deactivate a commission plan
     pub async fn deactivate_plan(&self, id: Uuid) -> AtlasResult<CommissionPlan> {
-        let plan = self.repository.get_plan_by_id(id).await?
+        let plan = self
+            .repository
+            .get_plan_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {id} not found")))?;
 
         if plan.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot deactivate plan in '{}' status", plan.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot deactivate plan in '{}' status",
+                plan.status
+            )));
         }
 
         info!("Deactivating commission plan {}", plan.code);
@@ -225,7 +271,9 @@ impl SalesCommissionEngine {
     /// Delete (soft-delete) a plan
     pub async fn delete_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deleting commission plan '{}' for org {}", code, org_id);
-        self.repository.delete_plan(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_plan(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -242,15 +290,18 @@ impl SalesCommissionEngine {
         rate_percent: &str,
         flat_amount: Option<&str>,
     ) -> AtlasResult<CommissionRateTier> {
-        let plan = self.repository.get_plan_by_id(plan_id).await?
+        let plan = self
+            .repository
+            .get_plan_by_id(plan_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {plan_id} not found")))?;
 
-        let from: f64 = from_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "from_amount must be a valid number".to_string(),
-        ))?;
-        let rate: f64 = rate_percent.parse().map_err(|_| AtlasError::ValidationFailed(
-            "rate_percent must be a valid number".to_string(),
-        ))?;
+        let from: f64 = from_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("from_amount must be a valid number".to_string())
+        })?;
+        let rate: f64 = rate_percent.parse().map_err(|_| {
+            AtlasError::ValidationFailed("rate_percent must be a valid number".to_string())
+        })?;
         if from < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "from_amount cannot be negative".to_string(),
@@ -267,10 +318,17 @@ impl SalesCommissionEngine {
 
         info!("Adding rate tier {} to plan {}", tier_number, plan.code);
 
-        self.repository.create_rate_tier(
-            org_id, plan_id, tier_number,
-            from_amount, to_amount, rate_percent, flat_amount,
-        ).await
+        self.repository
+            .create_rate_tier(
+                org_id,
+                plan_id,
+                tier_number,
+                from_amount,
+                to_amount,
+                rate_percent,
+                flat_amount,
+            )
+            .await
     }
 
     /// List rate tiers for a plan
@@ -293,22 +351,37 @@ impl SalesCommissionEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PlanAssignment> {
         // Verify rep exists
-        self.repository.get_rep_by_id(rep_id).await?
+        self.repository
+            .get_rep_by_id(rep_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Rep {rep_id} not found")))?;
 
         // Verify plan exists
-        self.repository.get_plan_by_id(plan_id).await?
+        self.repository
+            .get_plan_by_id(plan_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {plan_id} not found")))?;
 
         info!("Assigning plan {} to rep {}", plan_id, rep_id);
 
-        self.repository.create_assignment(
-            org_id, rep_id, plan_id, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_assignment(
+                org_id,
+                rep_id,
+                plan_id,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// List assignments
-    pub async fn list_assignments(&self, org_id: Uuid, rep_id: Option<Uuid>) -> AtlasResult<Vec<PlanAssignment>> {
+    pub async fn list_assignments(
+        &self,
+        org_id: Uuid,
+        rep_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<PlanAssignment>> {
         self.repository.list_assignments(org_id, rep_id).await
     }
 
@@ -331,18 +404,22 @@ impl SalesCommissionEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SalesQuota> {
         // Verify rep exists
-        self.repository.get_rep_by_id(rep_id).await?
+        self.repository
+            .get_rep_by_id(rep_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Rep {rep_id} not found")))?;
 
         if !VALID_QUOTA_TYPES.contains(&quota_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid quota_type '{}'. Must be one of: {}", quota_type, VALID_QUOTA_TYPES.join(", ")
+                "Invalid quota_type '{}'. Must be one of: {}",
+                quota_type,
+                VALID_QUOTA_TYPES.join(", ")
             )));
         }
 
-        let target: f64 = target_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "target_amount must be a valid number".to_string(),
-        ))?;
+        let target: f64 = target_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("target_amount must be a valid number".to_string())
+        })?;
         if target <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "target_amount must be positive".to_string(),
@@ -357,11 +434,20 @@ impl SalesCommissionEngine {
 
         info!("Creating quota '{}' for rep {}", quota_number, rep_id);
 
-        self.repository.create_quota(
-            org_id, rep_id, plan_id, quota_number,
-            period_name, period_start_date, period_end_date,
-            quota_type, target_amount, created_by,
-        ).await
+        self.repository
+            .create_quota(
+                org_id,
+                rep_id,
+                plan_id,
+                quota_number,
+                period_name,
+                period_start_date,
+                period_end_date,
+                quota_type,
+                target_amount,
+                created_by,
+            )
+            .await
     }
 
     /// Get a quota by ID
@@ -370,7 +456,12 @@ impl SalesCommissionEngine {
     }
 
     /// List quotas
-    pub async fn list_quotas(&self, org_id: Uuid, rep_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<SalesQuota>> {
+    pub async fn list_quotas(
+        &self,
+        org_id: Uuid,
+        rep_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SalesQuota>> {
         self.repository.list_quotas(org_id, rep_id, status).await
     }
 
@@ -394,12 +485,15 @@ impl SalesCommissionEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CommissionTransaction> {
         // Verify rep exists
-        let rep = self.repository.get_rep_by_id(rep_id).await?
+        let rep = self
+            .repository
+            .get_rep_by_id(rep_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Rep {rep_id} not found")))?;
 
-        let sale: f64 = sale_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "sale_amount must be a valid number".to_string(),
-        ))?;
+        let sale: f64 = sale_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("sale_amount must be a valid number".to_string())
+        })?;
         if sale <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "sale_amount must be positive".to_string(),
@@ -408,23 +502,34 @@ impl SalesCommissionEngine {
 
         // Determine the commission plan (explicit or from active assignment)
         let plan = if let Some(pid) = plan_id {
-            self.repository.get_plan_by_id(pid).await?
+            self.repository
+                .get_plan_by_id(pid)
+                .await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Plan {pid} not found")))?
         } else {
             // Find active assignment for this rep
-            let assignments = self.repository.list_assignments(org_id, Some(rep_id)).await?;
+            let assignments = self
+                .repository
+                .list_assignments(org_id, Some(rep_id))
+                .await?;
             let today = chrono::Utc::now().date_naive();
-            let active_assignment = assignments.into_iter()
+            let active_assignment = assignments
+                .into_iter()
                 .filter(|a| a.status == "active")
                 .filter(|a| a.effective_from <= today)
                 .filter(|a| a.effective_to.is_none_or(|t| t >= today))
                 .find(|_| true);
 
             if let Some(assignment) = active_assignment {
-                self.repository.get_plan_by_id(assignment.plan_id).await?
-                    .ok_or_else(|| AtlasError::EntityNotFound(
-                        format!("Assigned plan {} not found", assignment.plan_id)
-                    ))?
+                self.repository
+                    .get_plan_by_id(assignment.plan_id)
+                    .await?
+                    .ok_or_else(|| {
+                        AtlasError::EntityNotFound(format!(
+                            "Assigned plan {} not found",
+                            assignment.plan_id
+                        ))
+                    })?
             } else {
                 return Err(AtlasError::ValidationFailed(
                     "No active plan assignment found for this rep. Specify a plan_id.".to_string(),
@@ -455,8 +560,8 @@ impl SalesCommissionEngine {
                     let mut applicable_rate = 0.0_f64;
                     for tier in &tiers {
                         let from: f64 = tier.from_amount.parse().unwrap_or(0.0);
-                        let to_opt: Option<f64> = tier.to_amount.as_ref()
-                            .and_then(|t| t.parse().ok());
+                        let to_opt: Option<f64> =
+                            tier.to_amount.as_ref().and_then(|t| t.parse().ok());
 
                         let in_range = sale >= from && to_opt.is_none_or(|t| sale <= t);
                         if in_range {
@@ -482,19 +587,36 @@ impl SalesCommissionEngine {
         };
 
         // Generate transaction number
-        let tx_number = format!("CTX-{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase());
+        let tx_number = format!(
+            "CTX-{}",
+            uuid::Uuid::new_v4().to_string()[..8].to_uppercase()
+        );
 
-        info!("Crediting commission tx {} to rep {} (amount={})", tx_number, rep.rep_code, commission_amount);
+        info!(
+            "Crediting commission tx {} to rep {} (amount={})",
+            tx_number, rep.rep_code, commission_amount
+        );
 
-        let tx = self.repository.create_transaction(
-            org_id, rep_id, Some(plan.id), quota_id,
-            &tx_number,
-            source_type, source_id, source_number,
-            transaction_date,
-            sale_amount, sale_amount, // basis = sale amount for now
-            &commission_rate, &commission_amount,
-            currency_code, created_by,
-        ).await?;
+        let tx = self
+            .repository
+            .create_transaction(
+                org_id,
+                rep_id,
+                Some(plan.id),
+                quota_id,
+                &tx_number,
+                source_type,
+                source_id,
+                source_number,
+                transaction_date,
+                sale_amount,
+                sale_amount, // basis = sale amount for now
+                &commission_rate,
+                &commission_amount,
+                currency_code,
+                created_by,
+            )
+            .await?;
 
         // Update quota achievement if linked
         if let Some(qid) = quota_id {
@@ -502,11 +624,19 @@ impl SalesCommissionEngine {
                 let current_achieved: f64 = quota.achieved_amount.parse().unwrap_or(0.0);
                 let new_achieved = current_achieved + sale;
                 let target: f64 = quota.target_amount.parse().unwrap_or(1.0);
-                let pct = if target > 0.0 { (new_achieved / target) * 100.0 } else { 0.0 };
+                let pct = if target > 0.0 {
+                    (new_achieved / target) * 100.0
+                } else {
+                    0.0
+                };
 
-                self.repository.update_quota_achievement(
-                    qid, &format!("{new_achieved:.4}"), &format!("{pct:.4}"),
-                ).await?;
+                self.repository
+                    .update_quota_achievement(
+                        qid,
+                        &format!("{new_achieved:.4}"),
+                        &format!("{pct:.4}"),
+                    )
+                    .await?;
             }
         }
 
@@ -525,7 +655,9 @@ impl SalesCommissionEngine {
         rep_id: Option<Uuid>,
         status: Option<&str>,
     ) -> AtlasResult<Vec<CommissionTransaction>> {
-        self.repository.list_transactions(org_id, rep_id, status).await
+        self.repository
+            .list_transactions(org_id, rep_id, status)
+            .await
     }
 
     // ========================================================================
@@ -552,9 +684,15 @@ impl SalesCommissionEngine {
         }
 
         // Get all credited transactions for this period
-        let all_txns = self.repository.list_transactions(org_id, None, Some("credited")).await?;
-        let eligible_txns: Vec<&CommissionTransaction> = all_txns.iter()
-            .filter(|t| t.transaction_date >= period_start_date && t.transaction_date <= period_end_date)
+        let all_txns = self
+            .repository
+            .list_transactions(org_id, None, Some("credited"))
+            .await?;
+        let eligible_txns: Vec<&CommissionTransaction> = all_txns
+            .iter()
+            .filter(|t| {
+                t.transaction_date >= period_start_date && t.transaction_date <= period_end_date
+            })
             .collect();
 
         if eligible_txns.is_empty() {
@@ -565,14 +703,26 @@ impl SalesCommissionEngine {
 
         let payout_number = format!("CPY-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Processing payout {} for period {} ({} transactions)", payout_number, period_name, eligible_txns.len());
+        info!(
+            "Processing payout {} for period {} ({} transactions)",
+            payout_number,
+            period_name,
+            eligible_txns.len()
+        );
 
         // Create payout
-        let payout = self.repository.create_payout(
-            org_id, &payout_number, period_name,
-            period_start_date, period_end_date,
-            currency_code, created_by,
-        ).await?;
+        let payout = self
+            .repository
+            .create_payout(
+                org_id,
+                &payout_number,
+                period_name,
+                period_start_date,
+                period_end_date,
+                currency_code,
+                created_by,
+            )
+            .await?;
 
         // Group transactions by rep
         use std::collections::HashMap;
@@ -580,17 +730,27 @@ impl SalesCommissionEngine {
 
         for tx in &eligible_txns {
             let rep = self.repository.get_rep_by_id(tx.rep_id).await?;
-            let rep_name = rep.map(|r| format!("{} {}", r.first_name, r.last_name)).unwrap_or_default();
+            let rep_name = rep
+                .map(|r| format!("{} {}", r.first_name, r.last_name))
+                .unwrap_or_default();
 
-            let entry = rep_totals.entry(tx.rep_id).or_insert_with(|| {
-                RepPayoutTotals { rep_name, total_commission: 0.0, transaction_count: 0, plan_id: tx.plan_id, plan_name: None }
-            });
+            let entry = rep_totals
+                .entry(tx.rep_id)
+                .or_insert_with(|| RepPayoutTotals {
+                    rep_name,
+                    total_commission: 0.0,
+                    transaction_count: 0,
+                    plan_id: tx.plan_id,
+                    plan_name: None,
+                });
             let commission: f64 = tx.commission_amount.parse().unwrap_or(0.0);
             entry.total_commission += commission;
             entry.transaction_count += 1;
 
             // Move transaction to "included" status
-            self.repository.update_transaction_status(tx.id, "included", Some(payout.id)).await?;
+            self.repository
+                .update_transaction_status(tx.id, "included", Some(payout.id))
+                .await?;
         }
 
         // Create payout lines
@@ -605,27 +765,37 @@ impl SalesCommissionEngine {
                 None
             };
 
-            self.repository.create_payout_line(
-                org_id, payout.id, *rep_id, &totals.rep_name,
-                totals.plan_id, plan_code.as_deref(),
-                &format!("{:.4}", totals.total_commission),
-                "0.0000",
-                &format!("{net:.4}"),
-                currency_code,
-                totals.transaction_count,
-            ).await?;
+            self.repository
+                .create_payout_line(
+                    org_id,
+                    payout.id,
+                    *rep_id,
+                    &totals.rep_name,
+                    totals.plan_id,
+                    plan_code.as_deref(),
+                    &format!("{:.4}", totals.total_commission),
+                    "0.0000",
+                    &format!("{net:.4}"),
+                    currency_code,
+                    totals.transaction_count,
+                )
+                .await?;
         }
 
         // Update payout totals
-        self.repository.update_payout_totals(
-            payout.id,
-            &format!("{total_payout:.4}"),
-            rep_totals.len() as i32,
-            eligible_txns.len() as i32,
-        ).await?;
+        self.repository
+            .update_payout_totals(
+                payout.id,
+                &format!("{total_payout:.4}"),
+                rep_totals.len() as i32,
+                eligible_txns.len() as i32,
+            )
+            .await?;
 
         // Refresh payout
-        self.repository.get_payout(payout.id).await?
+        self.repository
+            .get_payout(payout.id)
+            .await?
             .ok_or_else(|| AtlasError::Internal("Failed to retrieve created payout".to_string()))
     }
 
@@ -635,43 +805,70 @@ impl SalesCommissionEngine {
     }
 
     /// List payouts
-    pub async fn list_payouts(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CommissionPayout>> {
+    pub async fn list_payouts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CommissionPayout>> {
         self.repository.list_payouts(org_id, status).await
     }
 
     /// Get payout lines
-    pub async fn list_payout_lines(&self, payout_id: Uuid) -> AtlasResult<Vec<CommissionPayoutLine>> {
+    pub async fn list_payout_lines(
+        &self,
+        payout_id: Uuid,
+    ) -> AtlasResult<Vec<CommissionPayoutLine>> {
         self.repository.list_payout_lines(payout_id).await
     }
 
     /// Approve a payout
-    pub async fn approve_payout(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<CommissionPayout> {
-        let payout = self.repository.get_payout(id).await?
+    pub async fn approve_payout(
+        &self,
+        id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<CommissionPayout> {
+        let payout = self
+            .repository
+            .get_payout(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Payout {id} not found")))?;
 
         if payout.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve payout in '{}' status. Must be 'draft'.", payout.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve payout in '{}' status. Must be 'draft'.",
+                payout.status
+            )));
         }
 
         info!("Approving payout {}", payout.payout_number);
-        self.repository.update_payout_status(id, "approved", approved_by, None).await
+        self.repository
+            .update_payout_status(id, "approved", approved_by, None)
+            .await
     }
 
     /// Reject a payout
-    pub async fn reject_payout(&self, id: Uuid, rejected_reason: Option<&str>) -> AtlasResult<CommissionPayout> {
-        let payout = self.repository.get_payout(id).await?
+    pub async fn reject_payout(
+        &self,
+        id: Uuid,
+        rejected_reason: Option<&str>,
+    ) -> AtlasResult<CommissionPayout> {
+        let payout = self
+            .repository
+            .get_payout(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Payout {id} not found")))?;
 
         if payout.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reject payout in '{}' status. Must be 'draft'.", payout.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reject payout in '{}' status. Must be 'draft'.",
+                payout.status
+            )));
         }
 
         info!("Rejecting payout {}", payout.payout_number);
-        self.repository.update_payout_status(id, "rejected", None, rejected_reason).await
+        self.repository
+            .update_payout_status(id, "rejected", None, rejected_reason)
+            .await
     }
 
     // ========================================================================
@@ -679,11 +876,17 @@ impl SalesCommissionEngine {
     // ========================================================================
 
     /// Get a commission dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<CommissionDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<CommissionDashboardSummary> {
         let reps = self.repository.list_reps(org_id, false).await?;
         let plans = self.repository.list_plans(org_id, None).await?;
         let quotas = self.repository.list_quotas(org_id, None, None).await?;
-        let txns = self.repository.list_transactions(org_id, None, None).await?;
+        let txns = self
+            .repository
+            .list_transactions(org_id, None, None)
+            .await?;
         let payouts = self.repository.list_payouts(org_id, None).await?;
 
         let active_reps = reps.iter().filter(|r| r.is_active).count() as i32;
@@ -694,8 +897,10 @@ impl SalesCommissionEngine {
         // Calculate total commission this month
         let now = chrono::Utc::now();
         let today = now.date_naive();
-        let this_month_start = chrono::NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap_or_default();
-        let total_commission_this_month: f64 = txns.iter()
+        let this_month_start =
+            chrono::NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap_or_default();
+        let total_commission_this_month: f64 = txns
+            .iter()
             .filter(|t| t.transaction_date >= this_month_start)
             .map(|t| t.commission_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
@@ -704,15 +909,18 @@ impl SalesCommissionEngine {
         let total_quota_achievement: f64 = if quotas.is_empty() {
             0.0
         } else {
-            quotas.iter()
+            quotas
+                .iter()
                 .map(|q| q.achievement_percent.parse::<f64>().unwrap_or(0.0))
-                .sum::<f64>() / quotas.len() as f64
+                .sum::<f64>()
+                / quotas.len() as f64
         };
 
         // Payouts by status
         let mut pb_status = serde_json::Map::new();
         for p in &payouts {
-            let count = pb_status.entry(p.status.clone())
+            let count = pb_status
+                .entry(p.status.clone())
                 .or_insert(serde_json::Value::Number(0.into()));
             *count = serde_json::Value::Number((count.as_u64().unwrap_or(0) + 1).into());
         }
@@ -722,7 +930,9 @@ impl SalesCommissionEngine {
         let mut rep_commissions: HashMap<Uuid, (String, f64, f64)> = HashMap::new();
         for tx in &txns {
             if tx.transaction_date >= this_month_start {
-                let entry = rep_commissions.entry(tx.rep_id).or_insert((String::new(), 0.0, 0.0));
+                let entry = rep_commissions
+                    .entry(tx.rep_id)
+                    .or_insert((String::new(), 0.0, 0.0));
                 let commission: f64 = tx.commission_amount.parse().unwrap_or(0.0);
                 let sale: f64 = tx.sale_amount.parse().unwrap_or(0.0);
                 entry.1 += commission;
@@ -737,7 +947,8 @@ impl SalesCommissionEngine {
             }
         }
 
-        let mut top: Vec<CommissionTopPerformer> = rep_commissions.into_iter()
+        let mut top: Vec<CommissionTopPerformer> = rep_commissions
+            .into_iter()
             .map(|(rep_id, (name, total_comm, _))| CommissionTopPerformer {
                 rep_id,
                 rep_name: name,
@@ -749,7 +960,9 @@ impl SalesCommissionEngine {
         top.sort_by(|a, b| {
             let a_val: f64 = a.total_commission.parse().unwrap_or(0.0);
             let b_val: f64 = b.total_commission.parse().unwrap_or(0.0);
-            b_val.partial_cmp(&a_val).unwrap_or(std::cmp::Ordering::Equal)
+            b_val
+                .partial_cmp(&a_val)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
         for (i, performer) in top.iter_mut().enumerate() {
             performer.rank = (i + 1) as i32;

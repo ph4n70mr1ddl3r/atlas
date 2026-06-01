@@ -7,18 +7,17 @@
 //! - Saved balance inquiry management
 //! - Account monitor dashboard summary
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Account Groups
@@ -45,27 +44,35 @@ pub async fn create_account_group(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let group = state.financials.account_monitor_engine.create_account_group(
-        org_id,
-        &payload.code,
-        &payload.name,
-        payload.description.as_deref(),
-        Some(user_id),
-        payload.is_shared.unwrap_or(false),
-        payload.threshold_warning_pct.as_deref(),
-        payload.threshold_critical_pct.as_deref(),
-        payload.comparison_type.as_deref().unwrap_or("prior_period"),
-        Some(user_id),
-    ).await.map_err(|e| {
-        error!("Create account group error: {}", e);
-        match e {
-            atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
-            atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    let group = state
+        .financials
+        .account_monitor_engine
+        .create_account_group(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            Some(user_id),
+            payload.is_shared.unwrap_or(false),
+            payload.threshold_warning_pct.as_deref(),
+            payload.threshold_critical_pct.as_deref(),
+            payload.comparison_type.as_deref().unwrap_or("prior_period"),
+            Some(user_id),
+        )
+        .await
+        .map_err(|e| {
+            error!("Create account group error: {}", e);
+            match e {
+                atlas_shared::AtlasError::Conflict(_) => StatusCode::CONFLICT,
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(group))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(group)),
+    ))
 }
 
 /// Get an account group by ID
@@ -73,8 +80,15 @@ pub async fn get_account_group(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let group = state.financials.account_monitor_engine.get_account_group(id).await
-        .map_err(|e| { error!("Get account group error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let group = state
+        .financials
+        .account_monitor_engine
+        .get_account_group(id)
+        .await
+        .map_err(|e| {
+            error!("Get account group error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
     match group {
         Some(g) => Ok(Json(crate::handlers::records::to_json_or_null(g))),
         None => Err(StatusCode::NOT_FOUND),
@@ -88,8 +102,15 @@ pub async fn list_account_groups(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let groups = state.financials.account_monitor_engine.list_account_groups(org_id, None).await
-        .map_err(|e| { error!("List account groups error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let groups = state
+        .financials
+        .account_monitor_engine
+        .list_account_groups(org_id, None)
+        .await
+        .map_err(|e| {
+            error!("List account groups error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({
         "data": groups,
@@ -105,10 +126,15 @@ pub async fn delete_account_group(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.financials.account_monitor_engine.delete_account_group(org_id, &code).await.map_err(|e| {
-        error!("Delete account group error: {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    state
+        .financials
+        .account_monitor_engine
+        .delete_account_group(org_id, &code)
+        .await
+        .map_err(|e| {
+            error!("Delete account group error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -135,22 +161,30 @@ pub async fn add_group_member(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let member = state.financials.account_monitor_engine.add_group_member(
-        group_id,
-        &payload.account_segment,
-        payload.account_label.as_deref(),
-        payload.display_order.unwrap_or(0),
-        payload.include_children.unwrap_or(true),
-    ).await.map_err(|e| {
-        error!("Add member error: {}", e);
-        match e {
-            atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
-            atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    let member = state
+        .financials
+        .account_monitor_engine
+        .add_group_member(
+            group_id,
+            &payload.account_segment,
+            payload.account_label.as_deref(),
+            payload.display_order.unwrap_or(0),
+            payload.include_children.unwrap_or(true),
+        )
+        .await
+        .map_err(|e| {
+            error!("Add member error: {}", e);
+            match e {
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(member))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(member)),
+    ))
 }
 
 /// Remove a member from an account group
@@ -158,13 +192,18 @@ pub async fn remove_group_member(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.financials.account_monitor_engine.remove_group_member(id).await.map_err(|e| {
-        error!("Remove member error: {}", e);
-        match e {
-            atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    state
+        .financials
+        .account_monitor_engine
+        .remove_group_member(id)
+        .await
+        .map_err(|e| {
+            error!("Remove member error: {}", e);
+            match e {
+                atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -173,8 +212,15 @@ pub async fn list_group_members(
     State(state): State<Arc<AppState>>,
     Path(group_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let members = state.financials.account_monitor_engine.list_group_members(group_id).await
-        .map_err(|e| { error!("List members error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let members = state
+        .financials
+        .account_monitor_engine
+        .list_group_members(group_id)
+        .await
+        .map_err(|e| {
+            error!("List members error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({
         "data": members,
@@ -210,23 +256,35 @@ pub async fn capture_snapshot(
     let period_end = chrono::NaiveDate::parse_from_str(&payload.period_end, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let snapshots = state.financials.account_monitor_engine.capture_snapshot(
-        org_id, group_id, &payload.period_name,
-        period_start, period_end,
-        payload.fiscal_year, payload.period_number,
-    ).await.map_err(|e| {
-        error!("Capture snapshot error: {}", e);
-        match e {
-            atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
-            atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    let snapshots = state
+        .financials
+        .account_monitor_engine
+        .capture_snapshot(
+            org_id,
+            group_id,
+            &payload.period_name,
+            period_start,
+            period_end,
+            payload.fiscal_year,
+            payload.period_number,
+        )
+        .await
+        .map_err(|e| {
+            error!("Capture snapshot error: {}", e);
+            match e {
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::json!({
-        "data": snapshots,
-        "meta": { "groupId": group_id, "total": snapshots.len() }
-    }))))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::json!({
+            "data": snapshots,
+            "meta": { "groupId": group_id, "total": snapshots.len() }
+        })),
+    ))
 }
 
 #[derive(Debug, Deserialize)]
@@ -244,13 +302,20 @@ pub async fn list_snapshots(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let offset = params.offset.unwrap_or(0).max(0);
-    let snapshot_date = params.snapshot_date
+    let snapshot_date = params
+        .snapshot_date
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let snapshots = state.financials.account_monitor_engine.get_group_snapshots(
-        group_id, snapshot_date, limit, offset,
-    ).await.map_err(|e| { error!("List snapshots error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let snapshots = state
+        .financials
+        .account_monitor_engine
+        .get_group_snapshots(group_id, snapshot_date, limit, offset)
+        .await
+        .map_err(|e| {
+            error!("List snapshots error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({
         "data": snapshots,
@@ -265,8 +330,15 @@ pub async fn get_alert_snapshots(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let snapshots = state.financials.account_monitor_engine.get_alert_snapshots(org_id).await
-        .map_err(|e| { error!("Get alerts error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let snapshots = state
+        .financials
+        .account_monitor_engine
+        .get_alert_snapshots(org_id)
+        .await
+        .map_err(|e| {
+            error!("Get alerts error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({
         "data": snapshots,
@@ -279,13 +351,18 @@ pub async fn delete_snapshot(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.financials.account_monitor_engine.delete_snapshot(id).await.map_err(|e| {
-        error!("Delete snapshot error: {}", e);
-        match e {
-            atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    state
+        .financials
+        .account_monitor_engine
+        .delete_snapshot(id)
+        .await
+        .map_err(|e| {
+            error!("Delete snapshot error: {}", e);
+            match e {
+                atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -320,28 +397,42 @@ pub async fn create_saved_inquiry(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let inquiry = state.financials.account_monitor_engine.create_saved_inquiry(
-        org_id, user_id,
-        &payload.name, payload.description.as_deref(),
-        payload.account_segments.clone().unwrap_or(serde_json::json!([])),
-        &payload.period_from, &payload.period_to,
-        payload.currency_code.as_deref().unwrap_or("USD"),
-        payload.amount_type.as_deref().unwrap_or("ending_balance"),
-        payload.include_zero_balances.unwrap_or(false),
-        payload.comparison_enabled.unwrap_or(false),
-        payload.comparison_type.as_deref(),
-        payload.sort_by.as_deref().unwrap_or("account_segment"),
-        payload.sort_direction.as_deref().unwrap_or("asc"),
-        payload.is_shared.unwrap_or(false),
-    ).await.map_err(|e| {
-        error!("Create saved inquiry error: {}", e);
-        match e {
-            atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    let inquiry = state
+        .financials
+        .account_monitor_engine
+        .create_saved_inquiry(
+            org_id,
+            user_id,
+            &payload.name,
+            payload.description.as_deref(),
+            payload
+                .account_segments
+                .clone()
+                .unwrap_or(serde_json::json!([])),
+            &payload.period_from,
+            &payload.period_to,
+            payload.currency_code.as_deref().unwrap_or("USD"),
+            payload.amount_type.as_deref().unwrap_or("ending_balance"),
+            payload.include_zero_balances.unwrap_or(false),
+            payload.comparison_enabled.unwrap_or(false),
+            payload.comparison_type.as_deref(),
+            payload.sort_by.as_deref().unwrap_or("account_segment"),
+            payload.sort_direction.as_deref().unwrap_or("asc"),
+            payload.is_shared.unwrap_or(false),
+        )
+        .await
+        .map_err(|e| {
+            error!("Create saved inquiry error: {}", e);
+            match e {
+                atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(inquiry))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(inquiry)),
+    ))
 }
 
 /// Get a saved balance inquiry
@@ -349,8 +440,15 @@ pub async fn get_saved_inquiry(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let inquiry = state.financials.account_monitor_engine.get_saved_inquiry(id).await
-        .map_err(|e| { error!("Get saved inquiry error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let inquiry = state
+        .financials
+        .account_monitor_engine
+        .get_saved_inquiry(id)
+        .await
+        .map_err(|e| {
+            error!("Get saved inquiry error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
     match inquiry {
         Some(i) => Ok(Json(crate::handlers::records::to_json_or_null(i))),
         None => Err(StatusCode::NOT_FOUND),
@@ -364,8 +462,15 @@ pub async fn list_saved_inquiries(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let inquiries = state.financials.account_monitor_engine.list_saved_inquiries(org_id, None).await
-        .map_err(|e| { error!("List saved inquiries error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let inquiries = state
+        .financials
+        .account_monitor_engine
+        .list_saved_inquiries(org_id, None)
+        .await
+        .map_err(|e| {
+            error!("List saved inquiries error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({
         "data": inquiries,
@@ -378,13 +483,18 @@ pub async fn delete_saved_inquiry(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.financials.account_monitor_engine.delete_saved_inquiry(id).await.map_err(|e| {
-        error!("Delete saved inquiry error: {}", e);
-        match e {
-            atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    })?;
+    state
+        .financials
+        .account_monitor_engine
+        .delete_saved_inquiry(id)
+        .await
+        .map_err(|e| {
+            error!("Delete saved inquiry error: {}", e);
+            match e {
+                atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            }
+        })?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -399,8 +509,15 @@ pub async fn get_account_monitor_summary(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let summary = state.financials.account_monitor_engine.get_monitor_summary(org_id).await
-        .map_err(|e| { error!("Account monitor summary error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let summary = state
+        .financials
+        .account_monitor_engine
+        .get_monitor_summary(org_id)
+        .await
+        .map_err(|e| {
+            error!("Account monitor summary error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(crate::handlers::records::to_json_or_null(summary)))
 }

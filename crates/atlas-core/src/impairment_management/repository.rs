@@ -2,12 +2,11 @@
 //!
 //! Storage interface for impairment management data.
 
-use atlas_shared::{
-    ImpairmentIndicator, ImpairmentTest, ImpairmentCashFlow, ImpairmentTestAsset,
-    ImpairmentDashboardSummary,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, ImpairmentCashFlow, ImpairmentDashboardSummary, ImpairmentIndicator,
+    ImpairmentTest, ImpairmentTestAsset,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -27,8 +26,16 @@ pub trait ImpairmentManagementRepository: Send + Sync {
     ) -> AtlasResult<ImpairmentIndicator>;
 
     async fn get_indicator(&self, id: Uuid) -> AtlasResult<Option<ImpairmentIndicator>>;
-    async fn get_indicator_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ImpairmentIndicator>>;
-    async fn list_indicators(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<ImpairmentIndicator>>;
+    async fn get_indicator_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ImpairmentIndicator>>;
+    async fn list_indicators(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<ImpairmentIndicator>>;
 
     // Tests
     async fn create_test(
@@ -56,7 +63,11 @@ pub trait ImpairmentManagementRepository: Send + Sync {
     ) -> AtlasResult<ImpairmentTest>;
 
     async fn get_test(&self, id: Uuid) -> AtlasResult<Option<ImpairmentTest>>;
-    async fn list_tests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ImpairmentTest>>;
+    async fn list_tests(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ImpairmentTest>>;
     async fn update_test_status(
         &self,
         id: Uuid,
@@ -65,7 +76,12 @@ pub trait ImpairmentManagementRepository: Send + Sync {
         approved_by: Option<Uuid>,
     ) -> AtlasResult<ImpairmentTest>;
     async fn update_test_recoverable(&self, id: Uuid, recoverable_amount: &str) -> AtlasResult<()>;
-    async fn update_test_results(&self, id: Uuid, recoverable_amount: &str, impairment_loss: &str) -> AtlasResult<ImpairmentTest>;
+    async fn update_test_results(
+        &self,
+        id: Uuid,
+        recoverable_amount: &str,
+        impairment_loss: &str,
+    ) -> AtlasResult<ImpairmentTest>;
 
     // Cash Flows
     async fn create_cash_flow(
@@ -119,7 +135,7 @@ pub struct PostgresImpairmentManagementRepository {
 }
 
 impl PostgresImpairmentManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -223,8 +239,13 @@ fn row_to_test_asset(row: &sqlx::postgres::PgRow) -> ImpairmentTestAsset {
 impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
     async fn create_indicator(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        indicator_type: &str, severity: &str, created_by: Option<Uuid>,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        indicator_type: &str,
+        severity: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ImpairmentIndicator> {
         let row = sqlx::query(
             r"
@@ -234,8 +255,13 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(indicator_type).bind(severity).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(indicator_type)
+        .bind(severity)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -244,20 +270,34 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
 
     async fn get_indicator(&self, id: Uuid) -> AtlasResult<Option<ImpairmentIndicator>> {
         let row = sqlx::query("SELECT * FROM _atlas.impairment_indicators WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_indicator(&r)))
     }
 
-    async fn get_indicator_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ImpairmentIndicator>> {
+    async fn get_indicator_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ImpairmentIndicator>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.impairment_indicators WHERE organization_id = $1 AND code = $2"
-        ).bind(org_id).bind(code).fetch_optional(&self.pool).await
+            "SELECT * FROM _atlas.impairment_indicators WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_indicator(&r)))
     }
 
-    async fn list_indicators(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<ImpairmentIndicator>> {
+    async fn list_indicators(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<ImpairmentIndicator>> {
         let rows = if active_only {
             sqlx::query("SELECT * FROM _atlas.impairment_indicators WHERE organization_id = $1 AND is_active = true ORDER BY created_at DESC")
                 .bind(org_id)
@@ -272,14 +312,26 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
 
     async fn create_test(
         &self,
-        org_id: Uuid, test_number: &str, name: &str, description: Option<&str>,
-        test_type: &str, test_method: &str, test_date: chrono::NaiveDate,
-        reporting_period: Option<&str>, indicator_id: Option<Uuid>,
-        carrying_amount: &str, recoverable_amount: &str, impairment_loss: &str,
-        impairment_account: Option<&str>, reversal_account: Option<&str>,
-        asset_id: Option<Uuid>, cgu_id: Option<Uuid>,
-        discount_rate: Option<&str>, growth_rate: Option<&str>,
-        terminal_value: Option<&str>, created_by: Option<Uuid>,
+        org_id: Uuid,
+        test_number: &str,
+        name: &str,
+        description: Option<&str>,
+        test_type: &str,
+        test_method: &str,
+        test_date: chrono::NaiveDate,
+        reporting_period: Option<&str>,
+        indicator_id: Option<Uuid>,
+        carrying_amount: &str,
+        recoverable_amount: &str,
+        impairment_loss: &str,
+        impairment_account: Option<&str>,
+        reversal_account: Option<&str>,
+        asset_id: Option<Uuid>,
+        cgu_id: Option<Uuid>,
+        discount_rate: Option<&str>,
+        growth_rate: Option<&str>,
+        terminal_value: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ImpairmentTest> {
         let row = sqlx::query(
             r"
@@ -294,38 +346,65 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(test_number).bind(name).bind(description)
-        .bind(test_type).bind(test_method).bind(test_date).bind(reporting_period)
-        .bind(indicator_id).bind(carrying_amount).bind(recoverable_amount)
-        .bind(impairment_loss).bind(impairment_account).bind(reversal_account)
-        .bind(asset_id).bind(cgu_id).bind(discount_rate).bind(growth_rate)
-        .bind(terminal_value).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(test_number)
+        .bind(name)
+        .bind(description)
+        .bind(test_type)
+        .bind(test_method)
+        .bind(test_date)
+        .bind(reporting_period)
+        .bind(indicator_id)
+        .bind(carrying_amount)
+        .bind(recoverable_amount)
+        .bind(impairment_loss)
+        .bind(impairment_account)
+        .bind(reversal_account)
+        .bind(asset_id)
+        .bind(cgu_id)
+        .bind(discount_rate)
+        .bind(growth_rate)
+        .bind(terminal_value)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_test(&row))
     }
 
     async fn get_test(&self, id: Uuid) -> AtlasResult<Option<ImpairmentTest>> {
         let row = sqlx::query("SELECT * FROM _atlas.impairment_tests WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_test(&r)))
     }
 
-    async fn list_tests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ImpairmentTest>> {
+    async fn list_tests(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ImpairmentTest>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.impairment_tests
                WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
                ORDER BY test_date DESC, created_at DESC",
-        ).bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        )
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_test).collect())
     }
 
     async fn update_test_status(
-        &self, id: Uuid, status: &str,
-        submitted_by: Option<Uuid>, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        submitted_by: Option<Uuid>,
+        approved_by: Option<Uuid>,
     ) -> AtlasResult<ImpairmentTest> {
         let row = sqlx::query(
             r"
@@ -339,8 +418,13 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
                 updated_at = now()
             WHERE id = $1 RETURNING *
             ",
-        ).bind(id).bind(status).bind(submitted_by).bind(approved_by)
-        .fetch_one(&self.pool).await
+        )
+        .bind(id)
+        .bind(status)
+        .bind(submitted_by)
+        .bind(approved_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_test(&row))
     }
@@ -354,7 +438,12 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
         Ok(())
     }
 
-    async fn update_test_results(&self, id: Uuid, recoverable_amount: &str, impairment_loss: &str) -> AtlasResult<ImpairmentTest> {
+    async fn update_test_results(
+        &self,
+        id: Uuid,
+        recoverable_amount: &str,
+        impairment_loss: &str,
+    ) -> AtlasResult<ImpairmentTest> {
         let row = sqlx::query(
             r"UPDATE _atlas.impairment_tests
                SET recoverable_amount = $2::decimal, impairment_loss = $3::decimal, updated_at = now()
@@ -367,9 +456,16 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
 
     async fn create_cash_flow(
         &self,
-        org_id: Uuid, test_id: Uuid, period_year: i32, period_number: i32,
-        description: Option<&str>, cash_inflow: &str, cash_outflow: &str,
-        net_cash_flow: &str, discount_factor: &str, present_value: &str,
+        org_id: Uuid,
+        test_id: Uuid,
+        period_year: i32,
+        period_number: i32,
+        description: Option<&str>,
+        cash_inflow: &str,
+        cash_outflow: &str,
+        net_cash_flow: &str,
+        discount_factor: &str,
+        present_value: &str,
     ) -> AtlasResult<ImpairmentCashFlow> {
         let row = sqlx::query(
             r"
@@ -397,11 +493,17 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
 
     async fn create_test_asset(
         &self,
-        org_id: Uuid, test_id: Uuid, asset_id: Uuid,
-        asset_number: Option<&str>, asset_name: Option<&str>,
-        asset_category: Option<&str>, carrying_amount: &str,
-        recoverable_amount: &str, impairment_loss: &str,
-        status: &str, impairment_date: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        test_id: Uuid,
+        asset_id: Uuid,
+        asset_number: Option<&str>,
+        asset_name: Option<&str>,
+        asset_category: Option<&str>,
+        carrying_amount: &str,
+        recoverable_amount: &str,
+        impairment_loss: &str,
+        status: &str,
+        impairment_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ImpairmentTestAsset> {
         let row = sqlx::query(
             r"
@@ -411,32 +513,52 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7::decimal, $8::decimal, $9::decimal, $10, $11)
             RETURNING *
             ",
-        ).bind(org_id).bind(test_id).bind(asset_id).bind(asset_number)
-        .bind(asset_name).bind(asset_category).bind(carrying_amount)
-        .bind(recoverable_amount).bind(impairment_loss).bind(status).bind(impairment_date)
-        .fetch_one(&self.pool).await
+        )
+        .bind(org_id)
+        .bind(test_id)
+        .bind(asset_id)
+        .bind(asset_number)
+        .bind(asset_name)
+        .bind(asset_category)
+        .bind(carrying_amount)
+        .bind(recoverable_amount)
+        .bind(impairment_loss)
+        .bind(status)
+        .bind(impairment_date)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_test_asset(&row))
     }
 
     async fn list_test_assets(&self, test_id: Uuid) -> AtlasResult<Vec<ImpairmentTestAsset>> {
-        let rows = sqlx::query(
-            "SELECT * FROM _atlas.impairment_test_assets WHERE test_id = $1"
-        ).bind(test_id).fetch_all(&self.pool).await
-        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        let rows = sqlx::query("SELECT * FROM _atlas.impairment_test_assets WHERE test_id = $1")
+            .bind(test_id)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_test_asset).collect())
     }
 
     async fn update_test_asset(
-        &self, id: Uuid, recoverable_amount: &str, impairment_loss: &str, status: &str,
+        &self,
+        id: Uuid,
+        recoverable_amount: &str,
+        impairment_loss: &str,
+        status: &str,
     ) -> AtlasResult<ImpairmentTestAsset> {
         let row = sqlx::query(
             r"UPDATE _atlas.impairment_test_assets
                SET recoverable_amount = $2::decimal, impairment_loss = $3::decimal,
                    status = $4, updated_at = now()
                WHERE id = $1 RETURNING *",
-        ).bind(id).bind(recoverable_amount).bind(impairment_loss).bind(status)
-        .fetch_one(&self.pool).await
+        )
+        .bind(id)
+        .bind(recoverable_amount)
+        .bind(impairment_loss)
+        .bind(status)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_test_asset(&row))
     }
@@ -447,7 +569,10 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
                 COUNT(*) as total,
                 COUNT(*) FILTER (WHERE is_active) as active
             FROM _atlas.impairment_indicators WHERE organization_id = $1",
-        ).bind(org_id).fetch_one(&self.pool).await
+        )
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let test_row = sqlx::query(
@@ -468,8 +593,14 @@ impl ImpairmentManagementRepository for PostgresImpairmentManagementRepository {
             total_tests: test_row.try_get::<i64, _>("total").unwrap_or(0) as i32,
             pending_tests: test_row.try_get::<i64, _>("pending").unwrap_or(0) as i32,
             completed_tests: test_row.try_get::<i64, _>("completed").unwrap_or(0) as i32,
-            total_impairment_loss: format!("{:.2}", test_row.try_get::<f64, _>("total_loss").unwrap_or(0.0)),
-            total_reversals: format!("{:.2}", test_row.try_get::<f64, _>("total_reversals").unwrap_or(0.0)),
+            total_impairment_loss: format!(
+                "{:.2}",
+                test_row.try_get::<f64, _>("total_loss").unwrap_or(0.0)
+            ),
+            total_reversals: format!(
+                "{:.2}",
+                test_row.try_get::<f64, _>("total_reversals").unwrap_or(0.0)
+            ),
             assets_under_review: test_row.try_get::<i64, _>("under_review").unwrap_or(0) as i32,
         })
     }

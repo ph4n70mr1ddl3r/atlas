@@ -8,11 +8,11 @@
 //! - Dashboard summary
 //! - Validation edge cases
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 use uuid::Uuid;
 
 async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
@@ -20,19 +20,36 @@ async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router)
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
     // Clean cash concentration test data
-    sqlx::query("DELETE FROM _atlas.cash_pool_sweep_run_lines").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.cash_pool_sweep_runs").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.cash_pool_sweep_rules").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.cash_pool_participants").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.cash_pools").execute(&state.db_pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.cash_pool_sweep_run_lines")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.cash_pool_sweep_runs")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.cash_pool_sweep_rules")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.cash_pool_participants")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.cash_pools")
+        .execute(&state.db_pool)
+        .await
+        .ok();
     sqlx::query("CREATE SCHEMA IF NOT EXISTS _atlas")
         .execute(&state.db_pool)
         .await
         .ok();
-    sqlx::query(include_str!("../../../../migrations/125_cash_concentration_pooling.sql"))
-        .execute(&state.db_pool)
-        .await
-        .ok();
+    sqlx::query(include_str!(
+        "../../../../migrations/125_cash_concentration_pooling.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .ok();
     let app = build_router(state.clone());
     (state, app)
 }
@@ -54,18 +71,31 @@ async fn create_pool(
         "concentration_account_name": "Master Account",
         "description": "Test cash pool",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/cash-pooling/pools")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/cash-pooling/pools")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("CREATE POOL status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create pool: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create pool: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -85,16 +115,31 @@ async fn add_participant(
         "current_balance": current_balance,
         "minimum_balance": minimum_balance,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/participants", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/cash-pooling/pools/{}/participants",
+                    pool_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
-    eprintln!("ADD PARTICIPANT status={}: {}", status, String::from_utf8_lossy(&b));
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    eprintln!(
+        "ADD PARTICIPANT status={}: {}",
+        status,
+        String::from_utf8_lossy(&b)
+    );
     assert_eq!(status, StatusCode::CREATED, "Failed to add participant");
     serde_json::from_slice(&b).unwrap()
 }
@@ -132,15 +177,23 @@ async fn test_get_pool() {
     let pool_code = pool["poolCode"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/cash-pooling/pools/{}", pool_code))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/cash-pooling/pools/{}", pool_code))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["poolCode"], "POOL-002");
 }
 
@@ -151,15 +204,23 @@ async fn test_list_pools() {
     create_pool(&app, "POOL-B", "Pool B", "notional").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/cash-pooling/pools")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/cash-pooling/pools")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -170,15 +231,23 @@ async fn test_list_pools_with_type_filter() {
     create_pool(&app, "POOL-N1", "Notional Pool", "notional").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/cash-pooling/pools?pool_type=physical")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/cash-pooling/pools?pool_type=physical")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(data.len() >= 1);
     for p in data {
@@ -199,47 +268,83 @@ async fn test_pool_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     // Activate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "active");
 
     // Suspend
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/suspend", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/suspend", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "suspended");
 
     // Reactivate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "active");
 
     // Close
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/close", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/close", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "closed");
 }
 
@@ -250,11 +355,18 @@ async fn test_delete_pool_draft() {
     let pool_code = pool["poolCode"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}", pool_code))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}", pool_code))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 }
 
@@ -267,18 +379,31 @@ async fn test_delete_active_pool_fails() {
 
     let (k, v) = auth_header(&admin_claims());
     // Activate first
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to delete active pool
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}", pool_code))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}", pool_code))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -311,15 +436,26 @@ async fn test_list_participants() {
     add_participant(&app, pool_id, "SUB-B", "75000.00", "10000.00").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/participants", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!(
+                    "/api/v1/cash-pooling/pools/{}/participants",
+                    pool_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["data"].as_array().unwrap().len(), 2);
 }
 
@@ -332,11 +468,21 @@ async fn test_remove_participant() {
     add_participant(&app, pool_id, "SUB-R1", "25000.00", "5000.00").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/participants/SUB-R1", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!(
+                    "/api/v1/cash-pooling/pools/{}/participants/SUB-R1",
+                    pool_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 }
 
@@ -358,17 +504,25 @@ async fn test_create_sweep_rule() {
         "direction": "to_concentration",
         "priority": 1,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::CREATED);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["ruleCode"], "RULE-ZB");
     assert_eq!(body["sweepType"], "zero_balance");
     assert_eq!(body["isActive"], true);
@@ -390,24 +544,37 @@ async fn test_list_sweep_rules() {
             "sweep_type": stype,
             "direction": "to_concentration",
         });
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&payload).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -424,19 +591,34 @@ async fn test_delete_sweep_rule() {
         "sweep_type": "zero_balance",
         "direction": "to_concentration",
     });
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/rules/RULE-DEL", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!(
+                    "/api/v1/cash-pooling/pools/{}/rules/RULE-DEL",
+                    pool_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 }
 
@@ -453,31 +635,48 @@ async fn test_execute_sweep_zero_balance() {
     let (k, v) = auth_header(&admin_claims());
 
     // Activate pool
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Add participants with balances
     add_participant(&app, pool_id, "SUB-01", "50000.00", "10000.00").await;
     add_participant(&app, pool_id, "SUB-02", "75000.00", "5000.00").await;
 
     // Execute sweep
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "run_type": "manual",
-            "run_date": "2024-06-15",
-            "notes": "Test sweep"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "run_type": "manual",
+                        "run_date": "2024-06-15",
+                        "notes": "Test sweep"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("EXECUTE SWEEP status={}: {}", status, body_str);
     assert_eq!(status, StatusCode::CREATED);
@@ -488,7 +687,11 @@ async fn test_execute_sweep_zero_balance() {
 
     let total: f64 = run["totalSweptAmount"].as_str().unwrap().parse().unwrap();
     // SUB-01: 50000 - 10000 = 40000, SUB-02: 75000 - 5000 = 70000 => total 110000
-    assert!((total - 110000.0).abs() < 1.0, "Expected 110000, got {}", total);
+    assert!(
+        (total - 110000.0).abs() < 1.0,
+        "Expected 110000, got {}",
+        total
+    );
     assert_eq!(run["successfulTransactions"], 2);
 }
 
@@ -501,41 +704,66 @@ async fn test_sweep_run_lines() {
     let (k, v) = auth_header(&admin_claims());
 
     // Activate pool
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Add participant
     add_participant(&app, pool_id, "SUB-L1", "60000.00", "10000.00").await;
 
     // Execute sweep
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "run_type": "manual",
-            "run_date": "2024-06-15",
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "run_type": "manual",
+                        "run_date": "2024-06-15",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let run: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let run: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let run_id: Uuid = run["id"].as_str().unwrap().parse().unwrap();
 
     // Get lines
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/cash-pooling/sweeps/{}/lines", run_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/cash-pooling/sweeps/{}/lines", run_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let lines = body["data"].as_array().unwrap();
     assert!(!lines.is_empty());
     let line = &lines[0];
@@ -555,35 +783,57 @@ async fn test_list_sweep_runs() {
     let (k, v) = auth_header(&admin_claims());
 
     // Activate pool
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Execute two sweeps
     for i in 0..2 {
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({
-                "run_type": "manual",
-                "run_date": format!("2024-06-1{}", i),
-            })).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({
+                            "run_type": "manual",
+                            "run_date": format!("2024-06-1{}", i),
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/sweeps", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/sweeps", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -596,11 +846,17 @@ async fn test_execute_sweep_with_target_balance_rule() {
     let (k, v) = auth_header(&admin_claims());
 
     // Activate pool
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Add participant
     let participant = add_participant(&app, pool_id, "SUB-TB1", "100000.00", "0.00").await;
@@ -615,34 +871,54 @@ async fn test_execute_sweep_with_target_balance_rule() {
         "direction": "to_concentration",
         "target_balance": "25000.00",
     });
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Execute sweep
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "run_type": "manual",
-            "run_date": "2024-06-15",
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "run_type": "manual",
+                        "run_date": "2024-06-15",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
 
-    let run: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let run: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(run["status"], "completed");
 
     let total: f64 = run["totalSweptAmount"].as_str().unwrap().parse().unwrap();
     // 100000 - 25000 = 75000
-    assert!((total - 75000.0).abs() < 1.0, "Expected 75000, got {}", total);
+    assert!(
+        (total - 75000.0).abs() < 1.0,
+        "Expected 75000, got {}",
+        total
+    );
 }
 
 // ============================================================================
@@ -655,15 +931,23 @@ async fn test_cash_pooling_dashboard() {
     create_pool(&app, "POOL-DASH", "Dashboard Pool", "physical").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/cash-pooling/dashboard")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/cash-pooling/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert!(body.get("totalPools").is_some());
     assert!(body.get("activePools").is_some());
@@ -689,13 +973,19 @@ async fn test_create_pool_invalid_type_fails() {
         "pool_type": "hybrid",
         "currency_code": "USD",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/cash-pooling/pools")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/cash-pooling/pools")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -709,13 +999,19 @@ async fn test_create_pool_empty_code_fails() {
         "pool_type": "physical",
         "currency_code": "USD",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/cash-pooling/pools")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/cash-pooling/pools")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -730,13 +1026,19 @@ async fn test_create_pool_invalid_frequency_fails() {
         "currency_code": "USD",
         "sweep_frequency": "hourly",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/cash-pooling/pools")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/cash-pooling/pools")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -752,13 +1054,22 @@ async fn test_add_participant_invalid_type_fails() {
         "participant_type": "unknown_type",
         "sweep_direction": "to_concentration",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/participants", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/cash-pooling/pools/{}/participants",
+                    pool_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -775,13 +1086,19 @@ async fn test_create_sweep_rule_invalid_type_fails() {
         "sweep_type": "random",
         "direction": "to_concentration",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/rules", pool_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -792,16 +1109,25 @@ async fn test_sweep_on_inactive_pool_fails() {
     let pool_id: Uuid = pool["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "run_type": "manual",
-            "run_date": "2024-06-15",
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "run_type": "manual",
+                        "run_date": "2024-06-15",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -814,28 +1140,49 @@ async fn test_sweep_on_closed_pool_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Activate then close
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/close", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/close", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try sweep
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "run_type": "manual",
-            "run_date": "2024-06-15",
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/sweep", pool_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "run_type": "manual",
+                        "run_date": "2024-06-15",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -848,16 +1195,28 @@ async fn test_add_participant_to_closed_pool_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Activate then close
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/close", pool_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/activate", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/cash-pooling/pools/{}/close", pool_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to add participant
     let payload = json!({
@@ -865,12 +1224,21 @@ async fn test_add_participant_to_closed_pool_fails() {
         "participant_type": "source",
         "sweep_direction": "to_concentration",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/cash-pooling/pools/{}/participants", pool_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/cash-pooling/pools/{}/participants",
+                    pool_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }

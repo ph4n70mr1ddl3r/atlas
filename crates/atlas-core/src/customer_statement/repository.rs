@@ -2,11 +2,10 @@
 //!
 //! `PostgreSQL` storage for customer statements and statement lines.
 
-use atlas_shared::{
-    CustomerStatement, CustomerStatementLine, CustomerStatementSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, CustomerStatement, CustomerStatementLine, CustomerStatementSummary,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -46,7 +45,11 @@ pub trait CustomerStatementRepository: Send + Sync {
     ) -> AtlasResult<CustomerStatement>;
 
     async fn get_statement(&self, id: Uuid) -> AtlasResult<Option<CustomerStatement>>;
-    async fn get_statement_by_number(&self, org_id: Uuid, statement_number: &str) -> AtlasResult<Option<CustomerStatement>>;
+    async fn get_statement_by_number(
+        &self,
+        org_id: Uuid,
+        statement_number: &str,
+    ) -> AtlasResult<Option<CustomerStatement>>;
     async fn list_statements(
         &self,
         org_id: Uuid,
@@ -54,7 +57,11 @@ pub trait CustomerStatementRepository: Send + Sync {
         status: Option<&str>,
         billing_cycle: Option<&str>,
     ) -> AtlasResult<Vec<CustomerStatement>>;
-    async fn update_statement_status(&self, id: Uuid, status: &str) -> AtlasResult<CustomerStatement>;
+    async fn update_statement_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<CustomerStatement>;
     async fn update_statement_notes(&self, id: Uuid, notes: Option<&str>) -> AtlasResult<()>;
     async fn get_next_statement_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 
@@ -76,7 +83,10 @@ pub trait CustomerStatementRepository: Send + Sync {
         metadata: serde_json::Value,
     ) -> AtlasResult<CustomerStatementLine>;
 
-    async fn list_statement_lines(&self, statement_id: Uuid) -> AtlasResult<Vec<CustomerStatementLine>>;
+    async fn list_statement_lines(
+        &self,
+        statement_id: Uuid,
+    ) -> AtlasResult<Vec<CustomerStatementLine>>;
     async fn delete_statement_line(&self, line_id: Uuid) -> AtlasResult<()>;
     async fn get_next_line_order(&self, statement_id: Uuid) -> AtlasResult<i32>;
     async fn get_statement_summary(&self, org_id: Uuid) -> AtlasResult<CustomerStatementSummary>;
@@ -84,7 +94,8 @@ pub trait CustomerStatementRepository: Send + Sync {
 
 // Helper functions
 fn get_numeric_text(row: &sqlx::postgres::PgRow, col: &str) -> String {
-    row.try_get::<f64, _>(col).map_or_else(|_| "0.00".to_string(), |v| format!("{v:.2}"))
+    row.try_get::<f64, _>(col)
+        .map_or_else(|_| "0.00".to_string(), |v| format!("{v:.2}"))
 }
 
 fn row_to_statement(row: &sqlx::postgres::PgRow) -> CustomerStatement {
@@ -155,7 +166,7 @@ pub struct PostgresCustomerStatementRepository {
 }
 
 impl PostgresCustomerStatementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -212,13 +223,34 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(statement_number).bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(statement_date).bind(billing_period_from).bind(billing_period_to).bind(billing_cycle)
-        .bind(opening_balance).bind(total_charges).bind(total_payments).bind(total_credits).bind(total_adjustments)
-        .bind(closing_balance).bind(amount_due)
-        .bind(aging_current).bind(aging_1_30).bind(aging_31_60).bind(aging_61_90).bind(aging_91_120).bind(aging_121_plus)
-        .bind(currency_code).bind(delivery_method).bind(delivery_email)
-        .bind(previous_statement_id).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(statement_number)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(statement_date)
+        .bind(billing_period_from)
+        .bind(billing_period_to)
+        .bind(billing_cycle)
+        .bind(opening_balance)
+        .bind(total_charges)
+        .bind(total_payments)
+        .bind(total_credits)
+        .bind(total_adjustments)
+        .bind(closing_balance)
+        .bind(amount_due)
+        .bind(aging_current)
+        .bind(aging_1_30)
+        .bind(aging_31_60)
+        .bind(aging_61_90)
+        .bind(aging_91_120)
+        .bind(aging_121_plus)
+        .bind(currency_code)
+        .bind(delivery_method)
+        .bind(delivery_email)
+        .bind(previous_statement_id)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -235,7 +267,11 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
         Ok(row.map(|r| row_to_statement(&r)))
     }
 
-    async fn get_statement_by_number(&self, org_id: Uuid, statement_number: &str) -> AtlasResult<Option<CustomerStatement>> {
+    async fn get_statement_by_number(
+        &self,
+        org_id: Uuid,
+        statement_number: &str,
+    ) -> AtlasResult<Option<CustomerStatement>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.customer_statements WHERE organization_id = $1 AND statement_number = $2"
         )
@@ -263,14 +299,21 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
             ORDER BY statement_date DESC, statement_number DESC
             ",
         )
-        .bind(org_id).bind(customer_id).bind(status).bind(billing_cycle)
+        .bind(org_id)
+        .bind(customer_id)
+        .bind(status)
+        .bind(billing_cycle)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_statement).collect())
     }
 
-    async fn update_statement_status(&self, id: Uuid, status: &str) -> AtlasResult<CustomerStatement> {
+    async fn update_statement_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<CustomerStatement> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.customer_statements
@@ -291,11 +334,14 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
     }
 
     async fn update_statement_notes(&self, id: Uuid, notes: Option<&str>) -> AtlasResult<()> {
-        sqlx::query("UPDATE _atlas.customer_statements SET notes = $2, updated_at = now() WHERE id = $1")
-            .bind(id).bind(notes)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "UPDATE _atlas.customer_statements SET notes = $2, updated_at = now() WHERE id = $1",
+        )
+        .bind(id)
+        .bind(notes)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -343,10 +389,20 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(statement_id).bind(line_type)
-        .bind(transaction_id).bind(transaction_number).bind(transaction_date).bind(due_date)
-        .bind(original_amount).bind(amount).bind(description)
-        .bind(reference_type).bind(reference_id).bind(display_order).bind(metadata)
+        .bind(org_id)
+        .bind(statement_id)
+        .bind(line_type)
+        .bind(transaction_id)
+        .bind(transaction_number)
+        .bind(transaction_date)
+        .bind(due_date)
+        .bind(original_amount)
+        .bind(amount)
+        .bind(description)
+        .bind(reference_type)
+        .bind(reference_id)
+        .bind(display_order)
+        .bind(metadata)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -354,7 +410,10 @@ impl CustomerStatementRepository for PostgresCustomerStatementRepository {
         Ok(row_to_line(&row))
     }
 
-    async fn list_statement_lines(&self, statement_id: Uuid) -> AtlasResult<Vec<CustomerStatementLine>> {
+    async fn list_statement_lines(
+        &self,
+        statement_id: Uuid,
+    ) -> AtlasResult<Vec<CustomerStatementLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.customer_statement_lines WHERE statement_id = $1 ORDER BY display_order, created_at"
         )

@@ -20,32 +20,29 @@
 //! 6. Route leads/opportunities to territories via matching rules
 //! 7. Monitor territory coverage and quota attainment
 
-use atlas_shared::{
-    AtlasError, AtlasResult,
-};
 use super::TerritoryManagementRepository;
+use atlas_shared::{AtlasError, AtlasResult};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid territory types
-const VALID_TERRITORY_TYPES: &[&str] = &[
-    "geography", "product", "industry", "customer", "hybrid",
-];
+const VALID_TERRITORY_TYPES: &[&str] = &["geography", "product", "industry", "customer", "hybrid"];
 
 /// Valid member roles
-const VALID_MEMBER_ROLES: &[&str] = &[
-    "owner", "member", "backup",
-];
+const VALID_MEMBER_ROLES: &[&str] = &["owner", "member", "backup"];
 
 /// Valid routing rule entity types
-const VALID_ROUTING_ENTITY_TYPES: &[&str] = &[
-    "lead", "opportunity", "account", "contact",
-];
+const VALID_ROUTING_ENTITY_TYPES: &[&str] = &["lead", "opportunity", "account", "contact"];
 
 /// Valid routing rule match operators
 const VALID_MATCH_OPERATORS: &[&str] = &[
-    "equals", "contains", "starts_with", "ends_with", "in", "not_null",
+    "equals",
+    "contains",
+    "starts_with",
+    "ends_with",
+    "in",
+    "not_null",
 ];
 
 /// Territory Management Engine
@@ -85,7 +82,9 @@ impl TerritoryManagementEngine {
             ));
         }
         if name.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Territory name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Territory name is required".to_string(),
+            ));
         }
         if !VALID_TERRITORY_TYPES.contains(&territory_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -106,20 +105,42 @@ impl TerritoryManagementEngine {
 
         // Validate parent exists
         if let Some(pid) = parent_id {
-            self.repository.get_territory(pid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Parent territory {pid} not found")))?;
+            self.repository.get_territory(pid).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Parent territory {pid} not found"))
+            })?;
         }
 
         // Check uniqueness
-        if self.repository.get_territory_by_code(org_id, &code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Territory '{code}' already exists")));
+        if self
+            .repository
+            .get_territory_by_code(org_id, &code)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Territory '{code}' already exists"
+            )));
         }
 
-        info!("Creating territory '{}' ({}) for org {}", name, code, org_id);
-        self.repository.create_territory(
-            org_id, &code, name, description, territory_type,
-            parent_id, owner_id, owner_name, effective_from, effective_to, created_by,
-        ).await
+        info!(
+            "Creating territory '{}' ({}) for org {}",
+            name, code, org_id
+        );
+        self.repository
+            .create_territory(
+                org_id,
+                &code,
+                name,
+                description,
+                territory_type,
+                parent_id,
+                owner_id,
+                owner_name,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a territory by ID
@@ -128,7 +149,11 @@ impl TerritoryManagementEngine {
     }
 
     /// Get a territory by code
-    pub async fn get_territory_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<atlas_shared::Territory>> {
+    pub async fn get_territory_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<atlas_shared::Territory>> {
         self.repository.get_territory_by_code(org_id, code).await
     }
 
@@ -147,7 +172,9 @@ impl TerritoryManagementEngine {
                 )));
             }
         }
-        self.repository.list_territories(org_id, territory_type, parent_id, include_inactive).await
+        self.repository
+            .list_territories(org_id, territory_type, parent_id, include_inactive)
+            .await
     }
 
     /// Update a territory
@@ -163,7 +190,10 @@ impl TerritoryManagementEngine {
         effective_from: Option<chrono::NaiveDate>,
         effective_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<atlas_shared::Territory> {
-        let existing = self.repository.get_territory(id).await?
+        let existing = self
+            .repository
+            .get_territory(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Territory {id} not found")))?;
 
         if let Some(tt) = territory_type {
@@ -182,8 +212,9 @@ impl TerritoryManagementEngine {
                 ));
             }
             // Check parent exists
-            self.repository.get_territory(pid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Parent territory {pid} not found")))?;
+            self.repository.get_territory(pid).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Parent territory {pid} not found"))
+            })?;
         }
 
         // Validate dates
@@ -198,18 +229,32 @@ impl TerritoryManagementEngine {
         }
 
         info!("Updating territory {} ({})", id, existing.code);
-        self.repository.update_territory(
-            id, name, description, territory_type, parent_id,
-            owner_id, owner_name, effective_from, effective_to,
-        ).await
+        self.repository
+            .update_territory(
+                id,
+                name,
+                description,
+                territory_type,
+                parent_id,
+                owner_id,
+                owner_name,
+                effective_from,
+                effective_to,
+            )
+            .await
     }
 
     /// Activate a territory
     pub async fn activate_territory(&self, id: Uuid) -> AtlasResult<atlas_shared::Territory> {
-        let territory = self.repository.get_territory(id).await?
+        let territory = self
+            .repository
+            .get_territory(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Territory {id} not found")))?;
         if territory.is_active {
-            return Err(AtlasError::ValidationFailed("Territory is already active".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Territory is already active".to_string(),
+            ));
         }
         info!("Activating territory {}", territory.code);
         self.repository.update_territory_status(id, true).await
@@ -217,18 +262,25 @@ impl TerritoryManagementEngine {
 
     /// Deactivate a territory
     pub async fn deactivate_territory(&self, id: Uuid) -> AtlasResult<atlas_shared::Territory> {
-        let territory = self.repository.get_territory(id).await?
+        let territory = self
+            .repository
+            .get_territory(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Territory {id} not found")))?;
         if !territory.is_active {
-            return Err(AtlasError::ValidationFailed("Territory is already inactive".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Territory is already inactive".to_string(),
+            ));
         }
         // Check for active children
-        let children = self.repository.list_territories(
-            territory.organization_id, None, Some(id), false,
-        ).await?;
+        let children = self
+            .repository
+            .list_territories(territory.organization_id, None, Some(id), false)
+            .await?;
         if !children.is_empty() {
             return Err(AtlasError::ValidationFailed(format!(
-                "Cannot deactivate territory with {} active child territories", children.len()
+                "Cannot deactivate territory with {} active child territories",
+                children.len()
             )));
         }
         info!("Deactivating territory {}", territory.code);
@@ -237,16 +289,21 @@ impl TerritoryManagementEngine {
 
     /// Delete a territory
     pub async fn delete_territory(&self, id: Uuid) -> AtlasResult<()> {
-        let territory = self.repository.get_territory(id).await?
+        let territory = self
+            .repository
+            .get_territory(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Territory {id} not found")))?;
 
         // Check for children
-        let children = self.repository.list_territories(
-            territory.organization_id, None, Some(id), true,
-        ).await?;
+        let children = self
+            .repository
+            .list_territories(territory.organization_id, None, Some(id), true)
+            .await?;
         if !children.is_empty() {
             return Err(AtlasError::ValidationFailed(
-                "Cannot delete territory with child territories. Remove children first.".to_string(),
+                "Cannot delete territory with child territories. Remove children first."
+                    .to_string(),
             ));
         }
 
@@ -271,11 +328,17 @@ impl TerritoryManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::TerritoryMember> {
         // Verify territory exists
-        self.repository.get_territory(territory_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Territory {territory_id} not found")))?;
+        self.repository
+            .get_territory(territory_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Territory {territory_id} not found"))
+            })?;
 
         if user_name.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Member name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Member name is required".to_string(),
+            ));
         }
 
         if !VALID_MEMBER_ROLES.contains(&role) {
@@ -287,17 +350,30 @@ impl TerritoryManagementEngine {
         }
 
         // Check duplicate
-        if self.repository.find_member(territory_id, user_id, role).await?.is_some() {
-            return Err(AtlasError::Conflict(
-                format!("User {user_id} already has role '{role}' in territory {territory_id}")
-            ));
+        if self
+            .repository
+            .find_member(territory_id, user_id, role)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "User {user_id} already has role '{role}' in territory {territory_id}"
+            )));
         }
 
         info!("Adding member {} to territory {}", user_name, territory_id);
-        self.repository.add_member(
-            org_id, territory_id, user_id, user_name, role,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .add_member(
+                org_id,
+                territory_id,
+                user_id,
+                user_name,
+                role,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// List members of a territory
@@ -336,8 +412,12 @@ impl TerritoryManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::TerritoryRule> {
         // Verify territory exists
-        self.repository.get_territory(territory_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Territory {territory_id} not found")))?;
+        self.repository
+            .get_territory(territory_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Territory {territory_id} not found"))
+            })?;
 
         if !VALID_ROUTING_ENTITY_TYPES.contains(&entity_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -348,7 +428,9 @@ impl TerritoryManagementEngine {
         }
 
         if field_name.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Field name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Field name is required".to_string(),
+            ));
         }
 
         if !VALID_MATCH_OPERATORS.contains(&match_operator) {
@@ -366,14 +448,27 @@ impl TerritoryManagementEngine {
         }
 
         if priority < 1 {
-            return Err(AtlasError::ValidationFailed("Priority must be >= 1".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Priority must be >= 1".to_string(),
+            ));
         }
 
-        info!("Adding routing rule to territory {}: {} {} {}", territory_id, field_name, match_operator, match_value);
-        self.repository.add_rule(
-            org_id, territory_id, entity_type, field_name,
-            match_operator, match_value, priority, created_by,
-        ).await
+        info!(
+            "Adding routing rule to territory {}: {} {} {}",
+            territory_id, field_name, match_operator, match_value
+        );
+        self.repository
+            .add_rule(
+                org_id,
+                territory_id,
+                entity_type,
+                field_name,
+                match_operator,
+                match_value,
+                priority,
+                created_by,
+            )
+            .await
     }
 
     /// List routing rules for a territory
@@ -405,11 +500,17 @@ impl TerritoryManagementEngine {
             )));
         }
 
-        let territories = self.repository.list_territories(org_id, None, None, false).await?;
+        let territories = self
+            .repository
+            .list_territories(org_id, None, None, false)
+            .await?;
         let mut matches: Vec<RouteMatch> = Vec::new();
 
         for territory in &territories {
-            let rules = self.repository.list_rules(territory.id, Some(entity_type)).await?;
+            let rules = self
+                .repository
+                .list_rules(territory.id, Some(entity_type))
+                .await?;
             if rules.is_empty() {
                 continue;
             }
@@ -418,19 +519,27 @@ impl TerritoryManagementEngine {
             let mut matched_rules = Vec::new();
 
             for rule in &rules {
-                let field_val = entity_data.get(&rule.field_name)
+                let field_val = entity_data
+                    .get(&rule.field_name)
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
 
                 let matched = match rule.match_operator.as_str() {
                     "equals" => field_val.eq_ignore_ascii_case(&rule.match_value),
-                    "contains" => field_val.to_lowercase().contains(&rule.match_value.to_lowercase()),
-                    "starts_with" => field_val.to_lowercase().starts_with(&rule.match_value.to_lowercase()),
-                    "ends_with" => field_val.to_lowercase().ends_with(&rule.match_value.to_lowercase()),
+                    "contains" => field_val
+                        .to_lowercase()
+                        .contains(&rule.match_value.to_lowercase()),
+                    "starts_with" => field_val
+                        .to_lowercase()
+                        .starts_with(&rule.match_value.to_lowercase()),
+                    "ends_with" => field_val
+                        .to_lowercase()
+                        .ends_with(&rule.match_value.to_lowercase()),
                     "in" => {
-                        let values: Vec<&str> = rule.match_value.split(',').map(str::trim).collect();
+                        let values: Vec<&str> =
+                            rule.match_value.split(',').map(str::trim).collect();
                         values.iter().any(|v| v.eq_ignore_ascii_case(field_val))
-                    },
+                    }
                     "not_null" => !field_val.is_empty(),
                     _ => false,
                 };
@@ -483,38 +592,73 @@ impl TerritoryManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::TerritoryQuota> {
         // Verify territory exists
-        self.repository.get_territory(territory_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Territory {territory_id} not found")))?;
+        self.repository
+            .get_territory(territory_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Territory {territory_id} not found"))
+            })?;
 
         if period_name.trim().is_empty() {
-            return Err(AtlasError::ValidationFailed("Period name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Period name is required".to_string(),
+            ));
         }
         if period_start >= period_end {
-            return Err(AtlasError::ValidationFailed("Period start must be before period end".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Period start must be before period end".to_string(),
+            ));
         }
 
         let quota: f64 = revenue_quota.parse().map_err(|_| {
             AtlasError::ValidationFailed("Revenue quota must be a valid number".to_string())
         })?;
         if quota < 0.0 {
-            return Err(AtlasError::ValidationFailed("Revenue quota cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Revenue quota cannot be negative".to_string(),
+            ));
         }
 
         // Check for existing quota for same period
-        if let Some(existing) = self.repository.find_quota(territory_id, period_name).await? {
-            info!("Updating existing quota {} for territory {}", existing.id, territory_id);
-            return self.repository.update_quota_amount(existing.id, revenue_quota).await;
+        if let Some(existing) = self
+            .repository
+            .find_quota(territory_id, period_name)
+            .await?
+        {
+            info!(
+                "Updating existing quota {} for territory {}",
+                existing.id, territory_id
+            );
+            return self
+                .repository
+                .update_quota_amount(existing.id, revenue_quota)
+                .await;
         }
 
-        info!("Setting quota for territory {} period {}: {}", territory_id, period_name, revenue_quota);
-        self.repository.create_quota(
-            org_id, territory_id, period_name, period_start, period_end,
-            revenue_quota, "0", currency_code, created_by,
-        ).await
+        info!(
+            "Setting quota for territory {} period {}: {}",
+            territory_id, period_name, revenue_quota
+        );
+        self.repository
+            .create_quota(
+                org_id,
+                territory_id,
+                period_name,
+                period_start,
+                period_end,
+                revenue_quota,
+                "0",
+                currency_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get a quota by ID
-    pub async fn get_territory_quota(&self, id: Uuid) -> AtlasResult<Option<atlas_shared::TerritoryQuota>> {
+    pub async fn get_territory_quota(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<atlas_shared::TerritoryQuota>> {
         self.repository.get_quota(id).await
     }
 
@@ -536,9 +680,13 @@ impl TerritoryManagementEngine {
             AtlasError::ValidationFailed("Actual revenue must be a valid number".to_string())
         })?;
         if actual < 0.0 {
-            return Err(AtlasError::ValidationFailed("Actual revenue cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Actual revenue cannot be negative".to_string(),
+            ));
         }
-        self.repository.update_quota_actual(quota_id, actual_revenue).await
+        self.repository
+            .update_quota_actual(quota_id, actual_revenue)
+            .await
     }
 
     /// Delete a quota
@@ -551,7 +699,10 @@ impl TerritoryManagementEngine {
     // ========================================================================
 
     /// Get the territory management dashboard
-    pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<atlas_shared::TerritoryDashboard> {
+    pub async fn get_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<atlas_shared::TerritoryDashboard> {
         self.repository.get_dashboard(org_id).await
     }
 }
@@ -629,7 +780,9 @@ mod tests {
     fn test_match_operator_contains() {
         let field_val = "San Francisco";
         let match_value = "francisco";
-        assert!(field_val.to_lowercase().contains(&match_value.to_lowercase()));
+        assert!(field_val
+            .to_lowercase()
+            .contains(&match_value.to_lowercase()));
     }
 
     #[test]

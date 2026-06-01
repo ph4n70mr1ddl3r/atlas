@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for retention policies, legal holds, archived records,
 //! archive batches, and audit trail.
 
-use atlas_shared::{
-    ArchivedRecord, ArchiveAudit, ArchiveBatch,
-    DataArchivingDashboard, LegalHold, LegalHoldItem, RetentionPolicy,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    ArchiveAudit, ArchiveBatch, ArchivedRecord, AtlasError, AtlasResult, DataArchivingDashboard,
+    LegalHold, LegalHoldItem, RetentionPolicy,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -32,7 +31,11 @@ pub trait DataArchivingRepository: Send + Sync {
     ) -> AtlasResult<RetentionPolicy>;
 
     async fn get_policy(&self, id: Uuid) -> AtlasResult<Option<RetentionPolicy>>;
-    async fn get_policy_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<RetentionPolicy>>;
+    async fn get_policy_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<RetentionPolicy>>;
     async fn list_policies(
         &self,
         org_id: Uuid,
@@ -58,7 +61,11 @@ pub trait DataArchivingRepository: Send + Sync {
     ) -> AtlasResult<LegalHold>;
 
     async fn get_legal_hold(&self, id: Uuid) -> AtlasResult<Option<LegalHold>>;
-    async fn get_legal_hold_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<LegalHold>>;
+    async fn get_legal_hold_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<LegalHold>>;
     async fn list_legal_holds(
         &self,
         org_id: Uuid,
@@ -159,7 +166,14 @@ pub trait DataArchivingRepository: Send + Sync {
         org_id: Uuid,
         entity_type: &str,
         cutoff: chrono::DateTime<chrono::Utc>,
-    ) -> AtlasResult<Vec<(Uuid, serde_json::Value, Option<chrono::DateTime<chrono::Utc>>, Option<chrono::DateTime<chrono::Utc>>)>>;
+    ) -> AtlasResult<
+        Vec<(
+            Uuid,
+            serde_json::Value,
+            Option<chrono::DateTime<chrono::Utc>>,
+            Option<chrono::DateTime<chrono::Utc>>,
+        )>,
+    >;
 
     // Audit
     #[allow(clippy::too_many_arguments)]
@@ -194,7 +208,7 @@ pub struct PostgresDataArchivingRepository {
 }
 
 impl PostgresDataArchivingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -343,27 +357,38 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
             RETURNING *",
         )
-        .bind(org_id).bind(policy_code).bind(name).bind(description)
-        .bind(entity_type).bind(retention_days).bind(action_type)
-        .bind(purge_after_days).bind(condition_expression).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(policy_code)
+        .bind(name)
+        .bind(description)
+        .bind(entity_type)
+        .bind(retention_days)
+        .bind(action_type)
+        .bind(purge_after_days)
+        .bind(condition_expression)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_policy(&row))
     }
 
     async fn get_policy(&self, id: Uuid) -> AtlasResult<Option<RetentionPolicy>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.retention_policies WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.retention_policies WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_policy(&r)))
     }
 
-    async fn get_policy_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<RetentionPolicy>> {
+    async fn get_policy_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<RetentionPolicy>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.retention_policies WHERE organization_id = $1 AND policy_code = $2"
         )
@@ -387,8 +412,11 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
               AND ($3::text IS NULL OR entity_type = $3)
             ORDER BY policy_code",
         )
-        .bind(org_id).bind(status).bind(entity_type)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .bind(entity_type)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_policy).collect())
@@ -401,8 +429,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             WHERE id = $1
             RETURNING *",
         )
-        .bind(id).bind(status)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_policy(&row))
@@ -411,7 +441,8 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
     async fn delete_policy(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.retention_policies WHERE id = $1")
             .bind(id)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -440,32 +471,45 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
             RETURNING *",
         )
-        .bind(org_id).bind(hold_number).bind(name).bind(description)
-        .bind(reason).bind(case_reference).bind(authorized_by)
-        .bind(effective_from).bind(effective_to).bind(authorized_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(hold_number)
+        .bind(name)
+        .bind(description)
+        .bind(reason)
+        .bind(case_reference)
+        .bind(authorized_by)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(authorized_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_legal_hold(&row))
     }
 
     async fn get_legal_hold(&self, id: Uuid) -> AtlasResult<Option<LegalHold>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.legal_holds WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.legal_holds WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_legal_hold(&r)))
     }
 
-    async fn get_legal_hold_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<LegalHold>> {
+    async fn get_legal_hold_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<LegalHold>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.legal_holds WHERE organization_id = $1 AND hold_number = $2"
+            "SELECT * FROM _atlas.legal_holds WHERE organization_id = $1 AND hold_number = $2",
         )
-        .bind(org_id).bind(number)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(number)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_legal_hold(&r)))
@@ -482,8 +526,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
               AND ($2::text IS NULL OR status = $2)
             ORDER BY created_at DESC",
         )
-        .bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_legal_hold).collect())
@@ -503,8 +549,11 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             WHERE id = $1
             RETURNING *",
         )
-        .bind(id).bind(released_by).bind(reason)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(released_by)
+        .bind(reason)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_legal_hold(&row))
@@ -513,7 +562,8 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
     async fn delete_legal_hold(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.legal_holds WHERE id = $1")
             .bind(id)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -535,8 +585,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             VALUES ($1, $2, $3, $4)
             RETURNING *",
         )
-        .bind(org_id).bind(legal_hold_id).bind(entity_type).bind(record_id)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(legal_hold_id)
+        .bind(entity_type)
+        .bind(record_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_legal_hold_item(&row))
@@ -544,10 +598,11 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
 
     async fn list_legal_hold_items(&self, legal_hold_id: Uuid) -> AtlasResult<Vec<LegalHoldItem>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.legal_hold_items WHERE legal_hold_id = $1 ORDER BY created_at"
+            "SELECT * FROM _atlas.legal_hold_items WHERE legal_hold_id = $1 ORDER BY created_at",
         )
         .bind(legal_hold_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_legal_hold_item).collect())
@@ -556,7 +611,8 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
     async fn remove_legal_hold_item(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.legal_hold_items WHERE id = $1")
             .bind(id)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -575,8 +631,11 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
               AND lhi.record_id = $3
               AND lh.status = 'active'",
         )
-        .bind(org_id).bind(entity_type).bind(record_id)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(entity_type)
+        .bind(record_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let cnt: i64 = row.get("cnt");
@@ -607,22 +666,28 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
             RETURNING *",
         )
-        .bind(org_id).bind(entity_type).bind(original_record_id).bind(original_data)
-        .bind(retention_policy_id).bind(archive_batch_id)
-        .bind(original_created_at).bind(original_updated_at).bind(archived_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(entity_type)
+        .bind(original_record_id)
+        .bind(original_data)
+        .bind(retention_policy_id)
+        .bind(archive_batch_id)
+        .bind(original_created_at)
+        .bind(original_updated_at)
+        .bind(archived_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_archived_record(&row))
     }
 
     async fn get_archived_record(&self, id: Uuid) -> AtlasResult<Option<ArchivedRecord>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.archived_records WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.archived_records WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_archived_record(&r)))
     }
@@ -640,8 +705,11 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
               AND original_record_id = $3
               AND status = 'archived'",
         )
-        .bind(org_id).bind(entity_type).bind(record_id)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(entity_type)
+        .bind(record_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let cnt: i64 = row.get("cnt");
@@ -664,8 +732,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             ORDER BY archived_at DESC
             LIMIT $4",
         )
-        .bind(org_id).bind(entity_type).bind(status).bind(limit_val)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(entity_type)
+        .bind(status)
+        .bind(limit_val)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_archived_record).collect())
@@ -682,8 +754,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             WHERE id = $1
             RETURNING *",
         )
-        .bind(id).bind(restored_by)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(restored_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_archived_record(&row))
@@ -700,8 +774,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             WHERE id = $1
             RETURNING *",
         )
-        .bind(id).bind(purged_by)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(purged_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_archived_record(&row))
@@ -726,21 +802,24 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             VALUES ($1,$2,$3,$4,$5)
             RETURNING *",
         )
-        .bind(org_id).bind(batch_number).bind(retention_policy_id)
-        .bind(entity_type).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(batch_number)
+        .bind(retention_policy_id)
+        .bind(entity_type)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_archive_batch(&row))
     }
 
     async fn get_archive_batch(&self, id: Uuid) -> AtlasResult<Option<ArchiveBatch>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.archive_batches WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.archive_batches WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_archive_batch(&r)))
     }
@@ -756,21 +835,31 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
               AND ($2::text IS NULL OR status = $2)
             ORDER BY created_at DESC",
         )
-        .bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_archive_batch).collect())
     }
 
     async fn update_archive_batch_status(&self, id: Uuid, status: &str) -> AtlasResult<()> {
-        let start_col = if status == "in_progress" { ", started_at = now()" } else if status == "completed" { ", completed_at = now()" } else { "" };
+        let start_col = if status == "in_progress" {
+            ", started_at = now()"
+        } else if status == "completed" {
+            ", completed_at = now()"
+        } else {
+            ""
+        };
         let query = format!(
             "UPDATE _atlas.archive_batches SET status = $2{start_col}, updated_at = now() WHERE id = $1"
         );
         sqlx::query(&query)
-            .bind(id).bind(status)
-            .execute(&self.pool).await
+            .bind(id)
+            .bind(status)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -788,8 +877,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
                 updated_at = now()
             WHERE id = $1",
         )
-        .bind(id).bind(total).bind(archived).bind(failed)
-        .execute(&self.pool).await
+        .bind(id)
+        .bind(total)
+        .bind(archived)
+        .bind(failed)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -799,7 +892,14 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         org_id: Uuid,
         entity_type: &str,
         cutoff: chrono::DateTime<chrono::Utc>,
-    ) -> AtlasResult<Vec<(Uuid, serde_json::Value, Option<chrono::DateTime<chrono::Utc>>, Option<chrono::DateTime<chrono::Utc>>)>> {
+    ) -> AtlasResult<
+        Vec<(
+            Uuid,
+            serde_json::Value,
+            Option<chrono::DateTime<chrono::Utc>>,
+            Option<chrono::DateTime<chrono::Utc>>,
+        )>,
+    > {
         // Query records from the entity's table that are older than the cutoff.
         // The entity_type maps to a table name. For test_items, we query directly.
         // In production, this would use the schema engine to find the right table.
@@ -815,8 +915,10 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         );
 
         let rows = sqlx::query(&query_str)
-            .bind(org_id).bind(cutoff)
-            .fetch_all(&self.pool).await
+            .bind(org_id)
+            .bind(cutoff)
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut results = Vec::new();
@@ -856,10 +958,18 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
             RETURNING *",
         )
-        .bind(org_id).bind(operation).bind(entity_type).bind(record_id)
-        .bind(batch_id).bind(legal_hold_id).bind(retention_policy_id)
-        .bind(result).bind(details).bind(performed_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(operation)
+        .bind(entity_type)
+        .bind(record_id)
+        .bind(batch_id)
+        .bind(legal_hold_id)
+        .bind(retention_policy_id)
+        .bind(result)
+        .bind(details)
+        .bind(performed_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_audit(&row))
@@ -881,8 +991,12 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             ORDER BY performed_at DESC
             LIMIT $4",
         )
-        .bind(org_id).bind(operation).bind(entity_type).bind(limit_val)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(operation)
+        .bind(entity_type)
+        .bind(limit_val)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(row_to_audit).collect())
@@ -901,7 +1015,8 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             FROM _atlas.retention_policies WHERE organization_id = $1",
         )
         .bind(org_id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_policies: i64 = policy_row.try_get("total").unwrap_or(0);
@@ -915,7 +1030,8 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             FROM _atlas.legal_holds WHERE organization_id = $1",
         )
         .bind(org_id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_legal_holds: i64 = hold_row.try_get("total").unwrap_or(0);
@@ -930,7 +1046,8 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             FROM _atlas.archived_records WHERE organization_id = $1",
         )
         .bind(org_id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_archived_records: i64 = archive_row.try_get("archived").unwrap_or(0);
@@ -945,7 +1062,8 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
             GROUP BY entity_type",
         )
         .bind(org_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut by_et = serde_json::Map::new();
@@ -956,7 +1074,9 @@ impl DataArchivingRepository for PostgresDataArchivingRepository {
         }
 
         // Recent audit entries
-        let recent_audits = self.list_audit_entries(org_id, None, None, Some(10)).await?;
+        let recent_audits = self
+            .list_audit_entries(org_id, None, None, Some(10))
+            .await?;
 
         Ok(DataArchivingDashboard {
             total_policies,

@@ -2,8 +2,8 @@
 //!
 //! `PostgreSQL` storage for finance charge terms, assessment runs, and charge invoices.
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -262,49 +262,124 @@ pub struct FinanceChargeInvoiceCreateParams {
 #[async_trait]
 pub trait FinanceChargeRepository: Send + Sync {
     // Terms
-    async fn create_term(&self, params: &FinanceChargeTermCreateParams) -> AtlasResult<FinanceChargeTerm>;
+    async fn create_term(
+        &self,
+        params: &FinanceChargeTermCreateParams,
+    ) -> AtlasResult<FinanceChargeTerm>;
     async fn get_term(&self, id: Uuid) -> AtlasResult<Option<FinanceChargeTerm>>;
-    async fn get_term_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<FinanceChargeTerm>>;
-    async fn list_terms(&self, org_id: Uuid, is_active: Option<bool>) -> AtlasResult<Vec<FinanceChargeTerm>>;
-    async fn update_term_status(&self, id: Uuid, is_active: bool) -> AtlasResult<FinanceChargeTerm>;
+    async fn get_term_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<FinanceChargeTerm>>;
+    async fn list_terms(
+        &self,
+        org_id: Uuid,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<FinanceChargeTerm>>;
+    async fn update_term_status(&self, id: Uuid, is_active: bool)
+        -> AtlasResult<FinanceChargeTerm>;
 
     // Tiers
-    async fn create_tier(&self, org_id: Uuid, term_id: Uuid, from_days: i32, to_days: Option<i32>, rate: f64, flat_fee: Option<f64>) -> AtlasResult<FinanceChargeTier>;
+    async fn create_tier(
+        &self,
+        org_id: Uuid,
+        term_id: Uuid,
+        from_days: i32,
+        to_days: Option<i32>,
+        rate: f64,
+        flat_fee: Option<f64>,
+    ) -> AtlasResult<FinanceChargeTier>;
     async fn list_tiers(&self, term_id: Uuid) -> AtlasResult<Vec<FinanceChargeTier>>;
 
     // Runs
-    async fn create_run(&self, params: &FinanceChargeRunCreateParams) -> AtlasResult<FinanceChargeRun>;
+    async fn create_run(
+        &self,
+        params: &FinanceChargeRunCreateParams,
+    ) -> AtlasResult<FinanceChargeRun>;
     async fn get_run(&self, id: Uuid) -> AtlasResult<Option<FinanceChargeRun>>;
-    async fn get_run_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<FinanceChargeRun>>;
-    async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<FinanceChargeRun>>;
+    async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<FinanceChargeRun>>;
+    async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<FinanceChargeRun>>;
     async fn update_run_status(&self, id: Uuid, status: &str) -> AtlasResult<FinanceChargeRun>;
-    async fn update_run_totals(&self, id: Uuid, total_invoices: i32, total_charges: f64) -> AtlasResult<()>;
+    async fn update_run_totals(
+        &self,
+        id: Uuid,
+        total_invoices: i32,
+        total_charges: f64,
+    ) -> AtlasResult<()>;
     async fn delete_run(&self, org_id: Uuid, run_number: &str) -> AtlasResult<()>;
     async fn get_next_run_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Lines
-    async fn create_line(&self, params: &FinanceChargeLineCreateParams) -> AtlasResult<FinanceChargeLine>;
+    async fn create_line(
+        &self,
+        params: &FinanceChargeLineCreateParams,
+    ) -> AtlasResult<FinanceChargeLine>;
     async fn list_lines(&self, run_id: Uuid) -> AtlasResult<Vec<FinanceChargeLine>>;
-    async fn update_line_status(&self, id: Uuid, status: &str, waived_reason: Option<&str>) -> AtlasResult<FinanceChargeLine>;
-    async fn update_line_charge_invoice(&self, id: Uuid, charge_invoice_id: Uuid, charge_invoice_number: Option<&str>) -> AtlasResult<()>;
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        waived_reason: Option<&str>,
+    ) -> AtlasResult<FinanceChargeLine>;
+    async fn update_line_charge_invoice(
+        &self,
+        id: Uuid,
+        charge_invoice_id: Uuid,
+        charge_invoice_number: Option<&str>,
+    ) -> AtlasResult<()>;
     async fn delete_lines_for_run(&self, run_id: Uuid) -> AtlasResult<()>;
 
     // Invoices
-    async fn create_invoice(&self, params: &FinanceChargeInvoiceCreateParams) -> AtlasResult<FinanceChargeInvoice>;
+    async fn create_invoice(
+        &self,
+        params: &FinanceChargeInvoiceCreateParams,
+    ) -> AtlasResult<FinanceChargeInvoice>;
     async fn get_invoice(&self, id: Uuid) -> AtlasResult<Option<FinanceChargeInvoice>>;
-    async fn get_invoice_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<FinanceChargeInvoice>>;
-    async fn list_invoices(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<FinanceChargeInvoice>>;
-    async fn update_invoice_status(&self, id: Uuid, status: &str) -> AtlasResult<FinanceChargeInvoice>;
+    async fn get_invoice_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<FinanceChargeInvoice>>;
+    async fn list_invoices(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<FinanceChargeInvoice>>;
+    async fn update_invoice_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<FinanceChargeInvoice>;
     async fn get_next_invoice_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Activities
     async fn create_activity(
-        &self, org_id: Uuid, entity_type: &str, entity_id: Uuid,
-        activity_type: &str, description: Option<&str>,
-        old_status: Option<&str>, new_status: Option<&str>,
-        performed_by: Option<Uuid>, performed_by_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        entity_type: &str,
+        entity_id: Uuid,
+        activity_type: &str,
+        description: Option<&str>,
+        old_status: Option<&str>,
+        new_status: Option<&str>,
+        performed_by: Option<Uuid>,
+        performed_by_name: Option<&str>,
     ) -> AtlasResult<FinanceChargeActivity>;
-    async fn list_activities(&self, entity_type: &str, entity_id: Uuid) -> AtlasResult<Vec<FinanceChargeActivity>>;
+    async fn list_activities(
+        &self,
+        entity_type: &str,
+        entity_id: Uuid,
+    ) -> AtlasResult<Vec<FinanceChargeActivity>>;
 
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<FinanceChargeSummary>;
@@ -319,7 +394,7 @@ pub struct PostgresFinanceChargeRepository {
 }
 
 impl PostgresFinanceChargeRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -331,7 +406,10 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
     // Terms
     // ========================================================================
 
-    async fn create_term(&self, params: &FinanceChargeTermCreateParams) -> AtlasResult<FinanceChargeTerm> {
+    async fn create_term(
+        &self,
+        params: &FinanceChargeTermCreateParams,
+    ) -> AtlasResult<FinanceChargeTerm> {
         let row = sqlx::query_as::<_, FinanceChargeTerm>(
             r"INSERT INTO _atlas.finance_charge_terms
                (organization_id, term_code, term_name, description,
@@ -380,7 +458,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(row)
     }
 
-    async fn get_term_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<FinanceChargeTerm>> {
+    async fn get_term_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<FinanceChargeTerm>> {
         let row = sqlx::query_as::<_, FinanceChargeTerm>(
             "SELECT * FROM _atlas.finance_charge_terms WHERE organization_id = $1 AND term_code = $2",
         )
@@ -392,7 +474,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(row)
     }
 
-    async fn list_terms(&self, org_id: Uuid, is_active: Option<bool>) -> AtlasResult<Vec<FinanceChargeTerm>> {
+    async fn list_terms(
+        &self,
+        org_id: Uuid,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<FinanceChargeTerm>> {
         let rows = sqlx::query_as::<_, FinanceChargeTerm>(
             r"SELECT * FROM _atlas.finance_charge_terms
                WHERE organization_id = $1
@@ -407,7 +493,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(rows)
     }
 
-    async fn update_term_status(&self, id: Uuid, is_active: bool) -> AtlasResult<FinanceChargeTerm> {
+    async fn update_term_status(
+        &self,
+        id: Uuid,
+        is_active: bool,
+    ) -> AtlasResult<FinanceChargeTerm> {
         let row = sqlx::query_as::<_, FinanceChargeTerm>(
             "UPDATE _atlas.finance_charge_terms SET is_active = $2, updated_at = now() WHERE id = $1 RETURNING *",
         )
@@ -423,7 +513,15 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
     // Tiers
     // ========================================================================
 
-    async fn create_tier(&self, org_id: Uuid, term_id: Uuid, from_days: i32, to_days: Option<i32>, rate: f64, flat_fee: Option<f64>) -> AtlasResult<FinanceChargeTier> {
+    async fn create_tier(
+        &self,
+        org_id: Uuid,
+        term_id: Uuid,
+        from_days: i32,
+        to_days: Option<i32>,
+        rate: f64,
+        flat_fee: Option<f64>,
+    ) -> AtlasResult<FinanceChargeTier> {
         let row = sqlx::query_as::<_, FinanceChargeTier>(
             r"INSERT INTO _atlas.finance_charge_tiers
                (organization_id, term_id, from_days_overdue, to_days_overdue, charge_rate, flat_fee)
@@ -456,7 +554,10 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
     // Runs
     // ========================================================================
 
-    async fn create_run(&self, params: &FinanceChargeRunCreateParams) -> AtlasResult<FinanceChargeRun> {
+    async fn create_run(
+        &self,
+        params: &FinanceChargeRunCreateParams,
+    ) -> AtlasResult<FinanceChargeRun> {
         let seq = self.get_next_run_number(params.org_id).await.unwrap_or(1);
         let run_number = format!("FCR-{seq:06}");
 
@@ -495,7 +596,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(row)
     }
 
-    async fn get_run_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<FinanceChargeRun>> {
+    async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<FinanceChargeRun>> {
         let row = sqlx::query_as::<_, FinanceChargeRun>(
             "SELECT * FROM _atlas.finance_charge_runs WHERE organization_id = $1 AND run_number = $2",
         )
@@ -507,7 +612,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(row)
     }
 
-    async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<FinanceChargeRun>> {
+    async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<FinanceChargeRun>> {
         let rows = sqlx::query_as::<_, FinanceChargeRun>(
             r"SELECT * FROM _atlas.finance_charge_runs
                WHERE organization_id = $1
@@ -541,7 +650,12 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(row)
     }
 
-    async fn update_run_totals(&self, id: Uuid, total_invoices: i32, total_charges: f64) -> AtlasResult<()> {
+    async fn update_run_totals(
+        &self,
+        id: Uuid,
+        total_invoices: i32,
+        total_charges: f64,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.finance_charge_runs SET total_invoices_assessed = $2, total_charges_assessed = $3, updated_at = now() WHERE id = $1",
         )
@@ -564,7 +678,9 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Finance charge run not found or not in draft status".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Finance charge run not found or not in draft status".to_string(),
+            ));
         }
         Ok(())
     }
@@ -585,7 +701,10 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
     // Lines
     // ========================================================================
 
-    async fn create_line(&self, params: &FinanceChargeLineCreateParams) -> AtlasResult<FinanceChargeLine> {
+    async fn create_line(
+        &self,
+        params: &FinanceChargeLineCreateParams,
+    ) -> AtlasResult<FinanceChargeLine> {
         let row = sqlx::query_as::<_, FinanceChargeLine>(
             r"INSERT INTO _atlas.finance_charge_lines
                (organization_id, run_id, line_number,
@@ -633,7 +752,12 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(rows)
     }
 
-    async fn update_line_status(&self, id: Uuid, status: &str, waived_reason: Option<&str>) -> AtlasResult<FinanceChargeLine> {
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        waived_reason: Option<&str>,
+    ) -> AtlasResult<FinanceChargeLine> {
         let row = sqlx::query_as::<_, FinanceChargeLine>(
             r"UPDATE _atlas.finance_charge_lines
                SET status = $2, waived_reason = COALESCE($3, waived_reason), updated_at = now()
@@ -648,7 +772,12 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(row)
     }
 
-    async fn update_line_charge_invoice(&self, id: Uuid, charge_invoice_id: Uuid, charge_invoice_number: Option<&str>) -> AtlasResult<()> {
+    async fn update_line_charge_invoice(
+        &self,
+        id: Uuid,
+        charge_invoice_id: Uuid,
+        charge_invoice_number: Option<&str>,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.finance_charge_lines
                SET charge_invoice_id = $2, charge_invoice_number = $3, status = 'charged', updated_at = now()
@@ -676,7 +805,10 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
     // Invoices
     // ========================================================================
 
-    async fn create_invoice(&self, params: &FinanceChargeInvoiceCreateParams) -> AtlasResult<FinanceChargeInvoice> {
+    async fn create_invoice(
+        &self,
+        params: &FinanceChargeInvoiceCreateParams,
+    ) -> AtlasResult<FinanceChargeInvoice> {
         let row = sqlx::query_as::<_, FinanceChargeInvoice>(
             r"INSERT INTO _atlas.finance_charge_invoices
                (organization_id, charge_invoice_number,
@@ -721,7 +853,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(row)
     }
 
-    async fn get_invoice_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<FinanceChargeInvoice>> {
+    async fn get_invoice_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<FinanceChargeInvoice>> {
         let row = sqlx::query_as::<_, FinanceChargeInvoice>(
             "SELECT * FROM _atlas.finance_charge_invoices WHERE organization_id = $1 AND charge_invoice_number = $2",
         )
@@ -733,7 +869,12 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(row)
     }
 
-    async fn list_invoices(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<FinanceChargeInvoice>> {
+    async fn list_invoices(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<FinanceChargeInvoice>> {
         let rows = sqlx::query_as::<_, FinanceChargeInvoice>(
             r"SELECT * FROM _atlas.finance_charge_invoices
                WHERE organization_id = $1
@@ -750,7 +891,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(rows)
     }
 
-    async fn update_invoice_status(&self, id: Uuid, status: &str) -> AtlasResult<FinanceChargeInvoice> {
+    async fn update_invoice_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<FinanceChargeInvoice> {
         let row = sqlx::query_as::<_, FinanceChargeInvoice>(
             "UPDATE _atlas.finance_charge_invoices SET status = $2, updated_at = now() WHERE id = $1 RETURNING *",
         )
@@ -779,10 +924,16 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
     // ========================================================================
 
     async fn create_activity(
-        &self, org_id: Uuid, entity_type: &str, entity_id: Uuid,
-        activity_type: &str, description: Option<&str>,
-        old_status: Option<&str>, new_status: Option<&str>,
-        performed_by: Option<Uuid>, performed_by_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        entity_type: &str,
+        entity_id: Uuid,
+        activity_type: &str,
+        description: Option<&str>,
+        old_status: Option<&str>,
+        new_status: Option<&str>,
+        performed_by: Option<Uuid>,
+        performed_by_name: Option<&str>,
     ) -> AtlasResult<FinanceChargeActivity> {
         let row = sqlx::query_as::<_, FinanceChargeActivity>(
             r"INSERT INTO _atlas.finance_charge_activities
@@ -806,7 +957,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         Ok(row)
     }
 
-    async fn list_activities(&self, entity_type: &str, entity_id: Uuid) -> AtlasResult<Vec<FinanceChargeActivity>> {
+    async fn list_activities(
+        &self,
+        entity_type: &str,
+        entity_id: Uuid,
+    ) -> AtlasResult<Vec<FinanceChargeActivity>> {
         let rows = sqlx::query_as::<_, FinanceChargeActivity>(
             "SELECT * FROM _atlas.finance_charge_activities WHERE entity_type = $1 AND entity_id = $2 ORDER BY created_at",
         )
@@ -824,7 +979,7 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<FinanceChargeSummary> {
         let total_terms: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.finance_charge_terms WHERE organization_id = $1"
+            "SELECT COUNT(*) FROM _atlas.finance_charge_terms WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -840,7 +995,7 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_runs: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.finance_charge_runs WHERE organization_id = $1"
+            "SELECT COUNT(*) FROM _atlas.finance_charge_runs WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -915,7 +1070,11 @@ impl FinanceChargeRepository for PostgresFinanceChargeRepository {
 }
 
 impl PostgresFinanceChargeRepository {
-    async fn get_grouped_count(&self, column: &str, org_id: Uuid) -> AtlasResult<serde_json::Value> {
+    async fn get_grouped_count(
+        &self,
+        column: &str,
+        org_id: Uuid,
+    ) -> AtlasResult<serde_json::Value> {
         let query = format!(
             "SELECT {column} as key, COUNT(*) as cnt, COALESCE(SUM(total_charge_amount), 0) as total FROM _atlas.finance_charge_invoices WHERE organization_id = $1 GROUP BY {column}"
         );
@@ -935,7 +1094,11 @@ impl PostgresFinanceChargeRepository {
         Ok(serde_json::Value::Object(result))
     }
 
-    async fn get_run_grouped_count(&self, column: &str, org_id: Uuid) -> AtlasResult<serde_json::Value> {
+    async fn get_run_grouped_count(
+        &self,
+        column: &str,
+        org_id: Uuid,
+    ) -> AtlasResult<serde_json::Value> {
         let query = format!(
             "SELECT {column} as key, COUNT(*) as cnt, COALESCE(SUM(total_charges_assessed), 0) as total FROM _atlas.finance_charge_runs WHERE organization_id = $1 GROUP BY {column}"
         );

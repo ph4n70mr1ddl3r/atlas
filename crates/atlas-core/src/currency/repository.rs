@@ -2,11 +2,8 @@
 //!
 //! `PostgreSQL` storage for currencies, exchange rates, and conversion history.
 
-use atlas_shared::{
-    CurrencyDefinition, ExchangeRate,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult, CurrencyDefinition, ExchangeRate};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -25,7 +22,11 @@ pub trait CurrencyRepository: Send + Sync {
         is_base_currency: bool,
     ) -> AtlasResult<CurrencyDefinition>;
 
-    async fn get_currency(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CurrencyDefinition>>;
+    async fn get_currency(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CurrencyDefinition>>;
     async fn list_currencies(&self, org_id: Uuid) -> AtlasResult<Vec<CurrencyDefinition>>;
     async fn get_base_currency(&self, org_id: Uuid) -> AtlasResult<Option<CurrencyDefinition>>;
     async fn delete_currency(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
@@ -101,7 +102,7 @@ pub struct PostgresCurrencyRepository {
 }
 
 impl PostgresCurrencyRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -122,9 +123,11 @@ impl PostgresCurrencyRepository {
     }
 
     fn row_to_rate(&self, row: &sqlx::postgres::PgRow) -> ExchangeRate {
-        let rate_val: serde_json::Value = row.try_get::<serde_json::Value, _>("rate")
+        let rate_val: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("rate")
             .unwrap_or(serde_json::json!("0"));
-        let inv_val: Option<serde_json::Value> = row.try_get::<Option<serde_json::Value>, _>("inverse_rate")
+        let inv_val: Option<serde_json::Value> = row
+            .try_get::<Option<serde_json::Value>, _>("inverse_rate")
             .ok()
             .flatten();
 
@@ -189,7 +192,11 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         Ok(self.row_to_currency(&row))
     }
 
-    async fn get_currency(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CurrencyDefinition>> {
+    async fn get_currency(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CurrencyDefinition>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.currencies WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -337,9 +344,8 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         limit: i64,
         offset: i64,
     ) -> AtlasResult<Vec<ExchangeRate>> {
-        let mut query_str = String::from(
-            "SELECT * FROM _atlas.exchange_rates WHERE organization_id = $1"
-        );
+        let mut query_str =
+            String::from("SELECT * FROM _atlas.exchange_rates WHERE organization_id = $1");
         let mut param_idx = 1;
 
         let bind_from = from_currency.is_some();
@@ -347,10 +353,22 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         let bind_type = rate_type.is_some();
         let bind_date = effective_date.is_some();
 
-        if bind_from { param_idx += 1; query_str.push_str(&format!(" AND from_currency = ${param_idx}")); }
-        if bind_to { param_idx += 1; query_str.push_str(&format!(" AND to_currency = ${param_idx}")); }
-        if bind_type { param_idx += 1; query_str.push_str(&format!(" AND rate_type = ${param_idx}")); }
-        if bind_date { param_idx += 1; query_str.push_str(&format!(" AND effective_date = ${param_idx}")); }
+        if bind_from {
+            param_idx += 1;
+            query_str.push_str(&format!(" AND from_currency = ${param_idx}"));
+        }
+        if bind_to {
+            param_idx += 1;
+            query_str.push_str(&format!(" AND to_currency = ${param_idx}"));
+        }
+        if bind_type {
+            param_idx += 1;
+            query_str.push_str(&format!(" AND rate_type = ${param_idx}"));
+        }
+        if bind_date {
+            param_idx += 1;
+            query_str.push_str(&format!(" AND effective_date = ${param_idx}"));
+        }
 
         param_idx += 1;
         let limit_idx = param_idx;
@@ -360,13 +378,23 @@ impl CurrencyRepository for PostgresCurrencyRepository {
         query_str.push_str(&format!(" ORDER BY effective_date DESC, from_currency, to_currency LIMIT ${limit_idx} OFFSET ${offset_idx}"));
 
         let mut query = sqlx::query(&query_str).bind(org_id);
-        if let Some(f) = from_currency { query = query.bind(f); }
-        if let Some(t) = to_currency { query = query.bind(t); }
-        if let Some(rt) = rate_type { query = query.bind(rt); }
-        if let Some(d) = effective_date { query = query.bind(d); }
+        if let Some(f) = from_currency {
+            query = query.bind(f);
+        }
+        if let Some(t) = to_currency {
+            query = query.bind(t);
+        }
+        if let Some(rt) = rate_type {
+            query = query.bind(rt);
+        }
+        if let Some(d) = effective_date {
+            query = query.bind(d);
+        }
         query = query.bind(limit).bind(offset);
 
-        let rows = query.fetch_all(&self.pool).await
+        let rows = query
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(rows.iter().map(|r| self.row_to_rate(r)).collect())

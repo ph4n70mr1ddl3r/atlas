@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for withholding tax codes, groups, supplier assignments,
 //! certificates, and withholding tax lines.
 
-use atlas_shared::{
-    WithholdingTaxCode, WithholdingTaxGroup, WithholdingTaxGroupMember,
-    SupplierWithholdingAssignment, WithholdingCertificate,
-    WithholdingTaxLine, AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, SupplierWithholdingAssignment, WithholdingCertificate,
+    WithholdingTaxCode, WithholdingTaxGroup, WithholdingTaxGroupMember, WithholdingTaxLine,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -34,9 +33,17 @@ pub trait WithholdingTaxRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WithholdingTaxCode>;
 
-    async fn get_tax_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<WithholdingTaxCode>>;
+    async fn get_tax_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<WithholdingTaxCode>>;
     async fn get_tax_code_by_id(&self, id: Uuid) -> AtlasResult<Option<WithholdingTaxCode>>;
-    async fn list_tax_codes(&self, org_id: Uuid, tax_type: Option<&str>) -> AtlasResult<Vec<WithholdingTaxCode>>;
+    async fn list_tax_codes(
+        &self,
+        org_id: Uuid,
+        tax_type: Option<&str>,
+    ) -> AtlasResult<Vec<WithholdingTaxCode>>;
     async fn delete_tax_code(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Tax Groups
@@ -49,7 +56,11 @@ pub trait WithholdingTaxRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WithholdingTaxGroup>;
 
-    async fn get_tax_group(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<WithholdingTaxGroup>>;
+    async fn get_tax_group(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<WithholdingTaxGroup>>;
     async fn get_tax_group_by_id(&self, id: Uuid) -> AtlasResult<Option<WithholdingTaxGroup>>;
     async fn list_tax_groups(&self, org_id: Uuid) -> AtlasResult<Vec<WithholdingTaxGroup>>;
     async fn delete_tax_group(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
@@ -63,7 +74,10 @@ pub trait WithholdingTaxRepository: Send + Sync {
         display_order: i32,
     ) -> AtlasResult<WithholdingTaxGroupMember>;
 
-    async fn list_group_members(&self, group_id: Uuid) -> AtlasResult<Vec<WithholdingTaxGroupMember>>;
+    async fn list_group_members(
+        &self,
+        group_id: Uuid,
+    ) -> AtlasResult<Vec<WithholdingTaxGroupMember>>;
     async fn remove_group_member(&self, id: Uuid) -> AtlasResult<()>;
 
     // Supplier Assignments
@@ -81,8 +95,15 @@ pub trait WithholdingTaxRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SupplierWithholdingAssignment>;
 
-    async fn get_supplier_assignment(&self, org_id: Uuid, supplier_id: Uuid) -> AtlasResult<Option<SupplierWithholdingAssignment>>;
-    async fn list_supplier_assignments(&self, org_id: Uuid) -> AtlasResult<Vec<SupplierWithholdingAssignment>>;
+    async fn get_supplier_assignment(
+        &self,
+        org_id: Uuid,
+        supplier_id: Uuid,
+    ) -> AtlasResult<Option<SupplierWithholdingAssignment>>;
+    async fn list_supplier_assignments(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<SupplierWithholdingAssignment>>;
     async fn delete_supplier_assignment(&self, id: Uuid) -> AtlasResult<()>;
 
     // Withholding Tax Lines
@@ -106,7 +127,10 @@ pub trait WithholdingTaxRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WithholdingTaxLine>;
 
-    async fn get_withholding_lines_by_payment(&self, payment_id: Uuid) -> AtlasResult<Vec<WithholdingTaxLine>>;
+    async fn get_withholding_lines_by_payment(
+        &self,
+        payment_id: Uuid,
+    ) -> AtlasResult<Vec<WithholdingTaxLine>>;
     async fn get_withholding_lines_by_supplier(
         &self,
         org_id: Uuid,
@@ -114,7 +138,13 @@ pub trait WithholdingTaxRepository: Send + Sync {
         from_date: Option<chrono::NaiveDate>,
         to_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Vec<WithholdingTaxLine>>;
-    async fn update_withholding_line_status(&self, id: Uuid, status: &str, remittance_date: Option<chrono::NaiveDate>, remittance_reference: Option<&str>) -> AtlasResult<WithholdingTaxLine>;
+    async fn update_withholding_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        remittance_date: Option<chrono::NaiveDate>,
+        remittance_reference: Option<&str>,
+    ) -> AtlasResult<WithholdingTaxLine>;
 
     // Certificates
     async fn create_certificate(
@@ -137,9 +167,21 @@ pub trait WithholdingTaxRepository: Send + Sync {
     ) -> AtlasResult<WithholdingCertificate>;
 
     async fn get_certificate(&self, id: Uuid) -> AtlasResult<Option<WithholdingCertificate>>;
-    async fn get_certificate_by_number(&self, org_id: Uuid, certificate_number: &str) -> AtlasResult<Option<WithholdingCertificate>>;
-    async fn list_certificates(&self, org_id: Uuid, supplier_id: Option<Uuid>) -> AtlasResult<Vec<WithholdingCertificate>>;
-    async fn update_certificate_status(&self, id: Uuid, status: &str) -> AtlasResult<WithholdingCertificate>;
+    async fn get_certificate_by_number(
+        &self,
+        org_id: Uuid,
+        certificate_number: &str,
+    ) -> AtlasResult<Option<WithholdingCertificate>>;
+    async fn list_certificates(
+        &self,
+        org_id: Uuid,
+        supplier_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<WithholdingCertificate>>;
+    async fn update_certificate_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<WithholdingCertificate>;
 }
 
 /// `PostgreSQL` implementation
@@ -148,14 +190,18 @@ pub struct PostgresWithholdingTaxRepository {
 }
 
 impl PostgresWithholdingTaxRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
     fn row_to_tax_code(&self, row: &sqlx::postgres::PgRow) -> WithholdingTaxCode {
-        let rate: serde_json::Value = row.try_get("rate_percentage").unwrap_or(serde_json::json!("0"));
-        let threshold: serde_json::Value = row.try_get("threshold_amount").unwrap_or(serde_json::json!("0"));
+        let rate: serde_json::Value = row
+            .try_get("rate_percentage")
+            .unwrap_or(serde_json::json!("0"));
+        let threshold: serde_json::Value = row
+            .try_get("threshold_amount")
+            .unwrap_or(serde_json::json!("0"));
 
         WithholdingTaxCode {
             id: row.get("id"),
@@ -207,7 +253,10 @@ impl PostgresWithholdingTaxRepository {
         }
     }
 
-    fn row_to_supplier_assignment(&self, row: &sqlx::postgres::PgRow) -> SupplierWithholdingAssignment {
+    fn row_to_supplier_assignment(
+        &self,
+        row: &sqlx::postgres::PgRow,
+    ) -> SupplierWithholdingAssignment {
         SupplierWithholdingAssignment {
             id: row.get("id"),
             organization_id: row.get("organization_id"),
@@ -229,9 +278,15 @@ impl PostgresWithholdingTaxRepository {
     }
 
     fn row_to_certificate(&self, row: &sqlx::postgres::PgRow) -> WithholdingCertificate {
-        let total_invoice: serde_json::Value = row.try_get("total_invoice_amount").unwrap_or(serde_json::json!("0"));
-        let total_withheld: serde_json::Value = row.try_get("total_withheld_amount").unwrap_or(serde_json::json!("0"));
-        let rate: serde_json::Value = row.try_get("rate_percentage").unwrap_or(serde_json::json!("0"));
+        let total_invoice: serde_json::Value = row
+            .try_get("total_invoice_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let total_withheld: serde_json::Value = row
+            .try_get("total_withheld_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let rate: serde_json::Value = row
+            .try_get("rate_percentage")
+            .unwrap_or(serde_json::json!("0"));
 
         WithholdingCertificate {
             id: row.get("id"),
@@ -261,9 +316,15 @@ impl PostgresWithholdingTaxRepository {
     }
 
     fn row_to_withholding_line(&self, row: &sqlx::postgres::PgRow) -> WithholdingTaxLine {
-        let taxable: serde_json::Value = row.try_get("taxable_amount").unwrap_or(serde_json::json!("0"));
-        let withheld: serde_json::Value = row.try_get("withheld_amount").unwrap_or(serde_json::json!("0"));
-        let rate: serde_json::Value = row.try_get("rate_percentage").unwrap_or(serde_json::json!("0"));
+        let taxable: serde_json::Value = row
+            .try_get("taxable_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let withheld: serde_json::Value = row
+            .try_get("withheld_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let rate: serde_json::Value = row
+            .try_get("rate_percentage")
+            .unwrap_or(serde_json::json!("0"));
 
         WithholdingTaxLine {
             id: row.get("id"),
@@ -332,10 +393,19 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(tax_type)
-        .bind(rate_percentage).bind(threshold_amount).bind(threshold_is_cumulative)
-        .bind(withholding_account_code).bind(expense_account_code)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(tax_type)
+        .bind(rate_percentage)
+        .bind(threshold_amount)
+        .bind(threshold_is_cumulative)
+        .bind(withholding_account_code)
+        .bind(expense_account_code)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -343,7 +413,11 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         Ok(self.row_to_tax_code(&row))
     }
 
-    async fn get_tax_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<WithholdingTaxCode>> {
+    async fn get_tax_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<WithholdingTaxCode>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.withholding_tax_codes WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -355,17 +429,19 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
     }
 
     async fn get_tax_code_by_id(&self, id: Uuid) -> AtlasResult<Option<WithholdingTaxCode>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.withholding_tax_codes WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.withholding_tax_codes WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_tax_code(&r)))
     }
 
-    async fn list_tax_codes(&self, org_id: Uuid, tax_type: Option<&str>) -> AtlasResult<Vec<WithholdingTaxCode>> {
+    async fn list_tax_codes(
+        &self,
+        org_id: Uuid,
+        tax_type: Option<&str>,
+    ) -> AtlasResult<Vec<WithholdingTaxCode>> {
         let rows = match tax_type {
             Some(tt) => sqlx::query(
                 "SELECT * FROM _atlas.withholding_tax_codes WHERE organization_id = $1 AND tax_type = $2 AND is_active = true ORDER BY code"
@@ -415,7 +491,11 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -423,7 +503,11 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         Ok(self.row_to_tax_group(&row))
     }
 
-    async fn get_tax_group(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<WithholdingTaxGroup>> {
+    async fn get_tax_group(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<WithholdingTaxGroup>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.withholding_tax_groups WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -443,13 +527,11 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
     }
 
     async fn get_tax_group_by_id(&self, id: Uuid) -> AtlasResult<Option<WithholdingTaxGroup>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.withholding_tax_groups WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.withholding_tax_groups WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         match row {
             Some(r) => {
@@ -509,7 +591,10 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             RETURNING *
             ",
         )
-        .bind(group_id).bind(tax_code_id).bind(rate_override).bind(display_order)
+        .bind(group_id)
+        .bind(tax_code_id)
+        .bind(rate_override)
+        .bind(display_order)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -517,7 +602,10 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         Ok(self.row_to_group_member(&row))
     }
 
-    async fn list_group_members(&self, group_id: Uuid) -> AtlasResult<Vec<WithholdingTaxGroupMember>> {
+    async fn list_group_members(
+        &self,
+        group_id: Uuid,
+    ) -> AtlasResult<Vec<WithholdingTaxGroupMember>> {
         let rows = sqlx::query(
             r"
             SELECT m.*, c.code as tax_code, c.name as tax_code_name
@@ -525,7 +613,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             JOIN _atlas.withholding_tax_codes c ON c.id = m.tax_code_id
             WHERE m.group_id = $1 AND m.is_active = true
             ORDER BY m.display_order
-            "
+            ",
         )
         .bind(group_id)
         .fetch_all(&self.pool)
@@ -536,7 +624,7 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
 
     async fn remove_group_member(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query(
-            "UPDATE _atlas.withholding_tax_group_members SET is_active = false WHERE id = $1"
+            "UPDATE _atlas.withholding_tax_group_members SET is_active = false WHERE id = $1",
         )
         .bind(id)
         .execute(&self.pool)
@@ -576,9 +664,16 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(supplier_id).bind(supplier_number).bind(supplier_name)
-        .bind(tax_group_id).bind(is_exempt).bind(exemption_reason)
-        .bind(exemption_certificate).bind(exemption_valid_until).bind(created_by)
+        .bind(org_id)
+        .bind(supplier_id)
+        .bind(supplier_number)
+        .bind(supplier_name)
+        .bind(tax_group_id)
+        .bind(is_exempt)
+        .bind(exemption_reason)
+        .bind(exemption_certificate)
+        .bind(exemption_valid_until)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -586,23 +681,31 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         Ok(self.row_to_supplier_assignment(&row))
     }
 
-    async fn get_supplier_assignment(&self, org_id: Uuid, supplier_id: Uuid) -> AtlasResult<Option<SupplierWithholdingAssignment>> {
+    async fn get_supplier_assignment(
+        &self,
+        org_id: Uuid,
+        supplier_id: Uuid,
+    ) -> AtlasResult<Option<SupplierWithholdingAssignment>> {
         let row = sqlx::query(
             r"
             SELECT a.*, g.code as tax_group_code, g.name as tax_group_name
             FROM _atlas.supplier_withholding_assignments a
             JOIN _atlas.withholding_tax_groups g ON g.id = a.tax_group_id
             WHERE a.organization_id = $1 AND a.supplier_id = $2 AND a.is_active = true
-            "
+            ",
         )
-        .bind(org_id).bind(supplier_id)
+        .bind(org_id)
+        .bind(supplier_id)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_supplier_assignment(&r)))
     }
 
-    async fn list_supplier_assignments(&self, org_id: Uuid) -> AtlasResult<Vec<SupplierWithholdingAssignment>> {
+    async fn list_supplier_assignments(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<SupplierWithholdingAssignment>> {
         let rows = sqlx::query(
             r"
             SELECT a.*, g.code as tax_group_code, g.name as tax_group_name
@@ -610,13 +713,16 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             JOIN _atlas.withholding_tax_groups g ON g.id = a.tax_group_id
             WHERE a.organization_id = $1 AND a.is_active = true
             ORDER BY a.supplier_name
-            "
+            ",
         )
         .bind(org_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_supplier_assignment(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_supplier_assignment(r))
+            .collect())
     }
 
     async fn delete_supplier_assignment(&self, id: Uuid) -> AtlasResult<()> {
@@ -667,12 +773,22 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(payment_id).bind(payment_number)
-        .bind(invoice_id).bind(invoice_number)
-        .bind(supplier_id).bind(supplier_name)
-        .bind(tax_code_id).bind(tax_code).bind(tax_code_name).bind(tax_type)
-        .bind(rate_percentage).bind(taxable_amount).bind(withheld_amount)
-        .bind(withholding_account_code).bind(created_by)
+        .bind(org_id)
+        .bind(payment_id)
+        .bind(payment_number)
+        .bind(invoice_id)
+        .bind(invoice_number)
+        .bind(supplier_id)
+        .bind(supplier_name)
+        .bind(tax_code_id)
+        .bind(tax_code)
+        .bind(tax_code_name)
+        .bind(tax_type)
+        .bind(rate_percentage)
+        .bind(taxable_amount)
+        .bind(withheld_amount)
+        .bind(withholding_account_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -680,15 +796,21 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         Ok(self.row_to_withholding_line(&row))
     }
 
-    async fn get_withholding_lines_by_payment(&self, payment_id: Uuid) -> AtlasResult<Vec<WithholdingTaxLine>> {
+    async fn get_withholding_lines_by_payment(
+        &self,
+        payment_id: Uuid,
+    ) -> AtlasResult<Vec<WithholdingTaxLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.withholding_tax_lines WHERE payment_id = $1 ORDER BY created_at"
+            "SELECT * FROM _atlas.withholding_tax_lines WHERE payment_id = $1 ORDER BY created_at",
         )
         .bind(payment_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_withholding_line(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_withholding_line(r))
+            .collect())
     }
 
     async fn get_withholding_lines_by_supplier(
@@ -721,7 +843,10 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_withholding_line(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_withholding_line(r))
+            .collect())
     }
 
     async fn update_withholding_line_status(
@@ -739,7 +864,10 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(remittance_date).bind(remittance_reference)
+        .bind(id)
+        .bind(status)
+        .bind(remittance_date)
+        .bind(remittance_reference)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -782,12 +910,21 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(certificate_number)
-        .bind(supplier_id).bind(supplier_number).bind(supplier_name)
-        .bind(tax_type).bind(tax_code_id).bind(tax_code)
-        .bind(period_start).bind(period_end)
-        .bind(total_invoice_amount).bind(total_withheld_amount).bind(rate_percentage)
-        .bind(payment_ids).bind(created_by)
+        .bind(org_id)
+        .bind(certificate_number)
+        .bind(supplier_id)
+        .bind(supplier_number)
+        .bind(supplier_name)
+        .bind(tax_type)
+        .bind(tax_code_id)
+        .bind(tax_code)
+        .bind(period_start)
+        .bind(period_end)
+        .bind(total_invoice_amount)
+        .bind(total_withheld_amount)
+        .bind(rate_percentage)
+        .bind(payment_ids)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -796,17 +933,19 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
     }
 
     async fn get_certificate(&self, id: Uuid) -> AtlasResult<Option<WithholdingCertificate>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.withholding_certificates WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.withholding_certificates WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_certificate(&r)))
     }
 
-    async fn get_certificate_by_number(&self, org_id: Uuid, certificate_number: &str) -> AtlasResult<Option<WithholdingCertificate>> {
+    async fn get_certificate_by_number(
+        &self,
+        org_id: Uuid,
+        certificate_number: &str,
+    ) -> AtlasResult<Option<WithholdingCertificate>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.withholding_certificates WHERE organization_id = $1 AND certificate_number = $2"
         )
@@ -817,7 +956,11 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         Ok(row.map(|r| self.row_to_certificate(&r)))
     }
 
-    async fn list_certificates(&self, org_id: Uuid, supplier_id: Option<Uuid>) -> AtlasResult<Vec<WithholdingCertificate>> {
+    async fn list_certificates(
+        &self,
+        org_id: Uuid,
+        supplier_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<WithholdingCertificate>> {
         let rows = match supplier_id {
             Some(sid) => sqlx::query(
                 "SELECT * FROM _atlas.withholding_certificates WHERE organization_id = $1 AND supplier_id = $2 ORDER BY created_at DESC"
@@ -834,13 +977,22 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
         Ok(rows.iter().map(|r| self.row_to_certificate(r)).collect())
     }
 
-    async fn update_certificate_status(&self, id: Uuid, status: &str) -> AtlasResult<WithholdingCertificate> {
-        let issued_at_expr = if status == "issued" { "CASE WHEN issued_at IS NULL THEN now() ELSE issued_at END" } else { "issued_at" };
+    async fn update_certificate_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<WithholdingCertificate> {
+        let issued_at_expr = if status == "issued" {
+            "CASE WHEN issued_at IS NULL THEN now() ELSE issued_at END"
+        } else {
+            "issued_at"
+        };
         let query_str = format!(
             r"UPDATE _atlas.withholding_certificates SET status = $2, issued_at = {issued_at_expr}, updated_at = now() WHERE id = $1 RETURNING *"
         );
         let row = sqlx::query(&query_str)
-            .bind(id).bind(status)
+            .bind(id)
+            .bind(status)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

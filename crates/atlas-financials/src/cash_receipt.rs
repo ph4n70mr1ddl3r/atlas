@@ -1,7 +1,7 @@
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use rust_decimal::Decimal;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReceiptBatch {
@@ -52,9 +52,16 @@ impl CashReceiptService {
         }
     }
 
-    pub fn create_batch(&self, organization_id: Uuid, number: String) -> Result<ReceiptBatch, String> {
+    pub fn create_batch(
+        &self,
+        organization_id: Uuid,
+        number: String,
+    ) -> Result<ReceiptBatch, String> {
         let mut batches = self.batches.write().unwrap();
-        if batches.iter().any(|b| b.organization_id == organization_id && b.batch_number == number) {
+        if batches
+            .iter()
+            .any(|b| b.organization_id == organization_id && b.batch_number == number)
+        {
             return Err("Batch already exists".to_string());
         }
         let batch = ReceiptBatch {
@@ -68,9 +75,18 @@ impl CashReceiptService {
         Ok(batch)
     }
 
-    pub fn create_receipt(&self, organization_id: Uuid, customer_id: Uuid, number: String, amount: Decimal) -> Result<CustomerCashReceipt, String> {
+    pub fn create_receipt(
+        &self,
+        organization_id: Uuid,
+        customer_id: Uuid,
+        number: String,
+        amount: Decimal,
+    ) -> Result<CustomerCashReceipt, String> {
         let mut receipts = self.receipts.write().unwrap();
-        if receipts.iter().any(|r| r.organization_id == organization_id && r.receipt_number == number) {
+        if receipts
+            .iter()
+            .any(|r| r.organization_id == organization_id && r.receipt_number == number)
+        {
             return Err("Receipt already exists".to_string());
         }
         let receipt = CustomerCashReceipt {
@@ -86,9 +102,16 @@ impl CashReceiptService {
         Ok(receipt)
     }
 
-    pub fn apply_receipt(&self, receipt_id: Uuid, invoice_id: Uuid, amount: Decimal) -> Result<(), String> {
+    pub fn apply_receipt(
+        &self,
+        receipt_id: Uuid,
+        invoice_id: Uuid,
+        amount: Decimal,
+    ) -> Result<(), String> {
         let mut receipts = self.receipts.write().unwrap();
-        let receipt = receipts.iter_mut().find(|r| r.id == receipt_id)
+        let receipt = receipts
+            .iter_mut()
+            .find(|r| r.id == receipt_id)
             .ok_or_else(|| "Receipt not found".to_string())?;
 
         let remaining = receipt.amount - receipt.applied_amount;
@@ -126,12 +149,16 @@ mod tests {
         let service = CashReceiptService::new();
         let org_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
-        
-        let receipt = service.create_receipt(org_id, customer_id, "REC-001".to_string(), dec!(1000)).unwrap();
+
+        let receipt = service
+            .create_receipt(org_id, customer_id, "REC-001".to_string(), dec!(1000))
+            .unwrap();
         assert_eq!(receipt.status, "identified");
 
         let invoice_id = Uuid::new_v4();
-        service.apply_receipt(receipt.id, invoice_id, dec!(600)).unwrap();
+        service
+            .apply_receipt(receipt.id, invoice_id, dec!(600))
+            .unwrap();
 
         {
             let receipts = service.receipts.read().unwrap();
@@ -140,8 +167,10 @@ mod tests {
             assert_eq!(updated.status, "partially_applied");
         }
 
-        service.apply_receipt(receipt.id, Uuid::new_v4(), dec!(400)).unwrap();
-        
+        service
+            .apply_receipt(receipt.id, Uuid::new_v4(), dec!(400))
+            .unwrap();
+
         {
             let updated2 = service.receipts.read().unwrap();
             let final_receipt = updated2.iter().find(|r| r.id == receipt.id).unwrap();
@@ -152,7 +181,9 @@ mod tests {
     #[test]
     fn test_apply_exceeds_amount() {
         let service = CashReceiptService::new();
-        let r = service.create_receipt(Uuid::new_v4(), Uuid::new_v4(), "R".to_string(), dec!(100)).unwrap();
+        let r = service
+            .create_receipt(Uuid::new_v4(), Uuid::new_v4(), "R".to_string(), dec!(100))
+            .unwrap();
         let err = service.apply_receipt(r.id, Uuid::new_v4(), dec!(150));
         assert!(err.is_err());
     }

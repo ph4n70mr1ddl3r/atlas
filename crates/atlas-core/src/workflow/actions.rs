@@ -1,13 +1,13 @@
 //! Workflow Actions
-//! 
+//!
 //! Actions that execute when transitions occur or states are entered/exited.
 
-use atlas_shared::{ActionDefinition, RecordId, AtlasResult};
+use atlas_shared::{ActionDefinition, AtlasResult, RecordId};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
-use tracing::{info, debug};
+use tracing::{debug, info};
 
 /// Result of action execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,7 +20,7 @@ pub struct ActionResult {
 }
 
 impl ActionResult {
-    #[must_use] 
+    #[must_use]
     pub fn success(action_name: &str, output: Option<serde_json::Value>) -> Self {
         Self {
             success: true,
@@ -29,8 +29,8 @@ impl ActionResult {
             error: None,
         }
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn failure(action_name: &str, error: String) -> Self {
         Self {
             success: false,
@@ -48,25 +48,25 @@ pub struct ActionExecutor {
 }
 
 impl ActionExecutor {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             handlers: Arc::new(RwLock::new(HashMap::new())),
             event_publisher: None,
         }
     }
-    
+
     pub fn with_event_publisher(mut self, publisher: Arc<dyn EventPublisher>) -> Self {
         self.event_publisher = Some(publisher);
         self
     }
-    
+
     /// Register a custom action handler
     pub async fn register_handler(&self, name: &str, handler: ActionHandler) {
         let mut handlers = self.handlers.write().await;
         handlers.insert(name.to_string(), handler);
     }
-    
+
     /// Execute an action
     pub async fn execute(
         &self,
@@ -75,7 +75,9 @@ impl ActionExecutor {
         record_data: &serde_json::Value,
     ) -> AtlasResult<ActionResult> {
         // Check for a registered custom handler first
-        let custom_handler_name = action_def.handler_name().map(std::string::ToString::to_string);
+        let custom_handler_name = action_def
+            .handler_name()
+            .map(std::string::ToString::to_string);
         if let Some(ref name) = custom_handler_name {
             let handler = {
                 let handlers = self.handlers.read().await;
@@ -88,47 +90,60 @@ impl ActionExecutor {
         }
 
         match action_def {
-            ActionDefinition::SetField { field, value } => {
-                Ok(self.execute_set_field(field, value))
-            }
-            ActionDefinition::SendNotification { template, recipients } => {
-                self.execute_send_notification(template, recipients, record_id).await
+            ActionDefinition::SetField { field, value } => Ok(self.execute_set_field(field, value)),
+            ActionDefinition::SendNotification {
+                template,
+                recipients,
+            } => {
+                self.execute_send_notification(template, recipients, record_id)
+                    .await
             }
             ActionDefinition::InvokeWebhook { url, method } => {
-                self.execute_webhook(url, method, record_id, record_data).await
+                self.execute_webhook(url, method, record_id, record_data)
+                    .await
             }
             ActionDefinition::InvokeAction { service, action } => {
-                self.execute_service_action(service, action, record_id, record_data).await
+                self.execute_service_action(service, action, record_id, record_data)
+                    .await
             }
             ActionDefinition::AssignRole { role, user_field } => {
-                self.execute_assign_role(role, user_field, record_data).await
+                self.execute_assign_role(role, user_field, record_data)
+                    .await
             }
-            ActionDefinition::UpdateRelated { entity, filter, changes } => {
-                self.execute_update_related(entity, filter, changes).await
-            }
+            ActionDefinition::UpdateRelated {
+                entity,
+                filter,
+                changes,
+            } => self.execute_update_related(entity, filter, changes).await,
             ActionDefinition::CreateRecord { entity, values } => {
                 self.execute_create_record(entity, values).await
             }
         }
     }
-    
+
     fn execute_set_field(&self, field: &str, value: &serde_json::Value) -> ActionResult {
         info!("SetField action: {} = {}", field, value);
         // This would normally modify the record, but that's handled by the caller
-        ActionResult::success("set_field", Some(serde_json::json!({
-            "field": field,
-            "value": value
-        })))
+        ActionResult::success(
+            "set_field",
+            Some(serde_json::json!({
+                "field": field,
+                "value": value
+            })),
+        )
     }
-    
+
     async fn execute_send_notification(
         &self,
         template: &str,
         recipients: &Option<String>,
         record_id: RecordId,
     ) -> AtlasResult<ActionResult> {
-        info!("SendNotification: template={}, record_id={}", template, record_id);
-        
+        info!(
+            "SendNotification: template={}, record_id={}",
+            template, record_id
+        );
+
         // Publish notification event
         if let Some(publisher) = &self.event_publisher {
             let payload = serde_json::json!({
@@ -140,13 +155,16 @@ impl ActionExecutor {
             });
             publisher.publish("atlas.notifications", &payload).await?;
         }
-        
-        Ok(ActionResult::success("send_notification", Some(serde_json::json!({
-            "template": template,
-            "recipients": recipients
-        }))))
+
+        Ok(ActionResult::success(
+            "send_notification",
+            Some(serde_json::json!({
+                "template": template,
+                "recipients": recipients
+            })),
+        ))
     }
-    
+
     async fn execute_webhook(
         &self,
         url: &str,
@@ -155,16 +173,19 @@ impl ActionExecutor {
         _data: &serde_json::Value,
     ) -> AtlasResult<ActionResult> {
         debug!("InvokeWebhook: {} {} for record {}", method, url, record_id);
-        
+
         // In a real implementation, this would make an HTTP request
         // For now, we just log and return success
-        Ok(ActionResult::success("invoke_webhook", Some(serde_json::json!({
-            "url": url,
-            "method": method,
-            "record_id": record_id.to_string()
-        }))))
+        Ok(ActionResult::success(
+            "invoke_webhook",
+            Some(serde_json::json!({
+                "url": url,
+                "method": method,
+                "record_id": record_id.to_string()
+            })),
+        ))
     }
-    
+
     async fn execute_service_action(
         &self,
         service: &str,
@@ -172,8 +193,11 @@ impl ActionExecutor {
         record_id: RecordId,
         data: &serde_json::Value,
     ) -> AtlasResult<ActionResult> {
-        info!("InvokeAction: {}.{} for record {}", service, action, record_id);
-        
+        info!(
+            "InvokeAction: {}.{} for record {}",
+            service, action, record_id
+        );
+
         // Publish event for the target service
         if let Some(publisher) = &self.event_publisher {
             let payload = serde_json::json!({
@@ -183,15 +207,20 @@ impl ActionExecutor {
                 "record_id": record_id.to_string(),
                 "data": data
             });
-            publisher.publish(&format!("atlas.services.{service}.action"), &payload).await?;
+            publisher
+                .publish(&format!("atlas.services.{service}.action"), &payload)
+                .await?;
         }
-        
-        Ok(ActionResult::success("invoke_action", Some(serde_json::json!({
-            "service": service,
-            "action": action
-        }))))
+
+        Ok(ActionResult::success(
+            "invoke_action",
+            Some(serde_json::json!({
+                "service": service,
+                "action": action
+            })),
+        ))
     }
-    
+
     async fn execute_assign_role(
         &self,
         role: &str,
@@ -199,14 +228,16 @@ impl ActionExecutor {
         data: &serde_json::Value,
     ) -> AtlasResult<ActionResult> {
         info!("AssignRole: {} to user from field {:?}", role, user_field);
-        
+
         // If user_field is specified, get the user ID from the record
         let user_id = if let Some(field) = user_field {
-            data.get(field).and_then(|v| v.as_str()).map(std::string::ToString::to_string)
+            data.get(field)
+                .and_then(|v| v.as_str())
+                .map(std::string::ToString::to_string)
         } else {
             None
         };
-        
+
         if let Some(publisher) = &self.event_publisher {
             let payload = serde_json::json!({
                 "type": "assign_role",
@@ -214,15 +245,20 @@ impl ActionExecutor {
                 "user_id": user_id,
                 "data": data
             });
-            publisher.publish("atlas.auth.role_assignment", &payload).await?;
+            publisher
+                .publish("atlas.auth.role_assignment", &payload)
+                .await?;
         }
-        
-        Ok(ActionResult::success("assign_role", Some(serde_json::json!({
-            "role": role,
-            "user_id": user_id
-        }))))
+
+        Ok(ActionResult::success(
+            "assign_role",
+            Some(serde_json::json!({
+                "role": role,
+                "user_id": user_id
+            })),
+        ))
     }
-    
+
     async fn execute_update_related(
         &self,
         entity: &str,
@@ -230,7 +266,7 @@ impl ActionExecutor {
         changes: &serde_json::Value,
     ) -> AtlasResult<ActionResult> {
         info!("UpdateRelated: {} with filter {}", entity, filter);
-        
+
         if let Some(publisher) = &self.event_publisher {
             let payload = serde_json::json!({
                 "type": "update_related",
@@ -238,34 +274,44 @@ impl ActionExecutor {
                 "filter": filter,
                 "changes": changes
             });
-            publisher.publish(&format!("atlas.entity.{entity}.bulk_update"), &payload).await?;
+            publisher
+                .publish(&format!("atlas.entity.{entity}.bulk_update"), &payload)
+                .await?;
         }
-        
-        Ok(ActionResult::success("update_related", Some(serde_json::json!({
-            "entity": entity,
-            "changes": changes
-        }))))
+
+        Ok(ActionResult::success(
+            "update_related",
+            Some(serde_json::json!({
+                "entity": entity,
+                "changes": changes
+            })),
+        ))
     }
-    
+
     async fn execute_create_record(
         &self,
         entity: &str,
         values: &serde_json::Value,
     ) -> AtlasResult<ActionResult> {
         info!("CreateRecord: {} with values {:?}", entity, values);
-        
+
         if let Some(publisher) = &self.event_publisher {
             let payload = serde_json::json!({
                 "type": "create_record",
                 "entity": entity,
                 "values": values
             });
-            publisher.publish(&format!("atlas.entity.{entity}.create"), &payload).await?;
+            publisher
+                .publish(&format!("atlas.entity.{entity}.create"), &payload)
+                .await?;
         }
-        
-        Ok(ActionResult::success("create_record", Some(serde_json::json!({
-            "entity": entity
-        }))))
+
+        Ok(ActionResult::success(
+            "create_record",
+            Some(serde_json::json!({
+                "entity": entity
+            })),
+        ))
     }
 }
 
@@ -276,7 +322,15 @@ impl Default for ActionExecutor {
 }
 
 /// Custom action handler function type
-pub type ActionHandler = Arc<dyn Fn(RecordId, &serde_json::Value) -> std::pin::Pin<Box<dyn std::future::Future<Output = AtlasResult<ActionResult>> + Send>> + Send + Sync>;
+pub type ActionHandler = Arc<
+    dyn Fn(
+            RecordId,
+            &serde_json::Value,
+        )
+            -> std::pin::Pin<Box<dyn std::future::Future<Output = AtlasResult<ActionResult>> + Send>>
+        + Send
+        + Sync,
+>;
 
 /// Event publisher trait
 #[async_trait::async_trait]
@@ -297,30 +351,29 @@ impl EventPublisher for NoOpEventPublisher {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_set_field_action() {
         let executor = ActionExecutor::new();
-        
+
         let action = ActionDefinition::SetField {
             field: "status".to_string(),
             value: serde_json::json!("approved"),
         };
-        
-        let result = executor.execute(
-            &action,
-            uuid::Uuid::new_v4(),
-            &serde_json::json!({}),
-        ).await.unwrap();
-        
+
+        let result = executor
+            .execute(&action, uuid::Uuid::new_v4(), &serde_json::json!({}))
+            .await
+            .unwrap();
+
         assert!(result.success);
         assert_eq!(result.action_name, "set_field");
     }
-    
+
     #[tokio::test]
     async fn test_create_record_action() {
         let executor = ActionExecutor::new();
-        
+
         let action = ActionDefinition::CreateRecord {
             entity: "audit_log".to_string(),
             values: serde_json::json!({
@@ -328,13 +381,12 @@ mod tests {
                 "timestamp": "2024-01-01"
             }),
         };
-        
-        let result = executor.execute(
-            &action,
-            uuid::Uuid::new_v4(),
-            &serde_json::json!({}),
-        ).await.unwrap();
-        
+
+        let result = executor
+            .execute(&action, uuid::Uuid::new_v4(), &serde_json::json!({}))
+            .await
+            .unwrap();
+
         assert!(result.success);
     }
 }

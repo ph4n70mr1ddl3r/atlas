@@ -10,4 +10,4 @@ mod engine;
 mod repository;
 
 pub use engine::ShippingEngine;
-pub use repository::{ShippingRepository, PostgresShippingRepository};
+pub use repository::{PostgresShippingRepository, ShippingRepository};

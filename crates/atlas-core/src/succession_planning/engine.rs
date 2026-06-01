@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion equivalent: HCM > Succession Management
 
-use atlas_shared::{
-    SuccessionPlan, SuccessionCandidate, TalentPool, TalentPoolMember,
-    TalentReview, TalentReviewAssessment, CareerPath, SuccessionDashboard,
-    AtlasError, AtlasResult,
-};
 use super::SuccessionPlanningRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CareerPath, SuccessionCandidate, SuccessionDashboard, SuccessionPlan,
+    TalentPool, TalentPoolMember, TalentReview, TalentReviewAssessment,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -20,18 +19,41 @@ const VALID_PLAN_TYPES: &[&str] = &["position", "role", "key_person"];
 const VALID_RISK_LEVELS: &[&str] = &["low", "medium", "high", "critical"];
 const VALID_URGENCIES: &[&str] = &["immediate", "short_term", "medium_term", "long_term"];
 const VALID_PLAN_STATUSES: &[&str] = &["draft", "active", "completed", "cancelled"];
-const VALID_READINESS_LEVELS: &[&str] = &["ready_now", "ready_1_2_years", "ready_3_5_years", "not_ready"];
+const VALID_READINESS_LEVELS: &[&str] = &[
+    "ready_now",
+    "ready_1_2_years",
+    "ready_3_5_years",
+    "not_ready",
+];
 const VALID_CANDIDATE_STATUSES: &[&str] = &["proposed", "approved", "rejected", "development"];
 const VALID_FLIGHT_RISKS: &[&str] = &["low", "medium", "high"];
-const VALID_POOL_TYPES: &[&str] = &["leadership", "technical", "high_potential", "diversity", "custom"];
+const VALID_POOL_TYPES: &[&str] = &[
+    "leadership",
+    "technical",
+    "high_potential",
+    "diversity",
+    "custom",
+];
 const VALID_POOL_STATUSES: &[&str] = &["draft", "active", "archived"];
 const VALID_MEMBER_STATUSES: &[&str] = &["active", "on_hold", "removed", "graduated"];
-const VALID_REVIEW_TYPES: &[&str] = &["calibration", "performance_potential", "nine_box", "leadership"];
+const VALID_REVIEW_TYPES: &[&str] = &[
+    "calibration",
+    "performance_potential",
+    "nine_box",
+    "leadership",
+];
 const VALID_REVIEW_STATUSES: &[&str] = &["scheduled", "in_progress", "completed", "cancelled"];
 const VALID_NINE_BOX_POSITIONS: &[&str] = &[
-    "star", "workhorse", "puzzle", "solid_citizen",
-    "high_potential", "core_player", "rough_diamond",
-    "inconsistent", "underperformer", "blocker",
+    "star",
+    "workhorse",
+    "puzzle",
+    "solid_citizen",
+    "high_potential",
+    "core_player",
+    "rough_diamond",
+    "inconsistent",
+    "underperformer",
+    "blocker",
 ];
 const VALID_PATH_TYPES: &[&str] = &["linear", "branching", "lattice", "dual_track"];
 const VALID_PATH_STATUSES: &[&str] = &["draft", "active", "archived"];
@@ -73,23 +95,48 @@ impl SuccessionPlanningEngine {
         let code_upper = code.to_uppercase();
         validate_code(&code_upper)?;
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Plan name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Plan name is required".to_string(),
+            ));
         }
         validate_enum("plan_type", plan_type, VALID_PLAN_TYPES)?;
         validate_enum("risk_level", risk_level, VALID_RISK_LEVELS)?;
         validate_enum("urgency", urgency, VALID_URGENCIES)?;
 
-        if self.repository.get_succession_plan_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Succession plan '{code_upper}' already exists")));
+        if self
+            .repository
+            .get_succession_plan_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Succession plan '{code_upper}' already exists"
+            )));
         }
 
-        info!("Creating succession plan '{}' for org {}", code_upper, org_id);
-        self.repository.create_succession_plan(
-            org_id, &code_upper, name, description, plan_type,
-            position_id, position_title, job_id, department_id,
-            current_incumbent_id, current_incumbent_name,
-            risk_level, urgency, effective_date, created_by,
-        ).await
+        info!(
+            "Creating succession plan '{}' for org {}",
+            code_upper, org_id
+        );
+        self.repository
+            .create_succession_plan(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                plan_type,
+                position_id,
+                position_title,
+                job_id,
+                department_id,
+                current_incumbent_id,
+                current_incumbent_name,
+                risk_level,
+                urgency,
+                effective_date,
+                created_by,
+            )
+            .await
     }
 
     /// Get a succession plan by ID
@@ -110,26 +157,40 @@ impl SuccessionPlanningEngine {
         if let Some(r) = risk_level {
             validate_enum("risk_level", r, VALID_RISK_LEVELS)?;
         }
-        self.repository.list_succession_plans(org_id, status, risk_level).await
+        self.repository
+            .list_succession_plans(org_id, status, risk_level)
+            .await
     }
 
     /// Update succession plan status
-    pub async fn update_succession_plan_status(&self, id: Uuid, status: &str) -> AtlasResult<SuccessionPlan> {
+    pub async fn update_succession_plan_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<SuccessionPlan> {
         validate_enum("status", status, VALID_PLAN_STATUSES)?;
 
-        let plan = self.repository.get_succession_plan(id).await?
+        let plan = self
+            .repository
+            .get_succession_plan(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Succession plan {id} not found")))?;
 
         // Validate status transitions
         match (plan.status.as_str(), status) {
             ("draft", "active" | "cancelled") | ("active", "completed" | "cancelled") => {}
-            _ => return Err(AtlasError::ValidationFailed(format!(
-                "Cannot transition plan from '{}' to '{}'", plan.status, status
-            ))),
+            _ => {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Cannot transition plan from '{}' to '{}'",
+                    plan.status, status
+                )))
+            }
         }
 
         info!("Updating succession plan {} status to {}", id, status);
-        self.repository.update_succession_plan_status(id, status).await
+        self.repository
+            .update_succession_plan_status(id, status)
+            .await
     }
 
     /// Delete a succession plan by code
@@ -168,55 +229,103 @@ impl SuccessionPlanningEngine {
         }
         if let Some(r) = ranking {
             if r < 1 {
-                return Err(AtlasError::ValidationFailed("Ranking must be >= 1".to_string()));
+                return Err(AtlasError::ValidationFailed(
+                    "Ranking must be >= 1".to_string(),
+                ));
             }
         }
 
         // Verify plan exists and is not cancelled
-        let plan = self.repository.get_succession_plan(plan_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Succession plan {plan_id} not found")))?;
+        let plan = self
+            .repository
+            .get_succession_plan(plan_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Succession plan {plan_id} not found"))
+            })?;
         if plan.status == "cancelled" {
-            return Err(AtlasError::ValidationFailed("Cannot add candidates to a cancelled plan".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Cannot add candidates to a cancelled plan".to_string(),
+            ));
         }
         if plan.organization_id != org_id {
-            return Err(AtlasError::ValidationFailed("Plan does not belong to this organization".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Plan does not belong to this organization".to_string(),
+            ));
         }
 
-        info!("Adding candidate {} to succession plan {}", person_id, plan_id);
-        self.repository.create_succession_candidate(
-            org_id, plan_id, person_id, person_name, employee_number,
-            readiness, ranking, performance_rating, potential_rating,
-            flight_risk, development_notes, recommended_actions,
-            status, added_by,
-        ).await
+        info!(
+            "Adding candidate {} to succession plan {}",
+            person_id, plan_id
+        );
+        self.repository
+            .create_succession_candidate(
+                org_id,
+                plan_id,
+                person_id,
+                person_name,
+                employee_number,
+                readiness,
+                ranking,
+                performance_rating,
+                potential_rating,
+                flight_risk,
+                development_notes,
+                recommended_actions,
+                status,
+                added_by,
+            )
+            .await
     }
 
     /// Get a candidate by ID
-    pub async fn get_succession_candidate(&self, id: Uuid) -> AtlasResult<Option<SuccessionCandidate>> {
+    pub async fn get_succession_candidate(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<SuccessionCandidate>> {
         self.repository.get_succession_candidate(id).await
     }
 
     /// List candidates for a succession plan
-    pub async fn list_succession_candidates(&self, plan_id: Uuid) -> AtlasResult<Vec<SuccessionCandidate>> {
+    pub async fn list_succession_candidates(
+        &self,
+        plan_id: Uuid,
+    ) -> AtlasResult<Vec<SuccessionCandidate>> {
         self.repository.list_succession_candidates(plan_id).await
     }
 
     /// Update a candidate's status
-    pub async fn update_candidate_status(&self, id: Uuid, status: &str) -> AtlasResult<SuccessionCandidate> {
+    pub async fn update_candidate_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<SuccessionCandidate> {
         validate_enum("status", status, VALID_CANDIDATE_STATUSES)?;
-        let _candidate = self.repository.get_succession_candidate(id).await?
+        let _candidate = self
+            .repository
+            .get_succession_candidate(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Candidate {id} not found")))?;
         info!("Updating candidate {} status to {}", id, status);
         self.repository.update_candidate_status(id, status).await
     }
 
     /// Update a candidate's readiness level
-    pub async fn update_candidate_readiness(&self, id: Uuid, readiness: &str) -> AtlasResult<SuccessionCandidate> {
+    pub async fn update_candidate_readiness(
+        &self,
+        id: Uuid,
+        readiness: &str,
+    ) -> AtlasResult<SuccessionCandidate> {
         validate_enum("readiness", readiness, VALID_READINESS_LEVELS)?;
-        let _candidate = self.repository.get_succession_candidate(id).await?
+        let _candidate = self
+            .repository
+            .get_succession_candidate(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Candidate {id} not found")))?;
         info!("Updating candidate {} readiness to {}", id, readiness);
-        self.repository.update_candidate_readiness(id, readiness).await
+        self.repository
+            .update_candidate_readiness(id, readiness)
+            .await
     }
 
     /// Remove a candidate
@@ -244,24 +353,43 @@ impl SuccessionPlanningEngine {
         let code_upper = code.to_uppercase();
         validate_code(&code_upper)?;
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Pool name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Pool name is required".to_string(),
+            ));
         }
         validate_enum("pool_type", pool_type, VALID_POOL_TYPES)?;
         if let Some(max) = max_members {
             if max < 1 {
-                return Err(AtlasError::ValidationFailed("Max members must be >= 1".to_string()));
+                return Err(AtlasError::ValidationFailed(
+                    "Max members must be >= 1".to_string(),
+                ));
             }
         }
 
-        if self.repository.get_talent_pool_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Talent pool '{code_upper}' already exists")));
+        if self
+            .repository
+            .get_talent_pool_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Talent pool '{code_upper}' already exists"
+            )));
         }
 
         info!("Creating talent pool '{}' for org {}", code_upper, org_id);
-        self.repository.create_talent_pool(
-            org_id, &code_upper, name, description, pool_type,
-            owner_id, max_members, created_by,
-        ).await
+        self.repository
+            .create_talent_pool(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                pool_type,
+                owner_id,
+                max_members,
+                created_by,
+            )
+            .await
     }
 
     /// Get a talent pool by ID
@@ -282,20 +410,32 @@ impl SuccessionPlanningEngine {
         if let Some(pt) = pool_type {
             validate_enum("pool_type", pt, VALID_POOL_TYPES)?;
         }
-        self.repository.list_talent_pools(org_id, status, pool_type).await
+        self.repository
+            .list_talent_pools(org_id, status, pool_type)
+            .await
     }
 
     /// Update talent pool status
-    pub async fn update_talent_pool_status(&self, id: Uuid, status: &str) -> AtlasResult<TalentPool> {
+    pub async fn update_talent_pool_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<TalentPool> {
         validate_enum("status", status, VALID_POOL_STATUSES)?;
-        let pool = self.repository.get_talent_pool(id).await?
+        let pool = self
+            .repository
+            .get_talent_pool(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent pool {id} not found")))?;
 
         match (pool.status.as_str(), status) {
             ("draft", "active") | ("active", "archived") => {}
-            _ => return Err(AtlasError::ValidationFailed(format!(
-                "Cannot transition pool from '{}' to '{}'", pool.status, status
-            ))),
+            _ => {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Cannot transition pool from '{}' to '{}'",
+                    pool.status, status
+                )))
+            }
         }
 
         info!("Updating talent pool {} status to {}", id, status);
@@ -331,19 +471,31 @@ impl SuccessionPlanningEngine {
     ) -> AtlasResult<TalentPoolMember> {
         validate_enum("readiness", readiness, VALID_READINESS_LEVELS)?;
 
-        let pool = self.repository.get_talent_pool(pool_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent pool {pool_id} not found")))?;
+        let pool = self
+            .repository
+            .get_talent_pool(pool_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Talent pool {pool_id} not found"))
+            })?;
         if pool.status != "active" {
-            return Err(AtlasError::ValidationFailed("Cannot add members to a non-active pool".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Cannot add members to a non-active pool".to_string(),
+            ));
         }
         if pool.organization_id != org_id {
-            return Err(AtlasError::ValidationFailed("Pool does not belong to this organization".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Pool does not belong to this organization".to_string(),
+            ));
         }
 
         // Check max_members constraint
         if let Some(max) = pool.max_members {
             let current_members = self.repository.list_talent_pool_members(pool_id).await?;
-            let active_count = current_members.iter().filter(|m| m.status == "active").count() as i32;
+            let active_count = current_members
+                .iter()
+                .filter(|m| m.status == "active")
+                .count() as i32;
             if active_count >= max {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Talent pool has reached max members ({max})"
@@ -352,11 +504,22 @@ impl SuccessionPlanningEngine {
         }
 
         info!("Adding member {} to talent pool {}", person_id, pool_id);
-        self.repository.create_talent_pool_member(
-            org_id, pool_id, person_id, person_name,
-            performance_rating, potential_rating, readiness,
-            development_plan, notes, added_date, review_date, added_by,
-        ).await
+        self.repository
+            .create_talent_pool_member(
+                org_id,
+                pool_id,
+                person_id,
+                person_name,
+                performance_rating,
+                potential_rating,
+                readiness,
+                development_plan,
+                notes,
+                added_date,
+                review_date,
+                added_by,
+            )
+            .await
     }
 
     /// Get a pool member by ID
@@ -365,14 +528,24 @@ impl SuccessionPlanningEngine {
     }
 
     /// List members of a talent pool
-    pub async fn list_talent_pool_members(&self, pool_id: Uuid) -> AtlasResult<Vec<TalentPoolMember>> {
+    pub async fn list_talent_pool_members(
+        &self,
+        pool_id: Uuid,
+    ) -> AtlasResult<Vec<TalentPoolMember>> {
         self.repository.list_talent_pool_members(pool_id).await
     }
 
     /// Update a pool member's status
-    pub async fn update_pool_member_status(&self, id: Uuid, status: &str) -> AtlasResult<TalentPoolMember> {
+    pub async fn update_pool_member_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<TalentPoolMember> {
         validate_enum("status", status, VALID_MEMBER_STATUSES)?;
-        let _member = self.repository.get_talent_pool_member(id).await?
+        let _member = self
+            .repository
+            .get_talent_pool_member(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool member {id} not found")))?;
         info!("Updating pool member {} status to {}", id, status);
         self.repository.update_pool_member_status(id, status).await
@@ -404,19 +577,37 @@ impl SuccessionPlanningEngine {
         let code_upper = code.to_uppercase();
         validate_code(&code_upper)?;
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Review name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Review name is required".to_string(),
+            ));
         }
         validate_enum("review_type", review_type, VALID_REVIEW_TYPES)?;
 
-        if self.repository.get_talent_review_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Talent review '{code_upper}' already exists")));
+        if self
+            .repository
+            .get_talent_review_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Talent review '{code_upper}' already exists"
+            )));
         }
 
         info!("Creating talent review '{}' for org {}", code_upper, org_id);
-        self.repository.create_talent_review(
-            org_id, &code_upper, name, description, review_type,
-            facilitator_id, department_id, review_date, created_by,
-        ).await
+        self.repository
+            .create_talent_review(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                review_type,
+                facilitator_id,
+                department_id,
+                review_date,
+                created_by,
+            )
+            .await
     }
 
     /// Get a talent review by ID
@@ -437,25 +628,39 @@ impl SuccessionPlanningEngine {
         if let Some(rt) = review_type {
             validate_enum("review_type", rt, VALID_REVIEW_TYPES)?;
         }
-        self.repository.list_talent_reviews(org_id, status, review_type).await
+        self.repository
+            .list_talent_reviews(org_id, status, review_type)
+            .await
     }
 
     /// Update talent review status
-    pub async fn update_talent_review_status(&self, id: Uuid, status: &str) -> AtlasResult<TalentReview> {
+    pub async fn update_talent_review_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<TalentReview> {
         validate_enum("status", status, VALID_REVIEW_STATUSES)?;
-        let review = self.repository.get_talent_review(id).await?
+        let review = self
+            .repository
+            .get_talent_review(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent review {id} not found")))?;
 
         match (review.status.as_str(), status) {
-            ("scheduled", "in_progress" | "cancelled") |
-("in_progress", "completed" | "cancelled") => {}
-            _ => return Err(AtlasError::ValidationFailed(format!(
-                "Cannot transition review from '{}' to '{}'", review.status, status
-            ))),
+            ("scheduled", "in_progress" | "cancelled")
+            | ("in_progress", "completed" | "cancelled") => {}
+            _ => {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Cannot transition review from '{}' to '{}'",
+                    review.status, status
+                )))
+            }
         }
 
         info!("Updating talent review {} status to {}", id, status);
-        self.repository.update_talent_review_status(id, status).await
+        self.repository
+            .update_talent_review_status(id, status)
+            .await
     }
 
     /// Delete a talent review by code
@@ -495,35 +700,64 @@ impl SuccessionPlanningEngine {
         }
 
         // Verify review exists and is in_progress
-        let review = self.repository.get_talent_review(review_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Talent review {review_id} not found")))?;
+        let review = self
+            .repository
+            .get_talent_review(review_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Talent review {review_id} not found"))
+            })?;
         if review.status != "in_progress" {
             return Err(AtlasError::ValidationFailed(
                 "Assessments can only be added to reviews in progress".to_string(),
             ));
         }
         if review.organization_id != org_id {
-            return Err(AtlasError::ValidationFailed("Review does not belong to this organization".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Review does not belong to this organization".to_string(),
+            ));
         }
 
-        info!("Creating assessment for person {} in review {}", person_id, review_id);
-        self.repository.create_talent_review_assessment(
-            org_id, review_id, person_id, person_name,
-            performance_rating, potential_rating, nine_box_position,
-            strengths, weaknesses, career_aspiration,
-            development_needs, succession_readiness,
-            assessor_id, notes,
-        ).await
+        info!(
+            "Creating assessment for person {} in review {}",
+            person_id, review_id
+        );
+        self.repository
+            .create_talent_review_assessment(
+                org_id,
+                review_id,
+                person_id,
+                person_name,
+                performance_rating,
+                potential_rating,
+                nine_box_position,
+                strengths,
+                weaknesses,
+                career_aspiration,
+                development_needs,
+                succession_readiness,
+                assessor_id,
+                notes,
+            )
+            .await
     }
 
     /// Get an assessment by ID
-    pub async fn get_talent_review_assessment(&self, id: Uuid) -> AtlasResult<Option<TalentReviewAssessment>> {
+    pub async fn get_talent_review_assessment(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<TalentReviewAssessment>> {
         self.repository.get_talent_review_assessment(id).await
     }
 
     /// List assessments for a talent review
-    pub async fn list_talent_review_assessments(&self, review_id: Uuid) -> AtlasResult<Vec<TalentReviewAssessment>> {
-        self.repository.list_talent_review_assessments(review_id).await
+    pub async fn list_talent_review_assessments(
+        &self,
+        review_id: Uuid,
+    ) -> AtlasResult<Vec<TalentReviewAssessment>> {
+        self.repository
+            .list_talent_review_assessments(review_id)
+            .await
     }
 
     /// Delete an assessment
@@ -558,26 +792,49 @@ impl SuccessionPlanningEngine {
         let code_upper = code.to_uppercase();
         validate_code(&code_upper)?;
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Career path name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Career path name is required".to_string(),
+            ));
         }
         validate_enum("path_type", path_type, VALID_PATH_TYPES)?;
         if let Some(dur) = typical_duration_months {
             if dur < 1 {
-                return Err(AtlasError::ValidationFailed("Duration must be >= 1 month".to_string()));
+                return Err(AtlasError::ValidationFailed(
+                    "Duration must be >= 1 month".to_string(),
+                ));
             }
         }
 
-        if self.repository.get_career_path_by_code(org_id, &code_upper).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Career path '{code_upper}' already exists")));
+        if self
+            .repository
+            .get_career_path_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Career path '{code_upper}' already exists"
+            )));
         }
 
         info!("Creating career path '{}' for org {}", code_upper, org_id);
-        self.repository.create_career_path(
-            org_id, &code_upper, name, description, path_type,
-            from_job_id, from_job_title, to_job_id, to_job_title,
-            typical_duration_months, required_competencies,
-            required_certifications, development_activities, created_by,
-        ).await
+        self.repository
+            .create_career_path(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                path_type,
+                from_job_id,
+                from_job_title,
+                to_job_id,
+                to_job_title,
+                typical_duration_months,
+                required_competencies,
+                required_certifications,
+                development_activities,
+                created_by,
+            )
+            .await
     }
 
     /// Get a career path by ID
@@ -598,20 +855,32 @@ impl SuccessionPlanningEngine {
         if let Some(pt) = path_type {
             validate_enum("path_type", pt, VALID_PATH_TYPES)?;
         }
-        self.repository.list_career_paths(org_id, status, path_type).await
+        self.repository
+            .list_career_paths(org_id, status, path_type)
+            .await
     }
 
     /// Update career path status
-    pub async fn update_career_path_status(&self, id: Uuid, status: &str) -> AtlasResult<CareerPath> {
+    pub async fn update_career_path_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<CareerPath> {
         validate_enum("status", status, VALID_PATH_STATUSES)?;
-        let path = self.repository.get_career_path(id).await?
+        let path = self
+            .repository
+            .get_career_path(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Career path {id} not found")))?;
 
         match (path.status.as_str(), status) {
             ("draft", "active") | ("active", "archived") => {}
-            _ => return Err(AtlasError::ValidationFailed(format!(
-                "Cannot transition career path from '{}' to '{}'", path.status, status
-            ))),
+            _ => {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Cannot transition career path from '{}' to '{}'",
+                    path.status, status
+                )))
+            }
         }
 
         info!("Updating career path {} status to {}", id, status);
@@ -650,7 +919,10 @@ fn validate_code(code: &str) -> AtlasResult<()> {
 fn validate_enum(field_name: &str, value: &str, valid: &[&str]) -> AtlasResult<()> {
     if !valid.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field_name, value, valid.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field_name,
+            value,
+            valid.join(", ")
         )));
     }
     Ok(())
@@ -858,21 +1130,39 @@ mod tests {
     #[test]
     fn test_plan_status_transitions_draft_to_active() {
         // draft -> active is valid
-        let valid = matches!(("draft", "active"), ("draft", "active") | ("active", "completed") | ("active", "cancelled") | ("draft", "cancelled"));
+        let valid = matches!(
+            ("draft", "active"),
+            ("draft", "active")
+                | ("active", "completed")
+                | ("active", "cancelled")
+                | ("draft", "cancelled")
+        );
         assert!(valid);
     }
 
     #[test]
     fn test_plan_status_transitions_invalid() {
         // completed -> draft is NOT valid
-        let valid = matches!(("completed", "draft"), ("draft", "active") | ("active", "completed") | ("active", "cancelled") | ("draft", "cancelled"));
+        let valid = matches!(
+            ("completed", "draft"),
+            ("draft", "active")
+                | ("active", "completed")
+                | ("active", "cancelled")
+                | ("draft", "cancelled")
+        );
         assert!(!valid);
     }
 
     #[test]
     fn test_review_status_transitions() {
-        assert!(matches!(("scheduled", "in_progress"), ("scheduled", "in_progress")));
-        assert!(matches!(("in_progress", "completed"), ("in_progress", "completed")));
+        assert!(matches!(
+            ("scheduled", "in_progress"),
+            ("scheduled", "in_progress")
+        ));
+        assert!(matches!(
+            ("in_progress", "completed"),
+            ("in_progress", "completed")
+        ));
     }
 
     // ========================================================================
@@ -886,8 +1176,11 @@ mod tests {
         let mut positions: Vec<&str> = VALID_NINE_BOX_POSITIONS.to_vec();
         positions.sort();
         positions.dedup();
-        assert_eq!(positions.len(), VALID_NINE_BOX_POSITIONS.len(),
-            "Nine-box positions must be unique");
+        assert_eq!(
+            positions.len(),
+            VALID_NINE_BOX_POSITIONS.len(),
+            "Nine-box positions must be unique"
+        );
     }
 
     #[test]
@@ -972,11 +1265,17 @@ mod tests {
 
     #[test]
     fn test_candidate_status_values() {
-        assert_eq!(VALID_CANDIDATE_STATUSES, &["proposed", "approved", "rejected", "development"]);
+        assert_eq!(
+            VALID_CANDIDATE_STATUSES,
+            &["proposed", "approved", "rejected", "development"]
+        );
     }
 
     #[test]
     fn test_member_status_values() {
-        assert_eq!(VALID_MEMBER_STATUSES, &["active", "on_hold", "removed", "graduated"]);
+        assert_eq!(
+            VALID_MEMBER_STATUSES,
+            &["active", "on_hold", "removed", "graduated"]
+        );
     }
 }

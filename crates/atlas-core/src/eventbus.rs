@@ -1,21 +1,21 @@
 //! Event Bus Integration
-//! 
+//!
 //! NATS-based event bus for inter-service communication.
 
-use atlas_shared::events::{AtlasEvent, EventPayload, subjects};
-use atlas_shared::errors::{AtlasError, AtlasResult};
 use async_trait::async_trait;
-use tracing::{info, warn, debug};
+use atlas_shared::errors::{AtlasError, AtlasResult};
+use atlas_shared::events::{subjects, AtlasEvent, EventPayload};
+use tracing::{debug, info, warn};
 
 /// Event bus trait for publishing and subscribing to events
 #[async_trait]
 pub trait EventBus: Send + Sync {
     /// Publish an event
     async fn publish(&self, event: AtlasEvent) -> AtlasResult<()>;
-    
+
     /// Publish an event to a specific subject
     async fn publish_to(&self, subject: &str, event: AtlasEvent) -> AtlasResult<()>;
-    
+
     /// Check if connected
     fn is_connected(&self) -> bool;
 }
@@ -39,7 +39,10 @@ impl NatsEventBus {
                 })
             }
             Err(e) => {
-                warn!("Failed to connect to NATS: {}. Running without event bus.", e);
+                warn!(
+                    "Failed to connect to NATS: {}. Running without event bus.",
+                    e
+                );
                 Ok(Self {
                     client: None,
                     service_name: service_name.to_string(),
@@ -47,9 +50,9 @@ impl NatsEventBus {
             }
         }
     }
-    
+
     /// Create a no-op event bus (for testing/dev without NATS)
-    #[must_use] 
+    #[must_use]
     pub fn noop(service_name: &str) -> Self {
         Self {
             client: None,
@@ -71,27 +74,28 @@ impl EventBus for NatsEventBus {
             EventPayload::HealthCheck(_) => subjects::SERVICE_HEALTH.to_string(),
             _ => "atlas.events".to_string(),
         };
-        
+
         self.publish_to(&subject, event).await
     }
-    
+
     async fn publish_to(&self, subject: &str, event: AtlasEvent) -> AtlasResult<()> {
         if let Some(client) = &self.client {
-            let payload = serde_json::to_vec(&event)
-                .map_err(|e| AtlasError::EventBusError(e.to_string()))?;
-            
-            client.publish(subject.to_string(), payload.into())
+            let payload =
+                serde_json::to_vec(&event).map_err(|e| AtlasError::EventBusError(e.to_string()))?;
+
+            client
+                .publish(subject.to_string(), payload.into())
                 .await
                 .map_err(|e| AtlasError::EventBusError(e.to_string()))?;
-            
+
             debug!("Published event to {}: {:?}", subject, event.event_type);
         } else {
             debug!("Event bus not connected, skipping publish to {}", subject);
         }
-        
+
         Ok(())
     }
-    
+
     fn is_connected(&self) -> bool {
         self.client.is_some()
     }
@@ -102,7 +106,7 @@ pub struct EventFactory;
 
 impl EventFactory {
     /// Create a record created event
-    #[must_use] 
+    #[must_use]
     pub fn record_created(
         service: &str,
         entity_name: &str,
@@ -110,18 +114,19 @@ impl EventFactory {
         data: serde_json::Value,
         user_id: Option<atlas_shared::UserId>,
     ) -> AtlasEvent {
-        AtlasEvent::new(service, EventPayload::RecordCreated(
-            atlas_shared::events::RecordPayload {
+        AtlasEvent::new(
+            service,
+            EventPayload::RecordCreated(atlas_shared::events::RecordPayload {
                 entity_name: entity_name.to_string(),
                 record_id,
                 data,
                 changed_by: user_id,
-            }
-        ))
+            }),
+        )
     }
-    
+
     /// Create a record updated event
-    #[must_use] 
+    #[must_use]
     pub fn record_updated(
         service: &str,
         entity_name: &str,
@@ -129,36 +134,38 @@ impl EventFactory {
         data: serde_json::Value,
         user_id: Option<atlas_shared::UserId>,
     ) -> AtlasEvent {
-        AtlasEvent::new(service, EventPayload::RecordUpdated(
-            atlas_shared::events::RecordPayload {
+        AtlasEvent::new(
+            service,
+            EventPayload::RecordUpdated(atlas_shared::events::RecordPayload {
                 entity_name: entity_name.to_string(),
                 record_id,
                 data,
                 changed_by: user_id,
-            }
-        ))
+            }),
+        )
     }
-    
+
     /// Create a record deleted event
-    #[must_use] 
+    #[must_use]
     pub fn record_deleted(
         service: &str,
         entity_name: &str,
         record_id: atlas_shared::RecordId,
         user_id: Option<atlas_shared::UserId>,
     ) -> AtlasEvent {
-        AtlasEvent::new(service, EventPayload::RecordDeleted(
-            atlas_shared::events::RecordDeletedPayload {
+        AtlasEvent::new(
+            service,
+            EventPayload::RecordDeleted(atlas_shared::events::RecordDeletedPayload {
                 entity_name: entity_name.to_string(),
                 record_id,
                 changed_by: user_id,
-            }
-        ))
+            }),
+        )
     }
-    
+
     /// Create a workflow transition event
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub fn workflow_transition(
         service: &str,
         entity_name: &str,
@@ -169,8 +176,9 @@ impl EventFactory {
         action: &str,
         performed_by: Option<atlas_shared::UserId>,
     ) -> AtlasEvent {
-        AtlasEvent::new(service, EventPayload::WorkflowTransition(
-            atlas_shared::events::WorkflowTransitionPayload {
+        AtlasEvent::new(
+            service,
+            EventPayload::WorkflowTransition(atlas_shared::events::WorkflowTransitionPayload {
                 entity_name: entity_name.to_string(),
                 record_id,
                 workflow_name: workflow_name.to_string(),
@@ -179,12 +187,12 @@ impl EventFactory {
                 action: action.to_string(),
                 performed_by,
                 comment: None,
-            }
-        ))
+            }),
+        )
     }
-    
+
     /// Create a config changed event
-    #[must_use] 
+    #[must_use]
     pub fn config_changed(
         service: &str,
         config_type: &str,
@@ -192,31 +200,28 @@ impl EventFactory {
         version: i64,
         changes: Vec<String>,
     ) -> AtlasEvent {
-        AtlasEvent::new(service, EventPayload::ConfigChanged(
-            atlas_shared::events::ConfigChangedPayload {
+        AtlasEvent::new(
+            service,
+            EventPayload::ConfigChanged(atlas_shared::events::ConfigChangedPayload {
                 config_type: config_type.to_string(),
                 config_name: config_name.to_string(),
                 version,
                 changes,
-            }
-        ))
+            }),
+        )
     }
-    
+
     /// Create a service started event
-    #[must_use] 
-    pub fn service_started(
-        service: &str,
-        version: &str,
-        host: &str,
-        port: u16,
-    ) -> AtlasEvent {
-        AtlasEvent::new(service, EventPayload::ServiceStarted(
-            atlas_shared::events::ServiceInfoPayload {
+    #[must_use]
+    pub fn service_started(service: &str, version: &str, host: &str, port: u16) -> AtlasEvent {
+        AtlasEvent::new(
+            service,
+            EventPayload::ServiceStarted(atlas_shared::events::ServiceInfoPayload {
                 service_name: service.to_string(),
                 version: version.to_string(),
                 host: host.to_string(),
                 port,
-            }
-        ))
+            }),
+        )
     }
 }

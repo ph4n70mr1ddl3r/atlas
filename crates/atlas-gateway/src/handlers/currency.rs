@@ -5,18 +5,17 @@
 //! API endpoints for managing currencies, exchange rates, and performing
 //! currency conversions with gain/loss tracking.
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
+use tracing::{error, info};
 use uuid::Uuid;
-use tracing::{info, error};
 
 // ============================================================================
 // Currency Definition Handlers
@@ -33,7 +32,9 @@ pub struct CreateCurrencyRequest {
     pub is_base_currency: bool,
 }
 
-const fn default_precision() -> i32 { 2 }
+const fn default_precision() -> i32 {
+    2
+}
 
 /// Create or update a currency definition
 pub async fn create_currency(
@@ -41,14 +42,17 @@ pub async fn create_currency(
     claims: Extension<Claims>,
     Json(payload): Json<CreateCurrencyRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    info!("Creating currency {} for org {} by user {}", payload.code, org_id, user_id);
+    info!(
+        "Creating currency {} for org {} by user {}",
+        payload.code, org_id, user_id
+    );
 
-    let currency = state.financials.currency_engine
+    let currency = state
+        .financials
+        .currency_engine
         .create_currency(
             org_id,
             &payload.code,
@@ -66,7 +70,10 @@ pub async fn create_currency(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(currency))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(currency)),
+    ))
 }
 
 /// List all currencies for the organization
@@ -74,10 +81,11 @@ pub async fn list_currencies(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let currencies = state.financials.currency_engine
+    let currencies = state
+        .financials
+        .currency_engine
         .list_currencies(org_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -90,10 +98,14 @@ pub async fn get_base_currency(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.currency_engine.get_base_currency(org_id).await {
+    match state
+        .financials
+        .currency_engine
+        .get_base_currency(org_id)
+        .await
+    {
         Ok(currency) => Ok(Json(crate::handlers::records::to_json_or_null(currency))),
         Err(atlas_shared::AtlasError::ConfigError(_)) => Err(StatusCode::NOT_FOUND),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -106,10 +118,11 @@ pub async fn delete_currency(
     Path(code): Path<String>,
     claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.financials.currency_engine
+    state
+        .financials
+        .currency_engine
         .delete_currency(org_id, &code)
         .await
         .map_err(|e| match e {
@@ -135,7 +148,9 @@ pub struct SetExchangeRateRequest {
     pub source: Option<String>,
 }
 
-fn default_rate_type() -> String { "daily".to_string() }
+fn default_rate_type() -> String {
+    "daily".to_string()
+}
 
 /// Create or update an exchange rate
 pub async fn set_exchange_rate(
@@ -143,15 +158,17 @@ pub async fn set_exchange_rate(
     claims: Extension<Claims>,
     Json(payload): Json<SetExchangeRateRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    info!("Setting exchange rate {} -> {} = {} by user {}",
-        payload.from_currency, payload.to_currency, payload.rate, user_id);
+    info!(
+        "Setting exchange rate {} -> {} = {} by user {}",
+        payload.from_currency, payload.to_currency, payload.rate, user_id
+    );
 
-    let rate = state.financials.currency_engine
+    let rate = state
+        .financials
+        .currency_engine
         .set_exchange_rate(
             org_id,
             &payload.from_currency,
@@ -171,7 +188,10 @@ pub async fn set_exchange_rate(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(rate))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(rate)),
+    ))
 }
 
 #[derive(Debug, Deserialize)]
@@ -190,13 +210,14 @@ pub async fn list_exchange_rates(
     claims: Extension<Claims>,
     Query(params): Query<ListRatesParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let offset = params.offset.unwrap_or(0).max(0);
 
-    let rates = state.financials.currency_engine
+    let rates = state
+        .financials
+        .currency_engine
         .list_rates(
             org_id,
             params.from_currency.as_deref(),
@@ -222,14 +243,16 @@ pub async fn get_exchange_rate(
     claims: Extension<Claims>,
     Query(params): Query<GetRateParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let rate_type = params.rate_type.unwrap_or_else(|| "daily".to_string());
-    let date = params.effective_date
+    let date = params
+        .effective_date
         .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-    let rate = state.financials.currency_engine
+    let rate = state
+        .financials
+        .currency_engine
         .get_exchange_rate(org_id, &from, &to, &rate_type, date)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -252,10 +275,11 @@ pub async fn delete_exchange_rate(
     Path(id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.financials.currency_engine
+    state
+        .financials
+        .currency_engine
         .delete_exchange_rate(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -286,15 +310,17 @@ pub async fn convert_currency(
     claims: Extension<Claims>,
     Json(payload): Json<ConvertRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    info!("Converting {} {} -> {} by user {}",
-        payload.amount, payload.from_currency, payload.to_currency, user_id);
+    info!(
+        "Converting {} {} -> {} by user {}",
+        payload.amount, payload.from_currency, payload.to_currency, user_id
+    );
 
-    let result = state.financials.currency_engine
+    let result = state
+        .financials
+        .currency_engine
         .convert(
             org_id,
             &payload.from_currency,
@@ -338,10 +364,11 @@ pub async fn calculate_gain_loss(
     claims: Extension<Claims>,
     Json(payload): Json<GainLossRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let result = state.financials.currency_engine
+    let result = state
+        .financials
+        .currency_engine
         .calculate_unrealized_gain_loss(
             org_id,
             &payload.currency,
@@ -377,16 +404,20 @@ pub async fn import_rates(
     claims: Extension<Claims>,
     Json(payload): Json<ImportRatesRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let result = state.financials.currency_engine
+    let result = state
+        .financials
+        .currency_engine
         .import_rates(org_id, payload.rates, Some(user_id))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let _status = if result.failed > 0 { StatusCode::PARTIAL_CONTENT } else { StatusCode::OK };
+    let _status = if result.failed > 0 {
+        StatusCode::PARTIAL_CONTENT
+    } else {
+        StatusCode::OK
+    };
     Ok(Json(crate::handlers::records::to_json_or_null(result)))
 }

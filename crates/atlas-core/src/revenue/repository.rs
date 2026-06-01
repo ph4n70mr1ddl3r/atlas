@@ -4,12 +4,11 @@
 //! revenue policies, revenue contracts, performance obligations,
 //! revenue schedule lines, and contract modifications.
 
-use atlas_shared::{
-    RevenuePolicy, RevenueContract, PerformanceObligation,
-    RevenueScheduleLine, RevenueModification,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, PerformanceObligation, RevenueContract, RevenueModification,
+    RevenuePolicy, RevenueScheduleLine,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -62,8 +61,17 @@ pub trait RevenueRepository: Send + Sync {
     ) -> AtlasResult<RevenueContract>;
 
     async fn get_contract(&self, id: Uuid) -> AtlasResult<Option<RevenueContract>>;
-    async fn get_contract_by_number(&self, org_id: Uuid, contract_number: &str) -> AtlasResult<Option<RevenueContract>>;
-    async fn list_contracts(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<RevenueContract>>;
+    async fn get_contract_by_number(
+        &self,
+        org_id: Uuid,
+        contract_number: &str,
+    ) -> AtlasResult<Option<RevenueContract>>;
+    async fn list_contracts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<RevenueContract>>;
     async fn update_contract_status(
         &self,
         id: Uuid,
@@ -142,8 +150,14 @@ pub trait RevenueRepository: Send + Sync {
     ) -> AtlasResult<RevenueScheduleLine>;
 
     async fn get_schedule_line(&self, id: Uuid) -> AtlasResult<Option<RevenueScheduleLine>>;
-    async fn list_schedule_lines(&self, obligation_id: Uuid) -> AtlasResult<Vec<RevenueScheduleLine>>;
-    async fn list_schedule_lines_by_contract(&self, contract_id: Uuid) -> AtlasResult<Vec<RevenueScheduleLine>>;
+    async fn list_schedule_lines(
+        &self,
+        obligation_id: Uuid,
+    ) -> AtlasResult<Vec<RevenueScheduleLine>>;
+    async fn list_schedule_lines_by_contract(
+        &self,
+        contract_id: Uuid,
+    ) -> AtlasResult<Vec<RevenueScheduleLine>>;
     async fn update_schedule_line_status(
         &self,
         id: Uuid,
@@ -177,7 +191,7 @@ pub struct PostgresRevenueRepository {
 }
 
 impl PostgresRevenueRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -195,11 +209,15 @@ fn row_to_policy(row: &sqlx::postgres::PgRow) -> RevenuePolicy {
         allocation_basis: row.get("allocation_basis"),
         default_selling_price: row
             .try_get::<Option<f64>, _>("default_selling_price")
-            .ok().flatten().map(|v| format!("{v:.2}")),
+            .ok()
+            .flatten()
+            .map(|v| format!("{v:.2}")),
         constrain_variable_consideration: row.get("constrain_variable_consideration"),
         constraint_threshold_percent: row
             .try_get::<Option<f64>, _>("constraint_threshold_percent")
-            .ok().flatten().map(|v| format!("{v:.2}")),
+            .ok()
+            .flatten()
+            .map(|v| format!("{v:.2}")),
         revenue_account_code: row.get("revenue_account_code"),
         deferred_revenue_account_code: row.get("deferred_revenue_account_code"),
         contra_revenue_account_code: row.get("contra_revenue_account_code"),
@@ -273,7 +291,9 @@ fn row_to_obligation(row: &sqlx::postgres::PgRow) -> PerformanceObligation {
         recognition_end_date: row.get("recognition_end_date"),
         percent_complete: row
             .try_get::<Option<f64>, _>("percent_complete")
-            .ok().flatten().map(|v| format!("{v:.4}")),
+            .ok()
+            .flatten()
+            .map(|v| format!("{v:.4}")),
         satisfaction_method: row.get("satisfaction_method"),
         status: row.get("status"),
         revenue_account_code: row.get("revenue_account_code"),
@@ -303,7 +323,9 @@ fn row_to_schedule_line(row: &sqlx::postgres::PgRow) -> RevenueScheduleLine {
         recognition_method: row.get("recognition_method"),
         percent_of_total: row
             .try_get::<Option<f64>, _>("percent_of_total")
-            .ok().flatten().map(|v| format!("{v:.4}")),
+            .ok()
+            .flatten()
+            .map(|v| format!("{v:.4}")),
         journal_entry_id: row.get("journal_entry_id"),
         recognized_at: row.get("recognized_at"),
         reversed_by_id: row.get("reversed_by_id"),
@@ -386,12 +408,20 @@ impl RevenueRepository for PostgresRevenueRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(recognition_method).bind(over_time_method).bind(allocation_basis)
-        .bind(default_selling_price).bind(constrain_variable_consideration)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(recognition_method)
+        .bind(over_time_method)
+        .bind(allocation_basis)
+        .bind(default_selling_price)
+        .bind(constrain_variable_consideration)
         .bind(constraint_threshold_percent)
-        .bind(revenue_account_code).bind(deferred_revenue_account_code)
-        .bind(contra_revenue_account_code).bind(created_by)
+        .bind(revenue_account_code)
+        .bind(deferred_revenue_account_code)
+        .bind(contra_revenue_account_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -479,12 +509,21 @@ impl RevenueRepository for PostgresRevenueRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(contract_number)
-        .bind(source_type).bind(source_id).bind(source_number)
-        .bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(contract_date).bind(start_date).bind(end_date)
+        .bind(org_id)
+        .bind(contract_number)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(contract_date)
+        .bind(start_date)
+        .bind(end_date)
         .bind(total_transaction_price)
-        .bind(currency_code).bind(notes).bind(created_by)
+        .bind(currency_code)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -501,7 +540,11 @@ impl RevenueRepository for PostgresRevenueRepository {
         Ok(row.map(|r| row_to_contract(&r)))
     }
 
-    async fn get_contract_by_number(&self, org_id: Uuid, contract_number: &str) -> AtlasResult<Option<RevenueContract>> {
+    async fn get_contract_by_number(
+        &self,
+        org_id: Uuid,
+        contract_number: &str,
+    ) -> AtlasResult<Option<RevenueContract>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.revenue_contracts WHERE organization_id = $1 AND contract_number = $2"
         )
@@ -512,7 +555,12 @@ impl RevenueRepository for PostgresRevenueRepository {
         Ok(row.map(|r| row_to_contract(&r)))
     }
 
-    async fn list_contracts(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<RevenueContract>> {
+    async fn list_contracts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<RevenueContract>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.revenue_contracts
@@ -522,7 +570,9 @@ impl RevenueRepository for PostgresRevenueRepository {
             ORDER BY contract_date DESC NULLS LAST, created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(customer_id)
+        .bind(org_id)
+        .bind(status)
+        .bind(customer_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -563,12 +613,17 @@ impl RevenueRepository for PostgresRevenueRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status)
-        .bind(step1_contract_identified).bind(step2_obligations_identified)
-        .bind(step3_price_determined).bind(step4_price_allocated)
+        .bind(id)
+        .bind(status)
+        .bind(step1_contract_identified)
+        .bind(step2_obligations_identified)
+        .bind(step3_price_determined)
+        .bind(step4_price_allocated)
         .bind(step5_recognition_scheduled)
-        .bind(total_allocated_revenue).bind(total_recognized_revenue)
-        .bind(total_deferred_revenue).bind(total_transaction_price)
+        .bind(total_allocated_revenue)
+        .bind(total_recognized_revenue)
+        .bind(total_deferred_revenue)
+        .bind(total_transaction_price)
         .bind(notes)
         .fetch_one(&self.pool)
         .await
@@ -617,12 +672,24 @@ impl RevenueRepository for PostgresRevenueRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(contract_id).bind(line_number)
-        .bind(description).bind(product_id).bind(product_name).bind(source_line_id)
-        .bind(revenue_policy_id).bind(recognition_method).bind(over_time_method)
-        .bind(standalone_selling_price).bind(allocated_transaction_price)
-        .bind(satisfaction_method).bind(recognition_start_date).bind(recognition_end_date)
-        .bind(revenue_account_code).bind(deferred_revenue_account_code).bind(created_by)
+        .bind(org_id)
+        .bind(contract_id)
+        .bind(line_number)
+        .bind(description)
+        .bind(product_id)
+        .bind(product_name)
+        .bind(source_line_id)
+        .bind(revenue_policy_id)
+        .bind(recognition_method)
+        .bind(over_time_method)
+        .bind(standalone_selling_price)
+        .bind(allocated_transaction_price)
+        .bind(satisfaction_method)
+        .bind(recognition_start_date)
+        .bind(recognition_end_date)
+        .bind(revenue_account_code)
+        .bind(deferred_revenue_account_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -666,7 +733,9 @@ impl RevenueRepository for PostgresRevenueRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(allocated_transaction_price).bind(deferred_revenue)
+        .bind(id)
+        .bind(allocated_transaction_price)
+        .bind(deferred_revenue)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -691,7 +760,10 @@ impl RevenueRepository for PostgresRevenueRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(recognition_start_date).bind(recognition_end_date)
+        .bind(id)
+        .bind(status)
+        .bind(recognition_start_date)
+        .bind(recognition_end_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -718,8 +790,11 @@ impl RevenueRepository for PostgresRevenueRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(total_recognized_revenue).bind(deferred_revenue)
-        .bind(percent_complete).bind(status)
+        .bind(id)
+        .bind(total_recognized_revenue)
+        .bind(deferred_revenue)
+        .bind(percent_complete)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -753,9 +828,15 @@ impl RevenueRepository for PostgresRevenueRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(obligation_id).bind(contract_id).bind(line_number)
-        .bind(recognition_date).bind(amount)
-        .bind(percent_of_total).bind(recognition_method).bind(created_by)
+        .bind(org_id)
+        .bind(obligation_id)
+        .bind(contract_id)
+        .bind(line_number)
+        .bind(recognition_date)
+        .bind(amount)
+        .bind(percent_of_total)
+        .bind(recognition_method)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -772,7 +853,10 @@ impl RevenueRepository for PostgresRevenueRepository {
         Ok(row.map(|r| row_to_schedule_line(&r)))
     }
 
-    async fn list_schedule_lines(&self, obligation_id: Uuid) -> AtlasResult<Vec<RevenueScheduleLine>> {
+    async fn list_schedule_lines(
+        &self,
+        obligation_id: Uuid,
+    ) -> AtlasResult<Vec<RevenueScheduleLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.revenue_schedule_lines WHERE obligation_id = $1 ORDER BY line_number"
         )
@@ -783,7 +867,10 @@ impl RevenueRepository for PostgresRevenueRepository {
         Ok(rows.iter().map(row_to_schedule_line).collect())
     }
 
-    async fn list_schedule_lines_by_contract(&self, contract_id: Uuid) -> AtlasResult<Vec<RevenueScheduleLine>> {
+    async fn list_schedule_lines_by_contract(
+        &self,
+        contract_id: Uuid,
+    ) -> AtlasResult<Vec<RevenueScheduleLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.revenue_schedule_lines WHERE contract_id = $1 ORDER BY recognition_date, line_number"
         )
@@ -813,7 +900,10 @@ impl RevenueRepository for PostgresRevenueRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(recognized_amount).bind(reversal_reason)
+        .bind(id)
+        .bind(status)
+        .bind(recognized_amount)
+        .bind(reversal_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -850,10 +940,16 @@ impl RevenueRepository for PostgresRevenueRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(contract_id).bind(modification_number)
-        .bind(modification_type).bind(description)
-        .bind(previous_transaction_price).bind(new_transaction_price)
-        .bind(previous_end_date).bind(new_end_date).bind(effective_date)
+        .bind(org_id)
+        .bind(contract_id)
+        .bind(modification_number)
+        .bind(modification_type)
+        .bind(description)
+        .bind(previous_transaction_price)
+        .bind(new_transaction_price)
+        .bind(previous_end_date)
+        .bind(new_end_date)
+        .bind(effective_date)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await

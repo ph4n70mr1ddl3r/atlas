@@ -8,11 +8,11 @@
 //! - Maintenance dashboard summary
 //! - Full lifecycle test
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_eam_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -22,65 +22,124 @@ async fn setup_eam_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Rou
     (state, app)
 }
 
-async fn create_test_location(
-    app: &axum::Router, code: &str, name: &str,
-) -> serde_json::Value {
+async fn create_test_location(app: &axum::Router, code: &str, name: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/locations")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": code, "name": name, "locationType": "building"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/locations")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": code, "name": name, "locationType": "building"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for location but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for location but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     serde_json::from_slice(&b).unwrap()
 }
 
 async fn create_test_asset(
-    app: &axum::Router, asset_number: &str, name: &str,
-    asset_group: &str, criticality: &str,
+    app: &axum::Router,
+    asset_number: &str,
+    name: &str,
+    asset_group: &str,
+    criticality: &str,
 ) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/assets")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "assetNumber": asset_number,
-            "name": name,
-            "assetGroup": asset_group,
-            "assetCriticality": criticality,
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/assets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assetNumber": asset_number,
+                        "name": name,
+                        "assetGroup": asset_group,
+                        "assetCriticality": criticality,
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for asset but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for asset but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     serde_json::from_slice(&b).unwrap()
 }
 
 async fn create_test_work_order(
-    app: &axum::Router, wo_number: &str, title: &str,
-    wo_type: &str, priority: &str, asset_id: &str,
+    app: &axum::Router,
+    wo_number: &str,
+    title: &str,
+    wo_type: &str,
+    priority: &str,
+    asset_id: &str,
 ) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/work-orders")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "workOrderNumber": wo_number,
-            "title": title,
-            "workOrderType": wo_type,
-            "priority": priority,
-            "assetId": asset_id,
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/work-orders")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "workOrderNumber": wo_number,
+                        "title": title,
+                        "workOrderType": wo_type,
+                        "priority": priority,
+                        "assetId": asset_id,
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for work order but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for work order but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     serde_json::from_slice(&b).unwrap()
 }
@@ -103,12 +162,24 @@ async fn test_create_location_duplicate_conflict() {
     let (_state, app) = setup_eam_test().await;
     create_test_location(&app, "DUP", "First").await;
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/locations")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": "DUP", "name": "Duplicate"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/locations")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": "DUP", "name": "Duplicate"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CONFLICT);
 }
 
@@ -119,12 +190,21 @@ async fn test_list_locations() {
     create_test_location(&app, "WH-2", "Warehouse 2").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/eam/locations")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/eam/locations")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 2);
 }
@@ -134,10 +214,18 @@ async fn test_delete_location() {
     let (_state, app) = setup_eam_test().await;
     create_test_location(&app, "DEL", "Delete Me").await;
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/eam/locations/code/DEL")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/eam/locations/code/DEL")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
 
@@ -161,13 +249,25 @@ async fn test_create_asset_duplicate_conflict() {
     let (_state, app) = setup_eam_test().await;
     create_test_asset(&app, "DUP-A", "First", "motor", "medium").await;
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/assets")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "assetNumber": "DUP-A", "name": "Duplicate",
-            "assetGroup": "motor", "assetCriticality": "medium"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/assets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assetNumber": "DUP-A", "name": "Duplicate",
+                        "assetGroup": "motor", "assetCriticality": "medium"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CONFLICT);
 }
 
@@ -175,13 +275,25 @@ async fn test_create_asset_duplicate_conflict() {
 async fn test_create_asset_invalid_group() {
     let (_state, app) = setup_eam_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/assets")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "assetNumber": "BAD-G", "name": "Bad Group",
-            "assetGroup": "nonexistent", "assetCriticality": "medium"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/assets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assetNumber": "BAD-G", "name": "Bad Group",
+                        "assetGroup": "nonexistent", "assetCriticality": "medium"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -189,13 +301,25 @@ async fn test_create_asset_invalid_group() {
 async fn test_create_asset_invalid_criticality() {
     let (_state, app) = setup_eam_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/assets")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "assetNumber": "BAD-C", "name": "Bad Criticality",
-            "assetGroup": "general", "assetCriticality": "super_high"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/assets")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assetNumber": "BAD-C", "name": "Bad Criticality",
+                        "assetGroup": "general", "assetCriticality": "super_high"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -206,12 +330,21 @@ async fn test_get_asset() {
     let id = asset["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder()
-        .uri(format!("/api/v1/eam/assets/id/{}", id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/eam/assets/id/{}", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fetched: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(fetched["assetNumber"], "GET-A");
 }
@@ -223,12 +356,21 @@ async fn test_list_assets() {
     create_test_asset(&app, "LIST-2", "Asset Two", "motor", "high").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/eam/assets")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/eam/assets")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 2);
 }
@@ -240,15 +382,28 @@ async fn test_update_asset_status() {
     let id = asset["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/assets/id/{}/status", id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "status": "in_repair"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/assets/id/{}/status", id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "status": "in_repair"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["assetStatus"], "in_repair");
 }
@@ -258,10 +413,18 @@ async fn test_delete_asset() {
     let (_state, app) = setup_eam_test().await;
     create_test_asset(&app, "DEL-A", "Delete Asset", "general", "low").await;
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/eam/assets/number/DEL-A")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/eam/assets/number/DEL-A")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
 
@@ -275,7 +438,15 @@ async fn test_create_work_order() {
     let asset = create_test_asset(&app, "WO-A1", "WO Asset", "pump", "high").await;
     let asset_id = asset["id"].as_str().unwrap();
 
-    let wo = create_test_work_order(&app, "WO-001", "Fix Pump Bearing", "corrective", "high", asset_id).await;
+    let wo = create_test_work_order(
+        &app,
+        "WO-001",
+        "Fix Pump Bearing",
+        "corrective",
+        "high",
+        asset_id,
+    )
+    .await;
     assert_eq!(wo["workOrderNumber"], "WO-001");
     assert_eq!(wo["title"], "Fix Pump Bearing");
     assert_eq!(wo["workOrderType"], "corrective");
@@ -288,16 +459,36 @@ async fn test_create_work_order() {
 async fn test_create_work_order_duplicate_conflict() {
     let (_state, app) = setup_eam_test().await;
     let asset = create_test_asset(&app, "DUP-WO-A", "Asset", "general", "medium").await;
-    create_test_work_order(&app, "DUP-WO", "First", "corrective", "normal", asset["id"].as_str().unwrap()).await;
+    create_test_work_order(
+        &app,
+        "DUP-WO",
+        "First",
+        "corrective",
+        "normal",
+        asset["id"].as_str().unwrap(),
+    )
+    .await;
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/work-orders")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "workOrderNumber": "DUP-WO", "title": "Duplicate",
-            "workOrderType": "corrective", "priority": "normal",
-            "assetId": asset["id"]
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/work-orders")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "workOrderNumber": "DUP-WO", "title": "Duplicate",
+                        "workOrderType": "corrective", "priority": "normal",
+                        "assetId": asset["id"]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CONFLICT);
 }
 
@@ -306,14 +497,26 @@ async fn test_create_work_order_invalid_type() {
     let (_state, app) = setup_eam_test().await;
     let asset = create_test_asset(&app, "IT-A", "Invalid Type Asset", "general", "low").await;
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/work-orders")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "workOrderNumber": "IT-WO", "title": "Bad Type",
-            "workOrderType": "nonexistent", "priority": "normal",
-            "assetId": asset["id"]
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/work-orders")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "workOrderNumber": "IT-WO", "title": "Bad Type",
+                        "workOrderType": "nonexistent", "priority": "normal",
+                        "assetId": asset["id"]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -322,14 +525,26 @@ async fn test_create_work_order_invalid_priority() {
     let (_state, app) = setup_eam_test().await;
     let asset = create_test_asset(&app, "IP-A", "Invalid Priority Asset", "general", "low").await;
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/work-orders")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "workOrderNumber": "IP-WO", "title": "Bad Priority",
-            "workOrderType": "corrective", "priority": "immediate",
-            "assetId": asset["id"]
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/work-orders")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "workOrderNumber": "IP-WO", "title": "Bad Priority",
+                        "workOrderType": "corrective", "priority": "immediate",
+                        "assetId": asset["id"]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -337,31 +552,63 @@ async fn test_create_work_order_invalid_priority() {
 async fn test_work_order_status_lifecycle() {
     let (_state, app) = setup_eam_test().await;
     let asset = create_test_asset(&app, "LCYC-A", "Lifecycle Asset", "motor", "high").await;
-    let wo = create_test_work_order(&app, "WO-LC", "Lifecycle Test", "preventive", "normal", asset["id"].as_str().unwrap()).await;
+    let wo = create_test_work_order(
+        &app,
+        "WO-LC",
+        "Lifecycle Test",
+        "preventive",
+        "normal",
+        asset["id"].as_str().unwrap(),
+    )
+    .await;
     let wo_id = wo["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
 
     // Draft -> Approved
-    let resp = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/work-orders/id/{}/status", wo_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "approved"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/work-orders/id/{}/status", wo_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "approved"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "approved");
     assert!(updated["approvedAt"].is_string());
 
     // Approved -> In Progress
-    let resp = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/work-orders/id/{}/status", wo_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "in_progress"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/work-orders/id/{}/status", wo_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "in_progress"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "in_progress");
     assert!(updated["actualStart"].is_string());
@@ -371,33 +618,64 @@ async fn test_work_order_status_lifecycle() {
 async fn test_complete_work_order() {
     let (_state, app) = setup_eam_test().await;
     let asset = create_test_asset(&app, "COMP-A", "Complete Asset", "hvac", "medium").await;
-    let wo = create_test_work_order(&app, "WO-COMP", "Complete Test", "corrective", "high", asset["id"].as_str().unwrap()).await;
+    let wo = create_test_work_order(
+        &app,
+        "WO-COMP",
+        "Complete Test",
+        "corrective",
+        "high",
+        asset["id"].as_str().unwrap(),
+    )
+    .await;
     let wo_id = wo["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
 
     // Start the work order
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/work-orders/id/{}/status", wo_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "in_progress"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/work-orders/id/{}/status", wo_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "in_progress"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Complete with actuals
-    let resp = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/work-orders/id/{}/complete", wo_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "actualCost": "1250.00",
-            "downtimeHours": 4.5,
-            "resolutionCode": "repaired",
-            "completionNotes": "Replaced bearing and sealed housing",
-            "materials": [{"item": "Bearing 6205", "quantity": 2, "unitCost": "75.00"}],
-            "labor": [{"name": "John Mechanic", "hours": 6.0, "rate": "85.00"}]
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/work-orders/id/{}/complete", wo_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "actualCost": "1250.00",
+                        "downtimeHours": 4.5,
+                        "resolutionCode": "repaired",
+                        "completionNotes": "Replaced bearing and sealed housing",
+                        "materials": [{"item": "Bearing 6205", "quantity": 2, "unitCost": "75.00"}],
+                        "labor": [{"name": "John Mechanic", "hours": 6.0, "rate": "85.00"}]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let completed: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(completed["status"], "completed");
     assert_eq!(completed["actualCost"], "1250.00");
@@ -416,23 +694,44 @@ async fn test_list_work_orders_filtered() {
     let (k, v) = auth_header(&admin_claims());
     // Create work orders of different types
     for (num, wo_type) in [("WO-F1", "corrective"), ("WO-F2", "preventive")] {
-        let _ = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/work-orders")
-            .header("Content-Type", "application/json").header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({
-                "workOrderNumber": num, "title": num,
-                "workOrderType": wo_type, "priority": "normal",
-                "assetId": asset["id"]
-            })).unwrap())).unwrap()
-        ).await.unwrap();
+        let _ = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/eam/work-orders")
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({
+                            "workOrderNumber": num, "title": num,
+                            "workOrderType": wo_type, "priority": "normal",
+                            "assetId": asset["id"]
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Filter by type
-    let resp = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/eam/work-orders?workOrderType=corrective")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/eam/work-orders?workOrderType=corrective")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let wos = list["data"].as_array().unwrap();
     assert!(wos.iter().all(|w| w["workOrderType"] == "corrective"));
@@ -442,12 +741,28 @@ async fn test_list_work_orders_filtered() {
 async fn test_delete_work_order() {
     let (_state, app) = setup_eam_test().await;
     let asset = create_test_asset(&app, "DEL-WO-A", "Delete WO Asset", "general", "low").await;
-    create_test_work_order(&app, "WO-DEL", "Delete Me", "corrective", "low", asset["id"].as_str().unwrap()).await;
+    create_test_work_order(
+        &app,
+        "WO-DEL",
+        "Delete Me",
+        "corrective",
+        "low",
+        asset["id"].as_str().unwrap(),
+    )
+    .await;
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/eam/work-orders/number/WO-DEL")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/eam/work-orders/number/WO-DEL")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
 
@@ -462,24 +777,38 @@ async fn test_create_pm_schedule() {
     let asset_id = asset["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/pm-schedules")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "scheduleNumber": "PM-001",
-            "name": "Monthly Compressor Inspection",
-            "scheduleType": "time_based",
-            "frequency": "monthly",
-            "intervalValue": 1,
-            "intervalUnit": "months",
-            "assetId": asset_id,
-            "estimatedDurationHours": 4.0,
-            "estimatedCost": "500.00",
-            "autoGenerate": true,
-            "leadTimeDays": 7
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/pm-schedules")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "scheduleNumber": "PM-001",
+                        "name": "Monthly Compressor Inspection",
+                        "scheduleType": "time_based",
+                        "frequency": "monthly",
+                        "intervalValue": 1,
+                        "intervalUnit": "months",
+                        "assetId": asset_id,
+                        "estimatedDurationHours": 4.0,
+                        "estimatedCost": "500.00",
+                        "autoGenerate": true,
+                        "leadTimeDays": 7
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let sched: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(sched["scheduleNumber"], "PM-001");
     assert_eq!(sched["name"], "Monthly Compressor Inspection");
@@ -497,21 +826,35 @@ async fn test_create_pm_schedule_meter_based() {
     let asset_id = asset["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/pm-schedules")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "scheduleNumber": "PM-MB1",
-            "name": "Oil Change Every 5000 Miles",
-            "scheduleType": "meter_based",
-            "frequency": "monthly",
-            "intervalValue": 5000,
-            "intervalUnit": "miles",
-            "meterType": "miles",
-            "assetId": asset_id
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/pm-schedules")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "scheduleNumber": "PM-MB1",
+                        "name": "Oil Change Every 5000 Miles",
+                        "scheduleType": "meter_based",
+                        "frequency": "monthly",
+                        "intervalValue": 5000,
+                        "intervalUnit": "miles",
+                        "meterType": "miles",
+                        "assetId": asset_id
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let sched: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(sched["scheduleType"], "meter_based");
     assert_eq!(sched["intervalUnit"], "miles");
@@ -527,15 +870,34 @@ async fn test_create_pm_schedule_duplicate_conflict() {
         "scheduleNumber": "PM-DUP", "name": "First",
         "scheduleType": "time_based", "frequency": "monthly",
         "assetId": asset["id"]
-    })).unwrap();
-    let _ = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/pm-schedules")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(body.clone())).unwrap()
-    ).await.unwrap();
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/pm-schedules")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(body)).unwrap()
-    ).await.unwrap();
+    }))
+    .unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/pm-schedules")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(body.clone()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/pm-schedules")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CONFLICT);
 }
 
@@ -545,26 +907,53 @@ async fn test_update_pm_schedule_status() {
     let asset = create_test_asset(&app, "PM-ST-A", "Status Asset", "general", "low").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/pm-schedules")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "scheduleNumber": "PM-ST", "name": "Status Test",
-            "scheduleType": "time_based", "frequency": "monthly",
-            "assetId": asset["id"]
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/pm-schedules")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "scheduleNumber": "PM-ST", "name": "Status Test",
+                        "scheduleType": "time_based", "frequency": "monthly",
+                        "assetId": asset["id"]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let sched: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     let sched_id = sched["id"].as_str().unwrap();
 
-    let resp = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/pm-schedules/id/{}/status", sched_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "inactive"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/pm-schedules/id/{}/status", sched_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "inactive"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "inactive");
 }
@@ -574,19 +963,39 @@ async fn test_delete_pm_schedule() {
     let (_state, app) = setup_eam_test().await;
     let asset = create_test_asset(&app, "PM-DEL-A", "Delete Asset", "general", "low").await;
     let (k, v) = auth_header(&admin_claims());
-    let _ = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/pm-schedules")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "scheduleNumber": "PM-DEL", "name": "Delete Me",
-            "scheduleType": "time_based", "frequency": "monthly",
-            "assetId": asset["id"]
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/pm-schedules")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "scheduleNumber": "PM-DEL", "name": "Delete Me",
+                        "scheduleType": "time_based", "frequency": "monthly",
+                        "assetId": asset["id"]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let resp = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/eam/pm-schedules/number/PM-DEL")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/eam/pm-schedules/number/PM-DEL")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
 
@@ -603,12 +1012,21 @@ async fn test_maintenance_dashboard() {
     create_test_asset(&app, "DASH-A2", "Dashboard Motor", "motor", "medium").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/eam/dashboard")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/eam/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(dashboard["totalAssets"].as_i64().unwrap() >= 2);
     assert!(dashboard["activeAssets"].as_i64().unwrap() >= 2);
@@ -636,86 +1054,154 @@ async fn test_eam_full_lifecycle() {
     assert_eq!(asset["assetCriticality"], "critical");
 
     // 3. Create PM schedule for the asset
-    let resp = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/eam/pm-schedules")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "scheduleNumber": "PM-LIFE",
-            "name": "Quarterly CNC Maintenance",
-            "scheduleType": "time_based",
-            "frequency": "quarterly",
-            "intervalValue": 3,
-            "intervalUnit": "months",
-            "assetId": asset_id,
-            "estimatedDurationHours": 8.0,
-            "estimatedCost": "2000.00",
-            "autoGenerate": true,
-            "leadTimeDays": 14
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/eam/pm-schedules")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "scheduleNumber": "PM-LIFE",
+                        "name": "Quarterly CNC Maintenance",
+                        "scheduleType": "time_based",
+                        "frequency": "quarterly",
+                        "intervalValue": 3,
+                        "intervalUnit": "months",
+                        "assetId": asset_id,
+                        "estimatedDurationHours": 8.0,
+                        "estimatedCost": "2000.00",
+                        "autoGenerate": true,
+                        "leadTimeDays": 14
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
     let sched: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(sched["status"], "active");
     assert_eq!(sched["autoGenerate"], true);
 
     // 4. Report failure - create emergency work order
-    let wo = create_test_work_order(&app, "WO-LIFE", "CNC Spindle Vibration", "emergency", "urgent", asset_id).await;
+    let wo = create_test_work_order(
+        &app,
+        "WO-LIFE",
+        "CNC Spindle Vibration",
+        "emergency",
+        "urgent",
+        asset_id,
+    )
+    .await;
     let wo_id = wo["id"].as_str().unwrap();
     assert_eq!(wo["status"], "draft");
     assert_eq!(wo["workOrderType"], "emergency");
     assert_eq!(wo["priority"], "urgent");
 
     // 5. Approve work order
-    let resp = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/work-orders/id/{}/status", wo_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "approved"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/work-orders/id/{}/status", wo_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "approved"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 6. Set asset to in_repair
-    let resp = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/assets/id/{}/status", asset_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "in_repair"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/assets/id/{}/status", asset_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "in_repair"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated_asset: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated_asset["assetStatus"], "in_repair");
 
     // 7. Start work
-    let resp = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/work-orders/id/{}/status", wo_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "in_progress"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/work-orders/id/{}/status", wo_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "in_progress"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 8. Complete work order with full details
-    let resp = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/work-orders/id/{}/complete", wo_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "actualCost": "3500.00",
-            "downtimeHours": 12.0,
-            "resolutionCode": "repaired",
-            "completionNotes": "Replaced spindle bearings, recalibrated alignment",
-            "failureCode": "vibration",
-            "causeCode": "normal_wear",
-            "materials": [
-                {"item": "Spindle Bearing Set", "quantity": 1, "unitCost": "1200.00"},
-                {"item": "Alignment Shims", "quantity": 4, "unitCost": "25.00"}
-            ],
-            "labor": [
-                {"name": "Senior Technician", "hours": 10.0, "rate": "95.00"},
-                {"name": "Junior Technician", "hours": 8.0, "rate": "65.00"}
-            ]
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/work-orders/id/{}/complete", wo_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "actualCost": "3500.00",
+                        "downtimeHours": 12.0,
+                        "resolutionCode": "repaired",
+                        "completionNotes": "Replaced spindle bearings, recalibrated alignment",
+                        "failureCode": "vibration",
+                        "causeCode": "normal_wear",
+                        "materials": [
+                            {"item": "Spindle Bearing Set", "quantity": 1, "unitCost": "1200.00"},
+                            {"item": "Alignment Shims", "quantity": 4, "unitCost": "25.00"}
+                        ],
+                        "labor": [
+                            {"name": "Senior Technician", "hours": 10.0, "rate": "95.00"},
+                            {"name": "Junior Technician", "hours": 8.0, "rate": "65.00"}
+                        ]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let completed: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(completed["status"], "completed");
     assert_eq!(completed["actualCost"], "3500.00");
@@ -723,11 +1209,21 @@ async fn test_eam_full_lifecycle() {
     assert_eq!(completed["resolutionCode"], "repaired");
 
     // 9. Set asset back to active
-    let resp = app.clone().oneshot(Request::builder().method("POST")
-        .uri(format!("/api/v1/eam/assets/id/{}/status", asset_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "active"})).unwrap())).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/eam/assets/id/{}/status", asset_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "active"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 10. Update asset meter reading
@@ -741,12 +1237,21 @@ async fn test_eam_full_lifecycle() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 11. Verify dashboard reflects full lifecycle
-    let resp = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/eam/dashboard")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/eam/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(dashboard["totalAssets"].as_i64().unwrap() >= 1);
     assert!(dashboard["completedWorkOrders"].as_i64().unwrap() >= 1);

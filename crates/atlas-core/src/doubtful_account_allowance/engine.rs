@@ -12,12 +12,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Receivables > Collections > Allowance for Doubtful Accounts
 
-use atlas_shared::{
-    DoubtfulAccountPolicy, AgingBucketDefinition, ProvisionRun,
-    ProvisionRunDetail, ProvisionRunActivity, DoubtfulAccountDashboard,
-    AtlasError, AtlasResult,
-};
 use super::DoubtfulAccountAllowanceRepository;
+use atlas_shared::{
+    AgingBucketDefinition, AtlasError, AtlasResult, DoubtfulAccountDashboard,
+    DoubtfulAccountPolicy, ProvisionRun, ProvisionRunActivity, ProvisionRunDetail,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -27,24 +26,25 @@ use uuid::Uuid;
 // ============================================================================
 
 /// Valid calculation methods
-pub const VALID_CALCULATION_METHODS: &[&str] = &[
-    "aging_based", "percentage_based", "specific_identification",
-];
+pub const VALID_CALCULATION_METHODS: &[&str] =
+    &["aging_based", "percentage_based", "specific_identification"];
 
 /// Valid policy statuses
-pub const VALID_POLICY_STATUSES: &[&str] = &[
-    "active", "inactive", "archived",
-];
+pub const VALID_POLICY_STATUSES: &[&str] = &["active", "inactive", "archived"];
 
 /// Valid run statuses
-pub const VALID_RUN_STATUSES: &[&str] = &[
-    "draft", "calculated", "posted", "reversed", "cancelled",
-];
+pub const VALID_RUN_STATUSES: &[&str] = &["draft", "calculated", "posted", "reversed", "cancelled"];
 
 /// Valid activity actions
 pub const VALID_ACTIONS: &[&str] = &[
-    "created", "calculated", "posted", "reversed", "cancelled",
-    "bucket_added", "bucket_updated", "status_changed",
+    "created",
+    "calculated",
+    "posted",
+    "reversed",
+    "cancelled",
+    "bucket_added",
+    "bucket_updated",
+    "status_changed",
 ];
 
 // ============================================================================
@@ -99,7 +99,8 @@ impl DoubtfulAccountAllowanceEngine {
         if !VALID_CALCULATION_METHODS.contains(&calculation_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid calculation_method '{}'. Must be one of: {}",
-                calculation_method, VALID_CALCULATION_METHODS.join(", ")
+                calculation_method,
+                VALID_CALCULATION_METHODS.join(", ")
             )));
         }
         if currency_code.is_empty() {
@@ -124,9 +125,9 @@ impl DoubtfulAccountAllowanceEngine {
 
         // Validate flat_percentage for percentage_based method
         if calculation_method == "percentage_based" {
-            let pct: f64 = flat_percentage.parse().map_err(|_| AtlasError::ValidationFailed(
-                "flat_percentage must be a valid number".to_string(),
-            ))?;
+            let pct: f64 = flat_percentage.parse().map_err(|_| {
+                AtlasError::ValidationFailed("flat_percentage must be a valid number".to_string())
+            })?;
             if !(0.0..=100.0).contains(&pct) {
                 return Err(AtlasError::ValidationFailed(
                     "flat_percentage must be between 0 and 100".to_string(),
@@ -135,7 +136,11 @@ impl DoubtfulAccountAllowanceEngine {
         }
 
         // Check for duplicate code
-        if let Some(_existing) = self.repository.get_policy_by_code(org_id, policy_code).await? {
+        if let Some(_existing) = self
+            .repository
+            .get_policy_by_code(org_id, policy_code)
+            .await?
+        {
             return Err(AtlasError::ValidationFailed(format!(
                 "Policy code '{policy_code}' already exists for this organization"
             )));
@@ -146,21 +151,41 @@ impl DoubtfulAccountAllowanceEngine {
             policy_code, policy_name, calculation_method
         );
 
-        let policy = self.repository.create_policy(
-            org_id, policy_code, policy_name, description,
-            calculation_method, flat_percentage,
-            default_provision_account, default_expense_account,
-            currency_code, effective_from, effective_to,
-            created_by,
-        ).await?;
+        let policy = self
+            .repository
+            .create_policy(
+                org_id,
+                policy_code,
+                policy_name,
+                description,
+                calculation_method,
+                flat_percentage,
+                default_provision_account,
+                default_expense_account,
+                currency_code,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await?;
 
         // Log activity
-        self.repository.create_activity(
-            org_id, None, Some(policy.id),
-            "created",
-            Some(&format!("Policy '{policy_code}' created with {calculation_method} method")),
-            created_by, None, Some("active"), None,
-        ).await.ok();
+        self.repository
+            .create_activity(
+                org_id,
+                None,
+                Some(policy.id),
+                "created",
+                Some(&format!(
+                    "Policy '{policy_code}' created with {calculation_method} method"
+                )),
+                created_by,
+                None,
+                Some("active"),
+                None,
+            )
+            .await
+            .ok();
 
         Ok(policy)
     }
@@ -176,7 +201,9 @@ impl DoubtfulAccountAllowanceEngine {
         org_id: Uuid,
         policy_code: &str,
     ) -> AtlasResult<Option<DoubtfulAccountPolicy>> {
-        self.repository.get_policy_by_code(org_id, policy_code).await
+        self.repository
+            .get_policy_by_code(org_id, policy_code)
+            .await
     }
 
     /// List policies
@@ -189,8 +216,15 @@ impl DoubtfulAccountAllowanceEngine {
     }
 
     /// Deactivate a policy
-    pub async fn deactivate_policy(&self, policy_id: Uuid, deactivated_by: Option<Uuid>) -> AtlasResult<DoubtfulAccountPolicy> {
-        let policy = self.repository.get_policy(policy_id).await?
+    pub async fn deactivate_policy(
+        &self,
+        policy_id: Uuid,
+        deactivated_by: Option<Uuid>,
+    ) -> AtlasResult<DoubtfulAccountPolicy> {
+        let policy = self
+            .repository
+            .get_policy(policy_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Policy not found".to_string()))?;
 
         if policy.status == "inactive" {
@@ -199,21 +233,39 @@ impl DoubtfulAccountAllowanceEngine {
             ));
         }
 
-        let updated = self.repository.update_policy_status(policy_id, "inactive").await?;
+        let updated = self
+            .repository
+            .update_policy_status(policy_id, "inactive")
+            .await?;
 
-        self.repository.create_activity(
-            policy.organization_id, None, Some(policy_id),
-            "status_changed",
-            Some(&format!("Policy '{}' deactivated", policy.policy_code)),
-            deactivated_by, Some(&policy.status), Some("inactive"), None,
-        ).await.ok();
+        self.repository
+            .create_activity(
+                policy.organization_id,
+                None,
+                Some(policy_id),
+                "status_changed",
+                Some(&format!("Policy '{}' deactivated", policy.policy_code)),
+                deactivated_by,
+                Some(&policy.status),
+                Some("inactive"),
+                None,
+            )
+            .await
+            .ok();
 
         Ok(updated)
     }
 
     /// Reactivate a policy
-    pub async fn reactivate_policy(&self, policy_id: Uuid, reactivated_by: Option<Uuid>) -> AtlasResult<DoubtfulAccountPolicy> {
-        let policy = self.repository.get_policy(policy_id).await?
+    pub async fn reactivate_policy(
+        &self,
+        policy_id: Uuid,
+        reactivated_by: Option<Uuid>,
+    ) -> AtlasResult<DoubtfulAccountPolicy> {
+        let policy = self
+            .repository
+            .get_policy(policy_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Policy not found".to_string()))?;
 
         if policy.status == "active" {
@@ -222,14 +274,25 @@ impl DoubtfulAccountAllowanceEngine {
             ));
         }
 
-        let updated = self.repository.update_policy_status(policy_id, "active").await?;
+        let updated = self
+            .repository
+            .update_policy_status(policy_id, "active")
+            .await?;
 
-        self.repository.create_activity(
-            policy.organization_id, None, Some(policy_id),
-            "status_changed",
-            Some(&format!("Policy '{}' reactivated", policy.policy_code)),
-            reactivated_by, Some(&policy.status), Some("active"), None,
-        ).await.ok();
+        self.repository
+            .create_activity(
+                policy.organization_id,
+                None,
+                Some(policy_id),
+                "status_changed",
+                Some(&format!("Policy '{}' reactivated", policy.policy_code)),
+                reactivated_by,
+                Some(&policy.status),
+                Some("active"),
+                None,
+            )
+            .await
+            .ok();
 
         Ok(updated)
     }
@@ -251,7 +314,10 @@ impl DoubtfulAccountAllowanceEngine {
         display_order: i32,
     ) -> AtlasResult<AgingBucketDefinition> {
         // Validate policy exists
-        let policy = self.repository.get_policy(policy_id).await?
+        let policy = self
+            .repository
+            .get_policy(policy_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Policy not found".to_string()))?;
 
         if policy.calculation_method != "aging_based" {
@@ -280,9 +346,9 @@ impl DoubtfulAccountAllowanceEngine {
             }
         }
 
-        let pct: f64 = provision_percentage.parse().map_err(|_| AtlasError::ValidationFailed(
-            "provision_percentage must be a valid number".to_string(),
-        ))?;
+        let pct: f64 = provision_percentage.parse().map_err(|_| {
+            AtlasError::ValidationFailed("provision_percentage must be a valid number".to_string())
+        })?;
 
         if !(0.0..=100.0).contains(&pct) {
             return Err(AtlasError::ValidationFailed(
@@ -292,22 +358,40 @@ impl DoubtfulAccountAllowanceEngine {
 
         info!(
             "Doubtful Account: Creating aging bucket '{}' ({}-{} days, {}%) for policy {}",
-            bucket_name, from_days,
+            bucket_name,
+            from_days,
             to_days.map_or_else(|| "∞".to_string(), |d| d.to_string()),
-            pct, policy.policy_code
+            pct,
+            policy.policy_code
         );
 
-        let bucket = self.repository.create_aging_bucket(
-            org_id, policy_id, bucket_name,
-            from_days, to_days, provision_percentage, display_order,
-        ).await?;
+        let bucket = self
+            .repository
+            .create_aging_bucket(
+                org_id,
+                policy_id,
+                bucket_name,
+                from_days,
+                to_days,
+                provision_percentage,
+                display_order,
+            )
+            .await?;
 
-        self.repository.create_activity(
-            org_id, None, Some(policy_id),
-            "bucket_added",
-            Some(&format!("Bucket '{bucket_name}' added ({pct:.1}%)")),
-            None, None, None, None,
-        ).await.ok();
+        self.repository
+            .create_activity(
+                org_id,
+                None,
+                Some(policy_id),
+                "bucket_added",
+                Some(&format!("Bucket '{bucket_name}' added ({pct:.1}%)")),
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .ok();
 
         Ok(bucket)
     }
@@ -327,7 +411,10 @@ impl DoubtfulAccountAllowanceEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ProvisionRun> {
         // Validate policy exists and is active
-        let policy = self.repository.get_policy(policy_id).await?
+        let policy = self
+            .repository
+            .get_policy(policy_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Policy not found".to_string()))?;
 
         if policy.status != "active" {
@@ -337,7 +424,11 @@ impl DoubtfulAccountAllowanceEngine {
         }
 
         // Generate run number
-        let next_num = self.repository.get_next_run_number(org_id).await.unwrap_or(1);
+        let next_num = self
+            .repository
+            .get_next_run_number(org_id)
+            .await
+            .unwrap_or(1);
         let run_number = format!("PROV-{next_num:04}");
 
         let today = chrono::Utc::now().date_naive();
@@ -347,19 +438,37 @@ impl DoubtfulAccountAllowanceEngine {
             run_number, policy.policy_code, as_of_date
         );
 
-        let run = self.repository.create_provision_run(
-            org_id, &run_number, policy_id, &policy.policy_code,
-            today, as_of_date, &policy.calculation_method,
-            &policy.currency_code, description, created_by,
-        ).await?;
+        let run = self
+            .repository
+            .create_provision_run(
+                org_id,
+                &run_number,
+                policy_id,
+                &policy.policy_code,
+                today,
+                as_of_date,
+                &policy.calculation_method,
+                &policy.currency_code,
+                description,
+                created_by,
+            )
+            .await?;
 
         // Log activity
-        self.repository.create_activity(
-            org_id, Some(run.id), Some(policy_id),
-            "created",
-            Some(&format!("Provision run '{run_number}' created")),
-            created_by, None, Some("draft"), None,
-        ).await.ok();
+        self.repository
+            .create_activity(
+                org_id,
+                Some(run.id),
+                Some(policy_id),
+                "created",
+                Some(&format!("Provision run '{run_number}' created")),
+                created_by,
+                None,
+                Some("draft"),
+                None,
+            )
+            .await
+            .ok();
 
         Ok(run)
     }
@@ -371,7 +480,10 @@ impl DoubtfulAccountAllowanceEngine {
         run_id: Uuid,
         calculated_by: Option<Uuid>,
     ) -> AtlasResult<ProvisionRun> {
-        let run = self.repository.get_provision_run(run_id).await?
+        let run = self
+            .repository
+            .get_provision_run(run_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Provision run not found".to_string()))?;
 
         if run.status != "draft" {
@@ -382,7 +494,10 @@ impl DoubtfulAccountAllowanceEngine {
         }
 
         // Get the policy and its aging buckets
-        let policy = self.repository.get_policy(run.policy_id).await?
+        let policy = self
+            .repository
+            .get_policy(run.policy_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Policy not found".to_string()))?;
 
         let mut total_outstanding: f64 = 0.0;
@@ -401,15 +516,22 @@ impl DoubtfulAccountAllowanceEngine {
                     let pct: f64 = bucket.provision_percentage.parse().unwrap_or(0.0);
                     let bucket_provision = simulated_outstanding * pct / 100.0;
 
-                    self.repository.create_provision_detail(
-                        run.organization_id, run_id,
-                        Some(bucket.id), &bucket.bucket_name,
-                        bucket.from_days, bucket.to_days,
-                        &bucket.provision_percentage,
-                        &format!("{simulated_outstanding:.2}"),
-                        0, 0,
-                        &format!("{bucket_provision:.2}"),
-                    ).await.ok();
+                    self.repository
+                        .create_provision_detail(
+                            run.organization_id,
+                            run_id,
+                            Some(bucket.id),
+                            &bucket.bucket_name,
+                            bucket.from_days,
+                            bucket.to_days,
+                            &bucket.provision_percentage,
+                            &format!("{simulated_outstanding:.2}"),
+                            0,
+                            0,
+                            &format!("{bucket_provision:.2}"),
+                        )
+                        .await
+                        .ok();
 
                     total_outstanding += simulated_outstanding;
                     total_provision += bucket_provision;
@@ -421,15 +543,22 @@ impl DoubtfulAccountAllowanceEngine {
                 let simulated_outstanding = 0.0;
                 let provision = simulated_outstanding * flat_pct / 100.0;
 
-                self.repository.create_provision_detail(
-                    run.organization_id, run_id,
-                    None, "All Outstanding",
-                    0, None,
-                    &format!("{flat_pct:.4}"),
-                    &format!("{simulated_outstanding:.2}"),
-                    0, 0,
-                    &format!("{provision:.2}"),
-                ).await.ok();
+                self.repository
+                    .create_provision_detail(
+                        run.organization_id,
+                        run_id,
+                        None,
+                        "All Outstanding",
+                        0,
+                        None,
+                        &format!("{flat_pct:.4}"),
+                        &format!("{simulated_outstanding:.2}"),
+                        0,
+                        0,
+                        &format!("{provision:.2}"),
+                    )
+                    .await
+                    .ok();
 
                 total_outstanding = simulated_outstanding;
                 total_provision = provision;
@@ -437,25 +566,32 @@ impl DoubtfulAccountAllowanceEngine {
             "specific_identification" => {
                 // In production, would load manually entered amounts per customer
                 // Here we just create an empty detail
-                self.repository.create_provision_detail(
-                    run.organization_id, run_id,
-                    None, "Specific Identification",
-                    0, None,
-                    "0.0000",
-                    "0.00",
-                    0, 0,
-                    "0.00",
-                ).await.ok();
+                self.repository
+                    .create_provision_detail(
+                        run.organization_id,
+                        run_id,
+                        None,
+                        "Specific Identification",
+                        0,
+                        None,
+                        "0.0000",
+                        "0.00",
+                        0,
+                        0,
+                        "0.00",
+                    )
+                    .await
+                    .ok();
             }
             _ => {}
         }
 
         // Get prior provision amount
-        let prior_runs = self.repository.list_provision_runs(
-            run.organization_id,
-            Some(run.policy_id),
-            Some("posted"),
-        ).await.unwrap_or_default();
+        let prior_runs = self
+            .repository
+            .list_provision_runs(run.organization_id, Some(run.policy_id), Some("posted"))
+            .await
+            .unwrap_or_default();
 
         let total_prior_provision: f64 = prior_runs
             .first()
@@ -463,16 +599,19 @@ impl DoubtfulAccountAllowanceEngine {
 
         let incremental = total_provision - total_prior_provision;
 
-        let updated_run = self.repository.update_provision_run_results(
-            run_id,
-            &format!("{total_outstanding:.2}"),
-            &format!("{total_provision:.2}"),
-            &format!("{total_prior_provision:.2}"),
-            &format!("{incremental:.2}"),
-            total_customer_count,
-            total_transaction_count,
-            "calculated",
-        ).await?;
+        let updated_run = self
+            .repository
+            .update_provision_run_results(
+                run_id,
+                &format!("{total_outstanding:.2}"),
+                &format!("{total_provision:.2}"),
+                &format!("{total_prior_provision:.2}"),
+                &format!("{incremental:.2}"),
+                total_customer_count,
+                total_transaction_count,
+                "calculated",
+            )
+            .await?;
 
         self.repository.create_activity(
             run.organization_id, Some(run_id), Some(run.policy_id),
@@ -499,7 +638,10 @@ impl DoubtfulAccountAllowanceEngine {
         posted_by: Option<Uuid>,
         journal_entry_number: Option<&str>,
     ) -> AtlasResult<ProvisionRun> {
-        let run = self.repository.get_provision_run(run_id).await?
+        let run = self
+            .repository
+            .get_provision_run(run_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Provision run not found".to_string()))?;
 
         if run.status != "calculated" {
@@ -511,22 +653,28 @@ impl DoubtfulAccountAllowanceEngine {
 
         let je_number = journal_entry_number.unwrap_or(&run.run_number);
 
-        let updated = self.repository.update_provision_run_status(
-            run_id,
-            "posted",
-            posted_by,
-            Some(je_number),
-        ).await?;
+        let updated = self
+            .repository
+            .update_provision_run_status(run_id, "posted", posted_by, Some(je_number))
+            .await?;
 
-        self.repository.create_activity(
-            run.organization_id, Some(run_id), Some(run.policy_id),
-            "posted",
-            Some(&format!(
-                "Provision posted with journal entry '{}'. Amount: {}",
-                je_number, run.total_provision_amount
-            )),
-            posted_by, Some("calculated"), Some("posted"), None,
-        ).await.ok();
+        self.repository
+            .create_activity(
+                run.organization_id,
+                Some(run_id),
+                Some(run.policy_id),
+                "posted",
+                Some(&format!(
+                    "Provision posted with journal entry '{}'. Amount: {}",
+                    je_number, run.total_provision_amount
+                )),
+                posted_by,
+                Some("calculated"),
+                Some("posted"),
+                None,
+            )
+            .await
+            .ok();
 
         info!(
             "Doubtful Account: Posted provision run '{}' with JE '{}'",
@@ -543,7 +691,10 @@ impl DoubtfulAccountAllowanceEngine {
         run_id: Uuid,
         reversed_by: Option<Uuid>,
     ) -> AtlasResult<ProvisionRun> {
-        let run = self.repository.get_provision_run(run_id).await?
+        let run = self
+            .repository
+            .get_provision_run(run_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Provision run not found".to_string()))?;
 
         if run.status != "posted" {
@@ -553,21 +704,30 @@ impl DoubtfulAccountAllowanceEngine {
             )));
         }
 
-        let updated = self.repository.update_provision_run_status(
-            run_id,
-            "reversed",
-            reversed_by,
-            None,
-        ).await?;
+        let updated = self
+            .repository
+            .update_provision_run_status(run_id, "reversed", reversed_by, None)
+            .await?;
 
-        self.repository.create_activity(
-            run.organization_id, Some(run_id), Some(run.policy_id),
-            "reversed",
-            Some(&format!("Provision '{}' reversed", run.run_number)),
-            reversed_by, Some("posted"), Some("reversed"), None,
-        ).await.ok();
+        self.repository
+            .create_activity(
+                run.organization_id,
+                Some(run_id),
+                Some(run.policy_id),
+                "reversed",
+                Some(&format!("Provision '{}' reversed", run.run_number)),
+                reversed_by,
+                Some("posted"),
+                Some("reversed"),
+                None,
+            )
+            .await
+            .ok();
 
-        info!("Doubtful Account: Reversed provision run '{}'", run.run_number);
+        info!(
+            "Doubtful Account: Reversed provision run '{}'",
+            run.run_number
+        );
 
         Ok(updated)
     }
@@ -578,7 +738,10 @@ impl DoubtfulAccountAllowanceEngine {
         run_id: Uuid,
         cancelled_by: Option<Uuid>,
     ) -> AtlasResult<ProvisionRun> {
-        let run = self.repository.get_provision_run(run_id).await?
+        let run = self
+            .repository
+            .get_provision_run(run_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Provision run not found".to_string()))?;
 
         if run.status != "draft" {
@@ -588,19 +751,25 @@ impl DoubtfulAccountAllowanceEngine {
             )));
         }
 
-        let updated = self.repository.update_provision_run_status(
-            run_id,
-            "cancelled",
-            cancelled_by,
-            None,
-        ).await?;
+        let updated = self
+            .repository
+            .update_provision_run_status(run_id, "cancelled", cancelled_by, None)
+            .await?;
 
-        self.repository.create_activity(
-            run.organization_id, Some(run_id), Some(run.policy_id),
-            "cancelled",
-            Some(&format!("Provision '{}' cancelled", run.run_number)),
-            cancelled_by, Some("draft"), Some("cancelled"), None,
-        ).await.ok();
+        self.repository
+            .create_activity(
+                run.organization_id,
+                Some(run_id),
+                Some(run.policy_id),
+                "cancelled",
+                Some(&format!("Provision '{}' cancelled", run.run_number)),
+                cancelled_by,
+                Some("draft"),
+                Some("cancelled"),
+                None,
+            )
+            .await
+            .ok();
 
         Ok(updated)
     }
@@ -616,7 +785,9 @@ impl DoubtfulAccountAllowanceEngine {
         org_id: Uuid,
         run_number: &str,
     ) -> AtlasResult<Option<ProvisionRun>> {
-        self.repository.get_provision_run_by_number(org_id, run_number).await
+        self.repository
+            .get_provision_run_by_number(org_id, run_number)
+            .await
     }
 
     /// List provision runs
@@ -626,7 +797,9 @@ impl DoubtfulAccountAllowanceEngine {
         policy_id: Option<Uuid>,
         status: Option<&str>,
     ) -> AtlasResult<Vec<ProvisionRun>> {
-        self.repository.list_provision_runs(org_id, policy_id, status).await
+        self.repository
+            .list_provision_runs(org_id, policy_id, status)
+            .await
     }
 
     /// List provision run details
@@ -638,18 +811,12 @@ impl DoubtfulAccountAllowanceEngine {
     }
 
     /// List activities for a run
-    pub async fn list_activities(
-        &self,
-        run_id: Uuid,
-    ) -> AtlasResult<Vec<ProvisionRunActivity>> {
+    pub async fn list_activities(&self, run_id: Uuid) -> AtlasResult<Vec<ProvisionRunActivity>> {
         self.repository.list_activities(run_id).await
     }
 
     /// Get dashboard summary
-    pub async fn get_dashboard(
-        &self,
-        org_id: Uuid,
-    ) -> AtlasResult<DoubtfulAccountDashboard> {
+    pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<DoubtfulAccountDashboard> {
         self.repository.get_dashboard(org_id).await
     }
 

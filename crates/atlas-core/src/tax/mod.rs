@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Tax > Tax Configuration and Calculation
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::TaxEngine;
-pub use repository::{TaxRepository, PostgresTaxRepository};
+pub use repository::{PostgresTaxRepository, TaxRepository};

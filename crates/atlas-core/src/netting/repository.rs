@@ -2,12 +2,10 @@
 //!
 //! Storage interface for AP/AR netting data.
 
-use atlas_shared::{
-    NettingAgreement, NettingBatch, NettingTransactionLine,
-    NettingDashboardSummary,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, NettingAgreement, NettingBatch, NettingDashboardSummary, NettingTransactionLine,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -41,9 +39,21 @@ pub trait NettingRepository: Send + Sync {
     ) -> AtlasResult<NettingAgreement>;
 
     async fn get_agreement(&self, id: Uuid) -> AtlasResult<Option<NettingAgreement>>;
-    async fn get_agreement_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<NettingAgreement>>;
-    async fn list_agreements(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<NettingAgreement>>;
-    async fn update_agreement_status(&self, id: Uuid, status: &str) -> AtlasResult<NettingAgreement>;
+    async fn get_agreement_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<NettingAgreement>>;
+    async fn list_agreements(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<NettingAgreement>>;
+    async fn update_agreement_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<NettingAgreement>;
 
     // Batches
     async fn create_batch(
@@ -60,17 +70,29 @@ pub trait NettingRepository: Send + Sync {
     ) -> AtlasResult<NettingBatch>;
 
     async fn get_batch(&self, id: Uuid) -> AtlasResult<Option<NettingBatch>>;
-    async fn list_batches(&self, org_id: Uuid, agreement_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<NettingBatch>>;
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        agreement_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<NettingBatch>>;
     async fn update_batch_status(
-        &self, id: Uuid, status: &str,
-        submitted_by: Option<Uuid>, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        submitted_by: Option<Uuid>,
+        approved_by: Option<Uuid>,
         rejected_reason: Option<&str>,
     ) -> AtlasResult<NettingBatch>;
     async fn update_batch_totals(
-        &self, id: Uuid,
-        total_payables: &str, total_receivables: &str,
-        net_difference: &str, settlement_direction: &str,
-        payable_count: i32, receivable_count: i32,
+        &self,
+        id: Uuid,
+        total_payables: &str,
+        total_receivables: &str,
+        net_difference: &str,
+        settlement_direction: &str,
+        payable_count: i32,
+        receivable_count: i32,
     ) -> AtlasResult<()>;
 
     // Transaction Lines
@@ -91,7 +113,11 @@ pub trait NettingRepository: Send + Sync {
     ) -> AtlasResult<NettingTransactionLine>;
 
     async fn list_batch_lines(&self, batch_id: Uuid) -> AtlasResult<Vec<NettingTransactionLine>>;
-    async fn update_line_status(&self, id: Uuid, status: &str) -> AtlasResult<NettingTransactionLine>;
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<NettingTransactionLine>;
 
     // Dashboard
     async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<NettingDashboardSummary>;
@@ -103,7 +129,7 @@ pub struct PostgresNettingRepository {
 }
 
 impl PostgresNettingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -124,10 +150,14 @@ fn row_to_agreement(row: &sqlx::postgres::PgRow) -> NettingAgreement {
         currency_code: row.get("currency_code"),
         netting_direction: row.get("netting_direction"),
         settlement_method: row.get("settlement_method"),
-        minimum_netting_amount: row.try_get("minimum_netting_amount").unwrap_or("0".to_string()),
+        minimum_netting_amount: row
+            .try_get("minimum_netting_amount")
+            .unwrap_or("0".to_string()),
         maximum_netting_amount: row.try_get("maximum_netting_amount").unwrap_or(None),
         auto_select_transactions: row.get("auto_select_transactions"),
-        selection_criteria: row.try_get("selection_criteria").unwrap_or(serde_json::json!({})),
+        selection_criteria: row
+            .try_get("selection_criteria")
+            .unwrap_or(serde_json::json!({})),
         netting_clearing_account: row.get("netting_clearing_account"),
         ap_clearing_account: row.get("ap_clearing_account"),
         ar_clearing_account: row.get("ar_clearing_account"),
@@ -153,10 +183,16 @@ fn row_to_batch(row: &sqlx::postgres::PgRow) -> NettingBatch {
         partner_id: row.get("partner_id"),
         partner_name: row.get("partner_name"),
         currency_code: row.get("currency_code"),
-        total_payables_amount: row.try_get("total_payables_amount").unwrap_or("0".to_string()),
-        total_receivables_amount: row.try_get("total_receivables_amount").unwrap_or("0".to_string()),
+        total_payables_amount: row
+            .try_get("total_payables_amount")
+            .unwrap_or("0".to_string()),
+        total_receivables_amount: row
+            .try_get("total_receivables_amount")
+            .unwrap_or("0".to_string()),
         net_difference: row.try_get("net_difference").unwrap_or("0".to_string()),
-        settlement_direction: row.try_get("settlement_direction").unwrap_or("zero".to_string()),
+        settlement_direction: row
+            .try_get("settlement_direction")
+            .unwrap_or("zero".to_string()),
         status: row.get("status"),
         payable_transaction_count: row.try_get("payable_transaction_count").unwrap_or(0),
         receivable_transaction_count: row.try_get("receivable_transaction_count").unwrap_or(0),
@@ -202,14 +238,26 @@ fn row_to_transaction_line(row: &sqlx::postgres::PgRow) -> NettingTransactionLin
 impl NettingRepository for PostgresNettingRepository {
     async fn create_agreement(
         &self,
-        org_id: Uuid, agreement_number: &str, name: &str, description: Option<&str>,
-        partner_id: Uuid, partner_number: Option<&str>, partner_name: Option<&str>,
-        currency_code: &str, netting_direction: &str, settlement_method: &str,
-        minimum_netting_amount: &str, maximum_netting_amount: Option<&str>,
-        auto_select_transactions: bool, selection_criteria: serde_json::Value,
-        netting_clearing_account: Option<&str>, ap_clearing_account: Option<&str>,
-        ar_clearing_account: Option<&str>, approval_required: bool,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        agreement_number: &str,
+        name: &str,
+        description: Option<&str>,
+        partner_id: Uuid,
+        partner_number: Option<&str>,
+        partner_name: Option<&str>,
+        currency_code: &str,
+        netting_direction: &str,
+        settlement_method: &str,
+        minimum_netting_amount: &str,
+        maximum_netting_amount: Option<&str>,
+        auto_select_transactions: bool,
+        selection_criteria: serde_json::Value,
+        netting_clearing_account: Option<&str>,
+        ap_clearing_account: Option<&str>,
+        ar_clearing_account: Option<&str>,
+        approval_required: bool,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<NettingAgreement> {
         let row = sqlx::query(
@@ -228,13 +276,27 @@ impl NettingRepository for PostgresNettingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(agreement_number).bind(name).bind(description)
-        .bind(partner_id).bind(partner_number).bind(partner_name)
-        .bind(currency_code).bind(netting_direction).bind(settlement_method)
-        .bind(minimum_netting_amount).bind(maximum_netting_amount)
-        .bind(auto_select_transactions).bind(selection_criteria)
-        .bind(netting_clearing_account).bind(ap_clearing_account).bind(ar_clearing_account)
-        .bind(approval_required).bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(agreement_number)
+        .bind(name)
+        .bind(description)
+        .bind(partner_id)
+        .bind(partner_number)
+        .bind(partner_name)
+        .bind(currency_code)
+        .bind(netting_direction)
+        .bind(settlement_method)
+        .bind(minimum_netting_amount)
+        .bind(maximum_netting_amount)
+        .bind(auto_select_transactions)
+        .bind(selection_criteria)
+        .bind(netting_clearing_account)
+        .bind(ap_clearing_account)
+        .bind(ar_clearing_account)
+        .bind(approval_required)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -251,7 +313,11 @@ impl NettingRepository for PostgresNettingRepository {
         Ok(row.map(|r| row_to_agreement(&r)))
     }
 
-    async fn get_agreement_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<NettingAgreement>> {
+    async fn get_agreement_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<NettingAgreement>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.netting_agreements WHERE organization_id = $1 AND agreement_number = $2"
         )
@@ -262,7 +328,11 @@ impl NettingRepository for PostgresNettingRepository {
         Ok(row.map(|r| row_to_agreement(&r)))
     }
 
-    async fn list_agreements(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<NettingAgreement>> {
+    async fn list_agreements(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<NettingAgreement>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.netting_agreements
@@ -270,14 +340,19 @@ impl NettingRepository for PostgresNettingRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(status)
+        .bind(org_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_agreement).collect())
     }
 
-    async fn update_agreement_status(&self, id: Uuid, status: &str) -> AtlasResult<NettingAgreement> {
+    async fn update_agreement_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<NettingAgreement> {
         let row = sqlx::query(
             "UPDATE _atlas.netting_agreements SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         )
@@ -290,10 +365,15 @@ impl NettingRepository for PostgresNettingRepository {
 
     async fn create_batch(
         &self,
-        org_id: Uuid, batch_number: &str, agreement_id: Uuid,
-        netting_date: chrono::NaiveDate, gl_date: Option<chrono::NaiveDate>,
-        partner_id: Uuid, partner_name: Option<&str>,
-        currency_code: &str, created_by: Option<Uuid>,
+        org_id: Uuid,
+        batch_number: &str,
+        agreement_id: Uuid,
+        netting_date: chrono::NaiveDate,
+        gl_date: Option<chrono::NaiveDate>,
+        partner_id: Uuid,
+        partner_name: Option<&str>,
+        currency_code: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<NettingBatch> {
         let row = sqlx::query(
             r"
@@ -307,9 +387,15 @@ impl NettingRepository for PostgresNettingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(batch_number).bind(agreement_id)
-        .bind(netting_date).bind(gl_date).bind(partner_id).bind(partner_name)
-        .bind(currency_code).bind(created_by)
+        .bind(org_id)
+        .bind(batch_number)
+        .bind(agreement_id)
+        .bind(netting_date)
+        .bind(gl_date)
+        .bind(partner_id)
+        .bind(partner_name)
+        .bind(currency_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -325,7 +411,12 @@ impl NettingRepository for PostgresNettingRepository {
         Ok(row.map(|r| row_to_batch(&r)))
     }
 
-    async fn list_batches(&self, org_id: Uuid, agreement_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<NettingBatch>> {
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        agreement_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<NettingBatch>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.netting_batches
@@ -335,7 +426,9 @@ impl NettingRepository for PostgresNettingRepository {
             ORDER BY netting_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(agreement_id).bind(status)
+        .bind(org_id)
+        .bind(agreement_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -343,8 +436,11 @@ impl NettingRepository for PostgresNettingRepository {
     }
 
     async fn update_batch_status(
-        &self, id: Uuid, status: &str,
-        submitted_by: Option<Uuid>, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        submitted_by: Option<Uuid>,
+        approved_by: Option<Uuid>,
         rejected_reason: Option<&str>,
     ) -> AtlasResult<NettingBatch> {
         let row = sqlx::query(
@@ -362,7 +458,11 @@ impl NettingRepository for PostgresNettingRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(submitted_by).bind(approved_by).bind(rejected_reason)
+        .bind(id)
+        .bind(status)
+        .bind(submitted_by)
+        .bind(approved_by)
+        .bind(rejected_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -370,10 +470,14 @@ impl NettingRepository for PostgresNettingRepository {
     }
 
     async fn update_batch_totals(
-        &self, id: Uuid,
-        total_payables: &str, total_receivables: &str,
-        net_difference: &str, settlement_direction: &str,
-        payable_count: i32, receivable_count: i32,
+        &self,
+        id: Uuid,
+        total_payables: &str,
+        total_receivables: &str,
+        net_difference: &str,
+        settlement_direction: &str,
+        payable_count: i32,
+        receivable_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
             r"
@@ -388,9 +492,13 @@ impl NettingRepository for PostgresNettingRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(total_payables).bind(total_receivables)
-        .bind(net_difference).bind(settlement_direction)
-        .bind(payable_count).bind(receivable_count)
+        .bind(id)
+        .bind(total_payables)
+        .bind(total_receivables)
+        .bind(net_difference)
+        .bind(settlement_direction)
+        .bind(payable_count)
+        .bind(receivable_count)
         .execute(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -399,11 +507,18 @@ impl NettingRepository for PostgresNettingRepository {
 
     async fn create_transaction_line(
         &self,
-        org_id: Uuid, batch_id: Uuid, line_number: i32,
-        source_type: &str, source_id: Uuid,
-        source_number: Option<&str>, source_date: Option<chrono::NaiveDate>,
-        original_amount: &str, netting_amount: &str, remaining_amount: &str,
-        currency_code: &str, created_by: Option<Uuid>,
+        org_id: Uuid,
+        batch_id: Uuid,
+        line_number: i32,
+        source_type: &str,
+        source_id: Uuid,
+        source_number: Option<&str>,
+        source_date: Option<chrono::NaiveDate>,
+        original_amount: &str,
+        netting_amount: &str,
+        remaining_amount: &str,
+        currency_code: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<NettingTransactionLine> {
         let row = sqlx::query(
             r"
@@ -418,10 +533,18 @@ impl NettingRepository for PostgresNettingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(batch_id).bind(line_number)
-        .bind(source_type).bind(source_id).bind(source_number).bind(source_date)
-        .bind(original_amount).bind(netting_amount).bind(remaining_amount)
-        .bind(currency_code).bind(created_by)
+        .bind(org_id)
+        .bind(batch_id)
+        .bind(line_number)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
+        .bind(source_date)
+        .bind(original_amount)
+        .bind(netting_amount)
+        .bind(remaining_amount)
+        .bind(currency_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -439,7 +562,11 @@ impl NettingRepository for PostgresNettingRepository {
         Ok(rows.iter().map(row_to_transaction_line).collect())
     }
 
-    async fn update_line_status(&self, id: Uuid, status: &str) -> AtlasResult<NettingTransactionLine> {
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<NettingTransactionLine> {
         let row = sqlx::query(
             "UPDATE _atlas.netting_transaction_lines SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         )
@@ -495,9 +622,20 @@ impl NettingRepository for PostgresNettingRepository {
             draft_batches: batch_row.try_get::<i64, _>("draft").unwrap_or(0) as i32,
             pending_approval_batches: batch_row.try_get::<i64, _>("pending").unwrap_or(0) as i32,
             settled_batches: batch_row.try_get::<i64, _>("settled").unwrap_or(0) as i32,
-            total_payables_netted: format!("{:.2}", batch_row.try_get::<f64, _>("total_payables").unwrap_or(0.0)),
-            total_receivables_netted: format!("{:.2}", batch_row.try_get::<f64, _>("total_receivables").unwrap_or(0.0)),
-            total_net_difference_settled: format!("{:.2}", batch_row.try_get::<f64, _>("total_net").unwrap_or(0.0)),
+            total_payables_netted: format!(
+                "{:.2}",
+                batch_row.try_get::<f64, _>("total_payables").unwrap_or(0.0)
+            ),
+            total_receivables_netted: format!(
+                "{:.2}",
+                batch_row
+                    .try_get::<f64, _>("total_receivables")
+                    .unwrap_or(0.0)
+            ),
+            total_net_difference_settled: format!(
+                "{:.2}",
+                batch_row.try_get::<f64, _>("total_net").unwrap_or(0.0)
+            ),
         })
     }
 }

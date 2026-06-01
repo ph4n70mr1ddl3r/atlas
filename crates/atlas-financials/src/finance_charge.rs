@@ -1,7 +1,7 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FinanceChargeTerm {
@@ -53,7 +53,10 @@ impl FinanceChargeService {
         currency: String,
     ) -> Result<FinanceChargeTerm, String> {
         let mut terms = self.terms.write().unwrap();
-        if terms.iter().any(|t| t.organization_id == organization_id && t.term_code == code) {
+        if terms
+            .iter()
+            .any(|t| t.organization_id == organization_id && t.term_code == code)
+        {
             return Err("Term with this code already exists".to_string());
         }
 
@@ -96,7 +99,10 @@ impl FinanceChargeService {
         date: NaiveDate,
     ) -> Result<FinanceChargeRun, String> {
         let mut runs = self.runs.write().unwrap();
-        if runs.iter().any(|r| r.organization_id == organization_id && r.run_number == number) {
+        if runs
+            .iter()
+            .any(|r| r.organization_id == organization_id && r.run_number == number)
+        {
             return Err("Run with this number already exists".to_string());
         }
 
@@ -122,9 +128,18 @@ mod tests {
     fn test_calculate_percentage_charge() {
         let service = FinanceChargeService::new();
         let org_id = Uuid::new_v4();
-        
-        let t = service.create_term(org_id, "LATE_2".to_string(), "percentage".to_string(), 2.0, 5, "USD".to_string()).unwrap();
-        
+
+        let t = service
+            .create_term(
+                org_id,
+                "LATE_2".to_string(),
+                "percentage".to_string(),
+                2.0,
+                5,
+                "USD".to_string(),
+            )
+            .unwrap();
+
         // 3 days overdue (<= 5 grace) -> 0
         assert_eq!(service.calculate_charge(t.id, 1000.0, 3), 0.0);
 
@@ -136,9 +151,18 @@ mod tests {
     fn test_calculate_flat_fee() {
         let service = FinanceChargeService::new();
         let org_id = Uuid::new_v4();
-        
-        let t = service.create_term(org_id, "FLAT_50".to_string(), "flat_fee".to_string(), 50.0, 0, "USD".to_string()).unwrap();
-        
+
+        let t = service
+            .create_term(
+                org_id,
+                "FLAT_50".to_string(),
+                "flat_fee".to_string(),
+                50.0,
+                0,
+                "USD".to_string(),
+            )
+            .unwrap();
+
         assert_eq!(service.calculate_charge(t.id, 1000.0, 1), 50.0);
     }
 }

@@ -4,18 +4,17 @@
 //! Tracks non-monetary statistical data (headcount, sqft, machine hours, etc.)
 //! alongside financial data for reporting and allocation purposes.
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Statistical Units
@@ -38,16 +37,24 @@ pub async fn create_unit(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.statistical_accounting_engine.create_unit(
-        org_id,
-        &payload.code,
-        &payload.name,
-        payload.description.as_deref(),
-        payload.stat_type.as_deref().unwrap_or("custom"),
-        payload.unit_of_measure.as_deref().unwrap_or("each"),
-        Some(user_id),
-    ).await {
-        Ok(unit) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(unit)))),
+    match state
+        .financials
+        .statistical_accounting_engine
+        .create_unit(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            payload.stat_type.as_deref().unwrap_or("custom"),
+            payload.unit_of_measure.as_deref().unwrap_or("each"),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(unit) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(unit)),
+        )),
         Err(e) => {
             error!("Failed to create statistical unit: {}", e);
             Err(match e {
@@ -71,11 +78,12 @@ pub async fn list_units(
     Query(query): Query<ListUnitsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.statistical_accounting_engine.list_units(
-        org_id,
-        query.stat_type.as_deref(),
-        query.is_active,
-    ).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .list_units(org_id, query.stat_type.as_deref(), query.is_active)
+        .await
+    {
         Ok(units) => Ok(Json(serde_json::json!({ "data": units }))),
         Err(e) => {
             error!("Failed to list statistical units: {}", e);
@@ -91,7 +99,12 @@ pub async fn get_unit(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.statistical_accounting_engine.get_unit(id).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .get_unit(id)
+        .await
+    {
         Ok(Some(u)) => Ok(Json(crate::handlers::records::to_json_or_null(u))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -107,7 +120,12 @@ pub async fn get_unit_by_code(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.statistical_accounting_engine.get_unit_by_code(org_id, &code).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .get_unit_by_code(org_id, &code)
+        .await
+    {
         Ok(Some(u)) => Ok(Json(crate::handlers::records::to_json_or_null(u))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -121,7 +139,12 @@ pub async fn activate_unit(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.statistical_accounting_engine.activate_unit(id).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .activate_unit(id)
+        .await
+    {
         Ok(u) => Ok(Json(crate::handlers::records::to_json_or_null(u))),
         Err(e) => {
             error!("Failed to activate statistical unit: {}", e);
@@ -138,7 +161,12 @@ pub async fn deactivate_unit(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.statistical_accounting_engine.deactivate_unit(id).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .deactivate_unit(id)
+        .await
+    {
         Ok(u) => Ok(Json(crate::handlers::records::to_json_or_null(u))),
         Err(e) => {
             error!("Failed to deactivate statistical unit: {}", e);
@@ -180,24 +208,32 @@ pub async fn create_entry(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.statistical_accounting_engine.create_entry(
-        org_id,
-        payload.statistical_unit_id,
-        payload.account_code.as_deref(),
-        payload.dimension1.as_deref(),
-        payload.dimension2.as_deref(),
-        payload.dimension3.as_deref(),
-        payload.fiscal_year,
-        payload.period_number,
-        &payload.quantity,
-        payload.unit_cost.as_deref(),
-        payload.source_type.as_deref(),
-        payload.source_id,
-        payload.source_number.as_deref(),
-        payload.description.as_deref(),
-        Some(user_id),
-    ).await {
-        Ok(entry) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(entry)))),
+    match state
+        .financials
+        .statistical_accounting_engine
+        .create_entry(
+            org_id,
+            payload.statistical_unit_id,
+            payload.account_code.as_deref(),
+            payload.dimension1.as_deref(),
+            payload.dimension2.as_deref(),
+            payload.dimension3.as_deref(),
+            payload.fiscal_year,
+            payload.period_number,
+            &payload.quantity,
+            payload.unit_cost.as_deref(),
+            payload.source_type.as_deref(),
+            payload.source_id,
+            payload.source_number.as_deref(),
+            payload.description.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(entry) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(entry)),
+        )),
         Err(e) => {
             error!("Failed to create statistical entry: {}", e);
             Err(match e {
@@ -223,13 +259,18 @@ pub async fn list_entries(
     Query(query): Query<ListEntriesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.statistical_accounting_engine.list_entries(
-        org_id,
-        query.unit_id,
-        query.fiscal_year,
-        query.period,
-        query.status.as_deref(),
-    ).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .list_entries(
+            org_id,
+            query.unit_id,
+            query.fiscal_year,
+            query.period,
+            query.status.as_deref(),
+        )
+        .await
+    {
         Ok(entries) => Ok(Json(serde_json::json!({ "data": entries }))),
         Err(e) => {
             error!("Failed to list statistical entries: {}", e);
@@ -245,7 +286,12 @@ pub async fn get_entry(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.statistical_accounting_engine.get_entry(id).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .get_entry(id)
+        .await
+    {
         Ok(Some(e)) => Ok(Json(crate::handlers::records::to_json_or_null(e))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -259,7 +305,12 @@ pub async fn post_entry(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.statistical_accounting_engine.post_entry(id).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .post_entry(id)
+        .await
+    {
         Ok(e) => Ok(Json(crate::handlers::records::to_json_or_null(e))),
         Err(e) => {
             error!("Failed to post statistical entry: {}", e);
@@ -276,7 +327,12 @@ pub async fn reverse_entry(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.statistical_accounting_engine.reverse_entry(id).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .reverse_entry(id)
+        .await
+    {
         Ok(e) => Ok(Json(crate::handlers::records::to_json_or_null(e))),
         Err(e) => {
             error!("Failed to reverse statistical entry: {}", e);
@@ -306,9 +362,12 @@ pub async fn get_balance(
     Query(query): Query<GetBalanceQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.statistical_accounting_engine.get_balance(
-        org_id, query.unit_id, query.fiscal_year, query.period,
-    ).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .get_balance(org_id, query.unit_id, query.fiscal_year, query.period)
+        .await
+    {
         Ok(Some(b)) => Ok(Json(crate::handlers::records::to_json_or_null(b))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -327,7 +386,12 @@ pub async fn get_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.statistical_accounting_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .statistical_accounting_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => {
             error!("Failed to get statistical accounting dashboard: {}", e);

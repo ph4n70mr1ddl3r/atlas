@@ -2,12 +2,11 @@
 //!
 //! `PostgreSQL` storage for demand planning data.
 
-use atlas_shared::{
-    DemandForecastMethod, DemandSchedule, DemandScheduleLine,
-    DemandHistory, DemandConsumption, DemandAccuracy, DemandPlanningDashboard,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, DemandAccuracy, DemandConsumption, DemandForecastMethod, DemandHistory,
+    DemandPlanningDashboard, DemandSchedule, DemandScheduleLine,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -26,7 +25,11 @@ pub trait DemandPlanningRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DemandForecastMethod>;
     async fn get_method(&self, id: Uuid) -> AtlasResult<Option<DemandForecastMethod>>;
-    async fn get_method_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<DemandForecastMethod>>;
+    async fn get_method_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<DemandForecastMethod>>;
     async fn list_methods(&self, org_id: Uuid) -> AtlasResult<Vec<DemandForecastMethod>>;
     async fn delete_method(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -49,10 +52,22 @@ pub trait DemandPlanningRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DemandSchedule>;
     async fn get_schedule(&self, id: Uuid) -> AtlasResult<Option<DemandSchedule>>;
-    async fn get_schedule_by_number(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<Option<DemandSchedule>>;
-    async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DemandSchedule>>;
+    async fn get_schedule_by_number(
+        &self,
+        org_id: Uuid,
+        schedule_number: &str,
+    ) -> AtlasResult<Option<DemandSchedule>>;
+    async fn list_schedules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DemandSchedule>>;
     async fn update_schedule_status(&self, id: Uuid, status: &str) -> AtlasResult<DemandSchedule>;
-    async fn approve_schedule(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<DemandSchedule>;
+    async fn approve_schedule(
+        &self,
+        id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<DemandSchedule>;
     async fn update_schedule_totals(&self, id: Uuid) -> AtlasResult<DemandSchedule>;
     async fn delete_schedule(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<()>;
 
@@ -116,7 +131,8 @@ pub trait DemandPlanningRepository: Send + Sync {
         notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<DemandConsumption>;
-    async fn list_consumption(&self, schedule_line_id: Uuid) -> AtlasResult<Vec<DemandConsumption>>;
+    async fn list_consumption(&self, schedule_line_id: Uuid)
+        -> AtlasResult<Vec<DemandConsumption>>;
     async fn delete_consumption(&self, id: Uuid) -> AtlasResult<()>;
 
     // Accuracy
@@ -147,7 +163,7 @@ pub struct PostgresDemandPlanningRepository {
 }
 
 impl PostgresDemandPlanningRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -174,9 +190,15 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
                 (organization_id, code, name, description, method_type, parameters, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(method_type).bind(&parameters).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(method_type)
+        .bind(&parameters)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_method(&row))
     }
@@ -185,12 +207,18 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         let row = sqlx::query(
             "SELECT * FROM _atlas.demand_forecast_methods WHERE id = $1 AND is_active = true",
         )
-        .bind(id).fetch_optional(&self.pool).await
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_method(&r)))
     }
 
-    async fn get_method_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<DemandForecastMethod>> {
+    async fn get_method_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<DemandForecastMethod>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.demand_forecast_methods WHERE organization_id = $1 AND code = $2 AND is_active = true",
         )
@@ -209,9 +237,14 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
     }
 
     async fn delete_method(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        sqlx::query("DELETE FROM _atlas.demand_forecast_methods WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code).execute(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "DELETE FROM _atlas.demand_forecast_methods WHERE organization_id = $1 AND code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -243,24 +276,40 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
                  currency_code, confidence_level, owner_id, owner_name, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *",
         )
-        .bind(org_id).bind(schedule_number).bind(name).bind(description)
-        .bind(method_id).bind(method_name).bind(schedule_type)
-        .bind(start_date).bind(end_date)
-        .bind(currency_code).bind(confidence_level)
-        .bind(owner_id).bind(owner_name).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(schedule_number)
+        .bind(name)
+        .bind(description)
+        .bind(method_id)
+        .bind(method_name)
+        .bind(schedule_type)
+        .bind(start_date)
+        .bind(end_date)
+        .bind(currency_code)
+        .bind(confidence_level)
+        .bind(owner_id)
+        .bind(owner_name)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_schedule(&row))
     }
 
     async fn get_schedule(&self, id: Uuid) -> AtlasResult<Option<DemandSchedule>> {
         let row = sqlx::query("SELECT * FROM _atlas.demand_schedules WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_schedule(&r)))
     }
 
-    async fn get_schedule_by_number(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<Option<DemandSchedule>> {
+    async fn get_schedule_by_number(
+        &self,
+        org_id: Uuid,
+        schedule_number: &str,
+    ) -> AtlasResult<Option<DemandSchedule>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.demand_schedules WHERE organization_id = $1 AND schedule_number = $2",
         )
@@ -269,7 +318,11 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         Ok(row.map(|r| row_to_schedule(&r)))
     }
 
-    async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DemandSchedule>> {
+    async fn list_schedules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DemandSchedule>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.demand_schedules WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC",
@@ -291,13 +344,20 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         Ok(row_to_schedule(&row))
     }
 
-    async fn approve_schedule(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<DemandSchedule> {
+    async fn approve_schedule(
+        &self,
+        id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<DemandSchedule> {
         let row = sqlx::query(
             r"UPDATE _atlas.demand_schedules
                SET status = 'approved', approved_by = $2, approved_at = now(), updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(approved_by).fetch_one(&self.pool).await
+        .bind(id)
+        .bind(approved_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_schedule(&row))
     }
@@ -360,14 +420,24 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
                  unit_price, remaining_quantity, confidence_pct, notes)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$12,$15,$16) RETURNING *",
         )
-        .bind(org_id).bind(schedule_id).bind(line_number).bind(item_code)
-        .bind(item_name).bind(item_category).bind(warehouse_code)
-        .bind(region).bind(customer_group)
-        .bind(period_start).bind(period_end)
-        .bind(qty).bind(value).bind(price)
+        .bind(org_id)
+        .bind(schedule_id)
+        .bind(line_number)
+        .bind(item_code)
+        .bind(item_name)
+        .bind(item_category)
+        .bind(warehouse_code)
+        .bind(region)
+        .bind(customer_group)
+        .bind(period_start)
+        .bind(period_end)
+        .bind(qty)
+        .bind(value)
+        .bind(price)
         .bind(confidence_pct.parse::<f64>().unwrap_or(0.0))
         .bind(notes)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_schedule_line(&row))
     }
@@ -383,14 +453,18 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
 
     async fn get_schedule_line(&self, id: Uuid) -> AtlasResult<Option<DemandScheduleLine>> {
         let row = sqlx::query("SELECT * FROM _atlas.demand_schedule_lines WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_schedule_line(&r)))
     }
 
     async fn delete_schedule_line(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.demand_schedule_lines WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -421,12 +495,20 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
                  source_type, source_id, source_line_id)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *",
         )
-        .bind(org_id).bind(item_code).bind(item_name).bind(warehouse_code)
-        .bind(region).bind(customer_group).bind(actual_date)
+        .bind(org_id)
+        .bind(item_code)
+        .bind(item_name)
+        .bind(warehouse_code)
+        .bind(region)
+        .bind(customer_group)
+        .bind(actual_date)
         .bind(actual_quantity.parse::<f64>().unwrap_or(0.0))
         .bind(actual_value.parse::<f64>().unwrap_or(0.0))
-        .bind(source_type).bind(source_id).bind(source_line_id)
-        .fetch_one(&self.pool).await
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_line_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_history(&row))
     }
@@ -457,7 +539,9 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
 
     async fn delete_history(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.demand_history WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -483,10 +567,16 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
                  consumed_quantity, consumed_date, source_type, notes, created_by)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
         )
-        .bind(org_id).bind(schedule_line_id).bind(history_id)
+        .bind(org_id)
+        .bind(schedule_line_id)
+        .bind(history_id)
         .bind(consumed_quantity.parse::<f64>().unwrap_or(0.0))
-        .bind(consumed_date).bind(source_type).bind(notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(consumed_date)
+        .bind(source_type)
+        .bind(notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         // Update the schedule line consumed/remaining quantities
@@ -507,7 +597,10 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         Ok(row_to_consumption(&row))
     }
 
-    async fn list_consumption(&self, schedule_line_id: Uuid) -> AtlasResult<Vec<DemandConsumption>> {
+    async fn list_consumption(
+        &self,
+        schedule_line_id: Uuid,
+    ) -> AtlasResult<Vec<DemandConsumption>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.demand_consumption WHERE schedule_line_id = $1 ORDER BY consumed_date DESC",
         )
@@ -518,7 +611,9 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
 
     async fn delete_consumption(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.demand_consumption WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -549,15 +644,20 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
                  absolute_error, absolute_pct_error, bias, measurement_date)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *",
         )
-        .bind(org_id).bind(schedule_id).bind(schedule_line_id).bind(item_code)
-        .bind(period_start).bind(period_end)
+        .bind(org_id)
+        .bind(schedule_id)
+        .bind(schedule_line_id)
+        .bind(item_code)
+        .bind(period_start)
+        .bind(period_end)
         .bind(forecast_quantity.parse::<f64>().unwrap_or(0.0))
         .bind(actual_quantity.parse::<f64>().unwrap_or(0.0))
         .bind(absolute_error.parse::<f64>().unwrap_or(0.0))
         .bind(absolute_pct_error.parse::<f64>().unwrap_or(0.0))
         .bind(bias.parse::<f64>().unwrap_or(0.0))
         .bind(measurement_date)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_accuracy(&row))
     }
@@ -566,7 +666,9 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.demand_accuracy WHERE schedule_id = $1 ORDER BY period_start",
         )
-        .bind(schedule_id).fetch_all(&self.pool).await
+        .bind(schedule_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_accuracy).collect())
     }
@@ -586,7 +688,9 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
                 COALESCE(SUM(total_forecast_value), 0) as total_val
                FROM _atlas.demand_schedules WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let item_count: i64 = sqlx::query_scalar(
@@ -609,15 +713,20 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
             r"SELECT status, COUNT(*) as cnt FROM _atlas.demand_schedules
                WHERE organization_id = $1 GROUP BY status ORDER BY cnt DESC",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let schedules_by_status: serde_json::Value = status_rows.iter().map(|r| {
-            serde_json::json!({
-                "status": r.get::<String, _>("status"),
-                "count": r.get::<i64, _>("cnt"),
+        let schedules_by_status: serde_json::Value = status_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "status": r.get::<String, _>("status"),
+                    "count": r.get::<i64, _>("cnt"),
+                })
             })
-        }).collect();
+            .collect();
 
         // Top forecast items
         let top_rows = sqlx::query(
@@ -628,14 +737,17 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
         .bind(org_id).fetch_all(&self.pool).await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let top_forecast_items: serde_json::Value = top_rows.iter().map(|r| {
-            serde_json::json!({
-                "itemCode": r.get::<String, _>("item_code"),
-                "itemName": r.get::<Option<String>, _>("item_name").unwrap_or_default(),
-                "totalQuantity": format!("{:.2}", r.get::<f64, _>("total_qty")),
-                "totalValue": format!("{:.2}", r.get::<f64, _>("total_val")),
+        let top_forecast_items: serde_json::Value = top_rows
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "itemCode": r.get::<String, _>("item_code"),
+                    "itemName": r.get::<Option<String>, _>("item_name").unwrap_or_default(),
+                    "totalQuantity": format!("{:.2}", r.get::<f64, _>("total_qty")),
+                    "totalValue": format!("{:.2}", r.get::<f64, _>("total_val")),
+                })
             })
-        }).collect();
+            .collect();
 
         // Accuracy by method
         let method_rows = sqlx::query(
@@ -646,16 +758,21 @@ impl DemandPlanningRepository for PostgresDemandPlanningRepository {
                WHERE s.organization_id = $1
                GROUP BY m.name",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        let accuracy_by_method: serde_json::Value = method_rows.iter().map(|r| {
-            let mape: f64 = r.get("avg_mape");
-            serde_json::json!({
-                "method": r.get::<String, _>("method_name"),
-                "accuracyPct": format!("{:.1}", 100.0 - mape),
+        let accuracy_by_method: serde_json::Value = method_rows
+            .iter()
+            .map(|r| {
+                let mape: f64 = r.get("avg_mape");
+                serde_json::json!({
+                    "method": r.get::<String, _>("method_name"),
+                    "accuracyPct": format!("{:.1}", 100.0 - mape),
+                })
             })
-        }).collect();
+            .collect();
 
         Ok(DemandPlanningDashboard {
             total_schedules: sched_row.get::<i64, _>("total") as i32,

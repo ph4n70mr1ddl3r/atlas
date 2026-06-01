@@ -13,14 +13,12 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Quality Management
 
-use atlas_shared::{
-    QualityInspectionPlan, QualityInspectionPlanCriterion,
-    QualityInspection, QualityInspectionResult,
-    NonConformanceReport, CorrectiveAction,
-    QualityHold, QualityDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::QualityManagementRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CorrectiveAction, NonConformanceReport, QualityDashboardSummary,
+    QualityHold, QualityInspection, QualityInspectionPlan, QualityInspectionPlanCriterion,
+    QualityInspectionResult,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -29,87 +27,92 @@ use uuid::Uuid;
 // Valid constants
 // ========================================================================
 
-const VALID_PLAN_TYPES: &[&str] = &[
-    "receiving", "in_process", "final", "audit", "supplier",
-];
+const VALID_PLAN_TYPES: &[&str] = &["receiving", "in_process", "final", "audit", "supplier"];
 
 const VALID_INSPECTION_TRIGGERS: &[&str] = &[
-    "every_receipt", "first_article", "percentage_sample",
-    "periodic", "on_demand", "supplier_certified",
+    "every_receipt",
+    "first_article",
+    "percentage_sample",
+    "periodic",
+    "on_demand",
+    "supplier_certified",
 ];
 
-const VALID_SAMPLING_METHODS: &[&str] = &[
-    "full", "random", "stratified", "aql", "custom",
-];
+const VALID_SAMPLING_METHODS: &[&str] = &["full", "random", "stratified", "aql", "custom"];
 
 const VALID_FREQUENCIES: &[&str] = &[
-    "per_lot", "per_shipment", "per_order", "daily", "weekly", "monthly", "one_time",
+    "per_lot",
+    "per_shipment",
+    "per_order",
+    "daily",
+    "weekly",
+    "monthly",
+    "one_time",
 ];
 
-const VALID_MEASUREMENT_TYPES: &[&str] = &[
-    "pass_fail", "numeric", "text", "visual", "multi_choice",
-];
+const VALID_MEASUREMENT_TYPES: &[&str] =
+    &["pass_fail", "numeric", "text", "visual", "multi_choice"];
 
-const VALID_CRITICALITIES: &[&str] = &[
-    "critical", "major", "minor", "informational",
-];
+const VALID_CRITICALITIES: &[&str] = &["critical", "major", "minor", "informational"];
 
-const VALID_INSPECTION_STATUSES: &[&str] = &[
-    "planned", "in_progress", "completed", "cancelled",
-];
+const VALID_INSPECTION_STATUSES: &[&str] = &["planned", "in_progress", "completed", "cancelled"];
 
-const VALID_VERDICTS: &[&str] = &[
-    "pass", "fail", "conditional_pass", "pending",
-];
+const VALID_VERDICTS: &[&str] = &["pass", "fail", "conditional_pass", "pending"];
 
-const VALID_RESULT_STATUSES: &[&str] = &[
-    "pass", "fail", "conditional", "not_evaluated",
-];
+const VALID_RESULT_STATUSES: &[&str] = &["pass", "fail", "conditional", "not_evaluated"];
 
 const VALID_NCR_TYPES: &[&str] = &[
-    "defect", "damage", "wrong_item", "quantity_variance",
-    "documentation", "packaging", "labeling", "specification",
-    "performance", "other",
+    "defect",
+    "damage",
+    "wrong_item",
+    "quantity_variance",
+    "documentation",
+    "packaging",
+    "labeling",
+    "specification",
+    "performance",
+    "other",
 ];
 
-const VALID_SEVERITIES: &[&str] = &[
-    "critical", "major", "minor", "low",
-];
+const VALID_SEVERITIES: &[&str] = &["critical", "major", "minor", "low"];
 
 const VALID_NCR_ORIGINS: &[&str] = &[
-    "inspection", "customer_complaint", "internal_audit",
-    "supplier_audit", "process_monitoring", "other",
+    "inspection",
+    "customer_complaint",
+    "internal_audit",
+    "supplier_audit",
+    "process_monitoring",
+    "other",
 ];
 
 const VALID_NCR_STATUSES: &[&str] = &[
-    "open", "under_investigation", "corrective_action",
-    "resolved", "closed",
+    "open",
+    "under_investigation",
+    "corrective_action",
+    "resolved",
+    "closed",
 ];
 
 const VALID_RESOLUTION_TYPES: &[&str] = &[
-    "rework", "scrap", "return_to_supplier", "use_as_is",
-    "sort", "repair", "concession",
+    "rework",
+    "scrap",
+    "return_to_supplier",
+    "use_as_is",
+    "sort",
+    "repair",
+    "concession",
 ];
 
-const VALID_ACTION_TYPES: &[&str] = &[
-    "corrective", "preventive", "both",
-];
+const VALID_ACTION_TYPES: &[&str] = &["corrective", "preventive", "both"];
 
-const VALID_ACTION_STATUSES: &[&str] = &[
-    "open", "in_progress", "completed", "verified", "cancelled",
-];
+const VALID_ACTION_STATUSES: &[&str] =
+    &["open", "in_progress", "completed", "verified", "cancelled"];
 
-const VALID_PRIORITIES: &[&str] = &[
-    "critical", "high", "medium", "low",
-];
+const VALID_PRIORITIES: &[&str] = &["critical", "high", "medium", "low"];
 
-const VALID_HOLD_TYPES: &[&str] = &[
-    "item", "lot", "supplier", "purchase_order",
-];
+const VALID_HOLD_TYPES: &[&str] = &["item", "lot", "supplier", "purchase_order"];
 
-const VALID_HOLD_STATUSES: &[&str] = &[
-    "active", "released", "expired",
-];
+const VALID_HOLD_STATUSES: &[&str] = &["active", "released", "expired"];
 
 /// Quality Management Engine
 pub struct QualityManagementEngine {
@@ -148,39 +151,49 @@ impl QualityManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<QualityInspectionPlan> {
         if plan_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Plan code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Plan code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Plan name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Plan name is required".to_string(),
+            ));
         }
         if !VALID_PLAN_TYPES.contains(&plan_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid plan type '{}'. Must be one of: {}",
-                plan_type, VALID_PLAN_TYPES.join(", ")
+                plan_type,
+                VALID_PLAN_TYPES.join(", ")
             )));
         }
         if !VALID_INSPECTION_TRIGGERS.contains(&inspection_trigger) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid inspection trigger '{}'. Must be one of: {}",
-                inspection_trigger, VALID_INSPECTION_TRIGGERS.join(", ")
+                inspection_trigger,
+                VALID_INSPECTION_TRIGGERS.join(", ")
             )));
         }
         if !VALID_SAMPLING_METHODS.contains(&sampling_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid sampling method '{}'. Must be one of: {}",
-                sampling_method, VALID_SAMPLING_METHODS.join(", ")
+                sampling_method,
+                VALID_SAMPLING_METHODS.join(", ")
             )));
         }
         if !VALID_FREQUENCIES.contains(&frequency) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid frequency '{}'. Must be one of: {}",
-                frequency, VALID_FREQUENCIES.join(", ")
+                frequency,
+                VALID_FREQUENCIES.join(", ")
             )));
         }
         if let Some(pct_str) = sample_size_percent {
-            let pct: f64 = pct_str.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Sample size percent must be a valid number".to_string(),
-            ))?;
+            let pct: f64 = pct_str.parse().map_err(|_| {
+                AtlasError::ValidationFailed(
+                    "Sample size percent must be a valid number".to_string(),
+                )
+            })?;
             if pct <= 0.0 || pct > 100.0 {
                 return Err(AtlasError::ValidationFailed(
                     "Sample size percent must be between 0 and 100".to_string(),
@@ -195,7 +208,10 @@ impl QualityManagementEngine {
             }
         }
 
-        info!("Creating inspection plan {} ({}) for org {}", plan_code, name, org_id);
+        info!(
+            "Creating inspection plan {} ({}) for org {}",
+            plan_code, name, org_id
+        );
 
         // Check for duplicate plan code
         if let Some(_existing) = self.repository.get_plan(org_id, plan_code).await? {
@@ -206,22 +222,43 @@ impl QualityManagementEngine {
 
         self.repository
             .create_plan(
-                org_id, plan_code, name, description, plan_type,
-                item_id, item_code, supplier_id, supplier_name,
-                inspection_trigger, sampling_method, sample_size_percent,
-                accept_number, reject_number, frequency,
-                effective_from, effective_to, created_by,
+                org_id,
+                plan_code,
+                name,
+                description,
+                plan_type,
+                item_id,
+                item_code,
+                supplier_id,
+                supplier_name,
+                inspection_trigger,
+                sampling_method,
+                sample_size_percent,
+                accept_number,
+                reject_number,
+                frequency,
+                effective_from,
+                effective_to,
+                created_by,
             )
             .await
     }
 
     /// Get a plan by code
-    pub async fn get_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<QualityInspectionPlan>> {
+    pub async fn get_plan(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<QualityInspectionPlan>> {
         self.repository.get_plan(org_id, code).await
     }
 
     /// List inspection plans
-    pub async fn list_plans(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<QualityInspectionPlan>> {
+    pub async fn list_plans(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<QualityInspectionPlan>> {
         self.repository.list_plans(org_id, active_only).await
     }
 
@@ -257,27 +294,35 @@ impl QualityManagementEngine {
             .repository
             .get_plan_by_id(plan_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection plan {plan_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Inspection plan {plan_id} not found"))
+            })?;
 
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Criterion name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Criterion name is required".to_string(),
+            ));
         }
         if !VALID_MEASUREMENT_TYPES.contains(&measurement_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid measurement type '{}'. Must be one of: {}",
-                measurement_type, VALID_MEASUREMENT_TYPES.join(", ")
+                measurement_type,
+                VALID_MEASUREMENT_TYPES.join(", ")
             )));
         }
-        let w: f64 = weight.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Weight must be a valid number".to_string(),
-        ))?;
+        let w: f64 = weight.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Weight must be a valid number".to_string())
+        })?;
         if w < 0.0 {
-            return Err(AtlasError::ValidationFailed("Weight cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Weight cannot be negative".to_string(),
+            ));
         }
         if !VALID_CRITICALITIES.contains(&criticality) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid criticality '{}'. Must be one of: {}",
-                criticality, VALID_CRITICALITIES.join(", ")
+                criticality,
+                VALID_CRITICALITIES.join(", ")
             )));
         }
 
@@ -285,16 +330,29 @@ impl QualityManagementEngine {
 
         self.repository
             .create_criterion(
-                org_id, plan_id, criterion_number, name, description,
-                characteristic, measurement_type, target_value,
-                lower_spec_limit, upper_spec_limit, unit_of_measure,
-                is_mandatory, weight, criticality,
+                org_id,
+                plan_id,
+                criterion_number,
+                name,
+                description,
+                characteristic,
+                measurement_type,
+                target_value,
+                lower_spec_limit,
+                upper_spec_limit,
+                unit_of_measure,
+                is_mandatory,
+                weight,
+                criticality,
             )
             .await
     }
 
     /// List criteria for a plan
-    pub async fn list_criteria(&self, plan_id: Uuid) -> AtlasResult<Vec<QualityInspectionPlanCriterion>> {
+    pub async fn list_criteria(
+        &self,
+        plan_id: Uuid,
+    ) -> AtlasResult<Vec<QualityInspectionPlanCriterion>> {
         self.repository.list_criteria(plan_id).await
     }
 
@@ -333,11 +391,13 @@ impl QualityManagementEngine {
             .repository
             .get_plan_by_id(plan_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection plan {plan_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Inspection plan {plan_id} not found"))
+            })?;
 
-        let qi: f64 = quantity_inspected.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Quantity inspected must be a valid number".to_string(),
-        ))?;
+        let qi: f64 = quantity_inspected.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Quantity inspected must be a valid number".to_string())
+        })?;
         let qa: f64 = quantity_accepted.parse().unwrap_or(0.0);
         let qr: f64 = quantity_rejected.parse().unwrap_or(0.0);
 
@@ -348,21 +408,37 @@ impl QualityManagementEngine {
         }
         if qa + qr > qi {
             return Err(AtlasError::ValidationFailed(
-                "Sum of accepted and rejected quantities cannot exceed inspected quantity".to_string(),
+                "Sum of accepted and rejected quantities cannot exceed inspected quantity"
+                    .to_string(),
             ));
         }
 
         let inspection_number = format!("QI-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating inspection {} from plan {}", inspection_number, plan_id);
+        info!(
+            "Creating inspection {} from plan {}",
+            inspection_number, plan_id
+        );
 
         self.repository
             .create_inspection(
-                org_id, &inspection_number, plan_id,
-                source_type, source_id, source_number,
-                item_id, item_code, item_description,
-                lot_number, quantity_inspected, quantity_accepted, quantity_rejected,
-                unit_of_measure, inspector_id, inspector_name, inspection_date,
+                org_id,
+                &inspection_number,
+                plan_id,
+                source_type,
+                source_id,
+                source_number,
+                item_id,
+                item_code,
+                item_description,
+                lot_number,
+                quantity_inspected,
+                quantity_accepted,
+                quantity_rejected,
+                unit_of_measure,
+                inspector_id,
+                inspector_name,
+                inspection_date,
                 created_by,
             )
             .await
@@ -384,11 +460,14 @@ impl QualityManagementEngine {
             if !VALID_INSPECTION_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_INSPECTION_STATUSES.join(", ")
+                    s,
+                    VALID_INSPECTION_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_inspections(org_id, status, plan_id, None).await
+        self.repository
+            .list_inspections(org_id, status, plan_id, None)
+            .await
     }
 
     /// Start an inspection (move from planned to `in_progress`)
@@ -407,7 +486,9 @@ impl QualityManagementEngine {
         }
 
         info!("Starting inspection {}", inspection.inspection_number);
-        self.repository.update_inspection_status(id, "in_progress", None).await
+        self.repository
+            .update_inspection_status(id, "in_progress", None)
+            .await
     }
 
     /// Complete an inspection with a verdict
@@ -433,7 +514,8 @@ impl QualityManagementEngine {
         if !VALID_VERDICTS.contains(&verdict) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid verdict '{}'. Must be one of: {}",
-                verdict, VALID_VERDICTS.join(", ")
+                verdict,
+                VALID_VERDICTS.join(", ")
             )));
         }
 
@@ -471,7 +553,9 @@ impl QualityManagementEngine {
         }
 
         info!("Cancelled inspection {}", inspection.inspection_number);
-        self.repository.update_inspection_status(id, "cancelled", None).await
+        self.repository
+            .update_inspection_status(id, "cancelled", None)
+            .await
     }
 
     // ========================================================================
@@ -502,7 +586,9 @@ impl QualityManagementEngine {
             .repository
             .get_inspection(inspection_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Inspection {inspection_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Inspection {inspection_id} not found"))
+            })?;
 
         if inspection.status != "in_progress" && inspection.status != "planned" {
             return Err(AtlasError::WorkflowError(format!(
@@ -512,35 +598,54 @@ impl QualityManagementEngine {
         }
 
         if criterion_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Criterion name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Criterion name is required".to_string(),
+            ));
         }
         if !VALID_RESULT_STATUSES.contains(&result_status) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid result status '{}'. Must be one of: {}",
-                result_status, VALID_RESULT_STATUSES.join(", ")
+                result_status,
+                VALID_RESULT_STATUSES.join(", ")
             )));
         }
 
         // Auto-calculate deviation if numeric with specs
         let computed_deviation = self.calculate_deviation(
-            observed_value, target_value, lower_spec_limit, upper_spec_limit,
+            observed_value,
+            target_value,
+            lower_spec_limit,
+            upper_spec_limit,
         );
 
         let final_deviation = deviation.or(computed_deviation.as_deref());
 
         self.repository
             .create_result(
-                org_id, inspection_id, criterion_id,
-                criterion_name, characteristic, measurement_type,
-                observed_value, target_value, lower_spec_limit,
-                upper_spec_limit, unit_of_measure, result_status,
-                final_deviation, notes, evaluated_by,
+                org_id,
+                inspection_id,
+                criterion_id,
+                criterion_name,
+                characteristic,
+                measurement_type,
+                observed_value,
+                target_value,
+                lower_spec_limit,
+                upper_spec_limit,
+                unit_of_measure,
+                result_status,
+                final_deviation,
+                notes,
+                evaluated_by,
             )
             .await
     }
 
     /// List results for an inspection
-    pub async fn list_results(&self, inspection_id: Uuid) -> AtlasResult<Vec<QualityInspectionResult>> {
+    pub async fn list_results(
+        &self,
+        inspection_id: Uuid,
+    ) -> AtlasResult<Vec<QualityInspectionResult>> {
         self.repository.list_results(inspection_id).await
     }
 
@@ -570,38 +675,59 @@ impl QualityManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<NonConformanceReport> {
         if title.is_empty() {
-            return Err(AtlasError::ValidationFailed("NCR title is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "NCR title is required".to_string(),
+            ));
         }
         if !VALID_NCR_TYPES.contains(&ncr_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid NCR type '{}'. Must be one of: {}",
-                ncr_type, VALID_NCR_TYPES.join(", ")
+                ncr_type,
+                VALID_NCR_TYPES.join(", ")
             )));
         }
         if !VALID_SEVERITIES.contains(&severity) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid severity '{}'. Must be one of: {}",
-                severity, VALID_SEVERITIES.join(", ")
+                severity,
+                VALID_SEVERITIES.join(", ")
             )));
         }
         if !VALID_NCR_ORIGINS.contains(&origin) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid origin '{}'. Must be one of: {}",
-                origin, VALID_NCR_ORIGINS.join(", ")
+                origin,
+                VALID_NCR_ORIGINS.join(", ")
             )));
         }
 
         let ncr_number = format!("NCR-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating NCR {} ({}) - {} severity", ncr_number, title, severity);
+        info!(
+            "Creating NCR {} ({}) - {} severity",
+            ncr_number, title, severity
+        );
 
         self.repository
             .create_ncr(
-                org_id, &ncr_number, title, description,
-                ncr_type, severity, origin,
-                source_type, source_id, source_number,
-                item_id, item_code, supplier_id, supplier_name,
-                detected_date, detected_by, responsible_party, created_by,
+                org_id,
+                &ncr_number,
+                title,
+                description,
+                ncr_type,
+                severity,
+                origin,
+                source_type,
+                source_id,
+                source_number,
+                item_id,
+                item_code,
+                supplier_id,
+                supplier_name,
+                detected_date,
+                detected_by,
+                responsible_party,
+                created_by,
             )
             .await
     }
@@ -622,7 +748,8 @@ impl QualityManagementEngine {
             if !VALID_NCR_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid NCR status '{}'. Must be one of: {}",
-                    s, VALID_NCR_STATUSES.join(", ")
+                    s,
+                    VALID_NCR_STATUSES.join(", ")
                 )));
             }
         }
@@ -630,11 +757,14 @@ impl QualityManagementEngine {
             if !VALID_SEVERITIES.contains(&sev) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid severity '{}'. Must be one of: {}",
-                    sev, VALID_SEVERITIES.join(", ")
+                    sev,
+                    VALID_SEVERITIES.join(", ")
                 )));
             }
         }
-        self.repository.list_ncrs(org_id, status, severity, None).await
+        self.repository
+            .list_ncrs(org_id, status, severity, None)
+            .await
     }
 
     /// Move NCR to `under_investigation`
@@ -653,11 +783,16 @@ impl QualityManagementEngine {
         }
 
         info!("Investigating NCR {}", ncr.ncr_number);
-        self.repository.update_ncr_status(id, "under_investigation", None).await
+        self.repository
+            .update_ncr_status(id, "under_investigation", None)
+            .await
     }
 
     /// Move NCR to `corrective_action` phase
-    pub async fn start_corrective_action_phase(&self, id: Uuid) -> AtlasResult<NonConformanceReport> {
+    pub async fn start_corrective_action_phase(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<NonConformanceReport> {
         let ncr = self
             .repository
             .get_ncr(id)
@@ -671,8 +806,13 @@ impl QualityManagementEngine {
             )));
         }
 
-        info!("Starting corrective action phase for NCR {}", ncr.ncr_number);
-        self.repository.update_ncr_status(id, "corrective_action", None).await
+        info!(
+            "Starting corrective action phase for NCR {}",
+            ncr.ncr_number
+        );
+        self.repository
+            .update_ncr_status(id, "corrective_action", None)
+            .await
     }
 
     /// Resolve an NCR
@@ -705,7 +845,8 @@ impl QualityManagementEngine {
         if !VALID_RESOLUTION_TYPES.contains(&resolution_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid resolution type '{}'. Must be one of: {}",
-                resolution_type, VALID_RESOLUTION_TYPES.join(", ")
+                resolution_type,
+                VALID_RESOLUTION_TYPES.join(", ")
             )));
         }
 
@@ -737,7 +878,9 @@ impl QualityManagementEngine {
 
         // Check all corrective actions are completed or verified
         let actions = self.repository.list_corrective_actions(id, None).await?;
-        let all_closed = actions.iter().all(|a| a.status == "completed" || a.status == "verified" || a.status == "cancelled");
+        let all_closed = actions
+            .iter()
+            .all(|a| a.status == "completed" || a.status == "verified" || a.status == "cancelled");
         if !actions.is_empty() && !all_closed {
             return Err(AtlasError::WorkflowError(
                 "Cannot close NCR with open corrective actions".to_string(),
@@ -782,33 +925,52 @@ impl QualityManagementEngine {
         }
 
         if title.is_empty() {
-            return Err(AtlasError::ValidationFailed("Action title is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Action title is required".to_string(),
+            ));
         }
         if !VALID_ACTION_TYPES.contains(&action_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid action type '{}'. Must be one of: {}",
-                action_type, VALID_ACTION_TYPES.join(", ")
+                action_type,
+                VALID_ACTION_TYPES.join(", ")
             )));
         }
         if !VALID_PRIORITIES.contains(&priority) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid priority '{}'. Must be one of: {}",
-                priority, VALID_PRIORITIES.join(", ")
+                priority,
+                VALID_PRIORITIES.join(", ")
             )));
         }
 
         // Auto-assign action number
-        let existing = self.repository.list_corrective_actions(ncr_id, None).await?;
+        let existing = self
+            .repository
+            .list_corrective_actions(ncr_id, None)
+            .await?;
         let action_number = format!("CAPA-{}-{}", ncr.ncr_number, existing.len() + 1);
 
-        info!("Creating {} action {} for NCR {}", action_type, action_number, ncr.ncr_number);
+        info!(
+            "Creating {} action {} for NCR {}",
+            action_type, action_number, ncr.ncr_number
+        );
 
         self.repository
             .create_corrective_action(
-                org_id, ncr_id, &action_number, action_type,
-                title, description, root_cause,
-                corrective_action_desc, preventive_action_desc,
-                assigned_to, due_date, priority, created_by,
+                org_id,
+                ncr_id,
+                &action_number,
+                action_type,
+                title,
+                description,
+                root_cause,
+                corrective_action_desc,
+                preventive_action_desc,
+                assigned_to,
+                due_date,
+                priority,
+                created_by,
             )
             .await
     }
@@ -819,16 +981,23 @@ impl QualityManagementEngine {
     }
 
     /// List corrective actions for an NCR
-    pub async fn list_corrective_actions(&self, ncr_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CorrectiveAction>> {
+    pub async fn list_corrective_actions(
+        &self,
+        ncr_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CorrectiveAction>> {
         if let Some(s) = status {
             if !VALID_ACTION_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid action status '{}'. Must be one of: {}",
-                    s, VALID_ACTION_STATUSES.join(", ")
+                    s,
+                    VALID_ACTION_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_corrective_actions(ncr_id, status).await
+        self.repository
+            .list_corrective_actions(ncr_id, status)
+            .await
     }
 
     /// Start working on a corrective action
@@ -837,7 +1006,9 @@ impl QualityManagementEngine {
             .repository
             .get_corrective_action(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Corrective action {id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Corrective action {id} not found"))
+            })?;
 
         if action.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
@@ -847,7 +1018,9 @@ impl QualityManagementEngine {
         }
 
         info!("Starting corrective action {}", action.action_number);
-        self.repository.update_corrective_action_status(id, "in_progress", None, None).await
+        self.repository
+            .update_corrective_action_status(id, "in_progress", None, None)
+            .await
     }
 
     /// Complete a corrective action
@@ -860,7 +1033,9 @@ impl QualityManagementEngine {
             .repository
             .get_corrective_action(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Corrective action {id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Corrective action {id} not found"))
+            })?;
 
         if action.status != "in_progress" {
             return Err(AtlasError::WorkflowError(format!(
@@ -879,7 +1054,12 @@ impl QualityManagementEngine {
 
         info!("Completing corrective action {}", action.action_number);
         self.repository
-            .update_corrective_action_status(id, "completed", Some(chrono::Utc::now()), effectiveness_rating)
+            .update_corrective_action_status(
+                id,
+                "completed",
+                Some(chrono::Utc::now()),
+                effectiveness_rating,
+            )
             .await
     }
 
@@ -889,7 +1069,9 @@ impl QualityManagementEngine {
             .repository
             .get_corrective_action(id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Corrective action {id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Corrective action {id} not found"))
+            })?;
 
         if action.status != "completed" {
             return Err(AtlasError::WorkflowError(format!(
@@ -899,7 +1081,9 @@ impl QualityManagementEngine {
         }
 
         info!("Verifying corrective action {}", action.action_number);
-        self.repository.update_corrective_action_status(id, "verified", None, None).await
+        self.repository
+            .update_corrective_action_status(id, "verified", None, None)
+            .await
     }
 
     // ========================================================================
@@ -924,12 +1108,15 @@ impl QualityManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<QualityHold> {
         if reason.is_empty() {
-            return Err(AtlasError::ValidationFailed("Hold reason is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Hold reason is required".to_string(),
+            ));
         }
         if !VALID_HOLD_TYPES.contains(&hold_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid hold type '{}'. Must be one of: {}",
-                hold_type, VALID_HOLD_TYPES.join(", ")
+                hold_type,
+                VALID_HOLD_TYPES.join(", ")
             )));
         }
 
@@ -939,11 +1126,20 @@ impl QualityManagementEngine {
 
         self.repository
             .create_hold(
-                org_id, &hold_number, reason, description,
-                item_id, item_code, lot_number,
-                supplier_id, supplier_name,
-                source_type, source_id, source_number,
-                hold_type, created_by,
+                org_id,
+                &hold_number,
+                reason,
+                description,
+                item_id,
+                item_code,
+                lot_number,
+                supplier_id,
+                supplier_name,
+                source_type,
+                source_id,
+                source_number,
+                hold_type,
+                created_by,
             )
             .await
     }
@@ -964,7 +1160,8 @@ impl QualityManagementEngine {
             if !VALID_HOLD_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid hold status '{}'. Must be one of: {}",
-                    s, VALID_HOLD_STATUSES.join(", ")
+                    s,
+                    VALID_HOLD_STATUSES.join(", ")
                 )));
             }
         }
@@ -992,7 +1189,9 @@ impl QualityManagementEngine {
         }
 
         info!("Releasing quality hold {}", hold.hold_number);
-        self.repository.update_hold_status(id, "released", released_by, release_notes).await
+        self.repository
+            .update_hold_status(id, "released", released_by, release_notes)
+            .await
     }
 
     // ========================================================================
@@ -1000,7 +1199,10 @@ impl QualityManagementEngine {
     // ========================================================================
 
     /// Get quality dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<QualityDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<QualityDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 
@@ -1061,13 +1263,24 @@ mod tests {
     #[async_trait::async_trait]
     impl QualityManagementRepository for MockQualityRepository {
         async fn create_plan(
-            &self, _org_id: Uuid, plan_code: &str, name: &str, _description: Option<&str>,
-            plan_type: &str, _item_id: Option<Uuid>, _item_code: Option<&str>,
-            _supplier_id: Option<Uuid>, _supplier_name: Option<&str>,
-            inspection_trigger: &str, sampling_method: &str,
-            sample_size_percent: Option<&str>, accept_number: Option<i32>,
-            reject_number: Option<i32>, frequency: &str,
-            _effective_from: Option<chrono::NaiveDate>, _effective_to: Option<chrono::NaiveDate>,
+            &self,
+            _org_id: Uuid,
+            plan_code: &str,
+            name: &str,
+            _description: Option<&str>,
+            plan_type: &str,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            _supplier_id: Option<Uuid>,
+            _supplier_name: Option<&str>,
+            inspection_trigger: &str,
+            sampling_method: &str,
+            sample_size_percent: Option<&str>,
+            accept_number: Option<i32>,
+            reject_number: Option<i32>,
+            frequency: &str,
+            _effective_from: Option<chrono::NaiveDate>,
+            _effective_to: Option<chrono::NaiveDate>,
             _created_by: Option<Uuid>,
         ) -> AtlasResult<QualityInspectionPlan> {
             Ok(QualityInspectionPlan {
@@ -1077,23 +1290,34 @@ mod tests {
                 name: name.to_string(),
                 description: None,
                 plan_type: plan_type.to_string(),
-                item_id: None, item_code: None,
-                supplier_id: None, supplier_name: None,
+                item_id: None,
+                item_code: None,
+                supplier_id: None,
+                supplier_name: None,
                 inspection_trigger: inspection_trigger.to_string(),
                 sampling_method: sampling_method.to_string(),
                 sample_size_percent: sample_size_percent.unwrap_or("100").to_string(),
-                accept_number, reject_number,
+                accept_number,
+                reject_number,
                 frequency: frequency.to_string(),
                 is_active: true,
-                effective_from: None, effective_to: None,
-                total_criteria: 0, total_inspections: 0,
+                effective_from: None,
+                effective_to: None,
+                total_criteria: 0,
+                total_inspections: 0,
                 metadata: serde_json::json!({}),
                 created_by: None,
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
             })
         }
-        async fn get_plan(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<QualityInspectionPlan>> { Ok(None) }
+        async fn get_plan(
+            &self,
+            _org_id: Uuid,
+            _code: &str,
+        ) -> AtlasResult<Option<QualityInspectionPlan>> {
+            Ok(None)
+        }
         async fn get_plan_by_id(&self, _id: Uuid) -> AtlasResult<Option<QualityInspectionPlan>> {
             // Return a stub plan so inspection creation can proceed
             Ok(Some(QualityInspectionPlan {
@@ -1103,67 +1327,119 @@ mod tests {
                 name: "Mock Plan".to_string(),
                 description: None,
                 plan_type: "receiving".to_string(),
-                item_id: None, item_code: None,
-                supplier_id: None, supplier_name: None,
+                item_id: None,
+                item_code: None,
+                supplier_id: None,
+                supplier_name: None,
                 inspection_trigger: "every_receipt".to_string(),
                 sampling_method: "full".to_string(),
                 sample_size_percent: "100".to_string(),
-                accept_number: None, reject_number: None,
+                accept_number: None,
+                reject_number: None,
                 frequency: "per_lot".to_string(),
                 is_active: true,
-                effective_from: None, effective_to: None,
-                total_criteria: 0, total_inspections: 0,
+                effective_from: None,
+                effective_to: None,
+                total_criteria: 0,
+                total_inspections: 0,
                 metadata: serde_json::json!({}),
                 created_by: None,
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
             }))
         }
-        async fn list_plans(&self, _org_id: Uuid, _active_only: bool) -> AtlasResult<Vec<QualityInspectionPlan>> { Ok(vec![]) }
-        async fn delete_plan(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
+        async fn list_plans(
+            &self,
+            _org_id: Uuid,
+            _active_only: bool,
+        ) -> AtlasResult<Vec<QualityInspectionPlan>> {
+            Ok(vec![])
+        }
+        async fn delete_plan(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> {
+            Ok(())
+        }
 
         async fn create_criterion(
-            &self, _org_id: Uuid, _plan_id: Uuid, _criterion_number: i32,
-            name: &str, _description: Option<&str>, _characteristic: &str,
-            measurement_type: &str, _target_value: Option<&str>,
-            _lower_spec_limit: Option<&str>, _upper_spec_limit: Option<&str>,
-            _unit_of_measure: Option<&str>, _is_mandatory: bool,
-            weight: &str, criticality: &str,
+            &self,
+            _org_id: Uuid,
+            _plan_id: Uuid,
+            _criterion_number: i32,
+            name: &str,
+            _description: Option<&str>,
+            _characteristic: &str,
+            measurement_type: &str,
+            _target_value: Option<&str>,
+            _lower_spec_limit: Option<&str>,
+            _upper_spec_limit: Option<&str>,
+            _unit_of_measure: Option<&str>,
+            _is_mandatory: bool,
+            weight: &str,
+            criticality: &str,
         ) -> AtlasResult<QualityInspectionPlanCriterion> {
             Ok(QualityInspectionPlanCriterion {
-                id: Uuid::new_v4(), organization_id: _org_id, plan_id: _plan_id,
-                criterion_number: _criterion_number, name: name.to_string(),
-                description: None, characteristic: String::new(),
+                id: Uuid::new_v4(),
+                organization_id: _org_id,
+                plan_id: _plan_id,
+                criterion_number: _criterion_number,
+                name: name.to_string(),
+                description: None,
+                characteristic: String::new(),
                 measurement_type: measurement_type.to_string(),
-                target_value: String::new(), lower_spec_limit: String::new(),
-                upper_spec_limit: String::new(), unit_of_measure: None,
-                is_mandatory: false, weight: weight.to_string(),
-                criticality: criticality.to_string(), is_active: true,
+                target_value: String::new(),
+                lower_spec_limit: String::new(),
+                upper_spec_limit: String::new(),
+                unit_of_measure: None,
+                is_mandatory: false,
+                weight: weight.to_string(),
+                criticality: criticality.to_string(),
+                is_active: true,
                 metadata: serde_json::json!({}),
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             })
         }
-        async fn list_criteria(&self, _plan_id: Uuid) -> AtlasResult<Vec<QualityInspectionPlanCriterion>> { Ok(vec![]) }
-        async fn delete_criterion(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
+        async fn list_criteria(
+            &self,
+            _plan_id: Uuid,
+        ) -> AtlasResult<Vec<QualityInspectionPlanCriterion>> {
+            Ok(vec![])
+        }
+        async fn delete_criterion(&self, _id: Uuid) -> AtlasResult<()> {
+            Ok(())
+        }
 
         async fn create_inspection(
-            &self, _org_id: Uuid, _inspection_number: &str, _plan_id: Uuid,
-            _source_type: &str, _source_id: Option<Uuid>,
-            _source_number: Option<&str>, _item_id: Option<Uuid>,
-            _item_code: Option<&str>, _item_description: Option<&str>,
-            _lot_number: Option<&str>, _quantity_inspected: &str,
-            _quantity_accepted: &str, _quantity_rejected: &str,
-            _unit_of_measure: Option<&str>, _inspector_id: Option<Uuid>,
-            _inspector_name: Option<&str>, _inspection_date: chrono::NaiveDate,
+            &self,
+            _org_id: Uuid,
+            _inspection_number: &str,
+            _plan_id: Uuid,
+            _source_type: &str,
+            _source_id: Option<Uuid>,
+            _source_number: Option<&str>,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            _item_description: Option<&str>,
+            _lot_number: Option<&str>,
+            _quantity_inspected: &str,
+            _quantity_accepted: &str,
+            _quantity_rejected: &str,
+            _unit_of_measure: Option<&str>,
+            _inspector_id: Option<Uuid>,
+            _inspector_name: Option<&str>,
+            _inspection_date: chrono::NaiveDate,
             _created_by: Option<Uuid>,
         ) -> AtlasResult<QualityInspection> {
             Ok(QualityInspection {
-                id: Uuid::new_v4(), organization_id: _org_id,
+                id: Uuid::new_v4(),
+                organization_id: _org_id,
                 inspection_number: _inspection_number.to_string(),
                 plan_id: _plan_id,
                 source_type: _source_type.to_string(),
-                source_id: None, source_number: None,
-                item_id: None, item_code: None, item_description: None,
+                source_id: None,
+                source_number: None,
+                item_id: None,
+                item_code: None,
+                item_description: None,
                 lot_number: None,
                 quantity_inspected: _quantity_inspected.to_string(),
                 quantity_accepted: _quantity_accepted.to_string(),
@@ -1173,7 +1449,8 @@ mod tests {
                 verdict: "pending".to_string(),
                 overall_score: "0".to_string(),
                 notes: None,
-                inspector_id: None, inspector_name: None,
+                inspector_id: None,
+                inspector_name: None,
                 inspection_date: _inspection_date,
                 completed_at: None,
                 metadata: serde_json::json!({}),
@@ -1182,148 +1459,325 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             })
         }
-        async fn get_inspection(&self, _id: Uuid) -> AtlasResult<Option<QualityInspection>> { Ok(None) }
-        async fn get_inspection_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<QualityInspection>> { Ok(None) }
-        async fn list_inspections(&self, _org_id: Uuid, _status: Option<&str>, _plan_id: Option<Uuid>, _limit: Option<i64>) -> AtlasResult<Vec<QualityInspection>> { Ok(vec![]) }
-        async fn update_inspection_status(&self, _id: Uuid, _status: &str, _completed_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<QualityInspection> {
+        async fn get_inspection(&self, _id: Uuid) -> AtlasResult<Option<QualityInspection>> {
+            Ok(None)
+        }
+        async fn get_inspection_by_number(
+            &self,
+            _org_id: Uuid,
+            _number: &str,
+        ) -> AtlasResult<Option<QualityInspection>> {
+            Ok(None)
+        }
+        async fn list_inspections(
+            &self,
+            _org_id: Uuid,
+            _status: Option<&str>,
+            _plan_id: Option<Uuid>,
+            _limit: Option<i64>,
+        ) -> AtlasResult<Vec<QualityInspection>> {
+            Ok(vec![])
+        }
+        async fn update_inspection_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+            _completed_at: Option<chrono::DateTime<chrono::Utc>>,
+        ) -> AtlasResult<QualityInspection> {
             Err(AtlasError::EntityNotFound("Mock".to_string()))
         }
-        async fn update_inspection_verdict(&self, _id: Uuid, _verdict: &str, _score: Option<&str>, _notes: Option<&str>) -> AtlasResult<QualityInspection> {
+        async fn update_inspection_verdict(
+            &self,
+            _id: Uuid,
+            _verdict: &str,
+            _score: Option<&str>,
+            _notes: Option<&str>,
+        ) -> AtlasResult<QualityInspection> {
             Err(AtlasError::EntityNotFound("Mock".to_string()))
         }
         async fn create_result(
-            &self, _org_id: Uuid, _inspection_id: Uuid, _criterion_id: Option<Uuid>,
-            _criterion_name: &str, _characteristic: &str,
-            _measurement_type: &str, _observed_value: Option<&str>,
-            _target_value: Option<&str>, _lower_spec_limit: Option<&str>,
-            _upper_spec_limit: Option<&str>, _unit_of_measure: Option<&str>,
-            _result_status: &str, _deviation: Option<&str>,
-            _notes: Option<&str>, _evaluated_by: Option<Uuid>,
+            &self,
+            _org_id: Uuid,
+            _inspection_id: Uuid,
+            _criterion_id: Option<Uuid>,
+            _criterion_name: &str,
+            _characteristic: &str,
+            _measurement_type: &str,
+            _observed_value: Option<&str>,
+            _target_value: Option<&str>,
+            _lower_spec_limit: Option<&str>,
+            _upper_spec_limit: Option<&str>,
+            _unit_of_measure: Option<&str>,
+            _result_status: &str,
+            _deviation: Option<&str>,
+            _notes: Option<&str>,
+            _evaluated_by: Option<Uuid>,
         ) -> AtlasResult<QualityInspectionResult> {
             Ok(QualityInspectionResult {
-                id: Uuid::new_v4(), organization_id: _org_id,
-                inspection_id: _inspection_id, criterion_id: None,
+                id: Uuid::new_v4(),
+                organization_id: _org_id,
+                inspection_id: _inspection_id,
+                criterion_id: None,
                 criterion_name: _criterion_name.to_string(),
                 characteristic: String::new(),
                 measurement_type: String::new(),
-                observed_value: String::new(), target_value: String::new(),
-                lower_spec_limit: String::new(), upper_spec_limit: String::new(),
+                observed_value: String::new(),
+                target_value: String::new(),
+                lower_spec_limit: String::new(),
+                upper_spec_limit: String::new(),
                 unit_of_measure: None,
                 result_status: _result_status.to_string(),
-                deviation: String::new(), notes: None,
-                evaluated_by: None, evaluated_at: None,
+                deviation: String::new(),
+                notes: None,
+                evaluated_by: None,
+                evaluated_at: None,
                 metadata: serde_json::json!({}),
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             })
         }
-        async fn list_results(&self, _inspection_id: Uuid) -> AtlasResult<Vec<QualityInspectionResult>> { Ok(vec![]) }
-        async fn update_result_status(&self, _id: Uuid, _status: &str, _deviation: Option<&str>) -> AtlasResult<QualityInspectionResult> {
+        async fn list_results(
+            &self,
+            _inspection_id: Uuid,
+        ) -> AtlasResult<Vec<QualityInspectionResult>> {
+            Ok(vec![])
+        }
+        async fn update_result_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+            _deviation: Option<&str>,
+        ) -> AtlasResult<QualityInspectionResult> {
             Err(AtlasError::EntityNotFound("Mock".to_string()))
         }
 
         async fn create_ncr(
-            &self, _org_id: Uuid, ncr_number: &str, title: &str,
-            _description: Option<&str>, ncr_type: &str, severity: &str,
-            origin: &str, _source_type: Option<&str>, _source_id: Option<Uuid>,
-            _source_number: Option<&str>, _item_id: Option<Uuid>,
-            _item_code: Option<&str>, _supplier_id: Option<Uuid>,
-            _supplier_name: Option<&str>, detected_date: chrono::NaiveDate,
-            _detected_by: Option<&str>, _responsible_party: Option<&str>,
+            &self,
+            _org_id: Uuid,
+            ncr_number: &str,
+            title: &str,
+            _description: Option<&str>,
+            ncr_type: &str,
+            severity: &str,
+            origin: &str,
+            _source_type: Option<&str>,
+            _source_id: Option<Uuid>,
+            _source_number: Option<&str>,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            _supplier_id: Option<Uuid>,
+            _supplier_name: Option<&str>,
+            detected_date: chrono::NaiveDate,
+            _detected_by: Option<&str>,
+            _responsible_party: Option<&str>,
             _created_by: Option<Uuid>,
         ) -> AtlasResult<NonConformanceReport> {
             Ok(NonConformanceReport {
-                id: Uuid::new_v4(), organization_id: _org_id,
+                id: Uuid::new_v4(),
+                organization_id: _org_id,
                 ncr_number: ncr_number.to_string(),
-                title: title.to_string(), description: None,
-                ncr_type: ncr_type.to_string(), severity: severity.to_string(),
+                title: title.to_string(),
+                description: None,
+                ncr_type: ncr_type.to_string(),
+                severity: severity.to_string(),
                 origin: origin.to_string(),
-                source_type: None, source_id: None, source_number: None,
-                item_id: None, item_code: None,
-                supplier_id: None, supplier_name: None,
-                detected_date, detected_by: None, responsible_party: None,
+                source_type: None,
+                source_id: None,
+                source_number: None,
+                item_id: None,
+                item_code: None,
+                supplier_id: None,
+                supplier_name: None,
+                detected_date,
+                detected_by: None,
+                responsible_party: None,
                 status: "open".to_string(),
-                resolution_description: None, resolution_type: None,
-                resolved_by: None, resolved_at: None,
-                total_corrective_actions: 0, open_corrective_actions: 0,
+                resolution_description: None,
+                resolution_type: None,
+                resolved_by: None,
+                resolved_at: None,
+                total_corrective_actions: 0,
+                open_corrective_actions: 0,
                 metadata: serde_json::json!({}),
-                created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_by: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             })
         }
-        async fn get_ncr(&self, _id: Uuid) -> AtlasResult<Option<NonConformanceReport>> { Ok(None) }
-        async fn get_ncr_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<NonConformanceReport>> { Ok(None) }
-        async fn list_ncrs(&self, _org_id: Uuid, _status: Option<&str>, _severity: Option<&str>, _limit: Option<i64>) -> AtlasResult<Vec<NonConformanceReport>> { Ok(vec![]) }
-        async fn update_ncr_status(&self, _id: Uuid, _status: &str, _resolved_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<NonConformanceReport> {
+        async fn get_ncr(&self, _id: Uuid) -> AtlasResult<Option<NonConformanceReport>> {
+            Ok(None)
+        }
+        async fn get_ncr_by_number(
+            &self,
+            _org_id: Uuid,
+            _number: &str,
+        ) -> AtlasResult<Option<NonConformanceReport>> {
+            Ok(None)
+        }
+        async fn list_ncrs(
+            &self,
+            _org_id: Uuid,
+            _status: Option<&str>,
+            _severity: Option<&str>,
+            _limit: Option<i64>,
+        ) -> AtlasResult<Vec<NonConformanceReport>> {
+            Ok(vec![])
+        }
+        async fn update_ncr_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+            _resolved_at: Option<chrono::DateTime<chrono::Utc>>,
+        ) -> AtlasResult<NonConformanceReport> {
             Err(AtlasError::EntityNotFound("Mock".to_string()))
         }
-        async fn update_ncr_resolution(&self, _id: Uuid, _resolution_description: &str, _resolution_type: &str, _resolved_by: Option<&str>) -> AtlasResult<NonConformanceReport> {
+        async fn update_ncr_resolution(
+            &self,
+            _id: Uuid,
+            _resolution_description: &str,
+            _resolution_type: &str,
+            _resolved_by: Option<&str>,
+        ) -> AtlasResult<NonConformanceReport> {
             Err(AtlasError::EntityNotFound("Mock".to_string()))
         }
 
         async fn create_corrective_action(
-            &self, _org_id: Uuid, _ncr_id: Uuid, action_number: &str,
-            action_type: &str, title: &str, _description: Option<&str>,
-            _root_cause: Option<&str>, _corrective_action_desc: Option<&str>,
+            &self,
+            _org_id: Uuid,
+            _ncr_id: Uuid,
+            action_number: &str,
+            action_type: &str,
+            title: &str,
+            _description: Option<&str>,
+            _root_cause: Option<&str>,
+            _corrective_action_desc: Option<&str>,
             _preventive_action_desc: Option<&str>,
-            _assigned_to: Option<&str>, _due_date: Option<chrono::NaiveDate>,
-            priority: &str, _created_by: Option<Uuid>,
+            _assigned_to: Option<&str>,
+            _due_date: Option<chrono::NaiveDate>,
+            priority: &str,
+            _created_by: Option<Uuid>,
         ) -> AtlasResult<CorrectiveAction> {
             Ok(CorrectiveAction {
-                id: Uuid::new_v4(), organization_id: _org_id,
+                id: Uuid::new_v4(),
+                organization_id: _org_id,
                 ncr_id: _ncr_id,
                 action_number: action_number.to_string(),
                 action_type: action_type.to_string(),
-                title: title.to_string(), description: None,
-                root_cause: None, corrective_action_desc: None,
-                preventive_action_desc: None, assigned_to: None,
-                due_date: None, status: "open".to_string(),
-                completed_at: None, effectiveness_rating: None,
+                title: title.to_string(),
+                description: None,
+                root_cause: None,
+                corrective_action_desc: None,
+                preventive_action_desc: None,
+                assigned_to: None,
+                due_date: None,
+                status: "open".to_string(),
+                completed_at: None,
+                effectiveness_rating: None,
                 priority: priority.to_string(),
                 metadata: serde_json::json!({}),
-                created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_by: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             })
         }
-        async fn get_corrective_action(&self, _id: Uuid) -> AtlasResult<Option<CorrectiveAction>> { Ok(None) }
-        async fn list_corrective_actions(&self, _ncr_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<CorrectiveAction>> { Ok(vec![]) }
-        async fn update_corrective_action_status(&self, _id: Uuid, _status: &str, _completed_at: Option<chrono::DateTime<chrono::Utc>>, _effectiveness_rating: Option<i32>) -> AtlasResult<CorrectiveAction> {
+        async fn get_corrective_action(&self, _id: Uuid) -> AtlasResult<Option<CorrectiveAction>> {
+            Ok(None)
+        }
+        async fn list_corrective_actions(
+            &self,
+            _ncr_id: Uuid,
+            _status: Option<&str>,
+        ) -> AtlasResult<Vec<CorrectiveAction>> {
+            Ok(vec![])
+        }
+        async fn update_corrective_action_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+            _completed_at: Option<chrono::DateTime<chrono::Utc>>,
+            _effectiveness_rating: Option<i32>,
+        ) -> AtlasResult<CorrectiveAction> {
             Err(AtlasError::EntityNotFound("Mock".to_string()))
         }
 
         async fn create_hold(
-            &self, _org_id: Uuid, hold_number: &str, reason: &str,
-            _description: Option<&str>, _item_id: Option<Uuid>,
-            _item_code: Option<&str>, _lot_number: Option<&str>,
-            _supplier_id: Option<Uuid>, _supplier_name: Option<&str>,
-            _source_type: Option<&str>, _source_id: Option<Uuid>,
-            _source_number: Option<&str>, hold_type: &str,
+            &self,
+            _org_id: Uuid,
+            hold_number: &str,
+            reason: &str,
+            _description: Option<&str>,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            _lot_number: Option<&str>,
+            _supplier_id: Option<Uuid>,
+            _supplier_name: Option<&str>,
+            _source_type: Option<&str>,
+            _source_id: Option<Uuid>,
+            _source_number: Option<&str>,
+            hold_type: &str,
             _created_by: Option<Uuid>,
         ) -> AtlasResult<QualityHold> {
             Ok(QualityHold {
-                id: Uuid::new_v4(), organization_id: _org_id,
+                id: Uuid::new_v4(),
+                organization_id: _org_id,
                 hold_number: hold_number.to_string(),
-                reason: reason.to_string(), description: None,
-                item_id: None, item_code: None, lot_number: None,
-                supplier_id: None, supplier_name: None,
-                source_type: None, source_id: None, source_number: None,
+                reason: reason.to_string(),
+                description: None,
+                item_id: None,
+                item_code: None,
+                lot_number: None,
+                supplier_id: None,
+                supplier_name: None,
+                source_type: None,
+                source_id: None,
+                source_number: None,
                 hold_type: hold_type.to_string(),
                 status: "active".to_string(),
-                released_by: None, released_at: None, release_notes: None,
+                released_by: None,
+                released_at: None,
+                release_notes: None,
                 metadata: serde_json::json!({}),
-                created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_by: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             })
         }
-        async fn get_hold(&self, _id: Uuid) -> AtlasResult<Option<QualityHold>> { Ok(None) }
-        async fn list_holds(&self, _org_id: Uuid, _status: Option<&str>, _item_id: Option<Uuid>) -> AtlasResult<Vec<QualityHold>> { Ok(vec![]) }
-        async fn update_hold_status(&self, _id: Uuid, _status: &str, _released_by: Option<Uuid>, _release_notes: Option<&str>) -> AtlasResult<QualityHold> {
+        async fn get_hold(&self, _id: Uuid) -> AtlasResult<Option<QualityHold>> {
+            Ok(None)
+        }
+        async fn list_holds(
+            &self,
+            _org_id: Uuid,
+            _status: Option<&str>,
+            _item_id: Option<Uuid>,
+        ) -> AtlasResult<Vec<QualityHold>> {
+            Ok(vec![])
+        }
+        async fn update_hold_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+            _released_by: Option<Uuid>,
+            _release_notes: Option<&str>,
+        ) -> AtlasResult<QualityHold> {
             Err(AtlasError::EntityNotFound("Mock".to_string()))
         }
 
-        async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<QualityDashboardSummary> {
+        async fn get_dashboard_summary(
+            &self,
+            _org_id: Uuid,
+        ) -> AtlasResult<QualityDashboardSummary> {
             Ok(QualityDashboardSummary {
-                total_active_plans: 0, total_pending_inspections: 0,
-                total_passed_inspections: 0, total_failed_inspections: 0,
+                total_active_plans: 0,
+                total_pending_inspections: 0,
+                total_passed_inspections: 0,
+                total_failed_inspections: 0,
                 inspection_pass_rate_percent: "0.0".to_string(),
-                total_open_ncrs: 0, total_ncrs: 0, critical_ncrs: 0,
-                total_open_corrective_actions: 0, total_completed_corrective_actions: 0,
+                total_open_ncrs: 0,
+                total_ncrs: 0,
+                critical_ncrs: 0,
+                total_open_corrective_actions: 0,
+                total_completed_corrective_actions: 0,
                 corrective_action_completion_rate_percent: "0.0".to_string(),
                 total_active_holds: 0,
                 inspections_by_verdict: serde_json::json!({}),
@@ -1343,11 +1797,28 @@ mod tests {
         let org = Uuid::new_v4();
 
         // Empty code
-        let r = engine.create_plan(
-            org, "", "Test Plan", None, "receiving",
-            None, None, None, None, "every_receipt", "full",
-            None, None, None, "per_lot", None, None, None,
-        ).await;
+        let r = engine
+            .create_plan(
+                org,
+                "",
+                "Test Plan",
+                None,
+                "receiving",
+                None,
+                None,
+                None,
+                None,
+                "every_receipt",
+                "full",
+                None,
+                None,
+                None,
+                "per_lot",
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
         match r.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Plan code")),
@@ -1355,19 +1826,53 @@ mod tests {
         }
 
         // Invalid plan type
-        let r = engine.create_plan(
-            org, "P-001", "Test Plan", None, "invalid_type",
-            None, None, None, None, "every_receipt", "full",
-            None, None, None, "per_lot", None, None, None,
-        ).await;
+        let r = engine
+            .create_plan(
+                org,
+                "P-001",
+                "Test Plan",
+                None,
+                "invalid_type",
+                None,
+                None,
+                None,
+                None,
+                "every_receipt",
+                "full",
+                None,
+                None,
+                None,
+                "per_lot",
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
 
         // Valid plan
-        let r = engine.create_plan(
-            org, "P-001", "Receiving Inspection", None, "receiving",
-            None, None, None, None, "every_receipt", "full",
-            None, None, None, "per_lot", None, None, None,
-        ).await;
+        let r = engine
+            .create_plan(
+                org,
+                "P-001",
+                "Receiving Inspection",
+                None,
+                "receiving",
+                None,
+                None,
+                None,
+                None,
+                "every_receipt",
+                "full",
+                None,
+                None,
+                None,
+                "per_lot",
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_ok());
         let plan = r.unwrap();
         assert_eq!(plan.plan_code, "P-001");
@@ -1380,27 +1885,78 @@ mod tests {
         let org = Uuid::new_v4();
 
         // 0% - invalid
-        let r = engine.create_plan(
-            org, "P-002", "Plan", None, "receiving",
-            None, None, None, None, "every_receipt", "random",
-            Some("0"), None, None, "per_lot", None, None, None,
-        ).await;
+        let r = engine
+            .create_plan(
+                org,
+                "P-002",
+                "Plan",
+                None,
+                "receiving",
+                None,
+                None,
+                None,
+                None,
+                "every_receipt",
+                "random",
+                Some("0"),
+                None,
+                None,
+                "per_lot",
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
 
         // 101% - invalid
-        let r = engine.create_plan(
-            org, "P-002", "Plan", None, "receiving",
-            None, None, None, None, "every_receipt", "random",
-            Some("101"), None, None, "per_lot", None, None, None,
-        ).await;
+        let r = engine
+            .create_plan(
+                org,
+                "P-002",
+                "Plan",
+                None,
+                "receiving",
+                None,
+                None,
+                None,
+                None,
+                "every_receipt",
+                "random",
+                Some("101"),
+                None,
+                None,
+                "per_lot",
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
 
         // 50% - valid
-        let r = engine.create_plan(
-            org, "P-002", "Plan", None, "receiving",
-            None, None, None, None, "every_receipt", "random",
-            Some("50"), None, None, "per_lot", None, None, None,
-        ).await;
+        let r = engine
+            .create_plan(
+                org,
+                "P-002",
+                "Plan",
+                None,
+                "receiving",
+                None,
+                None,
+                None,
+                None,
+                "every_receipt",
+                "random",
+                Some("50"),
+                None,
+                None,
+                "per_lot",
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_ok());
     }
 
@@ -1411,30 +1967,75 @@ mod tests {
         let plan_id = Uuid::new_v4();
 
         // Negative quantity
-        let r = engine.create_inspection(
-            org, plan_id, "receiving", None, None,
-            None, None, None, None,
-            "-10", "0", "0", None,
-            None, None, chrono::Utc::now().date_naive(), None,
-        ).await;
+        let r = engine
+            .create_inspection(
+                org,
+                plan_id,
+                "receiving",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "-10",
+                "0",
+                "0",
+                None,
+                None,
+                None,
+                chrono::Utc::now().date_naive(),
+                None,
+            )
+            .await;
         assert!(r.is_err());
 
         // Accepted + Rejected > Inspected
-        let r = engine.create_inspection(
-            org, plan_id, "receiving", None, None,
-            None, None, None, None,
-            "10", "8", "5", None,
-            None, None, chrono::Utc::now().date_naive(), None,
-        ).await;
+        let r = engine
+            .create_inspection(
+                org,
+                plan_id,
+                "receiving",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "10",
+                "8",
+                "5",
+                None,
+                None,
+                None,
+                chrono::Utc::now().date_naive(),
+                None,
+            )
+            .await;
         assert!(r.is_err());
 
         // Valid
-        let r = engine.create_inspection(
-            org, plan_id, "receiving", None, None,
-            None, None, None, None,
-            "10", "8", "2", None,
-            None, None, chrono::Utc::now().date_naive(), None,
-        ).await;
+        let r = engine
+            .create_inspection(
+                org,
+                plan_id,
+                "receiving",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "10",
+                "8",
+                "2",
+                None,
+                None,
+                None,
+                chrono::Utc::now().date_naive(),
+                None,
+            )
+            .await;
         assert!(r.is_ok());
         let insp = r.unwrap();
         assert!(insp.inspection_number.starts_with("QI-"));
@@ -1446,36 +2047,99 @@ mod tests {
         let org = Uuid::new_v4();
 
         // Empty title
-        let r = engine.create_ncr(
-            org, "", None, "defect", "critical", "inspection",
-            None, None, None, None, None, None, None,
-            chrono::Utc::now().date_naive(), None, None, None,
-        ).await;
+        let r = engine
+            .create_ncr(
+                org,
+                "",
+                None,
+                "defect",
+                "critical",
+                "inspection",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                chrono::Utc::now().date_naive(),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
 
         // Invalid type
-        let r = engine.create_ncr(
-            org, "Bad part", None, "invalid_type", "critical", "inspection",
-            None, None, None, None, None, None, None,
-            chrono::Utc::now().date_naive(), None, None, None,
-        ).await;
+        let r = engine
+            .create_ncr(
+                org,
+                "Bad part",
+                None,
+                "invalid_type",
+                "critical",
+                "inspection",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                chrono::Utc::now().date_naive(),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
 
         // Invalid severity
-        let r = engine.create_ncr(
-            org, "Bad part", None, "defect", "catastrophic", "inspection",
-            None, None, None, None, None, None, None,
-            chrono::Utc::now().date_naive(), None, None, None,
-        ).await;
+        let r = engine
+            .create_ncr(
+                org,
+                "Bad part",
+                None,
+                "defect",
+                "catastrophic",
+                "inspection",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                chrono::Utc::now().date_naive(),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
 
         // Valid
-        let r = engine.create_ncr(
-            org, "Scratched surface on received parts", None,
-            "defect", "major", "inspection",
-            None, None, None, None, None, None, None,
-            chrono::Utc::now().date_naive(), None, None, None,
-        ).await;
+        let r = engine
+            .create_ncr(
+                org,
+                "Scratched surface on received parts",
+                None,
+                "defect",
+                "major",
+                "inspection",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                chrono::Utc::now().date_naive(),
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_ok());
         let ncr = r.unwrap();
         assert!(ncr.ncr_number.starts_with("NCR-"));
@@ -1488,25 +2152,51 @@ mod tests {
         let org = Uuid::new_v4();
 
         // Empty reason
-        let r = engine.create_hold(
-            org, "", None, None, None, None,
-            None, None, None, None, None, "item", None,
-        ).await;
+        let r = engine
+            .create_hold(
+                org, "", None, None, None, None, None, None, None, None, None, "item", None,
+            )
+            .await;
         assert!(r.is_err());
 
         // Invalid hold type
-        let r = engine.create_hold(
-            org, "Bad quality", None, None, None, None,
-            None, None, None, None, None, "invalid", None,
-        ).await;
+        let r = engine
+            .create_hold(
+                org,
+                "Bad quality",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "invalid",
+                None,
+            )
+            .await;
         assert!(r.is_err());
 
         // Valid
-        let r = engine.create_hold(
-            org, "Failed incoming inspection", None,
-            None, Some("ITEM-001"), None,
-            None, None, None, None, None, "item", None,
-        ).await;
+        let r = engine
+            .create_hold(
+                org,
+                "Failed incoming inspection",
+                None,
+                None,
+                Some("ITEM-001"),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "item",
+                None,
+            )
+            .await;
         assert!(r.is_ok());
         let hold = r.unwrap();
         assert!(hold.hold_number.starts_with("QH-"));
@@ -1518,46 +2208,70 @@ mod tests {
         let engine = make_engine();
         let results = vec![
             QualityInspectionResult {
-                id: Uuid::new_v4(), organization_id: Uuid::new_v4(),
-                inspection_id: Uuid::new_v4(), criterion_id: None,
+                id: Uuid::new_v4(),
+                organization_id: Uuid::new_v4(),
+                inspection_id: Uuid::new_v4(),
+                criterion_id: None,
                 criterion_name: "Dimension".to_string(),
-                characteristic: String::new(), measurement_type: String::new(),
-                observed_value: "10.05".to_string(), target_value: "10.00".to_string(),
-                lower_spec_limit: "9.90".to_string(), upper_spec_limit: "10.10".to_string(),
+                characteristic: String::new(),
+                measurement_type: String::new(),
+                observed_value: "10.05".to_string(),
+                target_value: "10.00".to_string(),
+                lower_spec_limit: "9.90".to_string(),
+                upper_spec_limit: "10.10".to_string(),
                 unit_of_measure: Some("mm".to_string()),
                 result_status: "pass".to_string(),
-                deviation: "0.05".to_string(), notes: None,
-                evaluated_by: None, evaluated_at: None,
+                deviation: "0.05".to_string(),
+                notes: None,
+                evaluated_by: None,
+                evaluated_at: None,
                 metadata: serde_json::json!({}),
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             },
             QualityInspectionResult {
-                id: Uuid::new_v4(), organization_id: Uuid::new_v4(),
-                inspection_id: Uuid::new_v4(), criterion_id: None,
+                id: Uuid::new_v4(),
+                organization_id: Uuid::new_v4(),
+                inspection_id: Uuid::new_v4(),
+                criterion_id: None,
                 criterion_name: "Weight".to_string(),
-                characteristic: String::new(), measurement_type: String::new(),
-                observed_value: "50.20".to_string(), target_value: "50.00".to_string(),
-                lower_spec_limit: "49.50".to_string(), upper_spec_limit: "50.50".to_string(),
+                characteristic: String::new(),
+                measurement_type: String::new(),
+                observed_value: "50.20".to_string(),
+                target_value: "50.00".to_string(),
+                lower_spec_limit: "49.50".to_string(),
+                upper_spec_limit: "50.50".to_string(),
                 unit_of_measure: Some("g".to_string()),
                 result_status: "pass".to_string(),
-                deviation: "0.20".to_string(), notes: None,
-                evaluated_by: None, evaluated_at: None,
+                deviation: "0.20".to_string(),
+                notes: None,
+                evaluated_by: None,
+                evaluated_at: None,
                 metadata: serde_json::json!({}),
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             },
             QualityInspectionResult {
-                id: Uuid::new_v4(), organization_id: Uuid::new_v4(),
-                inspection_id: Uuid::new_v4(), criterion_id: None,
+                id: Uuid::new_v4(),
+                organization_id: Uuid::new_v4(),
+                inspection_id: Uuid::new_v4(),
+                criterion_id: None,
                 criterion_name: "Visual".to_string(),
-                characteristic: String::new(), measurement_type: String::new(),
-                observed_value: String::new(), target_value: String::new(),
-                lower_spec_limit: String::new(), upper_spec_limit: String::new(),
+                characteristic: String::new(),
+                measurement_type: String::new(),
+                observed_value: String::new(),
+                target_value: String::new(),
+                lower_spec_limit: String::new(),
+                upper_spec_limit: String::new(),
                 unit_of_measure: None,
                 result_status: "fail".to_string(),
-                deviation: String::new(), notes: None,
-                evaluated_by: None, evaluated_at: None,
+                deviation: String::new(),
+                notes: None,
+                evaluated_by: None,
+                evaluated_at: None,
                 metadata: serde_json::json!({}),
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             },
         ];
 
@@ -1577,17 +2291,14 @@ mod tests {
         let engine = make_engine();
 
         // Deviation with target
-        let dev = engine.calculate_deviation(
-            Some("10.05"), Some("10.00"), Some("9.90"), Some("10.10"),
-        );
+        let dev =
+            engine.calculate_deviation(Some("10.05"), Some("10.00"), Some("9.90"), Some("10.10"));
         assert!(dev.is_some());
         let dev_val: f64 = dev.unwrap().parse().unwrap();
         assert!((dev_val - 0.05).abs() < 0.001);
 
         // No observed value
-        let dev = engine.calculate_deviation(
-            None, Some("10.00"), Some("9.90"), Some("10.10"),
-        );
+        let dev = engine.calculate_deviation(None, Some("10.00"), Some("9.90"), Some("10.10"));
         assert!(dev.is_none());
     }
 
@@ -1648,11 +2359,22 @@ mod tests {
         let ncr_id = Uuid::new_v4();
 
         // This should fail because the NCR is "closed"
-        let r = engine.create_corrective_action(
-            org, ncr_id, "corrective", "Fix the problem",
-            None, None, None, None, None, None,
-            "high", None,
-        ).await;
+        let r = engine
+            .create_corrective_action(
+                org,
+                ncr_id,
+                "corrective",
+                "Fix the problem",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "high",
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
@@ -1661,58 +2383,342 @@ mod tests {
 
     #[async_trait::async_trait]
     impl QualityManagementRepository for ClosedNcrMockRepo {
-        async fn create_plan(&self, _org_id: Uuid, _plan_code: &str, _name: &str, _description: Option<&str>, _plan_type: &str, _item_id: Option<Uuid>, _item_code: Option<&str>, _supplier_id: Option<Uuid>, _supplier_name: Option<&str>, _inspection_trigger: &str, _sampling_method: &str, _sample_size_percent: Option<&str>, _accept_number: Option<i32>, _reject_number: Option<i32>, _frequency: &str, _effective_from: Option<chrono::NaiveDate>, _effective_to: Option<chrono::NaiveDate>, _created_by: Option<Uuid>) -> AtlasResult<QualityInspectionPlan> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn get_plan(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<QualityInspectionPlan>> { Ok(None) }
-        async fn get_plan_by_id(&self, _id: Uuid) -> AtlasResult<Option<QualityInspectionPlan>> { Ok(None) }
-        async fn list_plans(&self, _org_id: Uuid, _active_only: bool) -> AtlasResult<Vec<QualityInspectionPlan>> { Ok(vec![]) }
-        async fn delete_plan(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> { Ok(()) }
-        async fn create_criterion(&self, _org_id: Uuid, _plan_id: Uuid, _criterion_number: i32, _name: &str, _description: Option<&str>, _characteristic: &str, _measurement_type: &str, _target_value: Option<&str>, _lower_spec_limit: Option<&str>, _upper_spec_limit: Option<&str>, _unit_of_measure: Option<&str>, _is_mandatory: bool, _weight: &str, _criticality: &str) -> AtlasResult<QualityInspectionPlanCriterion> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn list_criteria(&self, _plan_id: Uuid) -> AtlasResult<Vec<QualityInspectionPlanCriterion>> { Ok(vec![]) }
-        async fn delete_criterion(&self, _id: Uuid) -> AtlasResult<()> { Ok(()) }
-        async fn create_inspection(&self, _org_id: Uuid, _inspection_number: &str, _plan_id: Uuid, _source_type: &str, _source_id: Option<Uuid>, _source_number: Option<&str>, _item_id: Option<Uuid>, _item_code: Option<&str>, _item_description: Option<&str>, _lot_number: Option<&str>, _quantity_inspected: &str, _quantity_accepted: &str, _quantity_rejected: &str, _unit_of_measure: Option<&str>, _inspector_id: Option<Uuid>, _inspector_name: Option<&str>, _inspection_date: chrono::NaiveDate, _created_by: Option<Uuid>) -> AtlasResult<QualityInspection> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn get_inspection(&self, _id: Uuid) -> AtlasResult<Option<QualityInspection>> { Ok(None) }
-        async fn get_inspection_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<QualityInspection>> { Ok(None) }
-        async fn list_inspections(&self, _org_id: Uuid, _status: Option<&str>, _plan_id: Option<Uuid>, _limit: Option<i64>) -> AtlasResult<Vec<QualityInspection>> { Ok(vec![]) }
-        async fn update_inspection_status(&self, _id: Uuid, _status: &str, _completed_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<QualityInspection> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn update_inspection_verdict(&self, _id: Uuid, _verdict: &str, _score: Option<&str>, _notes: Option<&str>) -> AtlasResult<QualityInspection> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn create_result(&self, _org_id: Uuid, _inspection_id: Uuid, _criterion_id: Option<Uuid>, _criterion_name: &str, _characteristic: &str, _measurement_type: &str, _observed_value: Option<&str>, _target_value: Option<&str>, _lower_spec_limit: Option<&str>, _upper_spec_limit: Option<&str>, _unit_of_measure: Option<&str>, _result_status: &str, _deviation: Option<&str>, _notes: Option<&str>, _evaluated_by: Option<Uuid>) -> AtlasResult<QualityInspectionResult> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn list_results(&self, _inspection_id: Uuid) -> AtlasResult<Vec<QualityInspectionResult>> { Ok(vec![]) }
-        async fn update_result_status(&self, _id: Uuid, _status: &str, _deviation: Option<&str>) -> AtlasResult<QualityInspectionResult> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn create_ncr(&self, _org_id: Uuid, _ncr_number: &str, _title: &str, _description: Option<&str>, _ncr_type: &str, _severity: &str, _origin: &str, _source_type: Option<&str>, _source_id: Option<Uuid>, _source_number: Option<&str>, _item_id: Option<Uuid>, _item_code: Option<&str>, _supplier_id: Option<Uuid>, _supplier_name: Option<&str>, _detected_date: chrono::NaiveDate, _detected_by: Option<&str>, _responsible_party: Option<&str>, _created_by: Option<Uuid>) -> AtlasResult<NonConformanceReport> { Err(AtlasError::EntityNotFound("mock".into())) }
+        async fn create_plan(
+            &self,
+            _org_id: Uuid,
+            _plan_code: &str,
+            _name: &str,
+            _description: Option<&str>,
+            _plan_type: &str,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            _supplier_id: Option<Uuid>,
+            _supplier_name: Option<&str>,
+            _inspection_trigger: &str,
+            _sampling_method: &str,
+            _sample_size_percent: Option<&str>,
+            _accept_number: Option<i32>,
+            _reject_number: Option<i32>,
+            _frequency: &str,
+            _effective_from: Option<chrono::NaiveDate>,
+            _effective_to: Option<chrono::NaiveDate>,
+            _created_by: Option<Uuid>,
+        ) -> AtlasResult<QualityInspectionPlan> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn get_plan(
+            &self,
+            _org_id: Uuid,
+            _code: &str,
+        ) -> AtlasResult<Option<QualityInspectionPlan>> {
+            Ok(None)
+        }
+        async fn get_plan_by_id(&self, _id: Uuid) -> AtlasResult<Option<QualityInspectionPlan>> {
+            Ok(None)
+        }
+        async fn list_plans(
+            &self,
+            _org_id: Uuid,
+            _active_only: bool,
+        ) -> AtlasResult<Vec<QualityInspectionPlan>> {
+            Ok(vec![])
+        }
+        async fn delete_plan(&self, _org_id: Uuid, _code: &str) -> AtlasResult<()> {
+            Ok(())
+        }
+        async fn create_criterion(
+            &self,
+            _org_id: Uuid,
+            _plan_id: Uuid,
+            _criterion_number: i32,
+            _name: &str,
+            _description: Option<&str>,
+            _characteristic: &str,
+            _measurement_type: &str,
+            _target_value: Option<&str>,
+            _lower_spec_limit: Option<&str>,
+            _upper_spec_limit: Option<&str>,
+            _unit_of_measure: Option<&str>,
+            _is_mandatory: bool,
+            _weight: &str,
+            _criticality: &str,
+        ) -> AtlasResult<QualityInspectionPlanCriterion> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn list_criteria(
+            &self,
+            _plan_id: Uuid,
+        ) -> AtlasResult<Vec<QualityInspectionPlanCriterion>> {
+            Ok(vec![])
+        }
+        async fn delete_criterion(&self, _id: Uuid) -> AtlasResult<()> {
+            Ok(())
+        }
+        async fn create_inspection(
+            &self,
+            _org_id: Uuid,
+            _inspection_number: &str,
+            _plan_id: Uuid,
+            _source_type: &str,
+            _source_id: Option<Uuid>,
+            _source_number: Option<&str>,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            _item_description: Option<&str>,
+            _lot_number: Option<&str>,
+            _quantity_inspected: &str,
+            _quantity_accepted: &str,
+            _quantity_rejected: &str,
+            _unit_of_measure: Option<&str>,
+            _inspector_id: Option<Uuid>,
+            _inspector_name: Option<&str>,
+            _inspection_date: chrono::NaiveDate,
+            _created_by: Option<Uuid>,
+        ) -> AtlasResult<QualityInspection> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn get_inspection(&self, _id: Uuid) -> AtlasResult<Option<QualityInspection>> {
+            Ok(None)
+        }
+        async fn get_inspection_by_number(
+            &self,
+            _org_id: Uuid,
+            _number: &str,
+        ) -> AtlasResult<Option<QualityInspection>> {
+            Ok(None)
+        }
+        async fn list_inspections(
+            &self,
+            _org_id: Uuid,
+            _status: Option<&str>,
+            _plan_id: Option<Uuid>,
+            _limit: Option<i64>,
+        ) -> AtlasResult<Vec<QualityInspection>> {
+            Ok(vec![])
+        }
+        async fn update_inspection_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+            _completed_at: Option<chrono::DateTime<chrono::Utc>>,
+        ) -> AtlasResult<QualityInspection> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn update_inspection_verdict(
+            &self,
+            _id: Uuid,
+            _verdict: &str,
+            _score: Option<&str>,
+            _notes: Option<&str>,
+        ) -> AtlasResult<QualityInspection> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn create_result(
+            &self,
+            _org_id: Uuid,
+            _inspection_id: Uuid,
+            _criterion_id: Option<Uuid>,
+            _criterion_name: &str,
+            _characteristic: &str,
+            _measurement_type: &str,
+            _observed_value: Option<&str>,
+            _target_value: Option<&str>,
+            _lower_spec_limit: Option<&str>,
+            _upper_spec_limit: Option<&str>,
+            _unit_of_measure: Option<&str>,
+            _result_status: &str,
+            _deviation: Option<&str>,
+            _notes: Option<&str>,
+            _evaluated_by: Option<Uuid>,
+        ) -> AtlasResult<QualityInspectionResult> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn list_results(
+            &self,
+            _inspection_id: Uuid,
+        ) -> AtlasResult<Vec<QualityInspectionResult>> {
+            Ok(vec![])
+        }
+        async fn update_result_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+            _deviation: Option<&str>,
+        ) -> AtlasResult<QualityInspectionResult> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn create_ncr(
+            &self,
+            _org_id: Uuid,
+            _ncr_number: &str,
+            _title: &str,
+            _description: Option<&str>,
+            _ncr_type: &str,
+            _severity: &str,
+            _origin: &str,
+            _source_type: Option<&str>,
+            _source_id: Option<Uuid>,
+            _source_number: Option<&str>,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            _supplier_id: Option<Uuid>,
+            _supplier_name: Option<&str>,
+            _detected_date: chrono::NaiveDate,
+            _detected_by: Option<&str>,
+            _responsible_party: Option<&str>,
+            _created_by: Option<Uuid>,
+        ) -> AtlasResult<NonConformanceReport> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
         async fn get_ncr(&self, _id: Uuid) -> AtlasResult<Option<NonConformanceReport>> {
             // Return a closed NCR
             Ok(Some(NonConformanceReport {
-                id: _id, organization_id: Uuid::new_v4(),
+                id: _id,
+                organization_id: Uuid::new_v4(),
                 ncr_number: "NCR-CLOSED".to_string(),
-                title: "Closed NCR".to_string(), description: None,
-                ncr_type: "defect".to_string(), severity: "major".to_string(),
+                title: "Closed NCR".to_string(),
+                description: None,
+                ncr_type: "defect".to_string(),
+                severity: "major".to_string(),
                 origin: "inspection".to_string(),
-                source_type: None, source_id: None, source_number: None,
-                item_id: None, item_code: None,
-                supplier_id: None, supplier_name: None,
+                source_type: None,
+                source_id: None,
+                source_number: None,
+                item_id: None,
+                item_code: None,
+                supplier_id: None,
+                supplier_name: None,
                 detected_date: chrono::Utc::now().date_naive(),
-                detected_by: None, responsible_party: None,
+                detected_by: None,
+                responsible_party: None,
                 status: "closed".to_string(),
-                resolution_description: None, resolution_type: None,
-                resolved_by: None, resolved_at: None,
-                total_corrective_actions: 0, open_corrective_actions: 0,
+                resolution_description: None,
+                resolution_type: None,
+                resolved_by: None,
+                resolved_at: None,
+                total_corrective_actions: 0,
+                open_corrective_actions: 0,
                 metadata: serde_json::json!({}),
-                created_by: None, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_by: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             }))
         }
-        async fn get_ncr_by_number(&self, _org_id: Uuid, _number: &str) -> AtlasResult<Option<NonConformanceReport>> { Ok(None) }
-        async fn list_ncrs(&self, _org_id: Uuid, _status: Option<&str>, _severity: Option<&str>, _limit: Option<i64>) -> AtlasResult<Vec<NonConformanceReport>> { Ok(vec![]) }
-        async fn update_ncr_status(&self, _id: Uuid, _status: &str, _resolved_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<NonConformanceReport> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn update_ncr_resolution(&self, _id: Uuid, _resolution_description: &str, _resolution_type: &str, _resolved_by: Option<&str>) -> AtlasResult<NonConformanceReport> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn create_corrective_action(&self, _org_id: Uuid, _ncr_id: Uuid, _action_number: &str, _action_type: &str, _title: &str, _description: Option<&str>, _root_cause: Option<&str>, _corrective_action_desc: Option<&str>, _preventive_action_desc: Option<&str>, _assigned_to: Option<&str>, _due_date: Option<chrono::NaiveDate>, _priority: &str, _created_by: Option<Uuid>) -> AtlasResult<CorrectiveAction> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn get_corrective_action(&self, _id: Uuid) -> AtlasResult<Option<CorrectiveAction>> { Ok(None) }
-        async fn list_corrective_actions(&self, _ncr_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<CorrectiveAction>> { Ok(vec![]) }
-        async fn update_corrective_action_status(&self, _id: Uuid, _status: &str, _completed_at: Option<chrono::DateTime<chrono::Utc>>, _effectiveness_rating: Option<i32>) -> AtlasResult<CorrectiveAction> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn create_hold(&self, _org_id: Uuid, _hold_number: &str, _reason: &str, _description: Option<&str>, _item_id: Option<Uuid>, _item_code: Option<&str>, _lot_number: Option<&str>, _supplier_id: Option<Uuid>, _supplier_name: Option<&str>, _source_type: Option<&str>, _source_id: Option<Uuid>, _source_number: Option<&str>, _hold_type: &str, _created_by: Option<Uuid>) -> AtlasResult<QualityHold> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn get_hold(&self, _id: Uuid) -> AtlasResult<Option<QualityHold>> { Ok(None) }
-        async fn list_holds(&self, _org_id: Uuid, _status: Option<&str>, _item_id: Option<Uuid>) -> AtlasResult<Vec<QualityHold>> { Ok(vec![]) }
-        async fn update_hold_status(&self, _id: Uuid, _status: &str, _released_by: Option<Uuid>, _release_notes: Option<&str>) -> AtlasResult<QualityHold> { Err(AtlasError::EntityNotFound("mock".into())) }
-        async fn get_dashboard_summary(&self, _org_id: Uuid) -> AtlasResult<QualityDashboardSummary> { Err(AtlasError::EntityNotFound("mock".into())) }
+        async fn get_ncr_by_number(
+            &self,
+            _org_id: Uuid,
+            _number: &str,
+        ) -> AtlasResult<Option<NonConformanceReport>> {
+            Ok(None)
+        }
+        async fn list_ncrs(
+            &self,
+            _org_id: Uuid,
+            _status: Option<&str>,
+            _severity: Option<&str>,
+            _limit: Option<i64>,
+        ) -> AtlasResult<Vec<NonConformanceReport>> {
+            Ok(vec![])
+        }
+        async fn update_ncr_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+            _resolved_at: Option<chrono::DateTime<chrono::Utc>>,
+        ) -> AtlasResult<NonConformanceReport> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn update_ncr_resolution(
+            &self,
+            _id: Uuid,
+            _resolution_description: &str,
+            _resolution_type: &str,
+            _resolved_by: Option<&str>,
+        ) -> AtlasResult<NonConformanceReport> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn create_corrective_action(
+            &self,
+            _org_id: Uuid,
+            _ncr_id: Uuid,
+            _action_number: &str,
+            _action_type: &str,
+            _title: &str,
+            _description: Option<&str>,
+            _root_cause: Option<&str>,
+            _corrective_action_desc: Option<&str>,
+            _preventive_action_desc: Option<&str>,
+            _assigned_to: Option<&str>,
+            _due_date: Option<chrono::NaiveDate>,
+            _priority: &str,
+            _created_by: Option<Uuid>,
+        ) -> AtlasResult<CorrectiveAction> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn get_corrective_action(&self, _id: Uuid) -> AtlasResult<Option<CorrectiveAction>> {
+            Ok(None)
+        }
+        async fn list_corrective_actions(
+            &self,
+            _ncr_id: Uuid,
+            _status: Option<&str>,
+        ) -> AtlasResult<Vec<CorrectiveAction>> {
+            Ok(vec![])
+        }
+        async fn update_corrective_action_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+            _completed_at: Option<chrono::DateTime<chrono::Utc>>,
+            _effectiveness_rating: Option<i32>,
+        ) -> AtlasResult<CorrectiveAction> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn create_hold(
+            &self,
+            _org_id: Uuid,
+            _hold_number: &str,
+            _reason: &str,
+            _description: Option<&str>,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            _lot_number: Option<&str>,
+            _supplier_id: Option<Uuid>,
+            _supplier_name: Option<&str>,
+            _source_type: Option<&str>,
+            _source_id: Option<Uuid>,
+            _source_number: Option<&str>,
+            _hold_type: &str,
+            _created_by: Option<Uuid>,
+        ) -> AtlasResult<QualityHold> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn get_hold(&self, _id: Uuid) -> AtlasResult<Option<QualityHold>> {
+            Ok(None)
+        }
+        async fn list_holds(
+            &self,
+            _org_id: Uuid,
+            _status: Option<&str>,
+            _item_id: Option<Uuid>,
+        ) -> AtlasResult<Vec<QualityHold>> {
+            Ok(vec![])
+        }
+        async fn update_hold_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+            _released_by: Option<Uuid>,
+            _release_notes: Option<&str>,
+        ) -> AtlasResult<QualityHold> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
+        async fn get_dashboard_summary(
+            &self,
+            _org_id: Uuid,
+        ) -> AtlasResult<QualityDashboardSummary> {
+            Err(AtlasError::EntityNotFound("mock".into()))
+        }
     }
 
     #[tokio::test]
@@ -1768,7 +2774,9 @@ mod tests {
         let ncr_id = Uuid::new_v4();
 
         // Invalid status
-        let r = engine.list_corrective_actions(ncr_id, Some("unknown")).await;
+        let r = engine
+            .list_corrective_actions(ncr_id, Some("unknown"))
+            .await;
         assert!(r.is_err());
 
         // Valid status

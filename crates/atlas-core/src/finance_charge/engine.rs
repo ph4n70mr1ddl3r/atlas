@@ -5,14 +5,13 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Receivables > Finance Charges
 
-use atlas_shared::{AtlasError, AtlasResult};
 use super::repository::{
-    FinanceChargeRepository,
-    FinanceChargeTerm, FinanceChargeRun, FinanceChargeLine, FinanceChargeInvoice,
-    FinanceChargeActivity, FinanceChargeSummary,
-    FinanceChargeTermCreateParams, FinanceChargeRunCreateParams,
-    FinanceChargeLineCreateParams, FinanceChargeInvoiceCreateParams,
+    FinanceChargeActivity, FinanceChargeInvoice, FinanceChargeInvoiceCreateParams,
+    FinanceChargeLine, FinanceChargeLineCreateParams, FinanceChargeRepository, FinanceChargeRun,
+    FinanceChargeRunCreateParams, FinanceChargeSummary, FinanceChargeTerm,
+    FinanceChargeTermCreateParams,
 };
+use atlas_shared::{AtlasError, AtlasResult};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -24,19 +23,13 @@ const VALID_CHARGE_TYPES: &[&str] = &["percentage", "flat_fee", "tiered"];
 const VALID_CALCULATION_BASES: &[&str] = &["daily", "monthly", "annual"];
 
 // Valid run statuses
-const VALID_RUN_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "applied", "cancelled",
-];
+const VALID_RUN_STATUSES: &[&str] = &["draft", "submitted", "approved", "applied", "cancelled"];
 
 // Valid line statuses
-const VALID_LINE_STATUSES: &[&str] = &[
-    "pending", "charged", "waived", "cancelled",
-];
+const VALID_LINE_STATUSES: &[&str] = &["pending", "charged", "waived", "cancelled"];
 
 // Valid invoice statuses
-const VALID_INVOICE_STATUSES: &[&str] = &[
-    "open", "paid", "cancelled", "reversed",
-];
+const VALID_INVOICE_STATUSES: &[&str] = &["open", "paid", "cancelled", "reversed"];
 
 /// Finance Charge Management Engine
 pub struct FinanceChargeEngine {
@@ -55,7 +48,9 @@ impl FinanceChargeEngine {
     fn validate_charge_type(charge_type: &str) -> AtlasResult<()> {
         if !VALID_CHARGE_TYPES.contains(&charge_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid charge_type '{}'. Must be one of: {}", charge_type, VALID_CHARGE_TYPES.join(", ")
+                "Invalid charge_type '{}'. Must be one of: {}",
+                charge_type,
+                VALID_CHARGE_TYPES.join(", ")
             )));
         }
         Ok(())
@@ -64,7 +59,9 @@ impl FinanceChargeEngine {
     fn validate_calculation_basis(basis: &str) -> AtlasResult<()> {
         if !VALID_CALCULATION_BASES.contains(&basis) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid calculation_basis '{}'. Must be one of: {}", basis, VALID_CALCULATION_BASES.join(", ")
+                "Invalid calculation_basis '{}'. Must be one of: {}",
+                basis,
+                VALID_CALCULATION_BASES.join(", ")
             )));
         }
         Ok(())
@@ -73,7 +70,9 @@ impl FinanceChargeEngine {
     fn validate_run_status(status: &str) -> AtlasResult<()> {
         if !VALID_RUN_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid run status '{}'. Must be one of: {}", status, VALID_RUN_STATUSES.join(", ")
+                "Invalid run status '{}'. Must be one of: {}",
+                status,
+                VALID_RUN_STATUSES.join(", ")
             )));
         }
         Ok(())
@@ -83,7 +82,9 @@ impl FinanceChargeEngine {
     fn validate_line_status(status: &str) -> AtlasResult<()> {
         if !VALID_LINE_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid line status '{}'. Must be one of: {}", status, VALID_LINE_STATUSES.join(", ")
+                "Invalid line status '{}'. Must be one of: {}",
+                status,
+                VALID_LINE_STATUSES.join(", ")
             )));
         }
         Ok(())
@@ -92,7 +93,9 @@ impl FinanceChargeEngine {
     fn validate_invoice_status(status: &str) -> AtlasResult<()> {
         if !VALID_INVOICE_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid invoice status '{}'. Must be one of: {}", status, VALID_INVOICE_STATUSES.join(", ")
+                "Invalid invoice status '{}'. Must be one of: {}",
+                status,
+                VALID_INVOICE_STATUSES.join(", ")
             )));
         }
         Ok(())
@@ -143,7 +146,10 @@ impl FinanceChargeEngine {
         receivable_account_code: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<FinanceChargeTerm> {
-        info!("Creating finance charge term '{}' for org {}", term_code, org_id);
+        info!(
+            "Creating finance charge term '{}' for org {}",
+            term_code, org_id
+        );
 
         if term_code.is_empty() || term_name.is_empty() {
             return Err(AtlasError::ValidationFailed(
@@ -203,12 +209,20 @@ impl FinanceChargeEngine {
 
         let term = self.repo.create_term(&params).await?;
 
-        let _ = self.repo.create_activity(
-            org_id, "term", term.id,
-            "created",
-            Some(&format!("Finance charge term '{term_code}' created")),
-            None, None, created_by, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                org_id,
+                "term",
+                term.id,
+                "created",
+                Some(&format!("Finance charge term '{term_code}' created")),
+                None,
+                None,
+                created_by,
+                None,
+            )
+            .await;
 
         Ok(term)
     }
@@ -219,17 +233,29 @@ impl FinanceChargeEngine {
     }
 
     /// Get a term by code
-    pub async fn get_term_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<FinanceChargeTerm>> {
+    pub async fn get_term_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<FinanceChargeTerm>> {
         self.repo.get_term_by_code(org_id, code).await
     }
 
     /// List terms
-    pub async fn list_terms(&self, org_id: Uuid, is_active: Option<bool>) -> AtlasResult<Vec<FinanceChargeTerm>> {
+    pub async fn list_terms(
+        &self,
+        org_id: Uuid,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<FinanceChargeTerm>> {
         self.repo.list_terms(org_id, is_active).await
     }
 
     /// Activate/deactivate a term
-    pub async fn update_term_status(&self, id: Uuid, is_active: bool) -> AtlasResult<FinanceChargeTerm> {
+    pub async fn update_term_status(
+        &self,
+        id: Uuid,
+        is_active: bool,
+    ) -> AtlasResult<FinanceChargeTerm> {
         info!("Setting term {} active={}", id, is_active);
         self.repo.update_term_status(id, is_active).await
     }
@@ -264,11 +290,23 @@ impl FinanceChargeEngine {
             ));
         }
 
-        self.repo.create_tier(org_id, term_id, from_days_overdue, to_days_overdue, charge_rate, flat_fee).await
+        self.repo
+            .create_tier(
+                org_id,
+                term_id,
+                from_days_overdue,
+                to_days_overdue,
+                charge_rate,
+                flat_fee,
+            )
+            .await
     }
 
     /// List tiers for a term
-    pub async fn list_tiers(&self, term_id: Uuid) -> AtlasResult<Vec<super::repository::FinanceChargeTier>> {
+    pub async fn list_tiers(
+        &self,
+        term_id: Uuid,
+    ) -> AtlasResult<Vec<super::repository::FinanceChargeTier>> {
         self.repo.list_tiers(term_id).await
     }
 
@@ -288,14 +326,18 @@ impl FinanceChargeEngine {
         notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<FinanceChargeRun> {
-        info!("Creating finance charge run for org {} on {}", org_id, run_date);
+        info!(
+            "Creating finance charge run for org {} on {}",
+            org_id, run_date
+        );
 
         // Resolve term
         let resolved_term_code = if let Some(code) = term_code {
             Some(code.to_string())
         } else if let Some(tid) = term_id {
-            let term = self.repo.get_term(tid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound("Finance charge term not found".to_string()))?;
+            let term = self.repo.get_term(tid).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Finance charge term not found".to_string())
+            })?;
             Some(term.term_code)
         } else {
             None
@@ -314,12 +356,20 @@ impl FinanceChargeEngine {
 
         let run = self.repo.create_run(&params).await?;
 
-        let _ = self.repo.create_activity(
-            org_id, "run", run.id,
-            "created",
-            Some(&format!("Finance charge run '{}' created", run.run_number)),
-            None, Some("draft"), created_by, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                org_id,
+                "run",
+                run.id,
+                "created",
+                Some(&format!("Finance charge run '{}' created", run.run_number)),
+                None,
+                Some("draft"),
+                created_by,
+                None,
+            )
+            .await;
 
         Ok(run)
     }
@@ -330,20 +380,34 @@ impl FinanceChargeEngine {
     }
 
     /// Get a run by number
-    pub async fn get_run_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<FinanceChargeRun>> {
+    pub async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<FinanceChargeRun>> {
         self.repo.get_run_by_number(org_id, number).await
     }
 
     /// List runs
-    pub async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<FinanceChargeRun>> {
+    pub async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<FinanceChargeRun>> {
         self.repo.list_runs(org_id, status).await
     }
 
     /// Delete a draft run
     pub async fn delete_run(&self, org_id: Uuid, run_number: &str) -> AtlasResult<()> {
-        info!("Deleting finance charge run '{}' for org {}", run_number, org_id);
+        info!(
+            "Deleting finance charge run '{}' for org {}",
+            run_number, org_id
+        );
 
-        let run = self.repo.get_run_by_number(org_id, run_number).await?
+        let run = self
+            .repo
+            .get_run_by_number(org_id, run_number)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Run not found".to_string()))?;
 
         if run.status != "draft" {
@@ -364,23 +428,37 @@ impl FinanceChargeEngine {
         new_status: &str,
         performed_by: Option<Uuid>,
     ) -> AtlasResult<FinanceChargeRun> {
-        info!("Transitioning finance charge run {} to '{}'", id, new_status);
+        info!(
+            "Transitioning finance charge run {} to '{}'",
+            id, new_status
+        );
         Self::validate_run_status(new_status)?;
 
-        let current = self.repo.get_run(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Finance charge run not found".to_string()))?;
+        let current = self.repo.get_run(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound("Finance charge run not found".to_string())
+        })?;
 
         Self::validate_run_transition(&current.status, new_status)?;
 
         let run = self.repo.update_run_status(id, new_status).await?;
 
-        let _ = self.repo.create_activity(
-            current.organization_id, "run", id,
-            &format!("status_change_{new_status}"),
-            Some(&format!("Status changed from '{}' to '{}'", current.status, new_status)),
-            Some(&current.status), Some(new_status),
-            performed_by, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                current.organization_id,
+                "run",
+                id,
+                &format!("status_change_{new_status}"),
+                Some(&format!(
+                    "Status changed from '{}' to '{}'",
+                    current.status, new_status
+                )),
+                Some(&current.status),
+                Some(new_status),
+                performed_by,
+                None,
+            )
+            .await;
 
         Ok(run)
     }
@@ -414,8 +492,9 @@ impl FinanceChargeEngine {
         info!("Adding charge line to run {} for org {}", run_id, org_id);
 
         // Verify run is in draft status
-        let run = self.repo.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Finance charge run not found".to_string()))?;
+        let run = self.repo.get_run(run_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound("Finance charge run not found".to_string())
+        })?;
 
         if run.status != "draft" {
             return Err(AtlasError::ValidationFailed(
@@ -471,7 +550,9 @@ impl FinanceChargeEngine {
         let all_lines = self.repo.list_lines(run_id).await?;
         let total_invoices = all_lines.len() as i32;
         let total_charges: f64 = all_lines.iter().map(|l| l.charge_amount).sum();
-        self.repo.update_run_totals(run_id, total_invoices, total_charges).await?;
+        self.repo
+            .update_run_totals(run_id, total_invoices, total_charges)
+            .await?;
 
         Ok(line)
     }
@@ -489,7 +570,9 @@ impl FinanceChargeEngine {
                 "Waiver reason is required".to_string(),
             ));
         }
-        self.repo.update_line_status(id, "waived", Some(reason)).await
+        self.repo
+            .update_line_status(id, "waived", Some(reason))
+            .await
     }
 
     /// Cancel a charge line
@@ -504,11 +587,16 @@ impl FinanceChargeEngine {
 
     /// Generate charge invoices for all pending lines in an approved run.
     /// Groups lines by customer and creates one invoice per customer.
-    pub async fn generate_invoices(&self, run_id: Uuid, created_by: Option<Uuid>) -> AtlasResult<Vec<FinanceChargeInvoice>> {
+    pub async fn generate_invoices(
+        &self,
+        run_id: Uuid,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<Vec<FinanceChargeInvoice>> {
         info!("Generating charge invoices for run {}", run_id);
 
-        let run = self.repo.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Finance charge run not found".to_string()))?;
+        let run = self.repo.get_run(run_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound("Finance charge run not found".to_string())
+        })?;
 
         if run.status != "approved" {
             return Err(AtlasError::ValidationFailed(
@@ -517,9 +605,7 @@ impl FinanceChargeEngine {
         }
 
         let lines = self.repo.list_lines(run_id).await?;
-        let pending_lines: Vec<_> = lines.iter()
-            .filter(|l| l.status == "pending")
-            .collect();
+        let pending_lines: Vec<_> = lines.iter().filter(|l| l.status == "pending").collect();
 
         if pending_lines.is_empty() {
             return Ok(vec![]);
@@ -529,7 +615,8 @@ impl FinanceChargeEngine {
         let mut customer_groups: std::collections::HashMap<String, Vec<&FinanceChargeLine>> =
             std::collections::HashMap::new();
         for line in &pending_lines {
-            let key = line.customer_id
+            let key = line
+                .customer_id
                 .map(|id| id.to_string())
                 .or_else(|| line.customer_name.clone())
                 .unwrap_or_else(|| "unknown".to_string());
@@ -542,7 +629,11 @@ impl FinanceChargeEngine {
             let first = group[0];
             let total_charge: f64 = group.iter().map(|l| l.charge_amount).sum();
 
-            let seq = self.repo.get_next_invoice_number(run.organization_id).await.unwrap_or(1);
+            let seq = self
+                .repo
+                .get_next_invoice_number(run.organization_id)
+                .await
+                .unwrap_or(1);
             let invoice_number = format!("FCI-{seq:06}");
 
             let params = FinanceChargeInvoiceCreateParams {
@@ -567,17 +658,33 @@ impl FinanceChargeEngine {
 
             // Update each line with the invoice reference
             for line in group {
-                let _ = self.repo.update_line_charge_invoice(
-                    line.id, invoice.id, Some(&invoice.charge_invoice_number),
-                ).await;
+                let _ = self
+                    .repo
+                    .update_line_charge_invoice(
+                        line.id,
+                        invoice.id,
+                        Some(&invoice.charge_invoice_number),
+                    )
+                    .await;
             }
 
-            let _ = self.repo.create_activity(
-                run.organization_id, "invoice", invoice.id,
-                "created",
-                Some(&format!("Charge invoice '{}' created for customer {:?}", invoice.charge_invoice_number, first.customer_name)),
-                None, Some("open"), created_by, None,
-            ).await;
+            let _ = self
+                .repo
+                .create_activity(
+                    run.organization_id,
+                    "invoice",
+                    invoice.id,
+                    "created",
+                    Some(&format!(
+                        "Charge invoice '{}' created for customer {:?}",
+                        invoice.charge_invoice_number, first.customer_name
+                    )),
+                    None,
+                    Some("open"),
+                    created_by,
+                    None,
+                )
+                .await;
 
             invoices.push(invoice);
         }
@@ -585,12 +692,23 @@ impl FinanceChargeEngine {
         // Auto-transition run to applied
         let run = self.repo.update_run_status(run_id, "applied").await?;
 
-        let _ = self.repo.create_activity(
-            run.organization_id, "run", run_id,
-            "status_change_applied",
-            Some(&format!("Run '{}' transitioned to applied after invoice generation", run.run_number)),
-            Some("approved"), Some("applied"), created_by, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                run.organization_id,
+                "run",
+                run_id,
+                "status_change_applied",
+                Some(&format!(
+                    "Run '{}' transitioned to applied after invoice generation",
+                    run.run_number
+                )),
+                Some("approved"),
+                Some("applied"),
+                created_by,
+                None,
+            )
+            .await;
 
         Ok(invoices)
     }
@@ -601,40 +719,67 @@ impl FinanceChargeEngine {
     }
 
     /// Get a charge invoice by number
-    pub async fn get_invoice_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<FinanceChargeInvoice>> {
+    pub async fn get_invoice_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<FinanceChargeInvoice>> {
         self.repo.get_invoice_by_number(org_id, number).await
     }
 
     /// List charge invoices
-    pub async fn list_invoices(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<FinanceChargeInvoice>> {
+    pub async fn list_invoices(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<FinanceChargeInvoice>> {
         self.repo.list_invoices(org_id, status, customer_id).await
     }
 
     /// Transition an invoice status
-    pub async fn transition_invoice(&self, id: Uuid, new_status: &str) -> AtlasResult<FinanceChargeInvoice> {
+    pub async fn transition_invoice(
+        &self,
+        id: Uuid,
+        new_status: &str,
+    ) -> AtlasResult<FinanceChargeInvoice> {
         info!("Transitioning charge invoice {} to '{}'", id, new_status);
         Self::validate_invoice_status(new_status)?;
 
-        let current = self.repo.get_invoice(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Charge invoice not found".to_string()))?;
+        let current =
+            self.repo.get_invoice(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Charge invoice not found".to_string())
+            })?;
 
         match (&current.status as &str, new_status) {
             ("open", "paid" | "cancelled" | "reversed") => {}
             _ => {
                 return Err(AtlasError::WorkflowError(format!(
-                    "Invalid invoice transition from '{}' to '{}'", current.status, new_status
+                    "Invalid invoice transition from '{}' to '{}'",
+                    current.status, new_status
                 )));
             }
         }
 
         let invoice = self.repo.update_invoice_status(id, new_status).await?;
 
-        let _ = self.repo.create_activity(
-            current.organization_id, "invoice", id,
-            &format!("status_change_{new_status}"),
-            Some(&format!("Invoice '{}' status changed to '{}'", current.charge_invoice_number, new_status)),
-            Some(&current.status), Some(new_status), None, None,
-        ).await;
+        let _ = self
+            .repo
+            .create_activity(
+                current.organization_id,
+                "invoice",
+                id,
+                &format!("status_change_{new_status}"),
+                Some(&format!(
+                    "Invoice '{}' status changed to '{}'",
+                    current.charge_invoice_number, new_status
+                )),
+                Some(&current.status),
+                Some(new_status),
+                None,
+                None,
+            )
+            .await;
 
         Ok(invoice)
     }
@@ -644,7 +789,11 @@ impl FinanceChargeEngine {
     // ========================================================================
 
     /// List activities for an entity
-    pub async fn list_activities(&self, entity_type: &str, entity_id: Uuid) -> AtlasResult<Vec<FinanceChargeActivity>> {
+    pub async fn list_activities(
+        &self,
+        entity_type: &str,
+        entity_id: Uuid,
+    ) -> AtlasResult<Vec<FinanceChargeActivity>> {
         self.repo.list_activities(entity_type, entity_id).await
     }
 
@@ -662,7 +811,7 @@ impl FinanceChargeEngine {
     // ========================================================================
 
     /// Calculate finance charge for a percentage-based term
-    #[must_use] 
+    #[must_use]
     pub fn calculate_percentage_charge(
         outstanding_amount: f64,
         annual_rate: f64,
@@ -672,14 +821,16 @@ impl FinanceChargeEngine {
         let rate_decimal = annual_rate / 100.0;
         match calculation_basis {
             "daily" => outstanding_amount * rate_decimal / 365.0 * f64::from(days_overdue),
-            "monthly" => outstanding_amount * rate_decimal / 12.0 * (f64::from(days_overdue) / 30.0),
+            "monthly" => {
+                outstanding_amount * rate_decimal / 12.0 * (f64::from(days_overdue) / 30.0)
+            }
             "annual" => outstanding_amount * rate_decimal,
             _ => 0.0,
         }
     }
 
     /// Apply min/max charge constraints
-    #[must_use] 
+    #[must_use]
     pub const fn apply_charge_limits(
         charge_amount: f64,
         minimum: Option<f64>,
@@ -699,14 +850,24 @@ impl FinanceChargeEngine {
     // Exported validation functions
     // ========================================================================
 
-    #[must_use] 
-    pub const fn valid_charge_types() -> &'static [&'static str] { VALID_CHARGE_TYPES }
-    #[must_use] 
-    pub const fn valid_calculation_bases() -> &'static [&'static str] { VALID_CALCULATION_BASES }
-    #[must_use] 
-    pub const fn valid_run_statuses() -> &'static [&'static str] { VALID_RUN_STATUSES }
-    #[must_use] 
-    pub const fn valid_line_statuses() -> &'static [&'static str] { VALID_LINE_STATUSES }
-    #[must_use] 
-    pub const fn valid_invoice_statuses() -> &'static [&'static str] { VALID_INVOICE_STATUSES }
+    #[must_use]
+    pub const fn valid_charge_types() -> &'static [&'static str] {
+        VALID_CHARGE_TYPES
+    }
+    #[must_use]
+    pub const fn valid_calculation_bases() -> &'static [&'static str] {
+        VALID_CALCULATION_BASES
+    }
+    #[must_use]
+    pub const fn valid_run_statuses() -> &'static [&'static str] {
+        VALID_RUN_STATUSES
+    }
+    #[must_use]
+    pub const fn valid_line_statuses() -> &'static [&'static str] {
+        VALID_LINE_STATUSES
+    }
+    #[must_use]
+    pub const fn valid_invoice_statuses() -> &'static [&'static str] {
+        VALID_INVOICE_STATUSES
+    }
 }

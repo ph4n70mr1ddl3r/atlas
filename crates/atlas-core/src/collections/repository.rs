@@ -4,13 +4,12 @@
 //! interactions, promises to pay, dunning campaigns, dunning letters,
 //! aging snapshots, and write-off requests.
 
-use atlas_shared::{
-    CustomerCreditProfile, CollectionStrategy, CollectionCase,
-    CustomerInteraction, PromiseToPay, DunningCampaign, DunningLetter,
-    ReceivablesAgingSnapshot, WriteOffRequest,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, CollectionCase, CollectionStrategy, CustomerCreditProfile,
+    CustomerInteraction, DunningCampaign, DunningLetter, PromiseToPay, ReceivablesAgingSnapshot,
+    WriteOffRequest,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -36,9 +35,21 @@ pub trait CollectionsRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CustomerCreditProfile>;
 
-    async fn get_credit_profile(&self, org_id: Uuid, customer_id: Uuid) -> AtlasResult<Option<CustomerCreditProfile>>;
-    async fn get_credit_profile_by_id(&self, id: Uuid) -> AtlasResult<Option<CustomerCreditProfile>>;
-    async fn list_credit_profiles(&self, org_id: Uuid, status: Option<&str>, risk_classification: Option<&str>) -> AtlasResult<Vec<CustomerCreditProfile>>;
+    async fn get_credit_profile(
+        &self,
+        org_id: Uuid,
+        customer_id: Uuid,
+    ) -> AtlasResult<Option<CustomerCreditProfile>>;
+    async fn get_credit_profile_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<CustomerCreditProfile>>;
+    async fn list_credit_profiles(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        risk_classification: Option<&str>,
+    ) -> AtlasResult<Vec<CustomerCreditProfile>>;
     async fn update_credit_profile(
         &self,
         id: Uuid,
@@ -76,7 +87,11 @@ pub trait CollectionsRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CollectionStrategy>;
 
-    async fn get_strategy(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CollectionStrategy>>;
+    async fn get_strategy(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CollectionStrategy>>;
     async fn list_strategies(&self, org_id: Uuid) -> AtlasResult<Vec<CollectionStrategy>>;
     async fn delete_strategy(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -103,8 +118,18 @@ pub trait CollectionsRepository: Send + Sync {
     ) -> AtlasResult<CollectionCase>;
 
     async fn get_case(&self, id: Uuid) -> AtlasResult<Option<CollectionCase>>;
-    async fn get_case_by_number(&self, org_id: Uuid, case_number: &str) -> AtlasResult<Option<CollectionCase>>;
-    async fn list_cases(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>, assigned_to: Option<Uuid>) -> AtlasResult<Vec<CollectionCase>>;
+    async fn get_case_by_number(
+        &self,
+        org_id: Uuid,
+        case_number: &str,
+    ) -> AtlasResult<Option<CollectionCase>>;
+    async fn list_cases(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+        assigned_to: Option<Uuid>,
+    ) -> AtlasResult<Vec<CollectionCase>>;
     async fn update_case_status(
         &self,
         id: Uuid,
@@ -145,7 +170,12 @@ pub trait CollectionsRepository: Send + Sync {
     ) -> AtlasResult<CustomerInteraction>;
 
     async fn get_interaction(&self, id: Uuid) -> AtlasResult<Option<CustomerInteraction>>;
-    async fn list_interactions(&self, org_id: Uuid, case_id: Option<Uuid>, customer_id: Option<Uuid>) -> AtlasResult<Vec<CustomerInteraction>>;
+    async fn list_interactions(
+        &self,
+        org_id: Uuid,
+        case_id: Option<Uuid>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<CustomerInteraction>>;
 
     // Promises to Pay
     async fn create_promise_to_pay(
@@ -168,7 +198,12 @@ pub trait CollectionsRepository: Send + Sync {
     ) -> AtlasResult<PromiseToPay>;
 
     async fn get_promise_to_pay(&self, id: Uuid) -> AtlasResult<Option<PromiseToPay>>;
-    async fn list_promises_to_pay(&self, org_id: Uuid, customer_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<PromiseToPay>>;
+    async fn list_promises_to_pay(
+        &self,
+        org_id: Uuid,
+        customer_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PromiseToPay>>;
     async fn update_promise_status(
         &self,
         id: Uuid,
@@ -198,9 +233,22 @@ pub trait CollectionsRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DunningCampaign>;
 
-    async fn get_dunning_campaign(&self, org_id: Uuid, campaign_number: &str) -> AtlasResult<Option<DunningCampaign>>;
-    async fn list_dunning_campaigns(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DunningCampaign>>;
-    async fn update_dunning_campaign_status(&self, id: Uuid, status: &str, sent_date: Option<chrono::NaiveDate>) -> AtlasResult<DunningCampaign>;
+    async fn get_dunning_campaign(
+        &self,
+        org_id: Uuid,
+        campaign_number: &str,
+    ) -> AtlasResult<Option<DunningCampaign>>;
+    async fn list_dunning_campaigns(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DunningCampaign>>;
+    async fn update_dunning_campaign_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        sent_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<DunningCampaign>;
 
     // Dunning Letters
     async fn create_dunning_letter(
@@ -225,8 +273,17 @@ pub trait CollectionsRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<DunningLetter>;
 
-    async fn list_dunning_letters(&self, org_id: Uuid, campaign_id: Option<Uuid>, customer_id: Option<Uuid>) -> AtlasResult<Vec<DunningLetter>>;
-    async fn update_dunning_letter_status(&self, id: Uuid, status: &str) -> AtlasResult<DunningLetter>;
+    async fn list_dunning_letters(
+        &self,
+        org_id: Uuid,
+        campaign_id: Option<Uuid>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<DunningLetter>>;
+    async fn update_dunning_letter_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<DunningLetter>;
 
     // Aging Snapshots
     async fn create_aging_snapshot(
@@ -253,7 +310,11 @@ pub trait CollectionsRepository: Send + Sync {
         overdue_percent: Option<&str>,
     ) -> AtlasResult<ReceivablesAgingSnapshot>;
 
-    async fn list_aging_snapshots(&self, org_id: Uuid, snapshot_date: chrono::NaiveDate) -> AtlasResult<Vec<ReceivablesAgingSnapshot>>;
+    async fn list_aging_snapshots(
+        &self,
+        org_id: Uuid,
+        snapshot_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<ReceivablesAgingSnapshot>>;
 
     // Write-Off Requests
     async fn create_write_off_request(
@@ -273,7 +334,11 @@ pub trait CollectionsRepository: Send + Sync {
     ) -> AtlasResult<WriteOffRequest>;
 
     async fn get_write_off_request(&self, id: Uuid) -> AtlasResult<Option<WriteOffRequest>>;
-    async fn list_write_off_requests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<WriteOffRequest>>;
+    async fn list_write_off_requests(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<WriteOffRequest>>;
     async fn update_write_off_status(
         &self,
         id: Uuid,
@@ -291,7 +356,7 @@ pub struct PostgresCollectionsRepository {
 }
 
 impl PostgresCollectionsRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -375,10 +440,19 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(credit_limit).bind(risk_classification).bind(credit_score)
-        .bind(external_credit_rating).bind(external_rating_agency).bind(external_rating_date)
-        .bind(payment_terms).bind(next_review_date).bind(created_by)
+        .bind(org_id)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(credit_limit)
+        .bind(risk_classification)
+        .bind(credit_score)
+        .bind(external_credit_rating)
+        .bind(external_rating_agency)
+        .bind(external_rating_date)
+        .bind(payment_terms)
+        .bind(next_review_date)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -386,7 +460,11 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(self.row_to_credit_profile(&row))
     }
 
-    async fn get_credit_profile(&self, org_id: Uuid, customer_id: Uuid) -> AtlasResult<Option<CustomerCreditProfile>> {
+    async fn get_credit_profile(
+        &self,
+        org_id: Uuid,
+        customer_id: Uuid,
+    ) -> AtlasResult<Option<CustomerCreditProfile>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.customer_credit_profiles WHERE organization_id = $1 AND customer_id = $2 AND status != 'inactive'"
         )
@@ -397,7 +475,10 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(row.map(|r| self.row_to_credit_profile(&r)))
     }
 
-    async fn get_credit_profile_by_id(&self, id: Uuid) -> AtlasResult<Option<CustomerCreditProfile>> {
+    async fn get_credit_profile_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<CustomerCreditProfile>> {
         let row = sqlx::query("SELECT * FROM _atlas.customer_credit_profiles WHERE id = $1")
             .bind(id)
             .fetch_optional(&self.pool)
@@ -406,7 +487,12 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(row.map(|r| self.row_to_credit_profile(&r)))
     }
 
-    async fn list_credit_profiles(&self, org_id: Uuid, status: Option<&str>, risk_classification: Option<&str>) -> AtlasResult<Vec<CustomerCreditProfile>> {
+    async fn list_credit_profiles(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        risk_classification: Option<&str>,
+    ) -> AtlasResult<Vec<CustomerCreditProfile>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.customer_credit_profiles
@@ -416,7 +502,9 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             ORDER BY customer_name
             ",
         )
-        .bind(org_id).bind(status).bind(risk_classification)
+        .bind(org_id)
+        .bind(status)
+        .bind(risk_classification)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -517,9 +605,17 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(strategy_type)
-        .bind(applicable_risk_classifications).bind(trigger_aging_buckets)
-        .bind(overdue_amount_threshold).bind(actions).bind(priority).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(strategy_type)
+        .bind(applicable_risk_classifications)
+        .bind(trigger_aging_buckets)
+        .bind(overdue_amount_threshold)
+        .bind(actions)
+        .bind(priority)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -531,9 +627,15 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             name: row.get("name"),
             description: row.get("description"),
             strategy_type: row.get("strategy_type"),
-            applicable_risk_classifications: row.try_get("applicable_risk_classifications").unwrap_or(serde_json::json!([])),
-            trigger_aging_buckets: row.try_get("trigger_aging_buckets").unwrap_or(serde_json::json!([])),
-            overdue_amount_threshold: row.try_get("overdue_amount_threshold").map_or("0".to_string(), |v: serde_json::Value| v.to_string()),
+            applicable_risk_classifications: row
+                .try_get("applicable_risk_classifications")
+                .unwrap_or(serde_json::json!([])),
+            trigger_aging_buckets: row
+                .try_get("trigger_aging_buckets")
+                .unwrap_or(serde_json::json!([])),
+            overdue_amount_threshold: row
+                .try_get("overdue_amount_threshold")
+                .map_or("0".to_string(), |v: serde_json::Value| v.to_string()),
             actions: row.try_get("actions").unwrap_or(serde_json::json!([])),
             priority: row.get("priority"),
             is_active: row.get("is_active"),
@@ -544,7 +646,11 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         })
     }
 
-    async fn get_strategy(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CollectionStrategy>> {
+    async fn get_strategy(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CollectionStrategy>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.collection_strategies WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -560,9 +666,15 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             name: r.get("name"),
             description: r.get("description"),
             strategy_type: r.get("strategy_type"),
-            applicable_risk_classifications: r.try_get("applicable_risk_classifications").unwrap_or(serde_json::json!([])),
-            trigger_aging_buckets: r.try_get("trigger_aging_buckets").unwrap_or(serde_json::json!([])),
-            overdue_amount_threshold: r.try_get("overdue_amount_threshold").map_or("0".to_string(), |v: serde_json::Value| v.to_string()),
+            applicable_risk_classifications: r
+                .try_get("applicable_risk_classifications")
+                .unwrap_or(serde_json::json!([])),
+            trigger_aging_buckets: r
+                .try_get("trigger_aging_buckets")
+                .unwrap_or(serde_json::json!([])),
+            overdue_amount_threshold: r
+                .try_get("overdue_amount_threshold")
+                .map_or("0".to_string(), |v: serde_json::Value| v.to_string()),
             actions: r.try_get("actions").unwrap_or(serde_json::json!([])),
             priority: r.get("priority"),
             is_active: r.get("is_active"),
@@ -582,24 +694,33 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| CollectionStrategy {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            code: r.get("code"),
-            name: r.get("name"),
-            description: r.get("description"),
-            strategy_type: r.get("strategy_type"),
-            applicable_risk_classifications: r.try_get("applicable_risk_classifications").unwrap_or(serde_json::json!([])),
-            trigger_aging_buckets: r.try_get("trigger_aging_buckets").unwrap_or(serde_json::json!([])),
-            overdue_amount_threshold: r.try_get("overdue_amount_threshold").map_or("0".to_string(), |v: serde_json::Value| v.to_string()),
-            actions: r.try_get("actions").unwrap_or(serde_json::json!([])),
-            priority: r.get("priority"),
-            is_active: r.get("is_active"),
-            metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
-            created_by: r.get("created_by"),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-        }).collect())
+        Ok(rows
+            .iter()
+            .map(|r| CollectionStrategy {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                code: r.get("code"),
+                name: r.get("name"),
+                description: r.get("description"),
+                strategy_type: r.get("strategy_type"),
+                applicable_risk_classifications: r
+                    .try_get("applicable_risk_classifications")
+                    .unwrap_or(serde_json::json!([])),
+                trigger_aging_buckets: r
+                    .try_get("trigger_aging_buckets")
+                    .unwrap_or(serde_json::json!([])),
+                overdue_amount_threshold: r
+                    .try_get("overdue_amount_threshold")
+                    .map_or("0".to_string(), |v: serde_json::Value| v.to_string()),
+                actions: r.try_get("actions").unwrap_or(serde_json::json!([])),
+                priority: r.get("priority"),
+                is_active: r.get("is_active"),
+                metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
+                created_by: r.get("created_by"),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+            })
+            .collect())
     }
 
     async fn delete_strategy(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
@@ -649,10 +770,23 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(case_number).bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(strategy_id).bind(assigned_to).bind(assigned_to_name).bind(case_type).bind(priority)
-        .bind(total_overdue_amount).bind(total_disputed_amount).bind(total_invoiced_amount)
-        .bind(overdue_invoice_count).bind(oldest_overdue_date).bind(related_invoice_ids).bind(created_by)
+        .bind(org_id)
+        .bind(case_number)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(strategy_id)
+        .bind(assigned_to)
+        .bind(assigned_to_name)
+        .bind(case_type)
+        .bind(priority)
+        .bind(total_overdue_amount)
+        .bind(total_disputed_amount)
+        .bind(total_invoiced_amount)
+        .bind(overdue_invoice_count)
+        .bind(oldest_overdue_date)
+        .bind(related_invoice_ids)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -669,18 +803,29 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(row.map(|r| row_to_case(&r)))
     }
 
-    async fn get_case_by_number(&self, org_id: Uuid, case_number: &str) -> AtlasResult<Option<CollectionCase>> {
+    async fn get_case_by_number(
+        &self,
+        org_id: Uuid,
+        case_number: &str,
+    ) -> AtlasResult<Option<CollectionCase>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.collection_cases WHERE organization_id = $1 AND case_number = $2"
+            "SELECT * FROM _atlas.collection_cases WHERE organization_id = $1 AND case_number = $2",
         )
-        .bind(org_id).bind(case_number)
+        .bind(org_id)
+        .bind(case_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_case(&r)))
     }
 
-    async fn list_cases(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>, assigned_to: Option<Uuid>) -> AtlasResult<Vec<CollectionCase>> {
+    async fn list_cases(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+        assigned_to: Option<Uuid>,
+    ) -> AtlasResult<Vec<CollectionCase>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.collection_cases
@@ -698,7 +843,10 @@ impl CollectionsRepository for PostgresCollectionsRepository {
                 opened_date DESC
             ",
         )
-        .bind(org_id).bind(status).bind(customer_id).bind(assigned_to)
+        .bind(org_id)
+        .bind(status)
+        .bind(customer_id)
+        .bind(assigned_to)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -737,11 +885,17 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(current_step)
-        .bind(assigned_to).bind(assigned_to_name)
-        .bind(last_action_date).bind(next_action_date)
-        .bind(resolution_type).bind(resolution_notes)
-        .bind(resolved_date).bind(closed_date)
+        .bind(id)
+        .bind(status)
+        .bind(current_step)
+        .bind(assigned_to)
+        .bind(assigned_to_name)
+        .bind(last_action_date)
+        .bind(next_action_date)
+        .bind(resolution_type)
+        .bind(resolution_notes)
+        .bind(resolved_date)
+        .bind(closed_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -807,7 +961,12 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(row.map(|r| row_to_interaction(&r)))
     }
 
-    async fn list_interactions(&self, org_id: Uuid, case_id: Option<Uuid>, customer_id: Option<Uuid>) -> AtlasResult<Vec<CustomerInteraction>> {
+    async fn list_interactions(
+        &self,
+        org_id: Uuid,
+        case_id: Option<Uuid>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<CustomerInteraction>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.customer_interactions
@@ -817,7 +976,9 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             ORDER BY performed_at DESC
             ",
         )
-        .bind(org_id).bind(case_id).bind(customer_id)
+        .bind(org_id)
+        .bind(case_id)
+        .bind(customer_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -858,11 +1019,21 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(case_id).bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(promise_type).bind(promised_amount).bind(promise_date)
-        .bind(installment_count).bind(installment_frequency)
-        .bind(related_invoice_ids).bind(promised_by_name).bind(promised_by_role)
-        .bind(notes).bind(recorded_by)
+        .bind(org_id)
+        .bind(case_id)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(promise_type)
+        .bind(promised_amount)
+        .bind(promise_date)
+        .bind(installment_count)
+        .bind(installment_frequency)
+        .bind(related_invoice_ids)
+        .bind(promised_by_name)
+        .bind(promised_by_role)
+        .bind(notes)
+        .bind(recorded_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -879,7 +1050,12 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(row.map(|r| row_to_ptp(&r)))
     }
 
-    async fn list_promises_to_pay(&self, org_id: Uuid, customer_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<PromiseToPay>> {
+    async fn list_promises_to_pay(
+        &self,
+        org_id: Uuid,
+        customer_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PromiseToPay>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.promise_to_pay
@@ -889,7 +1065,9 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             ORDER BY promise_date
             ",
         )
-        .bind(org_id).bind(customer_id).bind(status)
+        .bind(org_id)
+        .bind(customer_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -918,8 +1096,12 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(paid_amount).bind(remaining_amount)
-        .bind(broken_date).bind(broken_reason)
+        .bind(id)
+        .bind(status)
+        .bind(paid_amount)
+        .bind(remaining_amount)
+        .bind(broken_date)
+        .bind(broken_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -959,11 +1141,20 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(campaign_number).bind(name).bind(description)
-        .bind(dunning_level).bind(communication_method).bind(template_id).bind(template_name)
-        .bind(min_overdue_days).bind(min_overdue_amount)
-        .bind(target_risk_classifications).bind(exclude_active_cases)
-        .bind(scheduled_date).bind(created_by)
+        .bind(org_id)
+        .bind(campaign_number)
+        .bind(name)
+        .bind(description)
+        .bind(dunning_level)
+        .bind(communication_method)
+        .bind(template_id)
+        .bind(template_name)
+        .bind(min_overdue_days)
+        .bind(min_overdue_amount)
+        .bind(target_risk_classifications)
+        .bind(exclude_active_cases)
+        .bind(scheduled_date)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -971,7 +1162,11 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(row_to_campaign(&row))
     }
 
-    async fn get_dunning_campaign(&self, org_id: Uuid, campaign_number: &str) -> AtlasResult<Option<DunningCampaign>> {
+    async fn get_dunning_campaign(
+        &self,
+        org_id: Uuid,
+        campaign_number: &str,
+    ) -> AtlasResult<Option<DunningCampaign>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.dunning_campaigns WHERE organization_id = $1 AND campaign_number = $2"
         )
@@ -982,7 +1177,11 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(row.map(|r| row_to_campaign(&r)))
     }
 
-    async fn list_dunning_campaigns(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DunningCampaign>> {
+    async fn list_dunning_campaigns(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DunningCampaign>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.dunning_campaigns
@@ -990,14 +1189,20 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(status)
+        .bind(org_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_campaign).collect())
     }
 
-    async fn update_dunning_campaign_status(&self, id: Uuid, status: &str, sent_date: Option<chrono::NaiveDate>) -> AtlasResult<DunningCampaign> {
+    async fn update_dunning_campaign_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        sent_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<DunningCampaign> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.dunning_campaigns
@@ -1006,7 +1211,9 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(sent_date)
+        .bind(id)
+        .bind(status)
+        .bind(sent_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -1064,7 +1271,12 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(row_to_letter(&row))
     }
 
-    async fn list_dunning_letters(&self, org_id: Uuid, campaign_id: Option<Uuid>, customer_id: Option<Uuid>) -> AtlasResult<Vec<DunningLetter>> {
+    async fn list_dunning_letters(
+        &self,
+        org_id: Uuid,
+        campaign_id: Option<Uuid>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<DunningLetter>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.dunning_letters
@@ -1074,14 +1286,20 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(campaign_id).bind(customer_id)
+        .bind(org_id)
+        .bind(campaign_id)
+        .bind(customer_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_letter).collect())
     }
 
-    async fn update_dunning_letter_status(&self, id: Uuid, status: &str) -> AtlasResult<DunningLetter> {
+    async fn update_dunning_letter_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<DunningLetter> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.dunning_letters
@@ -1142,11 +1360,26 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(snapshot_date).bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(total_outstanding).bind(aging_current).bind(aging_1_30).bind(aging_31_60).bind(aging_61_90)
-        .bind(aging_91_120).bind(aging_121_plus).bind(count_current).bind(count_1_30).bind(count_31_60)
-        .bind(count_61_90).bind(count_91_120).bind(count_121_plus)
-        .bind(weighted_average_days_overdue).bind(overdue_percent)
+        .bind(org_id)
+        .bind(snapshot_date)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(total_outstanding)
+        .bind(aging_current)
+        .bind(aging_1_30)
+        .bind(aging_31_60)
+        .bind(aging_61_90)
+        .bind(aging_91_120)
+        .bind(aging_121_plus)
+        .bind(count_current)
+        .bind(count_1_30)
+        .bind(count_31_60)
+        .bind(count_61_90)
+        .bind(count_91_120)
+        .bind(count_121_plus)
+        .bind(weighted_average_days_overdue)
+        .bind(overdue_percent)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -1154,7 +1387,11 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(row_to_snapshot(&row))
     }
 
-    async fn list_aging_snapshots(&self, org_id: Uuid, snapshot_date: chrono::NaiveDate) -> AtlasResult<Vec<ReceivablesAgingSnapshot>> {
+    async fn list_aging_snapshots(
+        &self,
+        org_id: Uuid,
+        snapshot_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<ReceivablesAgingSnapshot>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.receivables_aging_snapshots WHERE organization_id = $1 AND snapshot_date = $2 ORDER BY customer_name"
         )
@@ -1194,9 +1431,18 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(request_number).bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(write_off_type).bind(write_off_amount).bind(write_off_account_code)
-        .bind(reason).bind(related_invoice_ids).bind(case_id).bind(created_by)
+        .bind(org_id)
+        .bind(request_number)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(write_off_type)
+        .bind(write_off_amount)
+        .bind(write_off_account_code)
+        .bind(reason)
+        .bind(related_invoice_ids)
+        .bind(case_id)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -1213,7 +1459,11 @@ impl CollectionsRepository for PostgresCollectionsRepository {
         Ok(row.map(|r| row_to_write_off(&r)))
     }
 
-    async fn list_write_off_requests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<WriteOffRequest>> {
+    async fn list_write_off_requests(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<WriteOffRequest>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.write_off_requests
@@ -1221,7 +1471,8 @@ impl CollectionsRepository for PostgresCollectionsRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(status)
+        .bind(org_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -1298,7 +1549,9 @@ fn row_to_case(row: &sqlx::postgres::PgRow) -> CollectionCase {
         next_action_date: row.get("next_action_date"),
         resolution_type: row.get("resolution_type"),
         resolution_notes: row.get("resolution_notes"),
-        related_invoice_ids: row.try_get("related_invoice_ids").unwrap_or(serde_json::json!([])),
+        related_invoice_ids: row
+            .try_get("related_invoice_ids")
+            .unwrap_or(serde_json::json!([])),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.get("created_by"),
         created_at: row.get("created_at"),
@@ -1353,7 +1606,9 @@ fn row_to_ptp(row: &sqlx::postgres::PgRow) -> PromiseToPay {
         status: row.get("status"),
         broken_date: row.get("broken_date"),
         broken_reason: row.get("broken_reason"),
-        related_invoice_ids: row.try_get("related_invoice_ids").unwrap_or(serde_json::json!([])),
+        related_invoice_ids: row
+            .try_get("related_invoice_ids")
+            .unwrap_or(serde_json::json!([])),
         promised_by_name: row.get("promised_by_name"),
         promised_by_role: row.get("promised_by_role"),
         notes: row.get("notes"),
@@ -1378,7 +1633,9 @@ fn row_to_campaign(row: &sqlx::postgres::PgRow) -> DunningCampaign {
         template_name: row.get("template_name"),
         min_overdue_days: row.get("min_overdue_days"),
         min_overdue_amount: get_num(row, "min_overdue_amount"),
-        target_risk_classifications: row.try_get("target_risk_classifications").unwrap_or(serde_json::json!([])),
+        target_risk_classifications: row
+            .try_get("target_risk_classifications")
+            .unwrap_or(serde_json::json!([])),
         exclude_active_cases: row.get("exclude_active_cases"),
         scheduled_date: row.get("scheduled_date"),
         sent_date: row.get("sent_date"),
@@ -1419,7 +1676,9 @@ fn row_to_letter(row: &sqlx::postgres::PgRow) -> DunningLetter {
         delivered_at: row.get("delivered_at"),
         viewed_at: row.get("viewed_at"),
         failure_reason: row.get("failure_reason"),
-        invoice_details: row.try_get("invoice_details").unwrap_or(serde_json::json!([])),
+        invoice_details: row
+            .try_get("invoice_details")
+            .unwrap_or(serde_json::json!([])),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.get("created_by"),
         created_at: row.get("created_at"),
@@ -1448,8 +1707,14 @@ fn row_to_snapshot(row: &sqlx::postgres::PgRow) -> ReceivablesAgingSnapshot {
         count_61_90: row.get("count_61_90"),
         count_91_120: row.get("count_91_120"),
         count_121_plus: row.get("count_121_plus"),
-        weighted_average_days_overdue: row.try_get("weighted_average_days_overdue").unwrap_or(None).map(|v: serde_json::Value| v.to_string()),
-        overdue_percent: row.try_get("overdue_percent").unwrap_or(None).map(|v: serde_json::Value| v.to_string()),
+        weighted_average_days_overdue: row
+            .try_get("weighted_average_days_overdue")
+            .unwrap_or(None)
+            .map(|v: serde_json::Value| v.to_string()),
+        overdue_percent: row
+            .try_get("overdue_percent")
+            .unwrap_or(None)
+            .map(|v: serde_json::Value| v.to_string()),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_at: row.get("created_at"),
     }
@@ -1467,7 +1732,9 @@ fn row_to_write_off(row: &sqlx::postgres::PgRow) -> WriteOffRequest {
         write_off_amount: get_num(row, "write_off_amount"),
         write_off_account_code: row.get("write_off_account_code"),
         reason: row.get("reason"),
-        related_invoice_ids: row.try_get("related_invoice_ids").unwrap_or(serde_json::json!([])),
+        related_invoice_ids: row
+            .try_get("related_invoice_ids")
+            .unwrap_or(serde_json::json!([])),
         case_id: row.get("case_id"),
         status: row.get("status"),
         submitted_by: row.get("submitted_by"),

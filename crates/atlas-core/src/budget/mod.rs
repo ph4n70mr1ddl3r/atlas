@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: General Ledger > Budgets
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::BudgetEngine;
 pub use repository::{BudgetRepository, PostgresBudgetRepository};

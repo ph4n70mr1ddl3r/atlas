@@ -5,57 +5,57 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Order Management > Returns
 
-use atlas_shared::{
-    ReturnReason, ReturnAuthorization, ReturnLine, CreditMemo,
-    ReturnsDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::CustomerReturnsRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CreditMemo, ReturnAuthorization, ReturnLine, ReturnReason,
+    ReturnsDashboardSummary,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid return types for RMAs
 #[allow(dead_code)]
-const VALID_RETURN_TYPES: &[&str] = &[
-    "standard_return", "exchange", "repair", "warranty",
-];
+const VALID_RETURN_TYPES: &[&str] = &["standard_return", "exchange", "repair", "warranty"];
 
 /// Valid RMA statuses
 #[allow(dead_code)]
 const VALID_RMA_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "rejected",
-    "partially_received", "received", "closed", "cancelled",
+    "draft",
+    "submitted",
+    "approved",
+    "rejected",
+    "partially_received",
+    "received",
+    "closed",
+    "cancelled",
 ];
 
 /// Valid disposition options
 #[allow(dead_code)]
-const VALID_DISPOSITIONS: &[&str] = &[
-    "return_to_stock", "scrap", "inspect", "repair", "exchange",
-];
+const VALID_DISPOSITIONS: &[&str] = &["return_to_stock", "scrap", "inspect", "repair", "exchange"];
 
 /// Valid item conditions
 #[allow(dead_code)]
-const VALID_CONDITIONS: &[&str] = &[
-    "good", "damaged", "defective", "wrong_item",
-];
+const VALID_CONDITIONS: &[&str] = &["good", "damaged", "defective", "wrong_item"];
 
 /// Valid inspection statuses
 #[allow(dead_code)]
-const VALID_INSPECTION_STATUSES: &[&str] = &[
-    "pending", "passed", "failed", "pending_review",
-];
+const VALID_INSPECTION_STATUSES: &[&str] = &["pending", "passed", "failed", "pending_review"];
 
 /// Valid credit statuses for return lines
 #[allow(dead_code)]
-const VALID_CREDIT_STATUSES: &[&str] = &[
-    "pending", "issued", "reversed",
-];
+const VALID_CREDIT_STATUSES: &[&str] = &["pending", "issued", "reversed"];
 
 /// Valid credit memo statuses
 #[allow(dead_code)]
 const VALID_CREDIT_MEMO_STATUSES: &[&str] = &[
-    "draft", "issued", "applied", "partially_applied", "reversed", "cancelled",
+    "draft",
+    "issued",
+    "applied",
+    "partially_applied",
+    "reversed",
+    "cancelled",
 ];
 
 /// Customer Returns engine for managing RMAs and credit memos
@@ -98,40 +98,69 @@ impl CustomerReturnsEngine {
         }
         if !VALID_RETURN_TYPES.contains(&return_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid return_type '{}'. Must be one of: {}", return_type, VALID_RETURN_TYPES.join(", ")
+                "Invalid return_type '{}'. Must be one of: {}",
+                return_type,
+                VALID_RETURN_TYPES.join(", ")
             )));
         }
         if let Some(disp) = default_disposition {
             if !VALID_DISPOSITIONS.contains(&disp) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid default_disposition '{}'. Must be one of: {}", disp, VALID_DISPOSITIONS.join(", ")
+                    "Invalid default_disposition '{}'. Must be one of: {}",
+                    disp,
+                    VALID_DISPOSITIONS.join(", ")
                 )));
             }
         }
 
-        info!("Creating return reason '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating return reason '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_return_reason(
-            org_id, &code_upper, name, description, return_type,
-            default_disposition, requires_approval, credit_issued_automatically,
-            created_by,
-        ).await
+        self.repository
+            .create_return_reason(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                return_type,
+                default_disposition,
+                requires_approval,
+                credit_issued_automatically,
+                created_by,
+            )
+            .await
     }
 
     /// Get a return reason by code
-    pub async fn get_return_reason(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ReturnReason>> {
-        self.repository.get_return_reason(org_id, &code.to_uppercase()).await
+    pub async fn get_return_reason(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ReturnReason>> {
+        self.repository
+            .get_return_reason(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List return reasons, optionally filtered by return type
-    pub async fn list_return_reasons(&self, org_id: Uuid, return_type: Option<&str>) -> AtlasResult<Vec<ReturnReason>> {
-        self.repository.list_return_reasons(org_id, return_type).await
+    pub async fn list_return_reasons(
+        &self,
+        org_id: Uuid,
+        return_type: Option<&str>,
+    ) -> AtlasResult<Vec<ReturnReason>> {
+        self.repository
+            .list_return_reasons(org_id, return_type)
+            .await
     }
 
     /// Deactivate a return reason
     pub async fn delete_return_reason(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deactivating return reason '{}' for org {}", code, org_id);
-        self.repository.delete_return_reason(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_return_reason(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -160,13 +189,17 @@ impl CustomerReturnsEngine {
     ) -> AtlasResult<ReturnAuthorization> {
         if !VALID_RETURN_TYPES.contains(&return_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid return_type '{}'. Must be one of: {}", return_type, VALID_RETURN_TYPES.join(", ")
+                "Invalid return_type '{}'. Must be one of: {}",
+                return_type,
+                VALID_RETURN_TYPES.join(", ")
             )));
         }
 
         // Look up reason name if code is provided
         let reason_name = if let Some(rc) = reason_code {
-            self.repository.get_return_reason(org_id, rc).await?
+            self.repository
+                .get_return_reason(org_id, rc)
+                .await?
                 .map(|r| r.name)
         } else {
             None
@@ -175,16 +208,33 @@ impl CustomerReturnsEngine {
         // Generate RMA number
         let rma_number = format!("RMA-{}", chrono::Utc::now().format("%Y%m%d%-H%M%S"));
 
-        info!("Creating RMA {} for customer {} in org {}", rma_number, customer_id, org_id);
+        info!(
+            "Creating RMA {} for customer {} in org {}",
+            rma_number, customer_id, org_id
+        );
 
-        self.repository.create_rma(
-            org_id, &rma_number, customer_id, customer_number, customer_name,
-            return_type, reason_code, reason_name.as_deref(),
-            original_order_number, original_order_id,
-            customer_contact, customer_email, customer_phone,
-            return_date, expected_receipt_date,
-            currency_code, notes, created_by,
-        ).await
+        self.repository
+            .create_rma(
+                org_id,
+                &rma_number,
+                customer_id,
+                customer_number,
+                customer_name,
+                return_type,
+                reason_code,
+                reason_name.as_deref(),
+                original_order_number,
+                original_order_id,
+                customer_contact,
+                customer_email,
+                customer_phone,
+                return_date,
+                expected_receipt_date,
+                currency_code,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get an RMA by ID
@@ -193,7 +243,11 @@ impl CustomerReturnsEngine {
     }
 
     /// Get an RMA by number
-    pub async fn get_rma_by_number(&self, org_id: Uuid, rma_number: &str) -> AtlasResult<Option<ReturnAuthorization>> {
+    pub async fn get_rma_by_number(
+        &self,
+        org_id: Uuid,
+        rma_number: &str,
+    ) -> AtlasResult<Option<ReturnAuthorization>> {
         self.repository.get_rma_by_number(org_id, rma_number).await
     }
 
@@ -208,22 +262,30 @@ impl CustomerReturnsEngine {
         if let Some(s) = status {
             if !VALID_RMA_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_RMA_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_RMA_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_rmas(org_id, status, customer_id, return_type).await
+        self.repository
+            .list_rmas(org_id, status, customer_id, return_type)
+            .await
     }
 
     /// Submit an RMA for approval (draft -> submitted)
     pub async fn submit_rma(&self, id: Uuid) -> AtlasResult<ReturnAuthorization> {
-        let rma = self.repository.get_rma(id).await?
+        let rma = self
+            .repository
+            .get_rma(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {id} not found")))?;
 
         if rma.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit RMA in '{}' status. Must be 'draft'.", rma.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit RMA in '{}' status. Must be 'draft'.",
+                rma.status
+            )));
         }
 
         // Check RMA has at least one line
@@ -235,33 +297,49 @@ impl CustomerReturnsEngine {
         }
 
         info!("Submitting RMA {}", rma.rma_number);
-        self.repository.update_rma_status(id, "submitted", None, None).await
+        self.repository
+            .update_rma_status(id, "submitted", None, None)
+            .await
     }
 
     /// Approve an RMA (submitted -> approved)
-    pub async fn approve_rma(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<ReturnAuthorization> {
-        let rma = self.repository.get_rma(id).await?
+    pub async fn approve_rma(
+        &self,
+        id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<ReturnAuthorization> {
+        let rma = self
+            .repository
+            .get_rma(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {id} not found")))?;
 
         if rma.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve RMA in '{}' status. Must be 'submitted'.", rma.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve RMA in '{}' status. Must be 'submitted'.",
+                rma.status
+            )));
         }
 
         info!("Approving RMA {} by {}", rma.rma_number, approved_by);
-        self.repository.update_rma_status(id, "approved", Some(approved_by), None).await
+        self.repository
+            .update_rma_status(id, "approved", Some(approved_by), None)
+            .await
     }
 
     /// Reject an RMA (submitted -> rejected)
     pub async fn reject_rma(&self, id: Uuid, reason: &str) -> AtlasResult<ReturnAuthorization> {
-        let rma = self.repository.get_rma(id).await?
+        let rma = self
+            .repository
+            .get_rma(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {id} not found")))?;
 
         if rma.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reject RMA in '{}' status. Must be 'submitted'.", rma.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reject RMA in '{}' status. Must be 'submitted'.",
+                rma.status
+            )));
         }
 
         if reason.is_empty() {
@@ -271,22 +349,30 @@ impl CustomerReturnsEngine {
         }
 
         info!("Rejecting RMA {}: {}", rma.rma_number, reason);
-        self.repository.update_rma_status(id, "rejected", None, Some(reason)).await
+        self.repository
+            .update_rma_status(id, "rejected", None, Some(reason))
+            .await
     }
 
     /// Cancel an RMA
     pub async fn cancel_rma(&self, id: Uuid) -> AtlasResult<ReturnAuthorization> {
-        let rma = self.repository.get_rma(id).await?
+        let rma = self
+            .repository
+            .get_rma(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {id} not found")))?;
 
         if rma.status == "received" || rma.status == "closed" || rma.status == "cancelled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel RMA in '{}' status", rma.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel RMA in '{}' status",
+                rma.status
+            )));
         }
 
         info!("Cancelling RMA {}", rma.rma_number);
-        self.repository.update_rma_status(id, "cancelled", None, None).await
+        self.repository
+            .update_rma_status(id, "cancelled", None, None)
+            .await
     }
 
     // ========================================================================
@@ -313,7 +399,10 @@ impl CustomerReturnsEngine {
         notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReturnLine> {
-        let rma = self.repository.get_rma(rma_id).await?
+        let rma = self
+            .repository
+            .get_rma(rma_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {rma_id} not found")))?;
 
         if rma.status != "draft" {
@@ -323,9 +412,9 @@ impl CustomerReturnsEngine {
         }
 
         // Validate quantities
-        let ret_qty: f64 = return_quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "return_quantity must be a valid number".to_string(),
-        ))?;
+        let ret_qty: f64 = return_quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("return_quantity must be a valid number".to_string())
+        })?;
         if ret_qty <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "return_quantity must be positive".to_string(),
@@ -342,14 +431,18 @@ impl CustomerReturnsEngine {
         if let Some(cond) = condition {
             if !VALID_CONDITIONS.contains(&cond) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid condition '{}'. Must be one of: {}", cond, VALID_CONDITIONS.join(", ")
+                    "Invalid condition '{}'. Must be one of: {}",
+                    cond,
+                    VALID_CONDITIONS.join(", ")
                 )));
             }
         }
         if let Some(disp) = disposition {
             if !VALID_DISPOSITIONS.contains(&disp) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid disposition '{}'. Must be one of: {}", disp, VALID_DISPOSITIONS.join(", ")
+                    "Invalid disposition '{}'. Must be one of: {}",
+                    disp,
+                    VALID_DISPOSITIONS.join(", ")
                 )));
             }
         }
@@ -362,36 +455,59 @@ impl CustomerReturnsEngine {
         let existing_lines = self.repository.list_return_lines_by_rma(rma_id).await?;
         let line_number = (existing_lines.len() + 1) as i32;
 
-        info!("Adding return line {} to RMA {}", line_number, rma.rma_number);
+        info!(
+            "Adding return line {} to RMA {}",
+            line_number, rma.rma_number
+        );
 
-        let line = self.repository.create_return_line(
-            org_id, rma_id, line_number,
-            item_id, item_code, item_description,
-            original_line_id, original_quantity, return_quantity,
-            unit_price, &return_amount, &credit_amount,
-            reason_code, disposition,
-            lot_number, serial_number, condition,
-            notes, created_by,
-        ).await?;
+        let line = self
+            .repository
+            .create_return_line(
+                org_id,
+                rma_id,
+                line_number,
+                item_id,
+                item_code,
+                item_description,
+                original_line_id,
+                original_quantity,
+                return_quantity,
+                unit_price,
+                &return_amount,
+                &credit_amount,
+                reason_code,
+                disposition,
+                lot_number,
+                serial_number,
+                condition,
+                notes,
+                created_by,
+            )
+            .await?;
 
         // Recalculate RMA totals
         let all_lines = self.repository.list_return_lines_by_rma(rma_id).await?;
-        let total_qty: f64 = all_lines.iter()
+        let total_qty: f64 = all_lines
+            .iter()
             .map(|l| l.return_quantity.parse().unwrap_or(0.0))
             .sum();
-        let total_amt: f64 = all_lines.iter()
+        let total_amt: f64 = all_lines
+            .iter()
             .map(|l| l.return_amount.parse().unwrap_or(0.0))
             .sum();
-        let total_credit: f64 = all_lines.iter()
+        let total_credit: f64 = all_lines
+            .iter()
             .map(|l| l.credit_amount.parse().unwrap_or(0.0))
             .sum();
 
-        self.repository.update_rma_totals(
-            rma_id,
-            &format!("{total_qty:.2}"),
-            &format!("{total_amt:.2}"),
-            &format!("{total_credit:.2}"),
-        ).await?;
+        self.repository
+            .update_rma_totals(
+                rma_id,
+                &format!("{total_qty:.2}"),
+                &format!("{total_amt:.2}"),
+                &format!("{total_credit:.2}"),
+            )
+            .await?;
 
         Ok(line)
     }
@@ -407,12 +523,17 @@ impl CustomerReturnsEngine {
         line_id: Uuid,
         received_quantity: &str,
     ) -> AtlasResult<ReturnLine> {
-        let line = self.repository.get_return_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return line {line_id} not found")))?;
+        let line = self
+            .repository
+            .get_return_line(line_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Return line {line_id} not found"))
+            })?;
 
-        let recv_qty: f64 = received_quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "received_quantity must be a valid number".to_string(),
-        ))?;
+        let recv_qty: f64 = received_quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("received_quantity must be a valid number".to_string())
+        })?;
         if recv_qty <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "received_quantity must be positive".to_string(),
@@ -428,21 +549,38 @@ impl CustomerReturnsEngine {
         }
 
         let today = chrono::Utc::now().date_naive();
-        info!("Receiving {} units for return line {}", received_quantity, line_id);
+        info!(
+            "Receiving {} units for return line {}",
+            received_quantity, line_id
+        );
 
-        let updated = self.repository.update_return_line_receipt(
-            line_id, received_quantity, Some(today),
-        ).await?;
+        let updated = self
+            .repository
+            .update_return_line_receipt(line_id, received_quantity, Some(today))
+            .await?;
 
         // Update RMA status based on all lines
-        let all_lines = self.repository.list_return_lines_by_rma(line.rma_id).await?;
-        let total_return_qty: f64 = all_lines.iter().map(|l| l.return_quantity.parse().unwrap_or(0.0)).sum();
-        let total_recv_qty: f64 = all_lines.iter().map(|l| l.received_quantity.parse().unwrap_or(0.0)).sum();
+        let all_lines = self
+            .repository
+            .list_return_lines_by_rma(line.rma_id)
+            .await?;
+        let total_return_qty: f64 = all_lines
+            .iter()
+            .map(|l| l.return_quantity.parse().unwrap_or(0.0))
+            .sum();
+        let total_recv_qty: f64 = all_lines
+            .iter()
+            .map(|l| l.received_quantity.parse().unwrap_or(0.0))
+            .sum();
 
         if total_recv_qty >= total_return_qty {
-            self.repository.update_rma_status(line.rma_id, "received", None, None).await?;
+            self.repository
+                .update_rma_status(line.rma_id, "received", None, None)
+                .await?;
         } else if total_recv_qty > 0.0 {
-            self.repository.update_rma_status(line.rma_id, "partially_received", None, None).await?;
+            self.repository
+                .update_rma_status(line.rma_id, "partially_received", None, None)
+                .await?;
         }
 
         Ok(updated)
@@ -456,8 +594,13 @@ impl CustomerReturnsEngine {
         inspection_notes: Option<&str>,
         disposition: Option<&str>,
     ) -> AtlasResult<ReturnLine> {
-        let line = self.repository.get_return_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Return line {line_id} not found")))?;
+        let line = self
+            .repository
+            .get_return_line(line_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Return line {line_id} not found"))
+            })?;
 
         let recv_qty: f64 = line.received_quantity.parse().unwrap_or(0.0);
         if recv_qty <= 0.0 {
@@ -469,22 +612,33 @@ impl CustomerReturnsEngine {
         if !VALID_INSPECTION_STATUSES.contains(&inspection_status) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid inspection_status '{}'. Must be one of: {}",
-                inspection_status, VALID_INSPECTION_STATUSES.join(", ")
+                inspection_status,
+                VALID_INSPECTION_STATUSES.join(", ")
             )));
         }
 
         if let Some(disp) = disposition {
             if !VALID_DISPOSITIONS.contains(&disp) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid disposition '{}'. Must be one of: {}", disp, VALID_DISPOSITIONS.join(", ")
+                    "Invalid disposition '{}'. Must be one of: {}",
+                    disp,
+                    VALID_DISPOSITIONS.join(", ")
                 )));
             }
         }
 
-        info!("Inspecting return line {} - status: {}", line_id, inspection_status);
-        self.repository.update_return_line_inspection(
-            line_id, inspection_status, inspection_notes, disposition,
-        ).await
+        info!(
+            "Inspecting return line {} - status: {}",
+            line_id, inspection_status
+        );
+        self.repository
+            .update_return_line_inspection(
+                line_id,
+                inspection_status,
+                inspection_notes,
+                disposition,
+            )
+            .await
     }
 
     // ========================================================================
@@ -498,14 +652,21 @@ impl CustomerReturnsEngine {
         gl_account_code: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CreditMemo> {
-        let rma = self.repository.get_rma(rma_id).await?
+        let rma = self
+            .repository
+            .get_rma(rma_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("RMA {rma_id} not found")))?;
 
         // RMA must be approved or received to generate credit memo
-        if rma.status != "approved" && rma.status != "received" && rma.status != "partially_received" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot generate credit memo for RMA in '{}' status", rma.status)
-            ));
+        if rma.status != "approved"
+            && rma.status != "received"
+            && rma.status != "partially_received"
+        {
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot generate credit memo for RMA in '{}' status",
+                rma.status
+            )));
         }
 
         if rma.credit_memo_id.is_some() {
@@ -515,7 +676,8 @@ impl CustomerReturnsEngine {
         }
 
         let lines = self.repository.list_return_lines_by_rma(rma_id).await?;
-        let total_credit: f64 = lines.iter()
+        let total_credit: f64 = lines
+            .iter()
             .map(|l| l.credit_amount.parse().unwrap_or(0.0))
             .sum();
 
@@ -528,22 +690,39 @@ impl CustomerReturnsEngine {
         // Generate credit memo number
         let cm_number = format!("CM-{}", chrono::Utc::now().format("%Y%m%d%-H%M%S"));
 
-        info!("Generating credit memo {} for RMA {} amount {}", cm_number, rma.rma_number, total_credit);
+        info!(
+            "Generating credit memo {} for RMA {} amount {}",
+            cm_number, rma.rma_number, total_credit
+        );
 
-        let memo = self.repository.create_credit_memo(
-            rma.organization_id, &cm_number,
-            Some(rma_id), Some(&rma.rma_number),
-            rma.customer_id, rma.customer_number.as_deref(), rma.customer_name.as_deref(),
-            &format!("{total_credit:.2}"), &rma.currency_code,
-            gl_account_code, None, created_by,
-        ).await?;
+        let memo = self
+            .repository
+            .create_credit_memo(
+                rma.organization_id,
+                &cm_number,
+                Some(rma_id),
+                Some(&rma.rma_number),
+                rma.customer_id,
+                rma.customer_number.as_deref(),
+                rma.customer_name.as_deref(),
+                &format!("{total_credit:.2}"),
+                &rma.currency_code,
+                gl_account_code,
+                None,
+                created_by,
+            )
+            .await?;
 
         // Update RMA with credit memo reference
-        self.repository.update_rma_credit_memo(rma_id, memo.id, &cm_number).await?;
+        self.repository
+            .update_rma_credit_memo(rma_id, memo.id, &cm_number)
+            .await?;
 
         // Mark all lines as credit issued
         for line in &lines {
-            self.repository.update_return_line_credit_status(line.id, "issued").await?;
+            self.repository
+                .update_return_line_credit_status(line.id, "issued")
+                .await?;
         }
 
         Ok(memo)
@@ -555,8 +734,14 @@ impl CustomerReturnsEngine {
     }
 
     /// Get a credit memo by number
-    pub async fn get_credit_memo_by_number(&self, org_id: Uuid, credit_memo_number: &str) -> AtlasResult<Option<CreditMemo>> {
-        self.repository.get_credit_memo_by_number(org_id, credit_memo_number).await
+    pub async fn get_credit_memo_by_number(
+        &self,
+        org_id: Uuid,
+        credit_memo_number: &str,
+    ) -> AtlasResult<Option<CreditMemo>> {
+        self.repository
+            .get_credit_memo_by_number(org_id, credit_memo_number)
+            .await
     }
 
     /// List credit memos with optional filters
@@ -566,37 +751,51 @@ impl CustomerReturnsEngine {
         customer_id: Option<Uuid>,
         status: Option<&str>,
     ) -> AtlasResult<Vec<CreditMemo>> {
-        self.repository.list_credit_memos(org_id, customer_id, status).await
+        self.repository
+            .list_credit_memos(org_id, customer_id, status)
+            .await
     }
 
     /// Issue a credit memo (draft -> issued)
     pub async fn issue_credit_memo(&self, id: Uuid) -> AtlasResult<CreditMemo> {
-        let memo = self.repository.get_credit_memo(id).await?
+        let memo = self
+            .repository
+            .get_credit_memo(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Credit memo {id} not found")))?;
 
         if memo.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot issue credit memo in '{}' status. Must be 'draft'.", memo.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot issue credit memo in '{}' status. Must be 'draft'.",
+                memo.status
+            )));
         }
 
         info!("Issuing credit memo {}", memo.credit_memo_number);
-        self.repository.update_credit_memo_status(id, "issued").await
+        self.repository
+            .update_credit_memo_status(id, "issued")
+            .await
     }
 
     /// Cancel a credit memo
     pub async fn cancel_credit_memo(&self, id: Uuid) -> AtlasResult<CreditMemo> {
-        let memo = self.repository.get_credit_memo(id).await?
+        let memo = self
+            .repository
+            .get_credit_memo(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Credit memo {id} not found")))?;
 
         if memo.status == "applied" || memo.status == "cancelled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel credit memo in '{}' status", memo.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel credit memo in '{}' status",
+                memo.status
+            )));
         }
 
         info!("Cancelling credit memo {}", memo.credit_memo_number);
-        self.repository.update_credit_memo_status(id, "cancelled").await
+        self.repository
+            .update_credit_memo_status(id, "cancelled")
+            .await
     }
 
     // ========================================================================
@@ -604,22 +803,38 @@ impl CustomerReturnsEngine {
     // ========================================================================
 
     /// Get a returns dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ReturnsDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ReturnsDashboardSummary> {
         let rmas = self.repository.list_rmas(org_id, None, None, None).await?;
-        let credit_memos = self.repository.list_credit_memos(org_id, None, None).await?;
+        let credit_memos = self
+            .repository
+            .list_credit_memos(org_id, None, None)
+            .await?;
 
         let total_rmas = rmas.len() as i32;
-        let open_rmas = rmas.iter().filter(|r| r.status == "draft" || r.status == "submitted" || r.status == "approved").count() as i32;
+        let open_rmas = rmas
+            .iter()
+            .filter(|r| r.status == "draft" || r.status == "submitted" || r.status == "approved")
+            .count() as i32;
         let pending_approval = rmas.iter().filter(|r| r.status == "submitted").count() as i32;
         let pending_receipt = rmas.iter().filter(|r| r.status == "approved").count() as i32;
-        let pending_inspection = rmas.iter().filter(|r| r.status == "partially_received" || r.status == "received").count() as i32;
+        let pending_inspection = rmas
+            .iter()
+            .filter(|r| r.status == "partially_received" || r.status == "received")
+            .count() as i32;
 
-        let total_credit_issued: f64 = credit_memos.iter()
-            .filter(|cm| cm.status == "issued" || cm.status == "applied" || cm.status == "partially_applied")
+        let total_credit_issued: f64 = credit_memos
+            .iter()
+            .filter(|cm| {
+                cm.status == "issued" || cm.status == "applied" || cm.status == "partially_applied"
+            })
             .map(|cm| cm.amount.parse().unwrap_or(0.0))
             .sum();
 
-        let total_credit_pending: f64 = credit_memos.iter()
+        let total_credit_pending: f64 = credit_memos
+            .iter()
             .filter(|cm| cm.status == "draft")
             .map(|cm| cm.amount.parse().unwrap_or(0.0))
             .sum();
@@ -627,22 +842,20 @@ impl CustomerReturnsEngine {
         // Group by status
         let mut by_status = serde_json::Map::new();
         for rma in &rmas {
-            let count = by_status.entry(rma.status.clone())
+            let count = by_status
+                .entry(rma.status.clone())
                 .or_insert(serde_json::Value::Number(0.into()));
-            *count = serde_json::Value::Number(
-                (count.as_u64().unwrap_or(0) + 1).into()
-            );
+            *count = serde_json::Value::Number((count.as_u64().unwrap_or(0) + 1).into());
         }
 
         // Group by reason
         let mut by_reason = serde_json::Map::new();
         for rma in &rmas {
             if let Some(rc) = &rma.reason_code {
-                let count = by_reason.entry(rc.clone())
+                let count = by_reason
+                    .entry(rc.clone())
                     .or_insert(serde_json::Value::Number(0.into()));
-                *count = serde_json::Value::Number(
-                    (count.as_u64().unwrap_or(0) + 1).into()
-                );
+                *count = serde_json::Value::Number((count.as_u64().unwrap_or(0) + 1).into());
             }
         }
 

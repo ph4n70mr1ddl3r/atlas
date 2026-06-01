@@ -16,11 +16,11 @@ mod engine;
 
 pub use engine::CashPositionEngine;
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 
 /// Cash position snapshot for a bank account
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -116,31 +116,152 @@ pub struct CashPositionDashboard {
 /// Repository trait
 #[async_trait]
 pub trait CashPositionRepository: Send + Sync {
-    async fn create_position(&self, org_id: Uuid, bank_account_id: Uuid, bank_account_number: Option<&str>, bank_account_name: Option<&str>, currency_code: &str, opening_balance: &str, total_inflows: &str, total_outflows: &str, closing_balance: &str, ledger_balance: &str, available_balance: &str, hold_amount: &str, position_date: chrono::NaiveDate, source_breakdown: serde_json::Value) -> AtlasResult<CashPosition>;
+    async fn create_position(
+        &self,
+        org_id: Uuid,
+        bank_account_id: Uuid,
+        bank_account_number: Option<&str>,
+        bank_account_name: Option<&str>,
+        currency_code: &str,
+        opening_balance: &str,
+        total_inflows: &str,
+        total_outflows: &str,
+        closing_balance: &str,
+        ledger_balance: &str,
+        available_balance: &str,
+        hold_amount: &str,
+        position_date: chrono::NaiveDate,
+        source_breakdown: serde_json::Value,
+    ) -> AtlasResult<CashPosition>;
     async fn get_position(&self, id: Uuid) -> AtlasResult<Option<CashPosition>>;
-    async fn get_latest_position(&self, org_id: Uuid, bank_account_id: Uuid) -> AtlasResult<Option<CashPosition>>;
-    async fn list_positions(&self, org_id: Uuid, position_date: Option<chrono::NaiveDate>, currency_code: Option<&str>) -> AtlasResult<Vec<CashPosition>>;
-    async fn create_summary(&self, org_id: Uuid, currency_code: &str, position_date: chrono::NaiveDate, opening: &str, inflows: &str, outflows: &str, closing: &str, ledger: &str, available: &str, hold: &str, account_count: i32, accounts: serde_json::Value) -> AtlasResult<CashPositionSummary>;
-    async fn get_latest_summary(&self, org_id: Uuid, currency_code: &str) -> AtlasResult<Option<CashPositionSummary>>;
-    async fn list_summaries(&self, org_id: Uuid, position_date: Option<chrono::NaiveDate>) -> AtlasResult<Vec<CashPositionSummary>>;
+    async fn get_latest_position(
+        &self,
+        org_id: Uuid,
+        bank_account_id: Uuid,
+    ) -> AtlasResult<Option<CashPosition>>;
+    async fn list_positions(
+        &self,
+        org_id: Uuid,
+        position_date: Option<chrono::NaiveDate>,
+        currency_code: Option<&str>,
+    ) -> AtlasResult<Vec<CashPosition>>;
+    async fn create_summary(
+        &self,
+        org_id: Uuid,
+        currency_code: &str,
+        position_date: chrono::NaiveDate,
+        opening: &str,
+        inflows: &str,
+        outflows: &str,
+        closing: &str,
+        ledger: &str,
+        available: &str,
+        hold: &str,
+        account_count: i32,
+        accounts: serde_json::Value,
+    ) -> AtlasResult<CashPositionSummary>;
+    async fn get_latest_summary(
+        &self,
+        org_id: Uuid,
+        currency_code: &str,
+    ) -> AtlasResult<Option<CashPositionSummary>>;
+    async fn list_summaries(
+        &self,
+        org_id: Uuid,
+        position_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<Vec<CashPositionSummary>>;
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<CashPositionDashboard>;
 }
 
 /// `PostgreSQL` implementation (stub)
 #[allow(dead_code)]
-pub struct PostgresCashPositionRepository { #[allow(dead_code)]
-    pool: PgPool }
-impl PostgresCashPositionRepository { #[must_use] 
-pub const fn new(pool: PgPool) -> Self { Self { pool } } }
+pub struct PostgresCashPositionRepository {
+    #[allow(dead_code)]
+    pool: PgPool,
+}
+impl PostgresCashPositionRepository {
+    #[must_use]
+    pub const fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
 
 #[async_trait]
 impl CashPositionRepository for PostgresCashPositionRepository {
-    async fn create_position(&self, _: Uuid, _: Uuid, _: Option<&str>, _: Option<&str>, _: &str, _: &str, _: &str, _: &str, _: &str, _: &str, _: &str, _: &str, _: chrono::NaiveDate, _: serde_json::Value) -> AtlasResult<CashPosition> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_position(&self, _: Uuid) -> AtlasResult<Option<CashPosition>> { Ok(None) }
-    async fn get_latest_position(&self, _: Uuid, _: Uuid) -> AtlasResult<Option<CashPosition>> { Ok(None) }
-    async fn list_positions(&self, _: Uuid, _: Option<chrono::NaiveDate>, _: Option<&str>) -> AtlasResult<Vec<CashPosition>> { Ok(vec![]) }
-    async fn create_summary(&self, _: Uuid, _: &str, _: chrono::NaiveDate, _: &str, _: &str, _: &str, _: &str, _: &str, _: &str, _: &str, _: i32, _: serde_json::Value) -> AtlasResult<CashPositionSummary> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_latest_summary(&self, _: Uuid, _: &str) -> AtlasResult<Option<CashPositionSummary>> { Ok(None) }
-    async fn list_summaries(&self, _: Uuid, _: Option<chrono::NaiveDate>) -> AtlasResult<Vec<CashPositionSummary>> { Ok(vec![]) }
-    async fn get_dashboard(&self, _: Uuid) -> AtlasResult<CashPositionDashboard> { Ok(CashPositionDashboard { total_cash_position: "0".into(), base_currency_code: "USD".into(), position_by_currency: serde_json::json!([]), position_by_account: serde_json::json!([]), largest_account: None, accounts_with_deficit: 0, total_accounts: 0, latest_position_date: None }) }
+    async fn create_position(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: chrono::NaiveDate,
+        _: serde_json::Value,
+    ) -> AtlasResult<CashPosition> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_position(&self, _: Uuid) -> AtlasResult<Option<CashPosition>> {
+        Ok(None)
+    }
+    async fn get_latest_position(&self, _: Uuid, _: Uuid) -> AtlasResult<Option<CashPosition>> {
+        Ok(None)
+    }
+    async fn list_positions(
+        &self,
+        _: Uuid,
+        _: Option<chrono::NaiveDate>,
+        _: Option<&str>,
+    ) -> AtlasResult<Vec<CashPosition>> {
+        Ok(vec![])
+    }
+    async fn create_summary(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: chrono::NaiveDate,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: i32,
+        _: serde_json::Value,
+    ) -> AtlasResult<CashPositionSummary> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_latest_summary(
+        &self,
+        _: Uuid,
+        _: &str,
+    ) -> AtlasResult<Option<CashPositionSummary>> {
+        Ok(None)
+    }
+    async fn list_summaries(
+        &self,
+        _: Uuid,
+        _: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<Vec<CashPositionSummary>> {
+        Ok(vec![])
+    }
+    async fn get_dashboard(&self, _: Uuid) -> AtlasResult<CashPositionDashboard> {
+        Ok(CashPositionDashboard {
+            total_cash_position: "0".into(),
+            base_currency_code: "USD".into(),
+            position_by_currency: serde_json::json!([]),
+            position_by_account: serde_json::json!([]),
+            largest_account: None,
+            accounts_with_deficit: 0,
+            total_accounts: 0,
+            latest_position_date: None,
+        })
+    }
 }

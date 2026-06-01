@@ -18,15 +18,23 @@ pub struct PeriodRecognitionResult {
 
 impl MultiPeriodAccountingService {
     /// Creates a Multi-Period Accounting (MPA) schedule.
-    /// This is an Oracle Fusion Financials feature that enables users to recognize 
+    /// This is an Oracle Fusion Financials feature that enables users to recognize
     /// expenses or revenues across multiple GL periods (amortization).
     #[must_use]
-    pub fn create_schedule(source_document_id: &str, total_amount: f64, periods: u32) -> MpaScheduleResult {
+    pub fn create_schedule(
+        source_document_id: &str,
+        total_amount: f64,
+        periods: u32,
+    ) -> MpaScheduleResult {
         if periods == 0 || total_amount <= 0.0 {
             return MpaScheduleResult {
                 schedule_id: "".to_string(),
                 source_document_id: source_document_id.to_string(),
-                total_amount: if total_amount > 0.0 { total_amount } else { 0.0 },
+                total_amount: if total_amount > 0.0 {
+                    total_amount
+                } else {
+                    0.0
+                },
                 periods,
                 amount_per_period: 0.0,
                 status: "REJECTED".to_string(),
@@ -35,7 +43,7 @@ impl MultiPeriodAccountingService {
 
         // Simple straight-line amortization
         let amount_per_period = (total_amount / periods as f64 * 100.0).round() / 100.0;
-        
+
         MpaScheduleResult {
             schedule_id: format!("MPA-{}-{}", source_document_id, periods),
             source_document_id: source_document_id.to_string(),
@@ -48,7 +56,11 @@ impl MultiPeriodAccountingService {
 
     /// Recognizes the accounting entry for a specific period in the schedule.
     #[must_use]
-    pub fn recognize_period(schedule_id: &str, period_number: u32, amount_per_period: f64) -> PeriodRecognitionResult {
+    pub fn recognize_period(
+        schedule_id: &str,
+        period_number: u32,
+        amount_per_period: f64,
+    ) -> PeriodRecognitionResult {
         if schedule_id.is_empty() || period_number == 0 {
             return PeriodRecognitionResult {
                 schedule_id: schedule_id.to_string(),

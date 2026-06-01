@@ -13,7 +13,11 @@ impl SupplierRetainageService {
     /// This is a common feature in Oracle Fusion Financials for construction and project-based procurement,
     /// where a portion of the payment is withheld until the project or milestone is successfully completed.
     #[must_use]
-    pub fn calculate_retainage(invoice_id: &str, invoice_amount: f64, retainage_rate: f64) -> RetainageResult {
+    pub fn calculate_retainage(
+        invoice_id: &str,
+        invoice_amount: f64,
+        retainage_rate: f64,
+    ) -> RetainageResult {
         if invoice_amount <= 0.0 || !(0.0..=1.0).contains(&retainage_rate) {
             return RetainageResult {
                 invoice_id: invoice_id.to_string(),

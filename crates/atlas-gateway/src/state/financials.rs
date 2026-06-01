@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use atlas_core::financials::*;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct FinancialsState {

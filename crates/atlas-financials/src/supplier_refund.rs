@@ -37,7 +37,7 @@ impl SupplierRefundService {
                 status: "REJECTED_INVALID_BANK".to_string(),
             };
         }
-        
+
         SupplierRefundResult {
             refund_id: format!("SR-{}-{}", supplier_id, refund_amount),
             supplier_id: supplier_id.to_string(),

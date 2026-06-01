@@ -14,8 +14,8 @@
 //! Oracle Fusion equivalent: General Ledger > Setup > Chart of Accounts >
 //!   Cross-Validation Rules
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::CrossValidationEngine;
 pub use repository::{CrossValidationRepository, PostgresCrossValidationRepository};

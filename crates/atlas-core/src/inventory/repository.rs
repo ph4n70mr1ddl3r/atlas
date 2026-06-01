@@ -4,13 +4,12 @@
 //! subinventories, locators, on-hand balances, transactions,
 //! cycle counts, and transaction reasons.
 
-use atlas_shared::{
-    InventoryOrganization, ItemCategory, Item, Subinventory, Locator,
-    OnHandBalance, InventoryTransactionType, InventoryTransaction,
-    CycleCountHeader, CycleCountLine, TransactionReason,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, CycleCountHeader, CycleCountLine, InventoryOrganization, InventoryTransaction,
+    InventoryTransactionType, Item, ItemCategory, Locator, OnHandBalance, Subinventory,
+    TransactionReason,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -21,8 +20,13 @@ pub trait InventoryRepository: Send + Sync {
     // Inventory Organizations
     async fn create_inventory_org(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        org_type: &str, location_code: Option<&str>, address: Option<serde_json::Value>,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        org_type: &str,
+        location_code: Option<&str>,
+        address: Option<serde_json::Value>,
         default_subinventory_code: Option<&str>,
         default_currency_code: &str,
         requires_approval_for_issues: bool,
@@ -33,50 +37,95 @@ pub trait InventoryRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<InventoryOrganization>;
 
-    async fn get_inventory_org(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<InventoryOrganization>>;
+    async fn get_inventory_org(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<InventoryOrganization>>;
     async fn list_inventory_orgs(&self, org_id: Uuid) -> AtlasResult<Vec<InventoryOrganization>>;
     async fn delete_inventory_org(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Item Categories
     async fn create_item_category(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        parent_category_id: Option<Uuid>, track_as_asset: bool, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        parent_category_id: Option<Uuid>,
+        track_as_asset: bool,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ItemCategory>;
 
-    async fn get_item_category(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ItemCategory>>;
+    async fn get_item_category(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ItemCategory>>;
     async fn list_item_categories(&self, org_id: Uuid) -> AtlasResult<Vec<ItemCategory>>;
 
     // Items
     async fn create_item(
         &self,
-        org_id: Uuid, item_code: &str, name: &str, description: Option<&str>,
-        long_description: Option<&str>, category_id: Option<Uuid>, category_code: Option<&str>,
-        item_type: &str, uom: &str, secondary_uom: Option<&str>,
-        weight: Option<&str>, weight_uom: Option<&str>,
-        volume: Option<&str>, volume_uom: Option<&str>,
-        list_price: &str, standard_cost: &str,
-        min_order_quantity: Option<&str>, max_order_quantity: Option<&str>,
-        lead_time_days: i32, shelf_life_days: Option<i32>,
-        is_lot_controlled: bool, is_serial_controlled: bool, is_revision_controlled: bool,
-        is_perishable: bool, is_hazardous: bool,
-        is_purchasable: bool, is_sellable: bool, is_stockable: bool,
-        inventory_asset_account_code: Option<&str>, expense_account_code: Option<&str>,
-        cost_of_goods_sold_account: Option<&str>, revenue_account_code: Option<&str>,
+        org_id: Uuid,
+        item_code: &str,
+        name: &str,
+        description: Option<&str>,
+        long_description: Option<&str>,
+        category_id: Option<Uuid>,
+        category_code: Option<&str>,
+        item_type: &str,
+        uom: &str,
+        secondary_uom: Option<&str>,
+        weight: Option<&str>,
+        weight_uom: Option<&str>,
+        volume: Option<&str>,
+        volume_uom: Option<&str>,
+        list_price: &str,
+        standard_cost: &str,
+        min_order_quantity: Option<&str>,
+        max_order_quantity: Option<&str>,
+        lead_time_days: i32,
+        shelf_life_days: Option<i32>,
+        is_lot_controlled: bool,
+        is_serial_controlled: bool,
+        is_revision_controlled: bool,
+        is_perishable: bool,
+        is_hazardous: bool,
+        is_purchasable: bool,
+        is_sellable: bool,
+        is_stockable: bool,
+        inventory_asset_account_code: Option<&str>,
+        expense_account_code: Option<&str>,
+        cost_of_goods_sold_account: Option<&str>,
+        revenue_account_code: Option<&str>,
         barcode: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<Item>;
 
     async fn get_item(&self, id: Uuid) -> AtlasResult<Option<Item>>;
     async fn get_item_by_code(&self, org_id: Uuid, item_code: &str) -> AtlasResult<Option<Item>>;
-    async fn list_items(&self, org_id: Uuid, category_code: Option<&str>, item_type: Option<&str>) -> AtlasResult<Vec<Item>>;
+    async fn list_items(
+        &self,
+        org_id: Uuid,
+        category_code: Option<&str>,
+        item_type: Option<&str>,
+    ) -> AtlasResult<Vec<Item>>;
     async fn update_item_status(&self, id: Uuid, is_active: bool) -> AtlasResult<Item>;
 
     // Subinventories
     async fn create_subinventory(
-        &self, org_id: Uuid, inventory_org_id: Uuid, code: &str, name: &str,
-        description: Option<&str>, subinventory_type: &str,
-        asset_subinventory: bool, quantity_tracked: bool,
-        location_code: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        inventory_org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        subinventory_type: &str,
+        asset_subinventory: bool,
+        quantity_tracked: bool,
+        location_code: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<Subinventory>;
 
     async fn get_subinventory(&self, id: Uuid) -> AtlasResult<Option<Subinventory>>;
@@ -84,100 +133,204 @@ pub trait InventoryRepository: Send + Sync {
 
     // Locators
     async fn create_locator(
-        &self, org_id: Uuid, subinventory_id: Uuid, code: &str,
-        description: Option<&str>, picker_order: i32,
+        &self,
+        org_id: Uuid,
+        subinventory_id: Uuid,
+        code: &str,
+        description: Option<&str>,
+        picker_order: i32,
     ) -> AtlasResult<Locator>;
 
     async fn list_locators(&self, subinventory_id: Uuid) -> AtlasResult<Vec<Locator>>;
 
     // On-Hand Balances
     async fn get_on_hand_balance(
-        &self, org_id: Uuid, inventory_org_id: Uuid, item_id: Uuid,
-        subinventory_id: Uuid, locator_id: Option<Uuid>,
-        lot_number: Option<&str>, serial_number: Option<&str>, revision: Option<&str>,
+        &self,
+        org_id: Uuid,
+        inventory_org_id: Uuid,
+        item_id: Uuid,
+        subinventory_id: Uuid,
+        locator_id: Option<Uuid>,
+        lot_number: Option<&str>,
+        serial_number: Option<&str>,
+        revision: Option<&str>,
     ) -> AtlasResult<Option<OnHandBalance>>;
 
     async fn upsert_on_hand_balance(
-        &self, org_id: Uuid, inventory_org_id: Uuid, item_id: Uuid,
-        subinventory_id: Uuid, locator_id: Option<Uuid>,
-        lot_number: Option<&str>, serial_number: Option<&str>, revision: Option<&str>,
-        quantity_delta: &str, unit_cost: &str,
+        &self,
+        org_id: Uuid,
+        inventory_org_id: Uuid,
+        item_id: Uuid,
+        subinventory_id: Uuid,
+        locator_id: Option<Uuid>,
+        lot_number: Option<&str>,
+        serial_number: Option<&str>,
+        revision: Option<&str>,
+        quantity_delta: &str,
+        unit_cost: &str,
     ) -> AtlasResult<OnHandBalance>;
 
-    async fn list_on_hand_balances(&self, org_id: Uuid, item_id: Option<Uuid>, inventory_org_id: Option<Uuid>) -> AtlasResult<Vec<OnHandBalance>>;
+    async fn list_on_hand_balances(
+        &self,
+        org_id: Uuid,
+        item_id: Option<Uuid>,
+        inventory_org_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<OnHandBalance>>;
 
     // Transaction Types
     async fn create_transaction_type(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        transaction_action: &str, source_type: &str, is_system: bool,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        transaction_action: &str,
+        source_type: &str,
+        is_system: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<InventoryTransactionType>;
 
-    async fn get_transaction_type(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<InventoryTransactionType>>;
-    async fn list_transaction_types(&self, org_id: Uuid) -> AtlasResult<Vec<InventoryTransactionType>>;
+    async fn get_transaction_type(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<InventoryTransactionType>>;
+    async fn list_transaction_types(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<InventoryTransactionType>>;
 
     // Inventory Transactions
     async fn create_transaction(
         &self,
-        org_id: Uuid, transaction_number: &str,
-        transaction_type_id: Option<Uuid>, transaction_type_code: Option<&str>,
-        transaction_action: &str, source_type: &str,
-        source_id: Option<Uuid>, source_number: Option<&str>, source_line_id: Option<Uuid>,
-        item_id: Uuid, item_code: Option<&str>, item_description: Option<&str>,
-        from_inventory_org_id: Option<Uuid>, from_subinventory_id: Option<Uuid>, from_locator_id: Option<Uuid>,
-        to_inventory_org_id: Option<Uuid>, to_subinventory_id: Option<Uuid>, to_locator_id: Option<Uuid>,
-        quantity: &str, uom: &str, unit_cost: &str, total_cost: &str,
-        lot_number: Option<&str>, serial_number: Option<&str>, revision: Option<&str>,
+        org_id: Uuid,
+        transaction_number: &str,
+        transaction_type_id: Option<Uuid>,
+        transaction_type_code: Option<&str>,
+        transaction_action: &str,
+        source_type: &str,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        source_line_id: Option<Uuid>,
+        item_id: Uuid,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        from_inventory_org_id: Option<Uuid>,
+        from_subinventory_id: Option<Uuid>,
+        from_locator_id: Option<Uuid>,
+        to_inventory_org_id: Option<Uuid>,
+        to_subinventory_id: Option<Uuid>,
+        to_locator_id: Option<Uuid>,
+        quantity: &str,
+        uom: &str,
+        unit_cost: &str,
+        total_cost: &str,
+        lot_number: Option<&str>,
+        serial_number: Option<&str>,
+        revision: Option<&str>,
         transaction_date: chrono::DateTime<chrono::Utc>,
-        reason_id: Option<Uuid>, reason_name: Option<&str>,
-        notes: Option<&str>, status: &str,
+        reason_id: Option<Uuid>,
+        reason_name: Option<&str>,
+        notes: Option<&str>,
+        status: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<InventoryTransaction>;
 
     async fn get_transaction(&self, id: Uuid) -> AtlasResult<Option<InventoryTransaction>>;
     async fn list_transactions(
-        &self, org_id: Uuid, item_id: Option<Uuid>,
-        transaction_action: Option<&str>, status: Option<&str>,
+        &self,
+        org_id: Uuid,
+        item_id: Option<Uuid>,
+        transaction_action: Option<&str>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<InventoryTransaction>>;
-    async fn update_transaction_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<InventoryTransaction>;
+    async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<InventoryTransaction>;
 
     // Transaction Reasons
     async fn create_transaction_reason(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        applicable_actions: serde_json::Value, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        applicable_actions: serde_json::Value,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<TransactionReason>;
 
     async fn list_transaction_reasons(&self, org_id: Uuid) -> AtlasResult<Vec<TransactionReason>>;
 
     // Cycle Counts
     async fn create_cycle_count(
-        &self, org_id: Uuid, count_number: &str, name: &str, description: Option<&str>,
-        inventory_org_id: Uuid, subinventory_id: Option<Uuid>, count_date: chrono::NaiveDate,
-        count_method: &str, tolerance_percent: &str, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        count_number: &str,
+        name: &str,
+        description: Option<&str>,
+        inventory_org_id: Uuid,
+        subinventory_id: Option<Uuid>,
+        count_date: chrono::NaiveDate,
+        count_method: &str,
+        tolerance_percent: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<CycleCountHeader>;
 
     async fn get_cycle_count(&self, id: Uuid) -> AtlasResult<Option<CycleCountHeader>>;
-    async fn list_cycle_counts(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CycleCountHeader>>;
-    async fn update_cycle_count_status(&self, id: Uuid, status: &str) -> AtlasResult<CycleCountHeader>;
+    async fn list_cycle_counts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CycleCountHeader>>;
+    async fn update_cycle_count_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<CycleCountHeader>;
     async fn update_cycle_count_summary(
-        &self, id: Uuid, total_items: i32, counted_items: i32,
-        matched_items: i32, mismatched_items: i32,
+        &self,
+        id: Uuid,
+        total_items: i32,
+        counted_items: i32,
+        matched_items: i32,
+        mismatched_items: i32,
     ) -> AtlasResult<CycleCountHeader>;
 
     // Cycle Count Lines
     async fn create_cycle_count_line(
-        &self, org_id: Uuid, cycle_count_id: Uuid, line_number: i32,
-        item_id: Uuid, item_code: Option<&str>, item_description: Option<&str>,
-        subinventory_id: Option<Uuid>, locator_id: Option<Uuid>,
-        lot_number: Option<&str>, revision: Option<&str>,
+        &self,
+        org_id: Uuid,
+        cycle_count_id: Uuid,
+        line_number: i32,
+        item_id: Uuid,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        subinventory_id: Option<Uuid>,
+        locator_id: Option<Uuid>,
+        lot_number: Option<&str>,
+        revision: Option<&str>,
         system_quantity: &str,
     ) -> AtlasResult<CycleCountLine>;
 
-    async fn list_cycle_count_lines(&self, cycle_count_id: Uuid) -> AtlasResult<Vec<CycleCountLine>>;
+    async fn list_cycle_count_lines(
+        &self,
+        cycle_count_id: Uuid,
+    ) -> AtlasResult<Vec<CycleCountLine>>;
     async fn update_cycle_count_line_count(
-        &self, id: Uuid, count_number: i32, count_quantity: &str, counted_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        count_number: i32,
+        count_quantity: &str,
+        counted_by: Option<Uuid>,
     ) -> AtlasResult<CycleCountLine>;
-    async fn approve_cycle_count_line(&self, id: Uuid, approved_quantity: &str) -> AtlasResult<CycleCountLine>;
+    async fn approve_cycle_count_line(
+        &self,
+        id: Uuid,
+        approved_quantity: &str,
+    ) -> AtlasResult<CycleCountLine>;
 }
 
 /// `PostgreSQL` implementation
@@ -186,7 +339,7 @@ pub struct PostgresInventoryRepository {
 }
 
 impl PostgresInventoryRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -278,7 +431,9 @@ fn row_to_item(row: &sqlx::postgres::PgRow) -> Item {
         revenue_account_code: row.get("revenue_account_code"),
         image_url: row.get("image_url"),
         barcode: row.get("barcode"),
-        supplier_item_codes: row.try_get("supplier_item_codes").unwrap_or(serde_json::json!([])),
+        supplier_item_codes: row
+            .try_get("supplier_item_codes")
+            .unwrap_or(serde_json::json!([])),
         is_active: row.get("is_active"),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.get("created_by"),
@@ -480,7 +635,9 @@ fn row_to_txn_reason(row: &sqlx::postgres::PgRow) -> TransactionReason {
         code: row.get("code"),
         name: row.get("name"),
         description: row.get("description"),
-        applicable_actions: row.try_get("applicable_actions").unwrap_or(serde_json::json!([])),
+        applicable_actions: row
+            .try_get("applicable_actions")
+            .unwrap_or(serde_json::json!([])),
         is_active: row.get("is_active"),
         created_by: row.get("created_by"),
         created_at: row.get("created_at"),
@@ -496,8 +653,13 @@ impl InventoryRepository for PostgresInventoryRepository {
 
     async fn create_inventory_org(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        org_type: &str, location_code: Option<&str>, address: Option<serde_json::Value>,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        org_type: &str,
+        location_code: Option<&str>,
+        address: Option<serde_json::Value>,
         default_subinventory_code: Option<&str>,
         default_currency_code: &str,
         requires_approval_for_issues: bool,
@@ -521,11 +683,20 @@ impl InventoryRepository for PostgresInventoryRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(org_type).bind(location_code).bind(address)
-        .bind(default_subinventory_code).bind(default_currency_code)
-        .bind(requires_approval_for_issues).bind(requires_approval_for_transfers)
-        .bind(enable_lot_control).bind(enable_serial_control).bind(enable_revision_control)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(org_type)
+        .bind(location_code)
+        .bind(address)
+        .bind(default_subinventory_code)
+        .bind(default_currency_code)
+        .bind(requires_approval_for_issues)
+        .bind(requires_approval_for_transfers)
+        .bind(enable_lot_control)
+        .bind(enable_serial_control)
+        .bind(enable_revision_control)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -533,7 +704,11 @@ impl InventoryRepository for PostgresInventoryRepository {
         Ok(row_to_inventory_org(&row))
     }
 
-    async fn get_inventory_org(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<InventoryOrganization>> {
+    async fn get_inventory_org(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<InventoryOrganization>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.inventory_organizations WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -571,8 +746,14 @@ impl InventoryRepository for PostgresInventoryRepository {
     // ========================================================================
 
     async fn create_item_category(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        parent_category_id: Option<Uuid>, track_as_asset: bool, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        parent_category_id: Option<Uuid>,
+        track_as_asset: bool,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ItemCategory> {
         let row = sqlx::query(
             r"
@@ -592,7 +773,11 @@ impl InventoryRepository for PostgresInventoryRepository {
         Ok(row_to_item_category(&row))
     }
 
-    async fn get_item_category(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ItemCategory>> {
+    async fn get_item_category(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ItemCategory>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.item_categories WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -620,19 +805,38 @@ impl InventoryRepository for PostgresInventoryRepository {
 
     async fn create_item(
         &self,
-        org_id: Uuid, item_code: &str, name: &str, description: Option<&str>,
-        long_description: Option<&str>, category_id: Option<Uuid>, category_code: Option<&str>,
-        item_type: &str, uom: &str, secondary_uom: Option<&str>,
-        weight: Option<&str>, weight_uom: Option<&str>,
-        volume: Option<&str>, volume_uom: Option<&str>,
-        list_price: &str, standard_cost: &str,
-        min_order_quantity: Option<&str>, max_order_quantity: Option<&str>,
-        lead_time_days: i32, shelf_life_days: Option<i32>,
-        is_lot_controlled: bool, is_serial_controlled: bool, is_revision_controlled: bool,
-        is_perishable: bool, is_hazardous: bool,
-        is_purchasable: bool, is_sellable: bool, is_stockable: bool,
-        inventory_asset_account_code: Option<&str>, expense_account_code: Option<&str>,
-        cost_of_goods_sold_account: Option<&str>, revenue_account_code: Option<&str>,
+        org_id: Uuid,
+        item_code: &str,
+        name: &str,
+        description: Option<&str>,
+        long_description: Option<&str>,
+        category_id: Option<Uuid>,
+        category_code: Option<&str>,
+        item_type: &str,
+        uom: &str,
+        secondary_uom: Option<&str>,
+        weight: Option<&str>,
+        weight_uom: Option<&str>,
+        volume: Option<&str>,
+        volume_uom: Option<&str>,
+        list_price: &str,
+        standard_cost: &str,
+        min_order_quantity: Option<&str>,
+        max_order_quantity: Option<&str>,
+        lead_time_days: i32,
+        shelf_life_days: Option<i32>,
+        is_lot_controlled: bool,
+        is_serial_controlled: bool,
+        is_revision_controlled: bool,
+        is_perishable: bool,
+        is_hazardous: bool,
+        is_purchasable: bool,
+        is_sellable: bool,
+        is_stockable: bool,
+        inventory_asset_account_code: Option<&str>,
+        expense_account_code: Option<&str>,
+        cost_of_goods_sold_account: Option<&str>,
+        revenue_account_code: Option<&str>,
         barcode: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<Item> {
@@ -659,16 +863,40 @@ impl InventoryRepository for PostgresInventoryRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(item_code).bind(name).bind(description).bind(long_description)
-        .bind(category_id).bind(category_code).bind(item_type).bind(uom).bind(secondary_uom)
-        .bind(weight).bind(weight_uom).bind(volume).bind(volume_uom)
-        .bind(list_price).bind(standard_cost).bind(min_order_quantity).bind(max_order_quantity)
-        .bind(lead_time_days).bind(shelf_life_days)
-        .bind(is_lot_controlled).bind(is_serial_controlled).bind(is_revision_controlled)
-        .bind(is_perishable).bind(is_hazardous).bind(is_purchasable).bind(is_sellable).bind(is_stockable)
-        .bind(inventory_asset_account_code).bind(expense_account_code)
-        .bind(cost_of_goods_sold_account).bind(revenue_account_code)
-        .bind(barcode).bind(created_by)
+        .bind(org_id)
+        .bind(item_code)
+        .bind(name)
+        .bind(description)
+        .bind(long_description)
+        .bind(category_id)
+        .bind(category_code)
+        .bind(item_type)
+        .bind(uom)
+        .bind(secondary_uom)
+        .bind(weight)
+        .bind(weight_uom)
+        .bind(volume)
+        .bind(volume_uom)
+        .bind(list_price)
+        .bind(standard_cost)
+        .bind(min_order_quantity)
+        .bind(max_order_quantity)
+        .bind(lead_time_days)
+        .bind(shelf_life_days)
+        .bind(is_lot_controlled)
+        .bind(is_serial_controlled)
+        .bind(is_revision_controlled)
+        .bind(is_perishable)
+        .bind(is_hazardous)
+        .bind(is_purchasable)
+        .bind(is_sellable)
+        .bind(is_stockable)
+        .bind(inventory_asset_account_code)
+        .bind(expense_account_code)
+        .bind(cost_of_goods_sold_account)
+        .bind(revenue_account_code)
+        .bind(barcode)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -695,7 +923,12 @@ impl InventoryRepository for PostgresInventoryRepository {
         Ok(row.map(|r| row_to_item(&r)))
     }
 
-    async fn list_items(&self, org_id: Uuid, category_code: Option<&str>, item_type: Option<&str>) -> AtlasResult<Vec<Item>> {
+    async fn list_items(
+        &self,
+        org_id: Uuid,
+        category_code: Option<&str>,
+        item_type: Option<&str>,
+    ) -> AtlasResult<Vec<Item>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.items
@@ -705,7 +938,9 @@ impl InventoryRepository for PostgresInventoryRepository {
             ORDER BY item_code
             ",
         )
-        .bind(org_id).bind(category_code).bind(item_type)
+        .bind(org_id)
+        .bind(category_code)
+        .bind(item_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -714,9 +949,10 @@ impl InventoryRepository for PostgresInventoryRepository {
 
     async fn update_item_status(&self, id: Uuid, is_active: bool) -> AtlasResult<Item> {
         let row = sqlx::query(
-            "UPDATE _atlas.items SET is_active = $2, updated_at = now() WHERE id = $1 RETURNING *"
+            "UPDATE _atlas.items SET is_active = $2, updated_at = now() WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(is_active)
+        .bind(id)
+        .bind(is_active)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -728,10 +964,17 @@ impl InventoryRepository for PostgresInventoryRepository {
     // ========================================================================
 
     async fn create_subinventory(
-        &self, org_id: Uuid, inventory_org_id: Uuid, code: &str, name: &str,
-        description: Option<&str>, subinventory_type: &str,
-        asset_subinventory: bool, quantity_tracked: bool,
-        location_code: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        inventory_org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        subinventory_type: &str,
+        asset_subinventory: bool,
+        quantity_tracked: bool,
+        location_code: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<Subinventory> {
         let row = sqlx::query(
             r"
@@ -780,8 +1023,12 @@ impl InventoryRepository for PostgresInventoryRepository {
     // ========================================================================
 
     async fn create_locator(
-        &self, org_id: Uuid, subinventory_id: Uuid, code: &str,
-        description: Option<&str>, picker_order: i32,
+        &self,
+        org_id: Uuid,
+        subinventory_id: Uuid,
+        code: &str,
+        description: Option<&str>,
+        picker_order: i32,
     ) -> AtlasResult<Locator> {
         let row = sqlx::query(
             r"
@@ -815,9 +1062,15 @@ impl InventoryRepository for PostgresInventoryRepository {
     // ========================================================================
 
     async fn get_on_hand_balance(
-        &self, org_id: Uuid, inventory_org_id: Uuid, item_id: Uuid,
-        subinventory_id: Uuid, locator_id: Option<Uuid>,
-        lot_number: Option<&str>, serial_number: Option<&str>, revision: Option<&str>,
+        &self,
+        org_id: Uuid,
+        inventory_org_id: Uuid,
+        item_id: Uuid,
+        subinventory_id: Uuid,
+        locator_id: Option<Uuid>,
+        lot_number: Option<&str>,
+        serial_number: Option<&str>,
+        revision: Option<&str>,
     ) -> AtlasResult<Option<OnHandBalance>> {
         let row = sqlx::query(
             r"
@@ -838,10 +1091,17 @@ impl InventoryRepository for PostgresInventoryRepository {
     }
 
     async fn upsert_on_hand_balance(
-        &self, org_id: Uuid, inventory_org_id: Uuid, item_id: Uuid,
-        subinventory_id: Uuid, locator_id: Option<Uuid>,
-        lot_number: Option<&str>, serial_number: Option<&str>, revision: Option<&str>,
-        quantity_delta: &str, unit_cost: &str,
+        &self,
+        org_id: Uuid,
+        inventory_org_id: Uuid,
+        item_id: Uuid,
+        subinventory_id: Uuid,
+        locator_id: Option<Uuid>,
+        lot_number: Option<&str>,
+        serial_number: Option<&str>,
+        revision: Option<&str>,
+        quantity_delta: &str,
+        unit_cost: &str,
     ) -> AtlasResult<OnHandBalance> {
         let row = sqlx::query(
             r"
@@ -870,7 +1130,12 @@ impl InventoryRepository for PostgresInventoryRepository {
         Ok(row_to_on_hand(&row))
     }
 
-    async fn list_on_hand_balances(&self, org_id: Uuid, item_id: Option<Uuid>, inventory_org_id: Option<Uuid>) -> AtlasResult<Vec<OnHandBalance>> {
+    async fn list_on_hand_balances(
+        &self,
+        org_id: Uuid,
+        item_id: Option<Uuid>,
+        inventory_org_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<OnHandBalance>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.on_hand_balances
@@ -880,7 +1145,9 @@ impl InventoryRepository for PostgresInventoryRepository {
             ORDER BY item_id
             ",
         )
-        .bind(org_id).bind(item_id).bind(inventory_org_id)
+        .bind(org_id)
+        .bind(item_id)
+        .bind(inventory_org_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -892,8 +1159,14 @@ impl InventoryRepository for PostgresInventoryRepository {
     // ========================================================================
 
     async fn create_transaction_type(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        transaction_action: &str, source_type: &str, is_system: bool,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        transaction_action: &str,
+        source_type: &str,
+        is_system: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<InventoryTransactionType> {
         let row = sqlx::query(
@@ -914,7 +1187,11 @@ impl InventoryRepository for PostgresInventoryRepository {
         Ok(row_to_txn_type(&row))
     }
 
-    async fn get_transaction_type(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<InventoryTransactionType>> {
+    async fn get_transaction_type(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<InventoryTransactionType>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.inventory_transaction_types WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -925,7 +1202,10 @@ impl InventoryRepository for PostgresInventoryRepository {
         Ok(row.map(|r| row_to_txn_type(&r)))
     }
 
-    async fn list_transaction_types(&self, org_id: Uuid) -> AtlasResult<Vec<InventoryTransactionType>> {
+    async fn list_transaction_types(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<InventoryTransactionType>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.inventory_transaction_types WHERE organization_id = $1 AND is_active = true ORDER BY code"
         )
@@ -942,18 +1222,36 @@ impl InventoryRepository for PostgresInventoryRepository {
 
     async fn create_transaction(
         &self,
-        org_id: Uuid, transaction_number: &str,
-        transaction_type_id: Option<Uuid>, transaction_type_code: Option<&str>,
-        transaction_action: &str, source_type: &str,
-        source_id: Option<Uuid>, source_number: Option<&str>, source_line_id: Option<Uuid>,
-        item_id: Uuid, item_code: Option<&str>, item_description: Option<&str>,
-        from_inventory_org_id: Option<Uuid>, from_subinventory_id: Option<Uuid>, from_locator_id: Option<Uuid>,
-        to_inventory_org_id: Option<Uuid>, to_subinventory_id: Option<Uuid>, to_locator_id: Option<Uuid>,
-        quantity: &str, uom: &str, unit_cost: &str, total_cost: &str,
-        lot_number: Option<&str>, serial_number: Option<&str>, revision: Option<&str>,
+        org_id: Uuid,
+        transaction_number: &str,
+        transaction_type_id: Option<Uuid>,
+        transaction_type_code: Option<&str>,
+        transaction_action: &str,
+        source_type: &str,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        source_line_id: Option<Uuid>,
+        item_id: Uuid,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        from_inventory_org_id: Option<Uuid>,
+        from_subinventory_id: Option<Uuid>,
+        from_locator_id: Option<Uuid>,
+        to_inventory_org_id: Option<Uuid>,
+        to_subinventory_id: Option<Uuid>,
+        to_locator_id: Option<Uuid>,
+        quantity: &str,
+        uom: &str,
+        unit_cost: &str,
+        total_cost: &str,
+        lot_number: Option<&str>,
+        serial_number: Option<&str>,
+        revision: Option<&str>,
         transaction_date: chrono::DateTime<chrono::Utc>,
-        reason_id: Option<Uuid>, reason_name: Option<&str>,
-        notes: Option<&str>, status: &str,
+        reason_id: Option<Uuid>,
+        reason_name: Option<&str>,
+        notes: Option<&str>,
+        status: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<InventoryTransaction> {
         let row = sqlx::query(
@@ -999,8 +1297,11 @@ impl InventoryRepository for PostgresInventoryRepository {
     }
 
     async fn list_transactions(
-        &self, org_id: Uuid, item_id: Option<Uuid>,
-        transaction_action: Option<&str>, status: Option<&str>,
+        &self,
+        org_id: Uuid,
+        item_id: Option<Uuid>,
+        transaction_action: Option<&str>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<InventoryTransaction>> {
         let rows = sqlx::query(
             r"
@@ -1012,14 +1313,22 @@ impl InventoryRepository for PostgresInventoryRepository {
             ORDER BY transaction_date DESC
             ",
         )
-        .bind(org_id).bind(item_id).bind(transaction_action).bind(status)
+        .bind(org_id)
+        .bind(item_id)
+        .bind(transaction_action)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_transaction).collect())
     }
 
-    async fn update_transaction_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<InventoryTransaction> {
+    async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<InventoryTransaction> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.inventory_transactions
@@ -1031,7 +1340,9 @@ impl InventoryRepository for PostgresInventoryRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -1043,8 +1354,13 @@ impl InventoryRepository for PostgresInventoryRepository {
     // ========================================================================
 
     async fn create_transaction_reason(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        applicable_actions: serde_json::Value, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        applicable_actions: serde_json::Value,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<TransactionReason> {
         let row = sqlx::query(
             r"
@@ -1080,9 +1396,17 @@ impl InventoryRepository for PostgresInventoryRepository {
     // ========================================================================
 
     async fn create_cycle_count(
-        &self, org_id: Uuid, count_number: &str, name: &str, description: Option<&str>,
-        inventory_org_id: Uuid, subinventory_id: Option<Uuid>, count_date: chrono::NaiveDate,
-        count_method: &str, tolerance_percent: &str, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        count_number: &str,
+        name: &str,
+        description: Option<&str>,
+        inventory_org_id: Uuid,
+        subinventory_id: Option<Uuid>,
+        count_date: chrono::NaiveDate,
+        count_method: &str,
+        tolerance_percent: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<CycleCountHeader> {
         let row = sqlx::query(
             r"
@@ -1094,9 +1418,16 @@ impl InventoryRepository for PostgresInventoryRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(count_number).bind(name).bind(description)
-        .bind(inventory_org_id).bind(subinventory_id).bind(count_date)
-        .bind(count_method).bind(tolerance_percent).bind(created_by)
+        .bind(org_id)
+        .bind(count_number)
+        .bind(name)
+        .bind(description)
+        .bind(inventory_org_id)
+        .bind(subinventory_id)
+        .bind(count_date)
+        .bind(count_method)
+        .bind(tolerance_percent)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -1112,7 +1443,11 @@ impl InventoryRepository for PostgresInventoryRepository {
         Ok(row.map(|r| row_to_cycle_count(&r)))
     }
 
-    async fn list_cycle_counts(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CycleCountHeader>> {
+    async fn list_cycle_counts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CycleCountHeader>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.cycle_count_headers
@@ -1120,14 +1455,19 @@ impl InventoryRepository for PostgresInventoryRepository {
             ORDER BY count_date DESC
             ",
         )
-        .bind(org_id).bind(status)
+        .bind(org_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_cycle_count).collect())
     }
 
-    async fn update_cycle_count_status(&self, id: Uuid, status: &str) -> AtlasResult<CycleCountHeader> {
+    async fn update_cycle_count_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<CycleCountHeader> {
         let row = sqlx::query(
             "UPDATE _atlas.cycle_count_headers SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         )
@@ -1139,8 +1479,12 @@ impl InventoryRepository for PostgresInventoryRepository {
     }
 
     async fn update_cycle_count_summary(
-        &self, id: Uuid, total_items: i32, counted_items: i32,
-        matched_items: i32, mismatched_items: i32,
+        &self,
+        id: Uuid,
+        total_items: i32,
+        counted_items: i32,
+        matched_items: i32,
+        mismatched_items: i32,
     ) -> AtlasResult<CycleCountHeader> {
         let row = sqlx::query(
             r"
@@ -1162,10 +1506,17 @@ impl InventoryRepository for PostgresInventoryRepository {
     // ========================================================================
 
     async fn create_cycle_count_line(
-        &self, org_id: Uuid, cycle_count_id: Uuid, line_number: i32,
-        item_id: Uuid, item_code: Option<&str>, item_description: Option<&str>,
-        subinventory_id: Option<Uuid>, locator_id: Option<Uuid>,
-        lot_number: Option<&str>, revision: Option<&str>,
+        &self,
+        org_id: Uuid,
+        cycle_count_id: Uuid,
+        line_number: i32,
+        item_id: Uuid,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        subinventory_id: Option<Uuid>,
+        locator_id: Option<Uuid>,
+        lot_number: Option<&str>,
+        revision: Option<&str>,
         system_quantity: &str,
     ) -> AtlasResult<CycleCountLine> {
         let row = sqlx::query(
@@ -1179,9 +1530,16 @@ impl InventoryRepository for PostgresInventoryRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(cycle_count_id).bind(line_number)
-        .bind(item_id).bind(item_code).bind(item_description)
-        .bind(subinventory_id).bind(locator_id).bind(lot_number).bind(revision)
+        .bind(org_id)
+        .bind(cycle_count_id)
+        .bind(line_number)
+        .bind(item_id)
+        .bind(item_code)
+        .bind(item_description)
+        .bind(subinventory_id)
+        .bind(locator_id)
+        .bind(lot_number)
+        .bind(revision)
         .bind(system_quantity)
         .fetch_one(&self.pool)
         .await
@@ -1189,9 +1547,12 @@ impl InventoryRepository for PostgresInventoryRepository {
         Ok(row_to_cycle_count_line(&row))
     }
 
-    async fn list_cycle_count_lines(&self, cycle_count_id: Uuid) -> AtlasResult<Vec<CycleCountLine>> {
+    async fn list_cycle_count_lines(
+        &self,
+        cycle_count_id: Uuid,
+    ) -> AtlasResult<Vec<CycleCountLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.cycle_count_lines WHERE cycle_count_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.cycle_count_lines WHERE cycle_count_id = $1 ORDER BY line_number",
         )
         .bind(cycle_count_id)
         .fetch_all(&self.pool)
@@ -1201,7 +1562,11 @@ impl InventoryRepository for PostgresInventoryRepository {
     }
 
     async fn update_cycle_count_line_count(
-        &self, id: Uuid, count_number: i32, count_quantity: &str, counted_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        count_number: i32,
+        count_quantity: &str,
+        counted_by: Option<Uuid>,
     ) -> AtlasResult<CycleCountLine> {
         let qty_col = format!("count_quantity_{count_number}");
         let date_col = format!("count_date_{count_number}");
@@ -1212,14 +1577,20 @@ impl InventoryRepository for PostgresInventoryRepository {
                WHERE id = $1 RETURNING *"
         );
         let row = sqlx::query(&sql)
-            .bind(id).bind(count_quantity).bind(counted_by)
+            .bind(id)
+            .bind(count_quantity)
+            .bind(counted_by)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_cycle_count_line(&row))
     }
 
-    async fn approve_cycle_count_line(&self, id: Uuid, approved_quantity: &str) -> AtlasResult<CycleCountLine> {
+    async fn approve_cycle_count_line(
+        &self,
+        id: Uuid,
+        approved_quantity: &str,
+    ) -> AtlasResult<CycleCountLine> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.cycle_count_lines

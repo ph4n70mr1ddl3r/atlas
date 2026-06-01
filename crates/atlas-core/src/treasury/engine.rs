@@ -13,11 +13,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Treasury Management
 
-use atlas_shared::{
-    TreasuryCounterparty, TreasuryDeal, TreasurySettlement, TreasuryDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::TreasuryRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, TreasuryCounterparty, TreasuryDashboardSummary, TreasuryDeal,
+    TreasurySettlement,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -80,27 +80,52 @@ impl TreasuryEngine {
         if !VALID_COUNTERPARTY_TYPES.contains(&counterparty_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid counterparty type '{}'. Must be one of: {}",
-                counterparty_type, VALID_COUNTERPARTY_TYPES.join(", ")
+                counterparty_type,
+                VALID_COUNTERPARTY_TYPES.join(", ")
             )));
         }
 
-        info!("Creating treasury counterparty {} ({}) for org {}", counterparty_code, name, org_id);
+        info!(
+            "Creating treasury counterparty {} ({}) for org {}",
+            counterparty_code, name, org_id
+        );
 
-        self.repository.create_counterparty(
-            org_id, counterparty_code, name, counterparty_type,
-            country_code, credit_rating, credit_limit, settlement_currency,
-            contact_name, contact_email, contact_phone, created_by,
-        ).await
+        self.repository
+            .create_counterparty(
+                org_id,
+                counterparty_code,
+                name,
+                counterparty_type,
+                country_code,
+                credit_rating,
+                credit_limit,
+                settlement_currency,
+                contact_name,
+                contact_email,
+                contact_phone,
+                created_by,
+            )
+            .await
     }
 
     /// Get a counterparty by code
-    pub async fn get_counterparty(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<TreasuryCounterparty>> {
+    pub async fn get_counterparty(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TreasuryCounterparty>> {
         self.repository.get_counterparty(org_id, code).await
     }
 
     /// List counterparties
-    pub async fn list_counterparties(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<TreasuryCounterparty>> {
-        self.repository.list_counterparties(org_id, active_only).await
+    pub async fn list_counterparties(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<TreasuryCounterparty>> {
+        self.repository
+            .list_counterparties(org_id, active_only)
+            .await
     }
 
     /// Delete a counterparty
@@ -137,20 +162,25 @@ impl TreasuryEngine {
         if !VALID_DEAL_TYPES.contains(&deal_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid deal type '{}'. Must be one of: {}",
-                deal_type, VALID_DEAL_TYPES.join(", ")
+                deal_type,
+                VALID_DEAL_TYPES.join(", ")
             )));
         }
 
         // Validate counterparty exists
-        let cp = self.repository.get_counterparty_by_id(counterparty_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Counterparty {counterparty_id} not found")
-            ))?;
+        let cp = self
+            .repository
+            .get_counterparty_by_id(counterparty_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Counterparty {counterparty_id} not found"))
+            })?;
 
         if !cp.is_active {
-            return Err(AtlasError::ValidationFailed(
-                format!("Counterparty '{}' is not active", cp.name)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Counterparty '{}' is not active",
+                cp.name
+            )));
         }
 
         if start_date >= maturity_date {
@@ -169,13 +199,13 @@ impl TreasuryEngine {
         // Validate interest fields for investment/borrowing
         if deal_type == "investment" || deal_type == "borrowing" {
             if interest_rate.is_none() {
-                return Err(AtlasError::ValidationFailed(
-                    format!("Interest rate is required for {deal_type} deals")
-                ));
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Interest rate is required for {deal_type} deals"
+                )));
             }
-            let rate: f64 = interest_rate.unwrap().parse().map_err(|_| AtlasError::ValidationFailed(
-                "Interest rate must be a valid number".to_string(),
-            ))?;
+            let rate: f64 = interest_rate.unwrap().parse().map_err(|_| {
+                AtlasError::ValidationFailed("Interest rate must be a valid number".to_string())
+            })?;
             if rate < 0.0 {
                 return Err(AtlasError::ValidationFailed(
                     "Interest rate cannot be negative".to_string(),
@@ -185,9 +215,9 @@ impl TreasuryEngine {
 
         // Validate principal for non-FX deals
         if deal_type == "investment" || deal_type == "borrowing" {
-            let principal: f64 = principal_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Principal amount must be a valid number".to_string(),
-            ))?;
+            let principal: f64 = principal_amount.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Principal amount must be a valid number".to_string())
+            })?;
             if principal <= 0.0 {
                 return Err(AtlasError::ValidationFailed(
                     "Principal amount must be positive".to_string(),
@@ -212,9 +242,9 @@ impl TreasuryEngine {
                     "FX rate is required for FX deals".to_string(),
                 ));
             }
-            let rate: f64 = fx_rate.unwrap().parse().map_err(|_| AtlasError::ValidationFailed(
-                "FX rate must be a valid number".to_string(),
-            ))?;
+            let rate: f64 = fx_rate.unwrap().parse().map_err(|_| {
+                AtlasError::ValidationFailed("FX rate must be a valid number".to_string())
+            })?;
             if rate <= 0.0 {
                 return Err(AtlasError::ValidationFailed(
                     "FX rate must be positive".to_string(),
@@ -226,7 +256,8 @@ impl TreasuryEngine {
             if !VALID_INTEREST_BASES.contains(&basis) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid interest basis '{}'. Must be one of: {}",
-                    basis, VALID_INTEREST_BASES.join(", ")
+                    basis,
+                    VALID_INTEREST_BASES.join(", ")
                 )));
             }
         }
@@ -234,18 +265,35 @@ impl TreasuryEngine {
         let deal_number = format!("TRD-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
         let default_basis = interest_basis.unwrap_or("actual_360");
 
-        info!("Creating treasury deal {} ({}) for org {}", deal_number, deal_type, org_id);
+        info!(
+            "Creating treasury deal {} ({}) for org {}",
+            deal_number, deal_type, org_id
+        );
 
-        self.repository.create_deal(
-            org_id, &deal_number, deal_type, description,
-            counterparty_id, counterparty_name.or(Some(cp.name.as_str())),
-            currency_code, principal_amount,
-            interest_rate, Some(default_basis),
-            start_date, maturity_date, term_days,
-            fx_buy_currency, fx_buy_amount,
-            fx_sell_currency, fx_sell_amount, fx_rate,
-            gl_account_code, created_by,
-        ).await
+        self.repository
+            .create_deal(
+                org_id,
+                &deal_number,
+                deal_type,
+                description,
+                counterparty_id,
+                counterparty_name.or(Some(cp.name.as_str())),
+                currency_code,
+                principal_amount,
+                interest_rate,
+                Some(default_basis),
+                start_date,
+                maturity_date,
+                term_days,
+                fx_buy_currency,
+                fx_buy_amount,
+                fx_sell_currency,
+                fx_sell_amount,
+                fx_rate,
+                gl_account_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get a deal by ID
@@ -254,8 +302,14 @@ impl TreasuryEngine {
     }
 
     /// Get a deal by number
-    pub async fn get_deal_by_number(&self, org_id: Uuid, deal_number: &str) -> AtlasResult<Option<TreasuryDeal>> {
-        self.repository.get_deal_by_number(org_id, deal_number).await
+    pub async fn get_deal_by_number(
+        &self,
+        org_id: Uuid,
+        deal_number: &str,
+    ) -> AtlasResult<Option<TreasuryDeal>> {
+        self.repository
+            .get_deal_by_number(org_id, deal_number)
+            .await
     }
 
     /// List deals with optional filters
@@ -268,14 +322,18 @@ impl TreasuryEngine {
         if let Some(dt) = deal_type {
             if !VALID_DEAL_TYPES.contains(&dt) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid deal type '{}'. Must be one of: {}", dt, VALID_DEAL_TYPES.join(", ")
+                    "Invalid deal type '{}'. Must be one of: {}",
+                    dt,
+                    VALID_DEAL_TYPES.join(", ")
                 )));
             }
         }
         if let Some(s) = status {
             if !VALID_DEAL_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_DEAL_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_DEAL_STATUSES.join(", ")
                 )));
             }
         }
@@ -292,27 +350,32 @@ impl TreasuryEngine {
         deal_id: Uuid,
         authorized_by: Option<Uuid>,
     ) -> AtlasResult<TreasuryDeal> {
-        let deal = self.repository.get_deal(deal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deal {deal_id} not found")
-            ))?;
+        let deal = self
+            .repository
+            .get_deal(deal_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deal {deal_id} not found")))?;
 
         if deal.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot authorize deal in '{}' status. Must be 'draft'.", deal.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot authorize deal in '{}' status. Must be 'draft'.",
+                deal.status
+            )));
         }
 
         // Calculate initial accrued interest
         let interest = self.calculate_interest(&deal);
-        self.repository.update_deal_interest(
-            deal_id,
-            &format!("{interest:.2}"),
-            None,
-        ).await?;
+        self.repository
+            .update_deal_interest(deal_id, &format!("{interest:.2}"), None)
+            .await?;
 
-        info!("Authorized treasury deal {} ({})", deal.deal_number, deal.deal_type);
-        self.repository.update_deal_status(deal_id, "authorized", authorized_by, None, None).await
+        info!(
+            "Authorized treasury deal {} ({})",
+            deal.deal_number, deal.deal_type
+        );
+        self.repository
+            .update_deal_status(deal_id, "authorized", authorized_by, None, None)
+            .await
     }
 
     /// Settle a deal (mark as settled with payment)
@@ -326,19 +389,22 @@ impl TreasuryEngine {
         if !VALID_SETTLEMENT_TYPES.contains(&settlement_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid settlement type '{}'. Must be one of: {}",
-                settlement_type, VALID_SETTLEMENT_TYPES.join(", ")
+                settlement_type,
+                VALID_SETTLEMENT_TYPES.join(", ")
             )));
         }
 
-        let deal = self.repository.get_deal(deal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deal {deal_id} not found")
-            ))?;
+        let deal = self
+            .repository
+            .get_deal(deal_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deal {deal_id} not found")))?;
 
         if deal.status != "authorized" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot settle deal in '{}' status. Must be 'authorized'.", deal.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot settle deal in '{}' status. Must be 'authorized'.",
+                deal.status
+            )));
         }
 
         // Calculate final interest
@@ -348,60 +414,82 @@ impl TreasuryEngine {
 
         let settlement_number = format!("STL-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        let settlement = self.repository.create_settlement(
-            deal.organization_id, deal_id, &settlement_number, settlement_type,
-            chrono::Utc::now().date_naive(),
-            &format!("{principal:.2}"),
-            &format!("{interest:.2}"),
-            &format!("{total:.2}"),
-            payment_reference, settled_by,
-        ).await?;
+        let settlement = self
+            .repository
+            .create_settlement(
+                deal.organization_id,
+                deal_id,
+                &settlement_number,
+                settlement_type,
+                chrono::Utc::now().date_naive(),
+                &format!("{principal:.2}"),
+                &format!("{interest:.2}"),
+                &format!("{total:.2}"),
+                payment_reference,
+                settled_by,
+            )
+            .await?;
 
         // Update deal
-        self.repository.update_deal_interest(
-            deal_id, &format!("{interest:.2}"), Some(&format!("{total:.2}")),
-        ).await?;
+        self.repository
+            .update_deal_interest(
+                deal_id,
+                &format!("{interest:.2}"),
+                Some(&format!("{total:.2}")),
+            )
+            .await?;
 
-        self.repository.update_deal_status(
-            deal_id, "settled", None, Some(chrono::Utc::now()), None,
-        ).await?;
+        self.repository
+            .update_deal_status(deal_id, "settled", None, Some(chrono::Utc::now()), None)
+            .await?;
 
-        info!("Settled treasury deal {} for {:.2}", deal.deal_number, total);
+        info!(
+            "Settled treasury deal {} for {:.2}",
+            deal.deal_number, total
+        );
         Ok(settlement)
     }
 
     /// Mature a deal
     pub async fn mature_deal(&self, deal_id: Uuid) -> AtlasResult<TreasuryDeal> {
-        let deal = self.repository.get_deal(deal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deal {deal_id} not found")
-            ))?;
+        let deal = self
+            .repository
+            .get_deal(deal_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deal {deal_id} not found")))?;
 
         if deal.status != "settled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot mature deal in '{}' status. Must be 'settled'.", deal.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot mature deal in '{}' status. Must be 'settled'.",
+                deal.status
+            )));
         }
 
         info!("Matured treasury deal {}", deal.deal_number);
-        self.repository.update_deal_status(deal_id, "matured", None, None, Some(chrono::Utc::now())).await
+        self.repository
+            .update_deal_status(deal_id, "matured", None, None, Some(chrono::Utc::now()))
+            .await
     }
 
     /// Cancel a deal
     pub async fn cancel_deal(&self, deal_id: Uuid) -> AtlasResult<TreasuryDeal> {
-        let deal = self.repository.get_deal(deal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Deal {deal_id} not found")
-            ))?;
+        let deal = self
+            .repository
+            .get_deal(deal_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Deal {deal_id} not found")))?;
 
         if deal.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel deal in '{}' status. Only 'draft' deals can be cancelled.", deal.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel deal in '{}' status. Only 'draft' deals can be cancelled.",
+                deal.status
+            )));
         }
 
         info!("Cancelled treasury deal {}", deal.deal_number);
-        self.repository.update_deal_status(deal_id, "cancelled", None, None, None).await
+        self.repository
+            .update_deal_status(deal_id, "cancelled", None, None, None)
+            .await
     }
 
     // ========================================================================
@@ -418,9 +506,11 @@ impl TreasuryEngine {
     // ========================================================================
 
     /// Calculate accrued interest for a deal based on its interest basis
-    #[must_use] 
+    #[must_use]
     pub fn calculate_interest(&self, deal: &TreasuryDeal) -> f64 {
-        let rate: f64 = deal.interest_rate.as_deref()
+        let rate: f64 = deal
+            .interest_rate
+            .as_deref()
             .and_then(|r| r.parse().ok())
             .unwrap_or(0.0);
         let principal: f64 = deal.principal_amount.parse().unwrap_or(0.0);
@@ -445,7 +535,10 @@ impl TreasuryEngine {
     // ========================================================================
 
     /// Get treasury dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<TreasuryDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<TreasuryDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 }
@@ -503,14 +596,19 @@ mod tests {
             start_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             maturity_date: chrono::NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
             term_days: 91,
-            fx_buy_currency: None, fx_buy_amount: None,
-            fx_sell_currency: None, fx_sell_amount: None, fx_rate: None,
+            fx_buy_currency: None,
+            fx_buy_amount: None,
+            fx_sell_currency: None,
+            fx_sell_amount: None,
+            fx_rate: None,
             accrued_interest: "0".to_string(),
             settlement_amount: None,
             gl_account_code: None,
             status: "draft".to_string(),
-            authorized_by: None, authorized_at: None,
-            settled_at: None, matured_at: None,
+            authorized_by: None,
+            authorized_at: None,
+            settled_at: None,
+            matured_at: None,
             metadata: serde_json::json!({}),
             created_by: None,
             created_at: chrono::Utc::now(),
@@ -520,7 +618,12 @@ mod tests {
         let interest = engine.calculate_interest(&deal);
         // 1,000,000 * 0.05 * (91/360) ≈ 12,638.89
         let expected = 1_000_000.0 * 0.05 * (91.0 / 360.0);
-        assert!((interest - expected).abs() < 1.0, "Expected {:.2}, got {:.2}", expected, interest);
+        assert!(
+            (interest - expected).abs() < 1.0,
+            "Expected {:.2}, got {:.2}",
+            expected,
+            interest
+        );
     }
 
     #[test]
@@ -541,14 +644,19 @@ mod tests {
             start_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             maturity_date: chrono::NaiveDate::from_ymd_opt(2024, 7, 1).unwrap(),
             term_days: 182,
-            fx_buy_currency: None, fx_buy_amount: None,
-            fx_sell_currency: None, fx_sell_amount: None, fx_rate: None,
+            fx_buy_currency: None,
+            fx_buy_amount: None,
+            fx_sell_currency: None,
+            fx_sell_amount: None,
+            fx_rate: None,
             accrued_interest: "0".to_string(),
             settlement_amount: None,
             gl_account_code: None,
             status: "draft".to_string(),
-            authorized_by: None, authorized_at: None,
-            settled_at: None, matured_at: None,
+            authorized_by: None,
+            authorized_at: None,
+            settled_at: None,
+            matured_at: None,
             metadata: serde_json::json!({}),
             created_by: None,
             created_at: chrono::Utc::now(),
@@ -558,7 +666,12 @@ mod tests {
         let interest = engine.calculate_interest(&deal);
         // 500,000 * 0.035 * (182/365) ≈ 8,726.03
         let expected = 500_000.0 * 0.035 * (182.0 / 365.0);
-        assert!((interest - expected).abs() < 1.0, "Expected {:.2}, got {:.2}", expected, interest);
+        assert!(
+            (interest - expected).abs() < 1.0,
+            "Expected {:.2}, got {:.2}",
+            expected,
+            interest
+        );
     }
 
     #[test]
@@ -579,14 +692,19 @@ mod tests {
             start_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             maturity_date: chrono::NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
             term_days: 91,
-            fx_buy_currency: None, fx_buy_amount: None,
-            fx_sell_currency: None, fx_sell_amount: None, fx_rate: None,
+            fx_buy_currency: None,
+            fx_buy_amount: None,
+            fx_sell_currency: None,
+            fx_sell_amount: None,
+            fx_rate: None,
             accrued_interest: "0".to_string(),
             settlement_amount: None,
             gl_account_code: None,
             status: "draft".to_string(),
-            authorized_by: None, authorized_at: None,
-            settled_at: None, matured_at: None,
+            authorized_by: None,
+            authorized_at: None,
+            settled_at: None,
+            matured_at: None,
             metadata: serde_json::json!({}),
             created_by: None,
             created_at: chrono::Utc::now(),
@@ -615,14 +733,19 @@ mod tests {
             start_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             maturity_date: chrono::NaiveDate::from_ymd_opt(2024, 7, 1).unwrap(),
             term_days: 180,
-            fx_buy_currency: None, fx_buy_amount: None,
-            fx_sell_currency: None, fx_sell_amount: None, fx_rate: None,
+            fx_buy_currency: None,
+            fx_buy_amount: None,
+            fx_sell_currency: None,
+            fx_sell_amount: None,
+            fx_rate: None,
             accrued_interest: "0".to_string(),
             settlement_amount: None,
             gl_account_code: None,
             status: "draft".to_string(),
-            authorized_by: None, authorized_at: None,
-            settled_at: None, matured_at: None,
+            authorized_by: None,
+            authorized_at: None,
+            settled_at: None,
+            matured_at: None,
             metadata: serde_json::json!({}),
             created_by: None,
             created_at: chrono::Utc::now(),
@@ -632,6 +755,11 @@ mod tests {
         let interest = engine.calculate_interest(&deal);
         // 2,000,000 * 0.04 * (180/360) = 40,000
         let expected = 2_000_000.0 * 0.04 * (180.0 / 360.0);
-        assert!((interest - expected).abs() < 1.0, "Expected {:.2}, got {:.2}", expected, interest);
+        assert!(
+            (interest - expected).abs() < 1.0,
+            "Expected {:.2}, got {:.2}",
+            expected,
+            interest
+        );
     }
 }

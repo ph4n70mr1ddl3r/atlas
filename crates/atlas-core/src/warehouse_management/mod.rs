@@ -12,4 +12,4 @@ mod engine;
 mod repository;
 
 pub use engine::WarehouseManagementEngine;
-pub use repository::{WarehouseManagementRepository, PostgresWarehouseManagementRepository};
+pub use repository::{PostgresWarehouseManagementRepository, WarehouseManagementRepository};

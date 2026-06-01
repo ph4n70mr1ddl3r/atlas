@@ -5,47 +5,41 @@
 //!
 //! Oracle Fusion equivalent: Navigator > Tools > Scheduled Processes
 
-use atlas_shared::{
-    ScheduledProcess, ScheduledProcessTemplate, ScheduledProcessRecurrence,
-    ScheduledProcessLog, ScheduledProcessDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::ScheduledProcessRepository;
-use chrono::{Datelike, Utc, DateTime};
+use atlas_shared::{
+    AtlasError, AtlasResult, ScheduledProcess, ScheduledProcessDashboardSummary,
+    ScheduledProcessLog, ScheduledProcessRecurrence, ScheduledProcessTemplate,
+};
+use chrono::{DateTime, Datelike, Utc};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid process types
-pub const VALID_PROCESS_TYPES: &[&str] = &[
-    "report", "import", "export", "batch", "custom",
-];
+pub const VALID_PROCESS_TYPES: &[&str] = &["report", "import", "export", "batch", "custom"];
 
 /// Valid executor types
-pub const VALID_EXECUTOR_TYPES: &[&str] = &[
-    "built_in", "external", "plugin",
-];
+pub const VALID_EXECUTOR_TYPES: &[&str] = &["built_in", "external", "plugin"];
 
 /// Valid process statuses
 pub const VALID_STATUSES: &[&str] = &[
-    "pending", "scheduled", "running", "completed", "failed",
-    "cancelled", "waiting_for_approval",
+    "pending",
+    "scheduled",
+    "running",
+    "completed",
+    "failed",
+    "cancelled",
+    "waiting_for_approval",
 ];
 
 /// Valid priority levels
-pub const VALID_PRIORITIES: &[&str] = &[
-    "low", "normal", "high", "urgent",
-];
+pub const VALID_PRIORITIES: &[&str] = &["low", "normal", "high", "urgent"];
 
 /// Valid recurrence types
-pub const VALID_RECURRENCE_TYPES: &[&str] = &[
-    "daily", "weekly", "monthly", "cron",
-];
+pub const VALID_RECURRENCE_TYPES: &[&str] = &["daily", "weekly", "monthly", "cron"];
 
 /// Valid log levels
-pub const VALID_LOG_LEVELS: &[&str] = &[
-    "debug", "info", "warn", "error",
-];
+pub const VALID_LOG_LEVELS: &[&str] = &["debug", "info", "warn", "error"];
 
 /// Scheduled Process Engine
 pub struct ScheduledProcessEngine {
@@ -85,21 +79,27 @@ impl ScheduledProcessEngine {
     ) -> AtlasResult<ScheduledProcessTemplate> {
         // Validate inputs
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Template code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Template code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Template name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Template name is required".to_string(),
+            ));
         }
         if !VALID_PROCESS_TYPES.contains(&process_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid process type '{}'. Must be one of: {}",
-                process_type, VALID_PROCESS_TYPES.join(", ")
+                process_type,
+                VALID_PROCESS_TYPES.join(", ")
             )));
         }
         if !VALID_EXECUTOR_TYPES.contains(&executor_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid executor type '{}'. Must be one of: {}",
-                executor_type, VALID_EXECUTOR_TYPES.join(", ")
+                executor_type,
+                VALID_EXECUTOR_TYPES.join(", ")
             )));
         }
         if timeout_minutes < 1 {
@@ -132,24 +132,48 @@ impl ScheduledProcessEngine {
             )));
         }
 
-        info!("Creating process template {} ({}) for org {}", code, name, org_id);
+        info!(
+            "Creating process template {} ({}) for org {}",
+            code, name, org_id
+        );
 
-        self.repository.create_template(
-            org_id, code, name, description, process_type, executor_type,
-            executor_config, parameters, default_parameters,
-            timeout_minutes, max_retries, retry_delay_minutes,
-            requires_approval, approval_chain_id,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_template(
+                org_id,
+                code,
+                name,
+                description,
+                process_type,
+                executor_type,
+                executor_config,
+                parameters,
+                default_parameters,
+                timeout_minutes,
+                max_retries,
+                retry_delay_minutes,
+                requires_approval,
+                approval_chain_id,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a template by code
-    pub async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ScheduledProcessTemplate>> {
+    pub async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ScheduledProcessTemplate>> {
         self.repository.get_template(org_id, code).await
     }
 
     /// Get a template by ID
-    pub async fn get_template_by_id(&self, id: Uuid) -> AtlasResult<Option<ScheduledProcessTemplate>> {
+    pub async fn get_template_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<ScheduledProcessTemplate>> {
         self.repository.get_template_by_id(id).await
     }
 
@@ -160,16 +184,22 @@ impl ScheduledProcessEngine {
         process_type: Option<&str>,
         is_active: Option<bool>,
     ) -> AtlasResult<Vec<ScheduledProcessTemplate>> {
-        self.repository.list_templates(org_id, process_type, is_active).await
+        self.repository
+            .list_templates(org_id, process_type, is_active)
+            .await
     }
 
     /// Activate a template
     pub async fn activate_template(&self, id: Uuid) -> AtlasResult<ScheduledProcessTemplate> {
-        let template = self.get_template_by_id(id).await?
+        let template = self
+            .get_template_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {id} not found")))?;
 
         if template.is_active {
-            return Err(AtlasError::WorkflowError("Template is already active".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Template is already active".to_string(),
+            ));
         }
 
         info!("Activated process template {}", template.code);
@@ -178,11 +208,15 @@ impl ScheduledProcessEngine {
 
     /// Deactivate a template
     pub async fn deactivate_template(&self, id: Uuid) -> AtlasResult<ScheduledProcessTemplate> {
-        let template = self.get_template_by_id(id).await?
+        let template = self
+            .get_template_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {id} not found")))?;
 
         if !template.is_active {
-            return Err(AtlasError::WorkflowError("Template is already inactive".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Template is already inactive".to_string(),
+            ));
         }
 
         info!("Deactivated process template {}", template.code);
@@ -215,18 +249,22 @@ impl ScheduledProcessEngine {
         submitted_by: Uuid,
     ) -> AtlasResult<ScheduledProcess> {
         if process_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Process name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Process name is required".to_string(),
+            ));
         }
         if !VALID_PROCESS_TYPES.contains(&process_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid process type '{}'. Must be one of: {}",
-                process_type, VALID_PROCESS_TYPES.join(", ")
+                process_type,
+                VALID_PROCESS_TYPES.join(", ")
             )));
         }
         if !VALID_PRIORITIES.contains(&priority) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid priority '{}'. Must be one of: {}",
-                priority, VALID_PRIORITIES.join(", ")
+                priority,
+                VALID_PRIORITIES.join(", ")
             )));
         }
 
@@ -241,10 +279,13 @@ impl ScheduledProcessEngine {
         };
 
         if let Some(code) = template_code {
-            let template = self.repository.get_template(org_id, code).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Template '{code}' not found"
-                )))?;
+            let template = self
+                .repository
+                .get_template(org_id, code)
+                .await?
+                .ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Template '{code}' not found"))
+                })?;
 
             if !template.is_active {
                 return Err(AtlasError::WorkflowError(format!(
@@ -284,14 +325,23 @@ impl ScheduledProcessEngine {
             process_name, status, org_id
         );
 
-        self.repository.create_process(
-            org_id, template_id, template_code,
-            process_name, process_type, description,
-            status, priority,
-            scheduled_start_at,
-            timeout_minutes, max_retries,
-            parameters, submitted_by,
-        ).await
+        self.repository
+            .create_process(
+                org_id,
+                template_id,
+                template_code,
+                process_name,
+                process_type,
+                description,
+                status,
+                priority,
+                scheduled_start_at,
+                timeout_minutes,
+                max_retries,
+                parameters,
+                submitted_by,
+            )
+            .await
     }
 
     /// Get a process by ID
@@ -312,16 +362,22 @@ impl ScheduledProcessEngine {
             if !VALID_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_STATUSES.join(", ")
+                    s,
+                    VALID_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_processes(org_id, status, submitted_by, process_type, limit).await
+        self.repository
+            .list_processes(org_id, status, submitted_by, process_type, limit)
+            .await
     }
 
     /// Start a pending/scheduled process (marks as running)
     pub async fn start_process(&self, id: Uuid) -> AtlasResult<ScheduledProcess> {
-        let process = self.repository.get_process(id).await?
+        let process = self
+            .repository
+            .get_process(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "pending" && process.status != "scheduled" {
@@ -334,9 +390,9 @@ impl ScheduledProcessEngine {
         info!("Starting process {} ({})", process.process_name, process.id);
 
         let now = Utc::now();
-        self.repository.update_process_status(
-            id, "running", Some(now), None, None, None,
-        ).await
+        self.repository
+            .update_process_status(id, "running", Some(now), None, None, None)
+            .await
     }
 
     /// Complete a running process
@@ -347,7 +403,10 @@ impl ScheduledProcessEngine {
         output_file_url: Option<&str>,
         log_output: Option<&str>,
     ) -> AtlasResult<ScheduledProcess> {
-        let process = self.repository.get_process(id).await?
+        let process = self
+            .repository
+            .get_process(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "running" {
@@ -357,13 +416,23 @@ impl ScheduledProcessEngine {
             )));
         }
 
-        info!("Completing process {} ({})", process.process_name, process.id);
+        info!(
+            "Completing process {} ({})",
+            process.process_name, process.id
+        );
 
         let now = Utc::now();
-        self.repository.complete_process(
-            id, "completed", Some(now),
-            result_summary, output_file_url, log_output, Some(100),
-        ).await
+        self.repository
+            .complete_process(
+                id,
+                "completed",
+                Some(now),
+                result_summary,
+                output_file_url,
+                log_output,
+                Some(100),
+            )
+            .await
     }
 
     /// Fail a running process
@@ -373,7 +442,10 @@ impl ScheduledProcessEngine {
         error_message: Option<&str>,
         log_output: Option<&str>,
     ) -> AtlasResult<ScheduledProcess> {
-        let process = self.repository.get_process(id).await?
+        let process = self
+            .repository
+            .get_process(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "running" {
@@ -387,15 +459,22 @@ impl ScheduledProcessEngine {
         if process.retry_count < process.max_retries {
             info!(
                 "Process {} failed, scheduling retry ({}/{})",
-                process.id, process.retry_count + 1, process.max_retries
+                process.id,
+                process.retry_count + 1,
+                process.max_retries
             );
-            return self.repository.retry_process(id, process.retry_count + 1).await;
+            return self
+                .repository
+                .retry_process(id, process.retry_count + 1)
+                .await;
         }
 
         info!("Failing process {} ({})", process.process_name, process.id);
 
         let now = Utc::now();
-        self.repository.fail_process(id, "failed", Some(now), error_message, log_output).await
+        self.repository
+            .fail_process(id, "failed", Some(now), error_message, log_output)
+            .await
     }
 
     /// Cancel a process
@@ -405,7 +484,10 @@ impl ScheduledProcessEngine {
         cancelled_by: Uuid,
         reason: Option<&str>,
     ) -> AtlasResult<ScheduledProcess> {
-        let process = self.repository.get_process(id).await?
+        let process = self
+            .repository
+            .get_process(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status == "completed" || process.status == "cancelled" {
@@ -415,10 +497,15 @@ impl ScheduledProcessEngine {
             )));
         }
 
-        info!("Cancelling process {} ({})", process.process_name, process.id);
+        info!(
+            "Cancelling process {} ({})",
+            process.process_name, process.id
+        );
 
         let now = Utc::now();
-        self.repository.cancel_process(id, "cancelled", Some(now), Some(cancelled_by), reason).await
+        self.repository
+            .cancel_process(id, "cancelled", Some(now), Some(cancelled_by), reason)
+            .await
     }
 
     /// Update progress for a running process
@@ -433,7 +520,10 @@ impl ScheduledProcessEngine {
             ));
         }
 
-        let process = self.repository.get_process(id).await?
+        let process = self
+            .repository
+            .get_process(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "running" {
@@ -448,7 +538,10 @@ impl ScheduledProcessEngine {
 
     /// Update heartbeat for a running process (keeps process alive)
     pub async fn heartbeat(&self, id: Uuid) -> AtlasResult<ScheduledProcess> {
-        let process = self.repository.get_process(id).await?
+        let process = self
+            .repository
+            .get_process(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "running" {
@@ -463,7 +556,10 @@ impl ScheduledProcessEngine {
 
     /// Approve a waiting process
     pub async fn approve_process(&self, id: Uuid) -> AtlasResult<ScheduledProcess> {
-        let process = self.repository.get_process(id).await?
+        let process = self
+            .repository
+            .get_process(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Process {id} not found")))?;
 
         if process.status != "waiting_for_approval" {
@@ -473,7 +569,10 @@ impl ScheduledProcessEngine {
             )));
         }
 
-        info!("Approving process {} ({})", process.process_name, process.id);
+        info!(
+            "Approving process {} ({})",
+            process.process_name, process.id
+        );
 
         // Transition to pending or scheduled based on scheduled_start_at
         let new_status = if process.scheduled_start_at.is_some() {
@@ -482,9 +581,9 @@ impl ScheduledProcessEngine {
             "pending"
         };
 
-        self.repository.update_process_status(
-            id, new_status, None, None, None, None,
-        ).await
+        self.repository
+            .update_process_status(id, new_status, None, None, None, None)
+            .await
     }
 
     // ========================================================================
@@ -508,12 +607,15 @@ impl ScheduledProcessEngine {
         submitted_by: Option<Uuid>,
     ) -> AtlasResult<ScheduledProcessRecurrence> {
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Recurrence name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Recurrence name is required".to_string(),
+            ));
         }
         if !VALID_RECURRENCE_TYPES.contains(&recurrence_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid recurrence type '{}'. Must be one of: {}",
-                recurrence_type, VALID_RECURRENCE_TYPES.join(", ")
+                recurrence_type,
+                VALID_RECURRENCE_TYPES.join(", ")
             )));
         }
         if let Some(end) = end_date {
@@ -525,10 +627,13 @@ impl ScheduledProcessEngine {
         }
 
         // Validate template exists and is active
-        let template = self.repository.get_template(org_id, template_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Template '{template_code}' not found"
-            )))?;
+        let template = self
+            .repository
+            .get_template(org_id, template_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Template '{template_code}' not found"))
+            })?;
 
         if !template.is_active {
             return Err(AtlasError::WorkflowError(format!(
@@ -537,29 +642,37 @@ impl ScheduledProcessEngine {
         }
 
         // Calculate the next run time
-        let next_run_at = Self::calculate_next_run(
-            start_date,
-            recurrence_type,
-            &recurrence_config,
-        );
+        let next_run_at = Self::calculate_next_run(start_date, recurrence_type, &recurrence_config);
 
         info!(
             "Creating recurrence '{}' for template {} (next run: {:?})",
             name, template_code, next_run_at
         );
 
-        self.repository.create_recurrence(
-            org_id, name, description,
-            template.id, Some(template_code),
-            parameters, recurrence_type, recurrence_config,
-            start_date, end_date,
-            next_run_at, max_runs,
-            submitted_by,
-        ).await
+        self.repository
+            .create_recurrence(
+                org_id,
+                name,
+                description,
+                template.id,
+                Some(template_code),
+                parameters,
+                recurrence_type,
+                recurrence_config,
+                start_date,
+                end_date,
+                next_run_at,
+                max_runs,
+                submitted_by,
+            )
+            .await
     }
 
     /// Get a recurrence by ID
-    pub async fn get_recurrence(&self, id: Uuid) -> AtlasResult<Option<ScheduledProcessRecurrence>> {
+    pub async fn get_recurrence(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<ScheduledProcessRecurrence>> {
         self.repository.get_recurrence(id).await
     }
 
@@ -574,11 +687,16 @@ impl ScheduledProcessEngine {
 
     /// Deactivate a recurrence
     pub async fn deactivate_recurrence(&self, id: Uuid) -> AtlasResult<ScheduledProcessRecurrence> {
-        let recurrence = self.repository.get_recurrence(id).await?
+        let recurrence = self
+            .repository
+            .get_recurrence(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Recurrence {id} not found")))?;
 
         if !recurrence.is_active {
-            return Err(AtlasError::WorkflowError("Recurrence is already inactive".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Recurrence is already inactive".to_string(),
+            ));
         }
 
         info!("Deactivating recurrence '{}'", recurrence.name);
@@ -604,8 +722,14 @@ impl ScheduledProcessEngine {
             // Check max_runs
             if let Some(max) = recurrence.max_runs {
                 if recurrence.run_count >= max {
-                    info!("Recurrence '{}' reached max runs ({}), deactivating", recurrence.name, max);
-                    self.repository.update_recurrence_status(recurrence.id, false).await.ok();
+                    info!(
+                        "Recurrence '{}' reached max runs ({}), deactivating",
+                        recurrence.name, max
+                    );
+                    self.repository
+                        .update_recurrence_status(recurrence.id, false)
+                        .await
+                        .ok();
                     continue;
                 }
             }
@@ -613,33 +737,47 @@ impl ScheduledProcessEngine {
             // Check end_date
             if let Some(end) = recurrence.end_date {
                 if now.date_naive() > end {
-                    info!("Recurrence '{}' past end date, deactivating", recurrence.name);
-                    self.repository.update_recurrence_status(recurrence.id, false).await.ok();
+                    info!(
+                        "Recurrence '{}' past end date, deactivating",
+                        recurrence.name
+                    );
+                    self.repository
+                        .update_recurrence_status(recurrence.id, false)
+                        .await
+                        .ok();
                     continue;
                 }
             }
 
             let process_name = format!(
                 "{} - Recurrence {} ({})",
-                template_code, recurrence.name,
+                template_code,
+                recurrence.name,
                 recurrence.run_count + 1
             );
 
-            match self.repository.create_process(
-                recurrence.organization_id,
-                Some(recurrence.template_id),
-                Some(template_code),
-                &process_name,
-                "report", // default
-                Some(&format!("Auto-generated from recurrence '{}'", recurrence.name)),
-                "pending",
-                "normal",
-                None,
-                60,
-                0,
-                recurrence.parameters.clone(),
-                recurrence.submitted_by.unwrap_or(Uuid::nil()),
-            ).await {
+            match self
+                .repository
+                .create_process(
+                    recurrence.organization_id,
+                    Some(recurrence.template_id),
+                    Some(template_code),
+                    &process_name,
+                    "report", // default
+                    Some(&format!(
+                        "Auto-generated from recurrence '{}'",
+                        recurrence.name
+                    )),
+                    "pending",
+                    "normal",
+                    None,
+                    60,
+                    0,
+                    recurrence.parameters.clone(),
+                    recurrence.submitted_by.unwrap_or(Uuid::nil()),
+                )
+                .await
+            {
                 Ok(process) => {
                     // Calculate next run
                     let next_run = Self::calculate_next_run_from_now(
@@ -647,21 +785,34 @@ impl ScheduledProcessEngine {
                         &recurrence.recurrence_config,
                     );
 
-                    self.repository.update_recurrence_after_run(
-                        recurrence.id,
-                        Some(now),
-                        next_run,
-                        recurrence.run_count + 1,
-                    ).await.ok();
+                    self.repository
+                        .update_recurrence_after_run(
+                            recurrence.id,
+                            Some(now),
+                            next_run,
+                            recurrence.run_count + 1,
+                        )
+                        .await
+                        .ok();
 
                     // Link the process to this recurrence
-                    self.repository.update_process_recurrence(process.id, recurrence.id).await.ok();
+                    self.repository
+                        .update_process_recurrence(process.id, recurrence.id)
+                        .await
+                        .ok();
 
                     spawned.push(process.id);
-                    info!("Spawned process {} from recurrence '{}'", process.id, recurrence.name);
+                    info!(
+                        "Spawned process {} from recurrence '{}'",
+                        process.id, recurrence.name
+                    );
                 }
                 Err(e) => {
-                    tracing::error!("Failed to spawn process from recurrence '{}': {}", recurrence.name, e);
+                    tracing::error!(
+                        "Failed to spawn process from recurrence '{}': {}",
+                        recurrence.name,
+                        e
+                    );
                 }
             }
         }
@@ -687,14 +838,22 @@ impl ScheduledProcessEngine {
         if !VALID_LOG_LEVELS.contains(&log_level) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid log level '{}'. Must be one of: {}",
-                log_level, VALID_LOG_LEVELS.join(", ")
+                log_level,
+                VALID_LOG_LEVELS.join(", ")
             )));
         }
 
-        self.repository.create_log(
-            org_id, process_id, log_level, message,
-            details, step_name, duration_ms,
-        ).await
+        self.repository
+            .create_log(
+                org_id,
+                process_id,
+                log_level,
+                message,
+                details,
+                step_name,
+                duration_ms,
+            )
+            .await
     }
 
     /// List log entries for a process
@@ -704,7 +863,9 @@ impl ScheduledProcessEngine {
         log_level: Option<&str>,
         limit: Option<i32>,
     ) -> AtlasResult<Vec<ScheduledProcessLog>> {
-        self.repository.list_logs(process_id, log_level, limit).await
+        self.repository
+            .list_logs(process_id, log_level, limit)
+            .await
     }
 
     // ========================================================================
@@ -712,7 +873,10 @@ impl ScheduledProcessEngine {
     // ========================================================================
 
     /// Get the scheduled processes dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ScheduledProcessDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ScheduledProcessDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 
@@ -735,7 +899,10 @@ impl ScheduledProcessEngine {
             match self.fail_process(process.id, Some(&error_msg), None).await {
                 Ok(_) => {
                     failed.push(process.id);
-                    info!("Timed out process {} ({})", process.process_name, process.id);
+                    info!(
+                        "Timed out process {} ({})",
+                        process.process_name, process.id
+                    );
                 }
                 Err(e) => {
                     tracing::error!("Failed to mark process {} as timed out: {}", process.id, e);
@@ -751,7 +918,7 @@ impl ScheduledProcessEngine {
     // ========================================================================
 
     /// Calculate the first run time based on recurrence config and start date.
-    #[must_use] 
+    #[must_use]
     pub fn calculate_next_run(
         start_date: chrono::NaiveDate,
         _recurrence_type: &str,
@@ -765,7 +932,7 @@ impl ScheduledProcessEngine {
     }
 
     /// Calculate the next run time from now, based on recurrence config.
-    #[must_use] 
+    #[must_use]
     pub fn calculate_next_run_from_now(
         recurrence_type: &str,
         recurrence_config: &serde_json::Value,
@@ -787,7 +954,14 @@ impl ScheduledProcessEngine {
             }
             "weekly" => {
                 let days_of_week = recurrence_config["days_of_week"].as_array();
-                let target_days: Vec<u32> = days_of_week.map_or_else(|| vec![1], |arr| arr.iter().filter_map(|v| v.as_u64().map(|n| n as u32)).collect()); // default Monday
+                let target_days: Vec<u32> = days_of_week.map_or_else(
+                    || vec![1],
+                    |arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_u64().map(|n| n as u32))
+                            .collect()
+                    },
+                ); // default Monday
 
                 let mut candidate = now.date_naive();
                 for _ in 0..8 {
@@ -805,29 +979,29 @@ impl ScheduledProcessEngine {
                 return None;
             }
             "monthly" => {
-                let day_of_month = recurrence_config["day_of_month"].as_u64()
-                    .unwrap_or(1) as u32;
+                let day_of_month = recurrence_config["day_of_month"].as_u64().unwrap_or(1) as u32;
                 let mut candidate_month = now.month();
                 let mut candidate_year = now.year();
 
                 for _ in 0..13 {
                     let day = day_of_month.min(
-                        chrono::NaiveDate::from_ymd_opt(
-                            candidate_year, candidate_month, 1,
-                        ).and_then(|d| {
-                            // last day of month
-                            let next_month = if d.month() == 12 {
-                                chrono::NaiveDate::from_ymd_opt(d.year() + 1, 1, 1)
-                            } else {
-                                chrono::NaiveDate::from_ymd_opt(d.year(), d.month() + 1, 1)
-                            };
-                            next_month.map(|nm| (nm - chrono::Duration::days(1)).day())
-                        }).unwrap_or(28)
+                        chrono::NaiveDate::from_ymd_opt(candidate_year, candidate_month, 1)
+                            .and_then(|d| {
+                                // last day of month
+                                let next_month = if d.month() == 12 {
+                                    chrono::NaiveDate::from_ymd_opt(d.year() + 1, 1, 1)
+                                } else {
+                                    chrono::NaiveDate::from_ymd_opt(d.year(), d.month() + 1, 1)
+                                };
+                                next_month.map(|nm| (nm - chrono::Duration::days(1)).day())
+                            })
+                            .unwrap_or(28),
                     );
 
-                    if let Some(dt) = chrono::NaiveDate::from_ymd_opt(
-                        candidate_year, candidate_month, day,
-                    ).and_then(|d| d.and_hms_opt(hour, minute, 0)) {
+                    if let Some(dt) =
+                        chrono::NaiveDate::from_ymd_opt(candidate_year, candidate_month, day)
+                            .and_then(|d| d.and_hms_opt(hour, minute, 0))
+                    {
                         let dt_utc = DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc);
                         if dt_utc > now {
                             return Some(dt_utc);
@@ -849,7 +1023,7 @@ impl ScheduledProcessEngine {
     }
 
     /// Parse a time string "HH:MM" into (hour, minute).
-    #[must_use] 
+    #[must_use]
     pub fn parse_time(time_str: &str) -> (u32, u32) {
         let parts: Vec<&str> = time_str.split(':').collect();
         if parts.len() == 2 {
@@ -886,7 +1060,15 @@ mod tests {
 
     #[test]
     fn test_valid_statuses() {
-        for s in &["pending", "scheduled", "running", "completed", "failed", "cancelled", "waiting_for_approval"] {
+        for s in &[
+            "pending",
+            "scheduled",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "waiting_for_approval",
+        ] {
             assert!(VALID_STATUSES.contains(s), "Status '{}' should be valid", s);
         }
     }
@@ -894,21 +1076,33 @@ mod tests {
     #[test]
     fn test_valid_priorities() {
         for p in &["low", "normal", "high", "urgent"] {
-            assert!(VALID_PRIORITIES.contains(p), "Priority '{}' should be valid", p);
+            assert!(
+                VALID_PRIORITIES.contains(p),
+                "Priority '{}' should be valid",
+                p
+            );
         }
     }
 
     #[test]
     fn test_valid_recurrence_types() {
         for r in &["daily", "weekly", "monthly", "cron"] {
-            assert!(VALID_RECURRENCE_TYPES.contains(r), "Recurrence type '{}' should be valid", r);
+            assert!(
+                VALID_RECURRENCE_TYPES.contains(r),
+                "Recurrence type '{}' should be valid",
+                r
+            );
         }
     }
 
     #[test]
     fn test_valid_log_levels() {
         for l in &["debug", "info", "warn", "error"] {
-            assert!(VALID_LOG_LEVELS.contains(l), "Log level '{}' should be valid", l);
+            assert!(
+                VALID_LOG_LEVELS.contains(l),
+                "Log level '{}' should be valid",
+                l
+            );
         }
     }
 
@@ -1036,6 +1230,10 @@ mod tests {
         let dt = next.unwrap();
         assert!(dt > Utc::now());
         let weekday = dt.weekday().num_days_from_monday();
-        assert!(weekday == 0 || weekday == 4, "Next run should be on Monday or Friday, got day {}", weekday);
+        assert!(
+            weekday == 0 || weekday == 4,
+            "Next run should be on Monday or Friday, got day {}",
+            weekday
+        );
     }
 }

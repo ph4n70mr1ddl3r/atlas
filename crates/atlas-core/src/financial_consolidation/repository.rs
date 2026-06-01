@@ -3,14 +3,12 @@
 //! `PostgreSQL` storage for consolidation ledgers, entities, scenarios,
 //! trial balance lines, elimination rules, adjustments, and translation rates.
 
-use atlas_shared::{
-    ConsolidationLedger, ConsolidationEntity, ConsolidationScenario,
-    ConsolidationTrialBalanceLine, ConsolidationEliminationRule,
-    ConsolidationAdjustment, ConsolidationTranslationRate,
-    ConsolidationDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, ConsolidationAdjustment, ConsolidationDashboardSummary,
+    ConsolidationEliminationRule, ConsolidationEntity, ConsolidationLedger, ConsolidationScenario,
+    ConsolidationTranslationRate, ConsolidationTrialBalanceLine,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -19,118 +17,231 @@ use uuid::Uuid;
 pub trait FinancialConsolidationRepository: Send + Sync {
     // ── Consolidation Ledgers ───────────────────────────────────────
     async fn create_ledger(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        base_currency_code: &str, translation_method: &str,
-        equity_elimination_method: &str, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        base_currency_code: &str,
+        translation_method: &str,
+        equity_elimination_method: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationLedger>;
 
-    async fn get_ledger(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ConsolidationLedger>>;
+    async fn get_ledger(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ConsolidationLedger>>;
     async fn get_ledger_by_id(&self, id: Uuid) -> AtlasResult<Option<ConsolidationLedger>>;
-    async fn list_ledgers(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<ConsolidationLedger>>;
+    async fn list_ledgers(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<ConsolidationLedger>>;
 
     // ── Consolidation Entities ──────────────────────────────────────
     async fn create_entity(
-        &self, org_id: Uuid, ledger_id: Uuid, entity_id: Uuid,
-        entity_name: &str, entity_code: &str, local_currency_code: &str,
-        ownership_percentage: &str, consolidation_method: &str,
+        &self,
+        org_id: Uuid,
+        ledger_id: Uuid,
+        entity_id: Uuid,
+        entity_name: &str,
+        entity_code: &str,
+        local_currency_code: &str,
+        ownership_percentage: &str,
+        consolidation_method: &str,
         effective_from: Option<chrono::NaiveDate>,
         effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationEntity>;
 
-    async fn get_entity(&self, ledger_id: Uuid, entity_code: &str) -> AtlasResult<Option<ConsolidationEntity>>;
+    async fn get_entity(
+        &self,
+        ledger_id: Uuid,
+        entity_code: &str,
+    ) -> AtlasResult<Option<ConsolidationEntity>>;
     async fn get_entity_by_id(&self, id: Uuid) -> AtlasResult<Option<ConsolidationEntity>>;
-    async fn list_entities(&self, ledger_id: Uuid, active_only: bool) -> AtlasResult<Vec<ConsolidationEntity>>;
+    async fn list_entities(
+        &self,
+        ledger_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<ConsolidationEntity>>;
 
     // ── Consolidation Scenarios ─────────────────────────────────────
     async fn create_scenario(
-        &self, org_id: Uuid, ledger_id: Uuid, scenario_number: &str,
-        name: &str, description: Option<&str>,
-        fiscal_year: i32, period_name: &str,
-        period_start_date: chrono::NaiveDate, period_end_date: chrono::NaiveDate,
+        &self,
+        org_id: Uuid,
+        ledger_id: Uuid,
+        scenario_number: &str,
+        name: &str,
+        description: Option<&str>,
+        fiscal_year: i32,
+        period_name: &str,
+        period_start_date: chrono::NaiveDate,
+        period_end_date: chrono::NaiveDate,
         translation_rate_type: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationScenario>;
 
-    async fn get_scenario(&self, org_id: Uuid, scenario_number: &str) -> AtlasResult<Option<ConsolidationScenario>>;
+    async fn get_scenario(
+        &self,
+        org_id: Uuid,
+        scenario_number: &str,
+    ) -> AtlasResult<Option<ConsolidationScenario>>;
     async fn get_scenario_by_id(&self, id: Uuid) -> AtlasResult<Option<ConsolidationScenario>>;
     async fn list_scenarios(
-        &self, org_id: Uuid, ledger_id: Option<Uuid>, status: Option<&str>,
+        &self,
+        org_id: Uuid,
+        ledger_id: Option<Uuid>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<ConsolidationScenario>>;
     async fn update_scenario_status(
-        &self, id: Uuid, status: &str,
-        approved_by: Option<Uuid>, posted_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        posted_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationScenario>;
     async fn update_scenario_totals(
-        &self, id: Uuid, total_entities: i32, total_eliminations: i32,
-        total_adjustments: i32, total_debits: &str, total_credits: &str,
+        &self,
+        id: Uuid,
+        total_entities: i32,
+        total_eliminations: i32,
+        total_adjustments: i32,
+        total_debits: &str,
+        total_credits: &str,
         is_balanced: bool,
     ) -> AtlasResult<()>;
 
     // ── Trial Balance Lines ─────────────────────────────────────────
     async fn create_trial_balance_line(
-        &self, org_id: Uuid, scenario_id: Uuid,
-        entity_id: Option<Uuid>, entity_code: Option<&str>,
-        account_code: &str, account_name: Option<&str>,
-        account_type: Option<&str>, financial_statement: Option<&str>,
-        local_debit: &str, local_credit: &str, local_balance: &str,
+        &self,
+        org_id: Uuid,
+        scenario_id: Uuid,
+        entity_id: Option<Uuid>,
+        entity_code: Option<&str>,
+        account_code: &str,
+        account_name: Option<&str>,
+        account_type: Option<&str>,
+        financial_statement: Option<&str>,
+        local_debit: &str,
+        local_credit: &str,
+        local_balance: &str,
         exchange_rate: Option<&str>,
-        translated_debit: &str, translated_credit: &str, translated_balance: &str,
-        elimination_debit: &str, elimination_credit: &str, elimination_balance: &str,
-        minority_interest_debit: &str, minority_interest_credit: &str, minority_interest_balance: &str,
-        consolidated_debit: &str, consolidated_credit: &str, consolidated_balance: &str,
-        is_elimination_entry: bool, line_type: &str,
+        translated_debit: &str,
+        translated_credit: &str,
+        translated_balance: &str,
+        elimination_debit: &str,
+        elimination_credit: &str,
+        elimination_balance: &str,
+        minority_interest_debit: &str,
+        minority_interest_credit: &str,
+        minority_interest_balance: &str,
+        consolidated_debit: &str,
+        consolidated_credit: &str,
+        consolidated_balance: &str,
+        is_elimination_entry: bool,
+        line_type: &str,
     ) -> AtlasResult<ConsolidationTrialBalanceLine>;
 
     async fn list_trial_balance(
-        &self, scenario_id: Uuid, entity_id: Option<Uuid>,
+        &self,
+        scenario_id: Uuid,
+        entity_id: Option<Uuid>,
         line_type: Option<&str>,
     ) -> AtlasResult<Vec<ConsolidationTrialBalanceLine>>;
     async fn delete_trial_balance_by_scenario(&self, scenario_id: Uuid) -> AtlasResult<()>;
 
     // ── Elimination Rules ───────────────────────────────────────────
     async fn create_elimination_rule(
-        &self, org_id: Uuid, ledger_id: Uuid, rule_code: &str,
-        name: &str, description: Option<&str>, elimination_type: &str,
-        from_entity_id: Option<Uuid>, to_entity_id: Option<Uuid>,
-        from_account_pattern: Option<&str>, to_account_pattern: Option<&str>,
-        offset_account_code: &str, priority: i32,
+        &self,
+        org_id: Uuid,
+        ledger_id: Uuid,
+        rule_code: &str,
+        name: &str,
+        description: Option<&str>,
+        elimination_type: &str,
+        from_entity_id: Option<Uuid>,
+        to_entity_id: Option<Uuid>,
+        from_account_pattern: Option<&str>,
+        to_account_pattern: Option<&str>,
+        offset_account_code: &str,
+        priority: i32,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationEliminationRule>;
 
-    async fn get_elimination_rule(&self, ledger_id: Uuid, rule_code: &str) -> AtlasResult<Option<ConsolidationEliminationRule>>;
-    async fn list_elimination_rules(&self, ledger_id: Uuid, active_only: bool) -> AtlasResult<Vec<ConsolidationEliminationRule>>;
+    async fn get_elimination_rule(
+        &self,
+        ledger_id: Uuid,
+        rule_code: &str,
+    ) -> AtlasResult<Option<ConsolidationEliminationRule>>;
+    async fn list_elimination_rules(
+        &self,
+        ledger_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<ConsolidationEliminationRule>>;
 
     // ── Adjustments ─────────────────────────────────────────────────
     async fn create_adjustment(
-        &self, org_id: Uuid, scenario_id: Uuid, adjustment_number: &str,
-        description: Option<&str>, account_code: &str, account_name: Option<&str>,
-        entity_id: Option<Uuid>, entity_code: Option<&str>,
-        debit: &str, credit: &str, adjustment_type: &str,
-        reference: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        scenario_id: Uuid,
+        adjustment_number: &str,
+        description: Option<&str>,
+        account_code: &str,
+        account_name: Option<&str>,
+        entity_id: Option<Uuid>,
+        entity_code: Option<&str>,
+        debit: &str,
+        credit: &str,
+        adjustment_type: &str,
+        reference: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationAdjustment>;
 
     async fn get_adjustment(&self, id: Uuid) -> AtlasResult<Option<ConsolidationAdjustment>>;
-    async fn list_adjustments(&self, scenario_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ConsolidationAdjustment>>;
+    async fn list_adjustments(
+        &self,
+        scenario_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ConsolidationAdjustment>>;
     async fn update_adjustment_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationAdjustment>;
 
     // ── Translation Rates ───────────────────────────────────────────
     async fn create_translation_rate(
-        &self, org_id: Uuid, scenario_id: Uuid, entity_id: Uuid,
-        from_currency: &str, to_currency: &str,
-        rate_type: &str, exchange_rate: &str,
+        &self,
+        org_id: Uuid,
+        scenario_id: Uuid,
+        entity_id: Uuid,
+        from_currency: &str,
+        to_currency: &str,
+        rate_type: &str,
+        exchange_rate: &str,
         effective_date: chrono::NaiveDate,
     ) -> AtlasResult<ConsolidationTranslationRate>;
 
     async fn get_translation_rate(
-        &self, scenario_id: Uuid, entity_id: Uuid, rate_type: &str,
+        &self,
+        scenario_id: Uuid,
+        entity_id: Uuid,
+        rate_type: &str,
     ) -> AtlasResult<Option<ConsolidationTranslationRate>>;
-    async fn list_translation_rates(&self, scenario_id: Uuid) -> AtlasResult<Vec<ConsolidationTranslationRate>>;
+    async fn list_translation_rates(
+        &self,
+        scenario_id: Uuid,
+    ) -> AtlasResult<Vec<ConsolidationTranslationRate>>;
 
     // ── Dashboard ───────────────────────────────────────────────────
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ConsolidationDashboardSummary>;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ConsolidationDashboardSummary>;
 }
 
 // ============================================================================
@@ -142,7 +253,7 @@ pub struct PostgresFinancialConsolidationRepository {
 }
 
 impl PostgresFinancialConsolidationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -329,9 +440,15 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
     // ── Consolidation Ledgers ───────────────────────────────────────
 
     async fn create_ledger(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        base_currency_code: &str, translation_method: &str,
-        equity_elimination_method: &str, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        base_currency_code: &str,
+        translation_method: &str,
+        equity_elimination_method: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationLedger> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.consolidation_ledgers
@@ -340,35 +457,50 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
             RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(base_currency_code).bind(translation_method)
-        .bind(equity_elimination_method).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(base_currency_code)
+        .bind(translation_method)
+        .bind(equity_elimination_method)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_ledger(&row))
     }
 
-    async fn get_ledger(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ConsolidationLedger>> {
+    async fn get_ledger(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ConsolidationLedger>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.consolidation_ledgers WHERE organization_id=$1 AND code=$2",
         )
-        .bind(org_id).bind(code)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_ledger(&r)))
     }
 
     async fn get_ledger_by_id(&self, id: Uuid) -> AtlasResult<Option<ConsolidationLedger>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.consolidation_ledgers WHERE id=$1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.consolidation_ledgers WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_ledger(&r)))
     }
 
-    async fn list_ledgers(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<ConsolidationLedger>> {
+    async fn list_ledgers(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<ConsolidationLedger>> {
         let rows = if active_only {
             sqlx::query(
                 "SELECT * FROM _atlas.consolidation_ledgers WHERE organization_id=$1 AND is_active=true ORDER BY code",
@@ -386,9 +518,15 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
     // ── Consolidation Entities ──────────────────────────────────────
 
     async fn create_entity(
-        &self, org_id: Uuid, ledger_id: Uuid, entity_id: Uuid,
-        entity_name: &str, entity_code: &str, local_currency_code: &str,
-        ownership_percentage: &str, consolidation_method: &str,
+        &self,
+        org_id: Uuid,
+        ledger_id: Uuid,
+        entity_id: Uuid,
+        entity_name: &str,
+        entity_code: &str,
+        local_currency_code: &str,
+        ownership_percentage: &str,
+        consolidation_method: &str,
         effective_from: Option<chrono::NaiveDate>,
         effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
@@ -401,36 +539,53 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
             VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8,$9,$10,$11)
             RETURNING *",
         )
-        .bind(org_id).bind(ledger_id).bind(entity_id)
-        .bind(entity_name).bind(entity_code).bind(local_currency_code)
-        .bind(ownership_percentage).bind(consolidation_method)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(ledger_id)
+        .bind(entity_id)
+        .bind(entity_name)
+        .bind(entity_code)
+        .bind(local_currency_code)
+        .bind(ownership_percentage)
+        .bind(consolidation_method)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_entity(&row))
     }
 
-    async fn get_entity(&self, ledger_id: Uuid, entity_code: &str) -> AtlasResult<Option<ConsolidationEntity>> {
+    async fn get_entity(
+        &self,
+        ledger_id: Uuid,
+        entity_code: &str,
+    ) -> AtlasResult<Option<ConsolidationEntity>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.consolidation_entities WHERE ledger_id=$1 AND entity_code=$2",
         )
-        .bind(ledger_id).bind(entity_code)
-        .fetch_optional(&self.pool).await
+        .bind(ledger_id)
+        .bind(entity_code)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_entity(&r)))
     }
 
     async fn get_entity_by_id(&self, id: Uuid) -> AtlasResult<Option<ConsolidationEntity>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.consolidation_entities WHERE id=$1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.consolidation_entities WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_entity(&r)))
     }
 
-    async fn list_entities(&self, ledger_id: Uuid, active_only: bool) -> AtlasResult<Vec<ConsolidationEntity>> {
+    async fn list_entities(
+        &self,
+        ledger_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<ConsolidationEntity>> {
         let rows = if active_only {
             sqlx::query(
                 "SELECT * FROM _atlas.consolidation_entities WHERE ledger_id=$1 AND is_active=true AND include_in_consolidation=true ORDER BY entity_code",
@@ -448,10 +603,16 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
     // ── Consolidation Scenarios ─────────────────────────────────────
 
     async fn create_scenario(
-        &self, org_id: Uuid, ledger_id: Uuid, scenario_number: &str,
-        name: &str, description: Option<&str>,
-        fiscal_year: i32, period_name: &str,
-        period_start_date: chrono::NaiveDate, period_end_date: chrono::NaiveDate,
+        &self,
+        org_id: Uuid,
+        ledger_id: Uuid,
+        scenario_number: &str,
+        name: &str,
+        description: Option<&str>,
+        fiscal_year: i32,
+        period_name: &str,
+        period_start_date: chrono::NaiveDate,
+        period_end_date: chrono::NaiveDate,
         translation_rate_type: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationScenario> {
@@ -463,16 +624,28 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
             RETURNING *",
         )
-        .bind(org_id).bind(ledger_id).bind(scenario_number).bind(name)
-        .bind(description).bind(fiscal_year).bind(period_name)
-        .bind(period_start_date).bind(period_end_date)
-        .bind(translation_rate_type).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(ledger_id)
+        .bind(scenario_number)
+        .bind(name)
+        .bind(description)
+        .bind(fiscal_year)
+        .bind(period_name)
+        .bind(period_start_date)
+        .bind(period_end_date)
+        .bind(translation_rate_type)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_scenario(&row))
     }
 
-    async fn get_scenario(&self, org_id: Uuid, scenario_number: &str) -> AtlasResult<Option<ConsolidationScenario>> {
+    async fn get_scenario(
+        &self,
+        org_id: Uuid,
+        scenario_number: &str,
+    ) -> AtlasResult<Option<ConsolidationScenario>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.consolidation_scenarios WHERE organization_id=$1 AND scenario_number=$2",
         )
@@ -483,17 +656,19 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
     }
 
     async fn get_scenario_by_id(&self, id: Uuid) -> AtlasResult<Option<ConsolidationScenario>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.consolidation_scenarios WHERE id=$1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.consolidation_scenarios WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_scenario(&r)))
     }
 
     async fn list_scenarios(
-        &self, org_id: Uuid, ledger_id: Option<Uuid>, status: Option<&str>,
+        &self,
+        org_id: Uuid,
+        ledger_id: Option<Uuid>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<ConsolidationScenario>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.consolidation_scenarios
@@ -502,15 +677,21 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
               AND ($3::text IS NULL OR status=$3)
             ORDER BY fiscal_year DESC, period_name",
         )
-        .bind(org_id).bind(ledger_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(ledger_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_scenario).collect())
     }
 
     async fn update_scenario_status(
-        &self, id: Uuid, status: &str,
-        approved_by: Option<Uuid>, posted_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        posted_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationScenario> {
         let row = sqlx::query(
             r"UPDATE _atlas.consolidation_scenarios
@@ -529,8 +710,13 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
     }
 
     async fn update_scenario_totals(
-        &self, id: Uuid, total_entities: i32, total_eliminations: i32,
-        total_adjustments: i32, total_debits: &str, total_credits: &str,
+        &self,
+        id: Uuid,
+        total_entities: i32,
+        total_eliminations: i32,
+        total_adjustments: i32,
+        total_debits: &str,
+        total_credits: &str,
         is_balanced: bool,
     ) -> AtlasResult<()> {
         sqlx::query(
@@ -540,10 +726,15 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
                 is_balanced=$7, updated_at=now()
             WHERE id=$1",
         )
-        .bind(id).bind(total_entities).bind(total_eliminations)
-        .bind(total_adjustments).bind(total_debits).bind(total_credits)
+        .bind(id)
+        .bind(total_entities)
+        .bind(total_eliminations)
+        .bind(total_adjustments)
+        .bind(total_debits)
+        .bind(total_credits)
         .bind(is_balanced)
-        .execute(&self.pool).await
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -551,17 +742,33 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
     // ── Trial Balance Lines ─────────────────────────────────────────
 
     async fn create_trial_balance_line(
-        &self, org_id: Uuid, scenario_id: Uuid,
-        entity_id: Option<Uuid>, entity_code: Option<&str>,
-        account_code: &str, account_name: Option<&str>,
-        account_type: Option<&str>, financial_statement: Option<&str>,
-        local_debit: &str, local_credit: &str, local_balance: &str,
+        &self,
+        org_id: Uuid,
+        scenario_id: Uuid,
+        entity_id: Option<Uuid>,
+        entity_code: Option<&str>,
+        account_code: &str,
+        account_name: Option<&str>,
+        account_type: Option<&str>,
+        financial_statement: Option<&str>,
+        local_debit: &str,
+        local_credit: &str,
+        local_balance: &str,
         exchange_rate: Option<&str>,
-        translated_debit: &str, translated_credit: &str, translated_balance: &str,
-        elimination_debit: &str, elimination_credit: &str, elimination_balance: &str,
-        minority_interest_debit: &str, minority_interest_credit: &str, minority_interest_balance: &str,
-        consolidated_debit: &str, consolidated_credit: &str, consolidated_balance: &str,
-        is_elimination_entry: bool, line_type: &str,
+        translated_debit: &str,
+        translated_credit: &str,
+        translated_balance: &str,
+        elimination_debit: &str,
+        elimination_credit: &str,
+        elimination_balance: &str,
+        minority_interest_debit: &str,
+        minority_interest_credit: &str,
+        minority_interest_balance: &str,
+        consolidated_debit: &str,
+        consolidated_credit: &str,
+        consolidated_balance: &str,
+        is_elimination_entry: bool,
+        line_type: &str,
     ) -> AtlasResult<ConsolidationTrialBalanceLine> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.consolidation_trial_balance
@@ -584,22 +791,42 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
                     $25,$26)
             RETURNING *",
         )
-        .bind(org_id).bind(scenario_id).bind(entity_id).bind(entity_code)
-        .bind(account_code).bind(account_name).bind(account_type).bind(financial_statement)
-        .bind(local_debit).bind(local_credit).bind(local_balance)
+        .bind(org_id)
+        .bind(scenario_id)
+        .bind(entity_id)
+        .bind(entity_code)
+        .bind(account_code)
+        .bind(account_name)
+        .bind(account_type)
+        .bind(financial_statement)
+        .bind(local_debit)
+        .bind(local_credit)
+        .bind(local_balance)
         .bind(exchange_rate)
-        .bind(translated_debit).bind(translated_credit).bind(translated_balance)
-        .bind(elimination_debit).bind(elimination_credit).bind(elimination_balance)
-        .bind(minority_interest_debit).bind(minority_interest_credit).bind(minority_interest_balance)
-        .bind(consolidated_debit).bind(consolidated_credit).bind(consolidated_balance)
-        .bind(is_elimination_entry).bind(line_type)
-        .fetch_one(&self.pool).await
+        .bind(translated_debit)
+        .bind(translated_credit)
+        .bind(translated_balance)
+        .bind(elimination_debit)
+        .bind(elimination_credit)
+        .bind(elimination_balance)
+        .bind(minority_interest_debit)
+        .bind(minority_interest_credit)
+        .bind(minority_interest_balance)
+        .bind(consolidated_debit)
+        .bind(consolidated_credit)
+        .bind(consolidated_balance)
+        .bind(is_elimination_entry)
+        .bind(line_type)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_tb_line(&row))
     }
 
     async fn list_trial_balance(
-        &self, scenario_id: Uuid, entity_id: Option<Uuid>,
+        &self,
+        scenario_id: Uuid,
+        entity_id: Option<Uuid>,
         line_type: Option<&str>,
     ) -> AtlasResult<Vec<ConsolidationTrialBalanceLine>> {
         let rows = sqlx::query(
@@ -609,30 +836,40 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
               AND ($3::text IS NULL OR line_type=$3)
             ORDER BY account_code, entity_code",
         )
-        .bind(scenario_id).bind(entity_id).bind(line_type)
-        .fetch_all(&self.pool).await
+        .bind(scenario_id)
+        .bind(entity_id)
+        .bind(line_type)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_tb_line).collect())
     }
 
     async fn delete_trial_balance_by_scenario(&self, scenario_id: Uuid) -> AtlasResult<()> {
-        sqlx::query(
-            "DELETE FROM _atlas.consolidation_trial_balance WHERE scenario_id=$1",
-        )
-        .bind(scenario_id)
-        .execute(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query("DELETE FROM _atlas.consolidation_trial_balance WHERE scenario_id=$1")
+            .bind(scenario_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     // ── Elimination Rules ───────────────────────────────────────────
 
     async fn create_elimination_rule(
-        &self, org_id: Uuid, ledger_id: Uuid, rule_code: &str,
-        name: &str, description: Option<&str>, elimination_type: &str,
-        from_entity_id: Option<Uuid>, to_entity_id: Option<Uuid>,
-        from_account_pattern: Option<&str>, to_account_pattern: Option<&str>,
-        offset_account_code: &str, priority: i32,
+        &self,
+        org_id: Uuid,
+        ledger_id: Uuid,
+        rule_code: &str,
+        name: &str,
+        description: Option<&str>,
+        elimination_type: &str,
+        from_entity_id: Option<Uuid>,
+        to_entity_id: Option<Uuid>,
+        from_account_pattern: Option<&str>,
+        to_account_pattern: Option<&str>,
+        offset_account_code: &str,
+        priority: i32,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationEliminationRule> {
         let row = sqlx::query(
@@ -644,16 +881,30 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
             RETURNING *",
         )
-        .bind(org_id).bind(ledger_id).bind(rule_code).bind(name).bind(description)
-        .bind(elimination_type).bind(from_entity_id).bind(to_entity_id)
-        .bind(from_account_pattern).bind(to_account_pattern)
-        .bind(offset_account_code).bind(priority).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(ledger_id)
+        .bind(rule_code)
+        .bind(name)
+        .bind(description)
+        .bind(elimination_type)
+        .bind(from_entity_id)
+        .bind(to_entity_id)
+        .bind(from_account_pattern)
+        .bind(to_account_pattern)
+        .bind(offset_account_code)
+        .bind(priority)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_elimination_rule(&row))
     }
 
-    async fn get_elimination_rule(&self, ledger_id: Uuid, rule_code: &str) -> AtlasResult<Option<ConsolidationEliminationRule>> {
+    async fn get_elimination_rule(
+        &self,
+        ledger_id: Uuid,
+        rule_code: &str,
+    ) -> AtlasResult<Option<ConsolidationEliminationRule>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.consolidation_elimination_rules WHERE ledger_id=$1 AND rule_code=$2",
         )
@@ -663,7 +914,11 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         Ok(row.map(|r| row_to_elimination_rule(&r)))
     }
 
-    async fn list_elimination_rules(&self, ledger_id: Uuid, active_only: bool) -> AtlasResult<Vec<ConsolidationEliminationRule>> {
+    async fn list_elimination_rules(
+        &self,
+        ledger_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<ConsolidationEliminationRule>> {
         let rows = if active_only {
             sqlx::query(
                 "SELECT * FROM _atlas.consolidation_elimination_rules WHERE ledger_id=$1 AND is_active=true ORDER BY priority, rule_code",
@@ -681,11 +936,20 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
     // ── Adjustments ─────────────────────────────────────────────────
 
     async fn create_adjustment(
-        &self, org_id: Uuid, scenario_id: Uuid, adjustment_number: &str,
-        description: Option<&str>, account_code: &str, account_name: Option<&str>,
-        entity_id: Option<Uuid>, entity_code: Option<&str>,
-        debit: &str, credit: &str, adjustment_type: &str,
-        reference: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        scenario_id: Uuid,
+        adjustment_number: &str,
+        description: Option<&str>,
+        account_code: &str,
+        account_name: Option<&str>,
+        entity_id: Option<Uuid>,
+        entity_code: Option<&str>,
+        debit: &str,
+        credit: &str,
+        adjustment_type: &str,
+        reference: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationAdjustment> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.consolidation_adjustments
@@ -696,38 +960,58 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
                     $9::numeric,$10::numeric,$11,$12,$13)
             RETURNING *",
         )
-        .bind(org_id).bind(scenario_id).bind(adjustment_number).bind(description)
-        .bind(account_code).bind(account_name).bind(entity_id).bind(entity_code)
-        .bind(debit).bind(credit).bind(adjustment_type).bind(reference).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(scenario_id)
+        .bind(adjustment_number)
+        .bind(description)
+        .bind(account_code)
+        .bind(account_name)
+        .bind(entity_id)
+        .bind(entity_code)
+        .bind(debit)
+        .bind(credit)
+        .bind(adjustment_type)
+        .bind(reference)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_adjustment(&row))
     }
 
     async fn get_adjustment(&self, id: Uuid) -> AtlasResult<Option<ConsolidationAdjustment>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.consolidation_adjustments WHERE id=$1",
-        )
-        .bind(id).fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.consolidation_adjustments WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_adjustment(&r)))
     }
 
-    async fn list_adjustments(&self, scenario_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ConsolidationAdjustment>> {
+    async fn list_adjustments(
+        &self,
+        scenario_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ConsolidationAdjustment>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.consolidation_adjustments
             WHERE scenario_id=$1
               AND ($2::text IS NULL OR status=$2)
             ORDER BY adjustment_number",
         )
-        .bind(scenario_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(scenario_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_adjustment).collect())
     }
 
     async fn update_adjustment_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
     ) -> AtlasResult<ConsolidationAdjustment> {
         let row = sqlx::query(
             r"UPDATE _atlas.consolidation_adjustments
@@ -746,9 +1030,14 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
     // ── Translation Rates ───────────────────────────────────────────
 
     async fn create_translation_rate(
-        &self, org_id: Uuid, scenario_id: Uuid, entity_id: Uuid,
-        from_currency: &str, to_currency: &str,
-        rate_type: &str, exchange_rate: &str,
+        &self,
+        org_id: Uuid,
+        scenario_id: Uuid,
+        entity_id: Uuid,
+        from_currency: &str,
+        to_currency: &str,
+        rate_type: &str,
+        exchange_rate: &str,
         effective_date: chrono::NaiveDate,
     ) -> AtlasResult<ConsolidationTranslationRate> {
         let row = sqlx::query(
@@ -759,16 +1048,25 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
             VALUES ($1,$2,$3,$4,$5,$6,$7::numeric,$8)
             RETURNING *",
         )
-        .bind(org_id).bind(scenario_id).bind(entity_id)
-        .bind(from_currency).bind(to_currency).bind(rate_type)
-        .bind(exchange_rate).bind(effective_date)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(scenario_id)
+        .bind(entity_id)
+        .bind(from_currency)
+        .bind(to_currency)
+        .bind(rate_type)
+        .bind(exchange_rate)
+        .bind(effective_date)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_translation_rate(&row))
     }
 
     async fn get_translation_rate(
-        &self, scenario_id: Uuid, entity_id: Uuid, rate_type: &str,
+        &self,
+        scenario_id: Uuid,
+        entity_id: Uuid,
+        rate_type: &str,
     ) -> AtlasResult<Option<ConsolidationTranslationRate>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.consolidation_translation_rates WHERE scenario_id=$1 AND entity_id=$2 AND rate_type=$3",
@@ -779,7 +1077,10 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         Ok(row.map(|r| row_to_translation_rate(&r)))
     }
 
-    async fn list_translation_rates(&self, scenario_id: Uuid) -> AtlasResult<Vec<ConsolidationTranslationRate>> {
+    async fn list_translation_rates(
+        &self,
+        scenario_id: Uuid,
+    ) -> AtlasResult<Vec<ConsolidationTranslationRate>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.consolidation_translation_rates WHERE scenario_id=$1 ORDER BY entity_id, rate_type",
         )
@@ -791,7 +1092,10 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
 
     // ── Dashboard ───────────────────────────────────────────────────
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ConsolidationDashboardSummary> {
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ConsolidationDashboardSummary> {
         let ledger_count = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM _atlas.consolidation_ledgers WHERE organization_id=$1 AND is_active=true",
         )
@@ -809,7 +1113,8 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let active_scenarios: i64 = scenario_stats.try_get("active_scenarios").unwrap_or(0);
-        let last_consolidation: Option<chrono::DateTime<chrono::Utc>> = scenario_stats.try_get("last_consolidation").unwrap_or(None);
+        let last_consolidation: Option<chrono::DateTime<chrono::Utc>> =
+            scenario_stats.try_get("last_consolidation").unwrap_or(None);
         let last_status: Option<String> = scenario_stats.try_get("last_status").unwrap_or(None);
 
         let entity_count = sqlx::query_scalar::<_, i64>(
@@ -829,7 +1134,9 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
             r"SELECT status, COUNT(*) as cnt FROM _atlas.consolidation_scenarios
             WHERE organization_id=$1 GROUP BY status",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut scenarios_by_status = serde_json::Map::new();
@@ -844,7 +1151,9 @@ impl FinancialConsolidationRepository for PostgresFinancialConsolidationReposito
             r"SELECT consolidation_method, COUNT(*) as cnt FROM _atlas.consolidation_entities
             WHERE organization_id=$1 AND is_active=true GROUP BY consolidation_method",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let mut entities_by_method = serde_json::Map::new();

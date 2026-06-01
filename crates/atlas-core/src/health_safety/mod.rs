@@ -12,8 +12,8 @@
 //! Oracle Fusion equivalent: EHS > Incident Management, Hazard Management,
 //!   Inspection Management, Corrective Action Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::HealthSafetyEngine;
 pub use repository::{HealthSafetyRepository, PostgresHealthSafetyRepository};

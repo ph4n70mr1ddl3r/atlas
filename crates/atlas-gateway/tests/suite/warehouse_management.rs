@@ -9,11 +9,11 @@
 //! - Validation edge cases
 //! - Dashboard
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_warehouse_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -23,23 +23,37 @@ async fn setup_warehouse_test() -> (std::sync::Arc<atlas_gateway::AppState>, axu
     (state, app)
 }
 
-async fn create_test_warehouse(
-    app: &axum::Router,
-    code: &str,
-    name: &str,
-) -> serde_json::Value {
+async fn create_test_warehouse(app: &axum::Router, code: &str, name: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/warehouse/warehouses")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": code,
-            "name": name,
-            "description": "Test warehouse",
-            "locationCode": "LOC-001"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Expected 201 creating warehouse");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/warehouse/warehouses")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": code,
+                        "name": name,
+                        "description": "Test warehouse",
+                        "locationCode": "LOC-001"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Expected 201 creating warehouse"
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -51,18 +65,38 @@ async fn create_test_zone(
     zone_type: &str,
 ) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/zones", warehouse_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": code,
-            "name": name,
-            "zoneType": zone_type,
-            "aisleCount": 5
-        })).unwrap())).unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Expected 201 creating zone");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/warehouse/warehouses/{}/zones",
+                    warehouse_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": code,
+                        "name": name,
+                        "zoneType": zone_type,
+                        "aisleCount": 5
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Expected 201 creating zone"
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -72,17 +106,37 @@ async fn create_test_wave(
     wave_number: &str,
 ) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/waves", warehouse_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "waveNumber": wave_number,
-            "priority": "high",
-            "shippingMethod": "GROUND"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Expected 201 creating wave");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/warehouse/warehouses/{}/waves",
+                    warehouse_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "waveNumber": wave_number,
+                        "priority": "high",
+                        "shippingMethod": "GROUND"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Expected 201 creating wave"
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -107,12 +161,24 @@ async fn test_create_warehouse_duplicate_code_rejected() {
     create_test_warehouse(&app, "WH-DUP", "First").await;
     // Second with same code should fail
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/warehouse/warehouses")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": "WH-DUP", "name": "Second"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/warehouse/warehouses")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": "WH-DUP", "name": "Second"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -123,12 +189,22 @@ async fn test_get_warehouse() {
     let wh_id = wh["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}", wh_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}", wh_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fetched: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(fetched["code"], "WH-GET");
 }
@@ -140,12 +216,22 @@ async fn test_list_warehouses() {
     create_test_warehouse(&app, "WH-L2", "List Warehouse 2").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/warehouse/warehouses")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/warehouse/warehouses")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let warehouses: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let arr = warehouses.as_array().unwrap();
     assert!(arr.len() >= 2, "Expected at least 2 warehouses");
@@ -158,17 +244,33 @@ async fn test_delete_warehouse() {
     let wh_id = wh["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/delete", wh_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/delete", wh_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 
     // Verify it's gone
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}", wh_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}", wh_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -195,13 +297,24 @@ async fn test_create_zone_invalid_type_rejected() {
     let wh_id = wh["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/zones", wh_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "code": "BAD", "name": "Bad", "zoneType": "invalid_type"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/zones", wh_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": "BAD", "name": "Bad", "zoneType": "invalid_type"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -215,12 +328,22 @@ async fn test_list_zones() {
     create_test_zone(&app, wh_id, "STG", "Storage", "storage").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/zones", wh_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/zones", wh_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let zones: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(zones.as_array().unwrap().len() >= 2);
 }
@@ -234,10 +357,18 @@ async fn test_delete_zone() {
     let zone_id = zone["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/warehouse/zones/{}", zone_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/warehouse/zones/{}", zone_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -252,19 +383,35 @@ async fn test_create_put_away_rule() {
     let wh_id = wh["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/put-away-rules", wh_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "ruleName": "Cold Items",
-            "priority": 1,
-            "itemCategory": "perishable",
-            "targetZoneType": "storage",
-            "strategy": "closest"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/warehouse/warehouses/{}/put-away-rules",
+                    wh_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "ruleName": "Cold Items",
+                        "priority": 1,
+                        "itemCategory": "perishable",
+                        "targetZoneType": "storage",
+                        "strategy": "closest"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let rule: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(rule["ruleName"], "Cold Items");
     assert_eq!(rule["strategy"], "closest");
@@ -277,13 +424,27 @@ async fn test_create_put_away_rule_invalid_strategy_rejected() {
     let wh_id = wh["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/put-away-rules", wh_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "ruleName": "Bad", "targetZoneType": "storage", "strategy": "teleport"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/warehouse/warehouses/{}/put-away-rules",
+                    wh_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "ruleName": "Bad", "targetZoneType": "storage", "strategy": "teleport"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -310,12 +471,25 @@ async fn test_list_put_away_rules() {
         })).unwrap())).unwrap()
     ).await.unwrap();
 
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/put-away-rules", wh_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/warehouse/warehouses/{}/put-away-rules",
+                    wh_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let rules: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(rules.as_array().unwrap().len() >= 2);
 }
@@ -348,22 +522,42 @@ async fn test_release_and_complete_wave() {
 
     let (k, v) = auth_header(&admin_claims());
     // Release
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/waves/{}/release", wave_id))
-        .header(&k.clone(), &v.clone()).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/waves/{}/release", wave_id))
+                .header(&k.clone(), &v.clone())
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let released: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(released["status"], "released");
 
     // Complete
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/waves/{}/complete", wave_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/waves/{}/complete", wave_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let completed: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(completed["status"], "completed");
 }
@@ -377,12 +571,22 @@ async fn test_cancel_wave() {
     let wave_id = wave["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/waves/{}/cancel", wave_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/waves/{}/cancel", wave_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cancelled: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
@@ -397,20 +601,42 @@ async fn test_cancel_completed_wave_rejected() {
 
     let (k, v) = auth_header(&admin_claims());
     // Release then complete
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/waves/{}/release", wave_id))
-        .header(&k.clone(), &v.clone()).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/waves/{}/complete", wave_id))
-        .header(&k.clone(), &v.clone()).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/waves/{}/release", wave_id))
+                .header(&k.clone(), &v.clone())
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/waves/{}/complete", wave_id))
+                .header(&k.clone(), &v.clone())
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to cancel completed wave
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/waves/{}/cancel", wave_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/waves/{}/cancel", wave_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -423,12 +649,22 @@ async fn test_list_waves() {
     create_test_wave(&app, wh_id, "WAVE-L2").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/warehouse/waves")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/warehouse/waves")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let waves: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(waves.as_array().unwrap().len() >= 2);
 }
@@ -446,20 +682,33 @@ async fn test_create_task_for_warehouse() {
     let zone_id = zone["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "taskNumber": "TASK-001",
-            "taskType": "pick",
-            "priority": "high",
-            "toZoneId": zone_id,
-            "itemDescription": "Widget A",
-            "uom": "EA"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "taskNumber": "TASK-001",
+                        "taskType": "pick",
+                        "priority": "high",
+                        "toZoneId": zone_id,
+                        "itemDescription": "Widget A",
+                        "uom": "EA"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let task: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(task["taskNumber"], "TASK-001");
     assert_eq!(task["taskType"], "pick");
@@ -474,13 +723,24 @@ async fn test_create_task_invalid_type_rejected() {
     let wh_id = wh["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "taskNumber": "TASK-BAD", "taskType": "fly", "priority": "medium"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "taskNumber": "TASK-BAD", "taskType": "fly", "priority": "medium"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -494,36 +754,69 @@ async fn test_task_lifecycle_start_complete() {
 
     let (k, v) = auth_header(&admin_claims());
     // Create task
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
-        .header("Content-Type", "application/json").header(&k.clone(), &v.clone())
-        .body(Body::from(serde_json::to_string(&json!({
-            "taskNumber": "TASK-LC", "taskType": "put_away", "priority": "medium",
-            "toZoneId": zone_id
-        })).unwrap())).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
+                .header("Content-Type", "application/json")
+                .header(&k.clone(), &v.clone())
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "taskNumber": "TASK-LC", "taskType": "put_away", "priority": "medium",
+                        "toZoneId": zone_id
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let task: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let task_id = task["id"].as_str().unwrap();
     assert_eq!(task["status"], "pending");
 
     // Start task
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/tasks/{}/start", task_id))
-        .header(&k.clone(), &v.clone()).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/tasks/{}/start", task_id))
+                .header(&k.clone(), &v.clone())
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let started: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(started["status"], "in_progress");
 
     // Complete task
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/tasks/{}/complete", task_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/tasks/{}/complete", task_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let completed: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(completed["status"], "completed");
 }
@@ -535,23 +828,46 @@ async fn test_cancel_task() {
     let wh_id = wh["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
-        .header("Content-Type", "application/json").header(&k.clone(), &v.clone())
-        .body(Body::from(serde_json::to_string(&json!({
-            "taskNumber": "TASK-CAN", "taskType": "receive", "priority": "low"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
+                .header("Content-Type", "application/json")
+                .header(&k.clone(), &v.clone())
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "taskNumber": "TASK-CAN", "taskType": "receive", "priority": "low"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let task: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let task_id = task["id"].as_str().unwrap();
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/tasks/{}/cancel", task_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/tasks/{}/cancel", task_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cancelled: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
@@ -563,22 +879,43 @@ async fn test_cannot_complete_pending_task() {
     let wh_id = wh["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
-        .header("Content-Type", "application/json").header(&k.clone(), &v.clone())
-        .body(Body::from(serde_json::to_string(&json!({
-            "taskNumber": "TASK-NOC", "taskType": "pick", "priority": "medium"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
+                .header("Content-Type", "application/json")
+                .header(&k.clone(), &v.clone())
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "taskNumber": "TASK-NOC", "taskType": "pick", "priority": "medium"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let task: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let task_id = task["id"].as_str().unwrap();
 
     // Try to complete without starting first
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/tasks/{}/complete", task_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/tasks/{}/complete", task_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -590,28 +927,58 @@ async fn test_list_tasks_with_filters() {
 
     let (k, v) = auth_header(&admin_claims());
     // Create two tasks of different types
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
-        .header("Content-Type", "application/json").header(&k.clone(), &v.clone())
-        .body(Body::from(serde_json::to_string(&json!({
-            "taskNumber": "TASK-F1", "taskType": "pick", "priority": "high"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
-        .header("Content-Type", "application/json").header(&k.clone(), &v.clone())
-        .body(Body::from(serde_json::to_string(&json!({
-            "taskNumber": "TASK-F2", "taskType": "pack", "priority": "low"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
+                .header("Content-Type", "application/json")
+                .header(&k.clone(), &v.clone())
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "taskNumber": "TASK-F1", "taskType": "pick", "priority": "high"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
+                .header("Content-Type", "application/json")
+                .header(&k.clone(), &v.clone())
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "taskNumber": "TASK-F2", "taskType": "pack", "priority": "low"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Filter by task_type
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/warehouse/tasks?task_type=pick")
-        .header(&k.clone(), &v.clone()).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/warehouse/tasks?task_type=pick")
+                .header(&k.clone(), &v.clone())
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let tasks: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let arr = tasks.as_array().unwrap();
     assert!(arr.len() >= 1);
@@ -620,12 +987,22 @@ async fn test_list_tasks_with_filters() {
     }
 
     // Filter by status
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/warehouse/tasks?status=pending")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/warehouse/tasks?status=pending")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let tasks: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(tasks.as_array().unwrap().len() >= 2);
 }
@@ -646,51 +1023,103 @@ async fn test_wave_with_tasks_integration() {
 
     let (k, v) = auth_header(&admin_claims());
     // Create task linked to wave
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
-        .header("Content-Type", "application/json").header(&k.clone(), &v.clone())
-        .body(Body::from(serde_json::to_string(&json!({
-            "taskNumber": "TASK-WI", "taskType": "pick", "priority": "high",
-            "waveId": wave_id
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
+                .header("Content-Type", "application/json")
+                .header(&k.clone(), &v.clone())
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "taskNumber": "TASK-WI", "taskType": "pick", "priority": "high",
+                        "waveId": wave_id
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let task: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let task_id = task["id"].as_str().unwrap();
     assert_eq!(task["waveId"], wave_id);
 
     // Check wave has updated total tasks
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/warehouse/waves/{}", wave_id))
-        .header(&k.clone(), &v.clone()).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/warehouse/waves/{}", wave_id))
+                .header(&k.clone(), &v.clone())
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let wave_check: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(wave_check["totalTasks"].as_i64().unwrap() >= 1);
 
     // Release wave
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/waves/{}/release", wave_id))
-        .header(&k.clone(), &v.clone()).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/waves/{}/release", wave_id))
+                .header(&k.clone(), &v.clone())
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Start and complete the task
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/tasks/{}/start", task_id))
-        .header(&k.clone(), &v.clone()).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/tasks/{}/start", task_id))
+                .header(&k.clone(), &v.clone())
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/tasks/{}/complete", task_id))
-        .header(&k.clone(), &v.clone()).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/tasks/{}/complete", task_id))
+                .header(&k.clone(), &v.clone())
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Complete wave
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/waves/{}/complete", wave_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/waves/{}/complete", wave_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 }
 
@@ -704,12 +1133,22 @@ async fn test_warehouse_dashboard() {
     create_test_warehouse(&app, "WH-DB", "Dashboard Warehouse").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/warehouse/dashboard")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/warehouse/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(dashboard["totalWarehouses"].as_i64().unwrap() >= 1);
     assert!(dashboard["activeWarehouses"].as_i64().unwrap() >= 1);
@@ -729,21 +1168,42 @@ async fn test_delete_task() {
     let wh_id = wh["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
-        .header("Content-Type", "application/json").header(&k.clone(), &v.clone())
-        .body(Body::from(serde_json::to_string(&json!({
-            "taskNumber": "TASK-DEL", "taskType": "pack", "priority": "medium"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/warehouse/warehouses/{}/tasks", wh_id))
+                .header("Content-Type", "application/json")
+                .header(&k.clone(), &v.clone())
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "taskNumber": "TASK-DEL", "taskType": "pack", "priority": "medium"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let task: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let task_id = task["id"].as_str().unwrap();
 
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/warehouse/tasks/{}", task_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/warehouse/tasks/{}", task_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -756,16 +1216,32 @@ async fn test_delete_wave() {
     let wave_id = wave["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/warehouse/waves/{}", wave_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/warehouse/waves/{}", wave_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 
     // Verify it's gone
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/warehouse/waves/{}", wave_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/warehouse/waves/{}", wave_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }

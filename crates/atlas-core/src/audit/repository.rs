@@ -1,8 +1,8 @@
 //! Audit Repository
 
-use atlas_shared::{AuditEntry, AuditAction, AtlasResult};
 use super::AuditQuery;
 use async_trait::async_trait;
+use atlas_shared::{AtlasResult, AuditAction, AuditEntry};
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -22,7 +22,7 @@ pub struct PostgresAuditRepository {
 }
 
 impl PostgresAuditRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -38,7 +38,7 @@ impl AuditRepository for PostgresAuditRepository {
                 old_data, new_data, changed_by, changed_at,
                 session_id, ip_address, user_agent
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            "
+            ",
         )
         .bind(entry.id)
         .bind(&entry.entity_type)
@@ -53,17 +53,15 @@ impl AuditRepository for PostgresAuditRepository {
         .bind(&entry.user_agent)
         .execute(&self.pool)
         .await?;
-        
+
         Ok(())
     }
-    
+
     async fn query(&self, query: &AuditQuery) -> AtlasResult<Vec<AuditEntry>> {
-        let mut sql = String::from(
-            "SELECT * FROM _atlas.audit_log WHERE 1=1"
-        );
-        
+        let mut sql = String::from("SELECT * FROM _atlas.audit_log WHERE 1=1");
+
         let mut param_idx = 1u32;
-        
+
         if query.entity_type.is_some() {
             sql.push_str(&format!(" AND entity_type = ${param_idx}"));
             param_idx += 1;
@@ -87,9 +85,9 @@ impl AuditRepository for PostgresAuditRepository {
         if query.to_date.is_some() {
             sql.push_str(&format!(" AND changed_at <= ${param_idx}"));
         }
-        
+
         sql.push_str(" ORDER BY changed_at DESC");
-        
+
         if query.limit.is_some() {
             sql.push_str(&format!(" LIMIT ${param_idx}"));
             param_idx += 1;
@@ -97,9 +95,9 @@ impl AuditRepository for PostgresAuditRepository {
         if query.offset.is_some() {
             sql.push_str(&format!(" OFFSET ${param_idx}"));
         }
-        
+
         let mut q = sqlx::query_as::<_, AuditLogRow>(&sql);
-        
+
         if let Some(ref entity_type) = query.entity_type {
             q = q.bind(entity_type);
         }
@@ -124,30 +122,28 @@ impl AuditRepository for PostgresAuditRepository {
         if let Some(offset) = query.offset {
             q = q.bind(offset);
         }
-        
+
         let rows = q.fetch_all(&self.pool).await?;
         Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
-    
+
     async fn get_by_id(&self, id: Uuid) -> AtlasResult<Option<AuditEntry>> {
-        let row = sqlx::query_as::<_, AuditLogRow>(
-            "SELECT * FROM _atlas.audit_log WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
-        
+        let row = sqlx::query_as::<_, AuditLogRow>("SELECT * FROM _atlas.audit_log WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
+
         Ok(row.map(std::convert::Into::into))
     }
-    
+
     async fn get_by_ids(&self, ids: &[Uuid]) -> AtlasResult<Vec<AuditEntry>> {
         let entries = sqlx::query_as::<_, AuditLogRow>(
-            "SELECT * FROM _atlas.audit_log WHERE id = ANY($1) ORDER BY changed_at"
+            "SELECT * FROM _atlas.audit_log WHERE id = ANY($1) ORDER BY changed_at",
         )
         .bind(ids)
         .fetch_all(&self.pool)
         .await?;
-        
+
         Ok(entries.into_iter().map(std::convert::Into::into).collect())
     }
 }
@@ -179,7 +175,7 @@ impl From<AuditLogRow> for AuditEntry {
             "Logout" => AuditAction::Logout,
             _ => AuditAction::Update,
         };
-        
+
         Self {
             id: row.id,
             entity_type: row.entity_type,

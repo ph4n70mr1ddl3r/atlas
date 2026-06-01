@@ -5,13 +5,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > General Ledger > Subledger Accounting
 
-use atlas_shared::{
-    AccountingMethod, AccountingDerivationRule,
-    SubledgerJournalEntry, SubledgerJournalLine,
-    SlaEvent, GlTransferLog, SlaDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::SubledgerAccountingRepository;
+use atlas_shared::{
+    AccountingDerivationRule, AccountingMethod, AtlasError, AtlasResult, GlTransferLog,
+    SlaDashboardSummary, SlaEvent, SubledgerJournalEntry, SubledgerJournalLine,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -19,44 +17,45 @@ use uuid::Uuid;
 /// Valid applications for accounting methods
 #[allow(dead_code)]
 const VALID_APPLICATIONS: &[&str] = &[
-    "payables", "receivables", "expenses", "assets", "projects", "general",
+    "payables",
+    "receivables",
+    "expenses",
+    "assets",
+    "projects",
+    "general",
 ];
 
 /// Valid event classes
 #[allow(dead_code)]
-const VALID_EVENT_CLASSES: &[&str] = &[
-    "create", "update", "cancel", "reverse",
-];
+const VALID_EVENT_CLASSES: &[&str] = &["create", "update", "cancel", "reverse"];
 
 /// Valid entry statuses
 #[allow(dead_code)]
 const VALID_ENTRY_STATUSES: &[&str] = &[
-    "draft", "accounted", "posted", "transferred", "reversed", "error",
+    "draft",
+    "accounted",
+    "posted",
+    "transferred",
+    "reversed",
+    "error",
 ];
 
 /// Valid line types
 #[allow(dead_code)]
-const VALID_LINE_TYPES: &[&str] = &[
-    "debit", "credit", "tax", "discount", "rounding",
-];
+const VALID_LINE_TYPES: &[&str] = &["debit", "credit", "tax", "discount", "rounding"];
 
 /// Valid derivation types
 #[allow(dead_code)]
-const VALID_DERIVATION_TYPES: &[&str] = &[
-    "constant", "lookup", "formula",
-];
+const VALID_DERIVATION_TYPES: &[&str] = &["constant", "lookup", "formula"];
 
 /// Valid transfer statuses
 #[allow(dead_code)]
-const VALID_TRANSFER_STATUSES: &[&str] = &[
-    "pending", "in_progress", "completed", "failed", "reversed",
-];
+const VALID_TRANSFER_STATUSES: &[&str] =
+    &["pending", "in_progress", "completed", "failed", "reversed"];
 
 /// Valid GL transfer statuses
 #[allow(dead_code)]
-const VALID_GL_TRANSFER_STATUSES: &[&str] = &[
-    "pending", "transferred", "failed",
-];
+const VALID_GL_TRANSFER_STATUSES: &[&str] = &["pending", "transferred", "failed"];
 
 /// Subledger Accounting Engine
 pub struct SubledgerAccountingEngine {
@@ -101,50 +100,75 @@ impl SubledgerAccountingEngine {
         if !VALID_APPLICATIONS.contains(&application) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid application '{}'. Must be one of: {}",
-                application, VALID_APPLICATIONS.join(", ")
+                application,
+                VALID_APPLICATIONS.join(", ")
             )));
         }
         let ec = event_class.unwrap_or("create");
         if !VALID_EVENT_CLASSES.contains(&ec) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid event_class '{}'. Must be one of: {}",
-                ec, VALID_EVENT_CLASSES.join(", ")
+                ec,
+                VALID_EVENT_CLASSES.join(", ")
             )));
         }
 
-        info!("Creating accounting method {} for {}::{}", code, application, transaction_type);
+        info!(
+            "Creating accounting method {} for {}::{}",
+            code, application, transaction_type
+        );
 
-        self.repository.create_accounting_method(
-            org_id, code, name, description,
-            application, transaction_type, ec,
-            auto_accounting.unwrap_or(true),
-            allow_manual_entries.unwrap_or(false),
-            apply_rounding.unwrap_or(true),
-            rounding_account_code,
-            rounding_threshold.unwrap_or("0.01"),
-            require_balancing.unwrap_or(true),
-            intercompany_balancing_account,
-            effective_from, effective_to,
-            created_by,
-        ).await
+        self.repository
+            .create_accounting_method(
+                org_id,
+                code,
+                name,
+                description,
+                application,
+                transaction_type,
+                ec,
+                auto_accounting.unwrap_or(true),
+                allow_manual_entries.unwrap_or(false),
+                apply_rounding.unwrap_or(true),
+                rounding_account_code,
+                rounding_threshold.unwrap_or("0.01"),
+                require_balancing.unwrap_or(true),
+                intercompany_balancing_account,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get an accounting method by code
-    pub async fn get_accounting_method(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AccountingMethod>> {
+    pub async fn get_accounting_method(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<AccountingMethod>> {
         self.repository.get_accounting_method(org_id, code).await
     }
 
     /// List accounting methods, optionally filtered by application
-    pub async fn list_accounting_methods(&self, org_id: Uuid, application: Option<&str>) -> AtlasResult<Vec<AccountingMethod>> {
-        self.repository.list_accounting_methods(org_id, application).await
+    pub async fn list_accounting_methods(
+        &self,
+        org_id: Uuid,
+        application: Option<&str>,
+    ) -> AtlasResult<Vec<AccountingMethod>> {
+        self.repository
+            .list_accounting_methods(org_id, application)
+            .await
     }
 
     /// Delete (soft-delete) an accounting method
     pub async fn delete_accounting_method(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        self.repository.get_accounting_method(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting method '{code}' not found")
-            ))?;
+        self.repository
+            .get_accounting_method(org_id, code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Accounting method '{code}' not found"))
+            })?;
 
         info!("Deleting accounting method {} in org {}", code, org_id);
         self.repository.delete_accounting_method(org_id, code).await
@@ -183,13 +207,15 @@ impl SubledgerAccountingEngine {
         if !VALID_LINE_TYPES.contains(&line_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid line_type '{}'. Must be one of: {}",
-                line_type, VALID_LINE_TYPES.join(", ")
+                line_type,
+                VALID_LINE_TYPES.join(", ")
             )));
         }
         if !VALID_DERIVATION_TYPES.contains(&derivation_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid derivation_type '{}'. Must be one of: {}",
-                derivation_type, VALID_DERIVATION_TYPES.join(", ")
+                derivation_type,
+                VALID_DERIVATION_TYPES.join(", ")
             )));
         }
 
@@ -214,30 +240,64 @@ impl SubledgerAccountingEngine {
         }
 
         // Verify the accounting method exists
-        self.repository.get_accounting_method_by_id(accounting_method_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting method {accounting_method_id} not found")
-            ))?;
+        self.repository
+            .get_accounting_method_by_id(accounting_method_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Accounting method {accounting_method_id} not found"
+                ))
+            })?;
 
-        info!("Creating derivation rule {} for method {}", code, accounting_method_id);
+        info!(
+            "Creating derivation rule {} for method {}",
+            code, accounting_method_id
+        );
 
-        self.repository.create_derivation_rule(
-            org_id, accounting_method_id, code, name, description,
-            line_type, priority, conditions, source_field,
-            derivation_type, fixed_account_code,
-            account_derivation_lookup, formula_expression,
-            sequence, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_derivation_rule(
+                org_id,
+                accounting_method_id,
+                code,
+                name,
+                description,
+                line_type,
+                priority,
+                conditions,
+                source_field,
+                derivation_type,
+                fixed_account_code,
+                account_derivation_lookup,
+                formula_expression,
+                sequence,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// List derivation rules for an accounting method
-    pub async fn list_derivation_rules(&self, org_id: Uuid, method_id: Uuid) -> AtlasResult<Vec<AccountingDerivationRule>> {
-        self.repository.list_derivation_rules(org_id, method_id).await
+    pub async fn list_derivation_rules(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+    ) -> AtlasResult<Vec<AccountingDerivationRule>> {
+        self.repository
+            .list_derivation_rules(org_id, method_id)
+            .await
     }
 
     /// List active derivation rules for a specific line type
-    pub async fn list_active_derivation_rules(&self, org_id: Uuid, method_id: Uuid, line_type: &str) -> AtlasResult<Vec<AccountingDerivationRule>> {
-        self.repository.list_active_derivation_rules(org_id, method_id, line_type).await
+    pub async fn list_active_derivation_rules(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+        line_type: &str,
+    ) -> AtlasResult<Vec<AccountingDerivationRule>> {
+        self.repository
+            .list_active_derivation_rules(org_id, method_id, line_type)
+            .await
     }
 
     /// Resolve an account code using derivation rules
@@ -246,7 +306,7 @@ impl SubledgerAccountingEngine {
     /// For 'constant' type, returns `fixed_account_code` directly.
     /// For 'lookup' type, looks up the source field value in the lookup map.
     /// For 'formula' type, returns the formula expression (execution is deferred).
-    #[must_use] 
+    #[must_use]
     pub fn resolve_account_code(
         &self,
         rules: &[AccountingDerivationRule],
@@ -254,17 +314,23 @@ impl SubledgerAccountingEngine {
         transaction_attributes: &serde_json::Value,
     ) -> Option<String> {
         // Filter rules by line type and sort by priority
-        let mut matching: Vec<&AccountingDerivationRule> = rules.iter()
+        let mut matching: Vec<&AccountingDerivationRule> = rules
+            .iter()
             .filter(|r| r.line_type == line_type && r.is_active)
             .collect();
         matching.sort_by_key(|r| r.priority);
 
         for rule in matching {
             // Check conditions
-            if !rule.conditions.is_null() && !rule.conditions.as_object().is_none_or(serde_json::Map::is_empty)
-                && !Self::evaluate_conditions(&rule.conditions, transaction_attributes) {
-                    continue;
-                }
+            if !rule.conditions.is_null()
+                && !rule
+                    .conditions
+                    .as_object()
+                    .is_none_or(serde_json::Map::is_empty)
+                && !Self::evaluate_conditions(&rule.conditions, transaction_attributes)
+            {
+                continue;
+            }
 
             return match rule.derivation_type.as_str() {
                 "constant" => rule.fixed_account_code.clone(),
@@ -276,7 +342,8 @@ impl SubledgerAccountingEngine {
                             } else {
                                 value.to_string()
                             };
-                            rule.account_derivation_lookup.get(&key)
+                            rule.account_derivation_lookup
+                                .get(&key)
                                 .and_then(|v| v.as_str().map(std::string::ToString::to_string))
                         } else {
                             None
@@ -293,28 +360,28 @@ impl SubledgerAccountingEngine {
     }
 
     /// Check if a rule's conditions match the transaction attributes
-    fn evaluate_conditions(
-        conditions: &serde_json::Value,
-        attributes: &serde_json::Value,
-    ) -> bool {
-        let Some(obj) = conditions.as_object() else { return true; };
-        if obj.is_empty() { return true; }
+    fn evaluate_conditions(conditions: &serde_json::Value, attributes: &serde_json::Value) -> bool {
+        let Some(obj) = conditions.as_object() else {
+            return true;
+        };
+        if obj.is_empty() {
+            return true;
+        }
 
         for (key, expected) in obj {
             if let Some(actual) = attributes.get(key) {
                 match expected {
-                    serde_json::Value::String(s)
-                        if actual.as_str().unwrap_or("") != s.as_str() => {
-                            return false;
-                        }
+                    serde_json::Value::String(s) if actual.as_str().unwrap_or("") != s.as_str() => {
+                        return false;
+                    }
                     serde_json::Value::Number(n)
-                        if actual.as_f64().unwrap_or(0.0) != n.as_f64().unwrap_or(0.0) => {
-                            return false;
-                        }
-                    serde_json::Value::Bool(b)
-                        if actual.as_bool().unwrap_or(false) != *b => {
-                            return false;
-                        }
+                        if actual.as_f64().unwrap_or(0.0) != n.as_f64().unwrap_or(0.0) =>
+                    {
+                        return false;
+                    }
+                    serde_json::Value::Bool(b) if actual.as_bool().unwrap_or(false) != *b => {
+                        return false;
+                    }
                     _ => {}
                 }
             } else {
@@ -325,8 +392,15 @@ impl SubledgerAccountingEngine {
     }
 
     /// Delete a derivation rule
-    pub async fn delete_derivation_rule(&self, org_id: Uuid, method_id: Uuid, code: &str) -> AtlasResult<()> {
-        self.repository.delete_derivation_rule(org_id, method_id, code).await
+    pub async fn delete_derivation_rule(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<()> {
+        self.repository
+            .delete_derivation_rule(org_id, method_id, code)
+            .await
     }
 
     // ========================================================================
@@ -356,20 +430,39 @@ impl SubledgerAccountingEngine {
         // Generate entry number
         let entry_number = format!("SLA-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating SLA journal entry {} for {}::{}", entry_number, source_application, source_transaction_type);
+        info!(
+            "Creating SLA journal entry {} for {}::{}",
+            entry_number, source_application, source_transaction_type
+        );
 
-        self.repository.create_journal_entry(
-            org_id, source_application, source_transaction_type,
-            source_transaction_id, source_transaction_number,
-            accounting_method_id, &entry_number, description,
-            reference_number, accounting_date, period_name,
-            currency_code, entered_currency_code,
-            currency_conversion_date, currency_conversion_type,
-            currency_conversion_rate,
-            "0.00", "0.00", "0.00", "0.00",  // Will be updated when lines are added
-            "draft", None, false,
-            created_by,
-        ).await
+        self.repository
+            .create_journal_entry(
+                org_id,
+                source_application,
+                source_transaction_type,
+                source_transaction_id,
+                source_transaction_number,
+                accounting_method_id,
+                &entry_number,
+                description,
+                reference_number,
+                accounting_date,
+                period_name,
+                currency_code,
+                entered_currency_code,
+                currency_conversion_date,
+                currency_conversion_type,
+                currency_conversion_rate,
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00", // Will be updated when lines are added
+                "draft",
+                None,
+                false,
+                created_by,
+            )
+            .await
     }
 
     /// Add a journal line to an entry
@@ -401,7 +494,8 @@ impl SubledgerAccountingEngine {
         if !VALID_LINE_TYPES.contains(&line_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid line_type '{}'. Must be one of: {}",
-                line_type, VALID_LINE_TYPES.join(", ")
+                line_type,
+                VALID_LINE_TYPES.join(", ")
             )));
         }
         if account_code.is_empty() {
@@ -409,12 +503,12 @@ impl SubledgerAccountingEngine {
                 "Account code is required".to_string(),
             ));
         }
-        let amt: f64 = entered_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Entered amount must be a valid number".to_string(),
-        ))?;
-        let _accounted: f64 = accounted_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Accounted amount must be a valid number".to_string(),
-        ))?;
+        let amt: f64 = entered_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Entered amount must be a valid number".to_string())
+        })?;
+        let _accounted: f64 = accounted_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Accounted amount must be a valid number".to_string())
+        })?;
         if (line_type == "debit" || line_type == "credit") && amt <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Debit and credit amounts must be positive".to_string(),
@@ -425,15 +519,34 @@ impl SubledgerAccountingEngine {
         let lines = self.repository.list_journal_lines(journal_entry_id).await?;
         let line_number = (lines.len() + 1) as i32;
 
-        let line = self.repository.create_journal_line(
-            org_id, journal_entry_id, line_number, line_type,
-            account_code, account_description, derivation_rule_id,
-            entered_amount, accounted_amount, currency_code,
-            conversion_date, conversion_rate,
-            attribute_category, attribute1, attribute2, attribute3, attribute4, attribute5,
-            source_line_id, source_line_type,
-            tax_code, tax_rate, tax_amount,
-        ).await?;
+        let line = self
+            .repository
+            .create_journal_line(
+                org_id,
+                journal_entry_id,
+                line_number,
+                line_type,
+                account_code,
+                account_description,
+                derivation_rule_id,
+                entered_amount,
+                accounted_amount,
+                currency_code,
+                conversion_date,
+                conversion_rate,
+                attribute_category,
+                attribute1,
+                attribute2,
+                attribute3,
+                attribute4,
+                attribute5,
+                source_line_id,
+                source_line_type,
+                tax_code,
+                tax_rate,
+                tax_amount,
+            )
+            .await?;
 
         // Recalculate entry totals and balancing
         self.recalculate_entry_balances(journal_entry_id).await?;
@@ -460,14 +573,16 @@ impl SubledgerAccountingEngine {
         // Check balancing (debit should equal credit within rounding threshold)
         let is_balanced = (total_debit - total_credit).abs() < 0.01;
 
-        self.repository.update_journal_entry_balances(
-            journal_entry_id,
-            &format!("{total_debit:.2}"),
-            &format!("{total_credit:.2}"),
-            &format!("{total_debit:.2}"), // For same-currency, entered = accounted
-            &format!("{total_credit:.2}"),
-            is_balanced,
-        ).await?;
+        self.repository
+            .update_journal_entry_balances(
+                journal_entry_id,
+                &format!("{total_debit:.2}"),
+                &format!("{total_credit:.2}"),
+                &format!("{total_debit:.2}"), // For same-currency, entered = accounted
+                &format!("{total_credit:.2}"),
+                is_balanced,
+            )
+            .await?;
 
         Ok(())
     }
@@ -491,18 +606,28 @@ impl SubledgerAccountingEngine {
             if !VALID_ENTRY_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_ENTRY_STATUSES.join(", ")
+                    s,
+                    VALID_ENTRY_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_journal_entries(
-            org_id, status, source_application, source_transaction_type,
-            accounting_date_from, accounting_date_to,
-        ).await
+        self.repository
+            .list_journal_entries(
+                org_id,
+                status,
+                source_application,
+                source_transaction_type,
+                accounting_date_from,
+                accounting_date_to,
+            )
+            .await
     }
 
     /// Get all lines for a journal entry
-    pub async fn list_journal_lines(&self, journal_entry_id: Uuid) -> AtlasResult<Vec<SubledgerJournalLine>> {
+    pub async fn list_journal_lines(
+        &self,
+        journal_entry_id: Uuid,
+    ) -> AtlasResult<Vec<SubledgerJournalLine>> {
         self.repository.list_journal_lines(journal_entry_id).await
     }
 
@@ -512,11 +637,18 @@ impl SubledgerAccountingEngine {
 
     /// Account a draft journal entry (validate & compute final amounts)
     /// Transition: draft → accounted
-    pub async fn account_entry(&self, entry_id: Uuid, accounted_by: Option<Uuid>) -> AtlasResult<SubledgerJournalEntry> {
-        let entry = self.repository.get_journal_entry(entry_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {entry_id} not found")
-            ))?;
+    pub async fn account_entry(
+        &self,
+        entry_id: Uuid,
+        accounted_by: Option<Uuid>,
+    ) -> AtlasResult<SubledgerJournalEntry> {
+        let entry = self
+            .repository
+            .get_journal_entry(entry_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Journal entry {entry_id} not found"))
+            })?;
 
         if entry.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -533,18 +665,25 @@ impl SubledgerAccountingEngine {
         }
 
         info!("Accounting SLA journal entry {}", entry.entry_number);
-        self.repository.update_journal_entry_status(
-            entry_id, "accounted", None, None, None, accounted_by,
-        ).await
+        self.repository
+            .update_journal_entry_status(entry_id, "accounted", None, None, None, accounted_by)
+            .await
     }
 
     /// Post an accounted journal entry
     /// Transition: accounted → posted
-    pub async fn post_entry(&self, entry_id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<SubledgerJournalEntry> {
-        let entry = self.repository.get_journal_entry(entry_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {entry_id} not found")
-            ))?;
+    pub async fn post_entry(
+        &self,
+        entry_id: Uuid,
+        posted_by: Option<Uuid>,
+    ) -> AtlasResult<SubledgerJournalEntry> {
+        let entry = self
+            .repository
+            .get_journal_entry(entry_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Journal entry {entry_id} not found"))
+            })?;
 
         if entry.status != "accounted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -554,18 +693,26 @@ impl SubledgerAccountingEngine {
         }
 
         info!("Posting SLA journal entry {}", entry.entry_number);
-        self.repository.update_journal_entry_status(
-            entry_id, "posted", None, None, posted_by, None,
-        ).await
+        self.repository
+            .update_journal_entry_status(entry_id, "posted", None, None, posted_by, None)
+            .await
     }
 
     /// Reverse a posted journal entry
     /// Transition: posted → reversed
-    pub async fn reverse_entry(&self, entry_id: Uuid, reason: &str, reversed_by: Option<Uuid>) -> AtlasResult<SubledgerJournalEntry> {
-        let entry = self.repository.get_journal_entry(entry_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {entry_id} not found")
-            ))?;
+    pub async fn reverse_entry(
+        &self,
+        entry_id: Uuid,
+        reason: &str,
+        reversed_by: Option<Uuid>,
+    ) -> AtlasResult<SubledgerJournalEntry> {
+        let entry = self
+            .repository
+            .get_journal_entry(entry_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Journal entry {entry_id} not found"))
+            })?;
 
         if entry.status != "posted" && entry.status != "accounted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -580,28 +727,34 @@ impl SubledgerAccountingEngine {
             ));
         }
 
-        info!("Reversing SLA journal entry {} - reason: {}", entry.entry_number, reason);
+        info!(
+            "Reversing SLA journal entry {} - reason: {}",
+            entry.entry_number, reason
+        );
 
         // Create a reversal SLA event
-        let _event = self.repository.create_sla_event(
-            entry.organization_id,
-            &format!("REV-{}", &entry.entry_number[4..]),
-            "reversal",
-            &entry.source_application,
-            &entry.source_transaction_type,
-            entry.source_transaction_id,
-            Some(entry_id),
-            chrono::Utc::now().date_naive(),
-            "processed",
-            Some(&format!("Reversal: {reason}")),
-            None,
-            reversed_by,
-        ).await?;
+        let _event = self
+            .repository
+            .create_sla_event(
+                entry.organization_id,
+                &format!("REV-{}", &entry.entry_number[4..]),
+                "reversal",
+                &entry.source_application,
+                &entry.source_transaction_type,
+                entry.source_transaction_id,
+                Some(entry_id),
+                chrono::Utc::now().date_naive(),
+                "processed",
+                Some(&format!("Reversal: {reason}")),
+                None,
+                reversed_by,
+            )
+            .await?;
 
         // Update original entry status
-        self.repository.update_journal_entry_status(
-            entry_id, "reversed", None, None, None, None,
-        ).await
+        self.repository
+            .update_journal_entry_status(entry_id, "reversed", None, None, None, None)
+            .await
     }
 
     // ========================================================================
@@ -618,12 +771,14 @@ impl SubledgerAccountingEngine {
         transferred_by: Option<Uuid>,
     ) -> AtlasResult<GlTransferLog> {
         // Get all posted entries eligible for transfer
-        let entries = self.repository.list_journal_entries(
-            org_id, Some("posted"), None, None, None, None,
-        ).await?;
+        let entries = self
+            .repository
+            .list_journal_entries(org_id, Some("posted"), None, None, None, None)
+            .await?;
 
         // Filter by period and application if specified
-        let eligible: Vec<SubledgerJournalEntry> = entries.into_iter()
+        let eligible: Vec<SubledgerJournalEntry> = entries
+            .into_iter()
             .filter(|e| {
                 if let Some(period) = from_period {
                     e.period_name.as_deref() == Some(period)
@@ -648,50 +803,64 @@ impl SubledgerAccountingEngine {
 
         let transfer_number = format!("GLX-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
         let total_entries = eligible.len() as i32;
-        let total_debit: f64 = eligible.iter()
+        let total_debit: f64 = eligible
+            .iter()
             .map(|e| e.total_debit.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_credit: f64 = eligible.iter()
+        let total_credit: f64 = eligible
+            .iter()
             .map(|e| e.total_credit.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let included_apps: Vec<String> = eligible.iter()
+        let included_apps: Vec<String> = eligible
+            .iter()
             .map(|e| e.source_application.clone())
             .collect::<std::collections::HashSet<_>>()
             .into_iter()
             .collect();
 
-        let entry_refs: Vec<serde_json::Value> = eligible.iter()
-            .map(|e| serde_json::json!({
-                "entry_id": e.id,
-                "entry_number": e.entry_number,
-            }))
+        let entry_refs: Vec<serde_json::Value> = eligible
+            .iter()
+            .map(|e| {
+                serde_json::json!({
+                    "entry_id": e.id,
+                    "entry_number": e.entry_number,
+                })
+            })
             .collect();
 
         // Create transfer log
-        let transfer_log = self.repository.create_transfer_log(
-            org_id,
-            &transfer_number,
-            from_period,
-            "completed",
-            total_entries,
-            &format!("{total_debit:.2}"),
-            &format!("{total_credit:.2}"),
-            serde_json::json!(included_apps),
-            transferred_by,
-            serde_json::json!(entry_refs),
-        ).await?;
+        let transfer_log = self
+            .repository
+            .create_transfer_log(
+                org_id,
+                &transfer_number,
+                from_period,
+                "completed",
+                total_entries,
+                &format!("{total_debit:.2}"),
+                &format!("{total_credit:.2}"),
+                serde_json::json!(included_apps),
+                transferred_by,
+                serde_json::json!(entry_refs),
+            )
+            .await?;
 
         // Update each entry to 'transferred' status
         for entry in &eligible {
-            let _ = self.repository.update_journal_entry_status(
-                entry.id, "transferred", None, None, None, None,
-            ).await;
+            let _ = self
+                .repository
+                .update_journal_entry_status(entry.id, "transferred", None, None, None, None)
+                .await;
 
             // Update GL transfer fields
             // (In a real implementation, this would also create the GL journal entry)
         }
 
-        info!("Transferred {} SLA entries to GL ({})", eligible.len(), transfer_number);
+        info!(
+            "Transferred {} SLA entries to GL ({})",
+            eligible.len(),
+            transfer_number
+        );
 
         Ok(transfer_log)
     }
@@ -702,7 +871,11 @@ impl SubledgerAccountingEngine {
     }
 
     /// List transfer logs
-    pub async fn list_transfer_logs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<GlTransferLog>> {
+    pub async fn list_transfer_logs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<GlTransferLog>> {
         self.repository.list_transfer_logs(org_id, status).await
     }
 
@@ -717,7 +890,9 @@ impl SubledgerAccountingEngine {
         source_application: Option<&str>,
         event_type: Option<&str>,
     ) -> AtlasResult<Vec<SlaEvent>> {
-        self.repository.list_sla_events(org_id, source_application, event_type).await
+        self.repository
+            .list_sla_events(org_id, source_application, event_type)
+            .await
     }
 
     // ========================================================================
@@ -732,25 +907,31 @@ impl SubledgerAccountingEngine {
         entry_id: Uuid,
         transaction_attributes: &serde_json::Value,
     ) -> AtlasResult<Vec<SubledgerJournalLine>> {
-        let entry = self.repository.get_journal_entry(entry_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Journal entry {entry_id} not found")
-            ))?;
+        let entry = self
+            .repository
+            .get_journal_entry(entry_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Journal entry {entry_id} not found"))
+            })?;
 
         // Find the accounting method for this entry
-        let method_id = entry.accounting_method_id
-            .ok_or_else(|| AtlasError::ValidationFailed(
+        let method_id = entry.accounting_method_id.ok_or_else(|| {
+            AtlasError::ValidationFailed(
                 "Journal entry has no accounting method; cannot auto-generate lines".to_string(),
-            ))?;
+            )
+        })?;
 
         // Get all active derivation rules for the method
-        let all_rules = self.repository.list_active_derivation_rules(
-            org_id, method_id, "debit",
-        ).await?;
+        let all_rules = self
+            .repository
+            .list_active_derivation_rules(org_id, method_id, "debit")
+            .await?;
 
-        let credit_rules = self.repository.list_active_derivation_rules(
-            org_id, method_id, "credit",
-        ).await?;
+        let credit_rules = self
+            .repository
+            .list_active_derivation_rules(org_id, method_id, "credit")
+            .await?;
 
         let mut lines = Vec::new();
         let mut line_num = 1;
@@ -758,22 +939,45 @@ impl SubledgerAccountingEngine {
         // Generate debit lines
         for rule in &all_rules {
             if let Some(account_code) = self.resolve_account_code(
-                std::slice::from_ref(rule), "debit", transaction_attributes,
+                std::slice::from_ref(rule),
+                "debit",
+                transaction_attributes,
             ) {
                 // For auto-generation, we use the amount from transaction attributes
-                let amount = transaction_attributes.get("amount")
+                let amount = transaction_attributes
+                    .get("amount")
                     .and_then(serde_json::Value::as_f64)
                     .unwrap_or(0.0);
 
                 if amount > 0.0 {
-                    let line = self.repository.create_journal_line(
-                        org_id, entry_id, line_num, "debit",
-                        &account_code, None, Some(rule.id),
-                        &format!("{amount:.2}"), &format!("{amount:.2}"),
-                        &entry.currency_code, None, None,
-                        None, None, None, None, None, None,
-                        None, None, None, None, None,
-                    ).await?;
+                    let line = self
+                        .repository
+                        .create_journal_line(
+                            org_id,
+                            entry_id,
+                            line_num,
+                            "debit",
+                            &account_code,
+                            None,
+                            Some(rule.id),
+                            &format!("{amount:.2}"),
+                            &format!("{amount:.2}"),
+                            &entry.currency_code,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                        )
+                        .await?;
                     lines.push(line);
                     line_num += 1;
                 }
@@ -783,21 +987,44 @@ impl SubledgerAccountingEngine {
         // Generate credit lines
         for rule in &credit_rules {
             if let Some(account_code) = self.resolve_account_code(
-                std::slice::from_ref(rule), "credit", transaction_attributes,
+                std::slice::from_ref(rule),
+                "credit",
+                transaction_attributes,
             ) {
-                let amount = transaction_attributes.get("amount")
+                let amount = transaction_attributes
+                    .get("amount")
                     .and_then(serde_json::Value::as_f64)
                     .unwrap_or(0.0);
 
                 if amount > 0.0 {
-                    let line = self.repository.create_journal_line(
-                        org_id, entry_id, line_num, "credit",
-                        &account_code, None, Some(rule.id),
-                        &format!("{amount:.2}"), &format!("{amount:.2}"),
-                        &entry.currency_code, None, None,
-                        None, None, None, None, None, None,
-                        None, None, None, None, None,
-                    ).await?;
+                    let line = self
+                        .repository
+                        .create_journal_line(
+                            org_id,
+                            entry_id,
+                            line_num,
+                            "credit",
+                            &account_code,
+                            None,
+                            Some(rule.id),
+                            &format!("{amount:.2}"),
+                            &format!("{amount:.2}"),
+                            &entry.currency_code,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                        )
+                        .await?;
                     lines.push(line);
                     line_num += 1;
                 }
@@ -807,7 +1034,11 @@ impl SubledgerAccountingEngine {
         // Recalculate balances
         self.recalculate_entry_balances(entry_id).await?;
 
-        info!("Generated {} journal lines for entry {}", lines.len(), entry.entry_number);
+        info!(
+            "Generated {} journal lines for entry {}",
+            lines.len(),
+            entry.entry_number
+        );
         Ok(lines)
     }
 
@@ -817,9 +1048,10 @@ impl SubledgerAccountingEngine {
 
     /// Get SLA dashboard summary
     pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<SlaDashboardSummary> {
-        let entries = self.repository.list_journal_entries(
-            org_id, None, None, None, None, None,
-        ).await?;
+        let entries = self
+            .repository
+            .list_journal_entries(org_id, None, None, None, None, None)
+            .await?;
 
         let mut draft_count = 0i32;
         let mut accounted_count = 0i32;
@@ -831,7 +1063,8 @@ impl SubledgerAccountingEngine {
         let mut unbalanced_count = 0i32;
         let mut total_debit = 0.0f64;
         let mut total_credit = 0.0f64;
-        let mut by_status: std::collections::HashMap<String, (i32, f64, f64)> = std::collections::HashMap::new();
+        let mut by_status: std::collections::HashMap<String, (i32, f64, f64)> =
+            std::collections::HashMap::new();
         let mut by_app: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
 
         for entry in &entries {
@@ -849,9 +1082,10 @@ impl SubledgerAccountingEngine {
             }
 
             if (entry.status == "posted" || entry.status == "accounted")
-                && entry.gl_transfer_status == "pending" {
-                    pending_transfer_count += 1;
-                }
+                && entry.gl_transfer_status == "pending"
+            {
+                pending_transfer_count += 1;
+            }
 
             if !entry.is_balanced {
                 unbalanced_count += 1;
@@ -859,22 +1093,31 @@ impl SubledgerAccountingEngine {
 
             let debit = entry.total_debit.parse::<f64>().unwrap_or(0.0);
             let credit = entry.total_credit.parse::<f64>().unwrap_or(0.0);
-            by_status.entry(entry.status.clone())
-                .and_modify(|(c, d, cr)| { *c += 1; *d += debit; *cr += credit; })
+            by_status
+                .entry(entry.status.clone())
+                .and_modify(|(c, d, cr)| {
+                    *c += 1;
+                    *d += debit;
+                    *cr += credit;
+                })
                 .or_insert((1, debit, credit));
 
             *by_app.entry(entry.source_application.clone()).or_insert(0) += 1;
         }
 
-        let entries_by_status: serde_json::Value = by_status.into_iter()
-            .map(|(k, (c, d, cr))| serde_json::json!({
-                "status": k, "count": c,
-                "total_debit": format!("{:.2}", d),
-                "total_credit": format!("{:.2}", cr),
-            }))
+        let entries_by_status: serde_json::Value = by_status
+            .into_iter()
+            .map(|(k, (c, d, cr))| {
+                serde_json::json!({
+                    "status": k, "count": c,
+                    "total_debit": format!("{:.2}", d),
+                    "total_credit": format!("{:.2}", cr),
+                })
+            })
             .collect();
 
-        let entries_by_application: serde_json::Value = by_app.into_iter()
+        let entries_by_application: serde_json::Value = by_app
+            .into_iter()
             .map(|(k, c)| serde_json::json!({"application": k, "count": c}))
             .collect();
 
@@ -978,9 +1221,7 @@ mod tests {
             updated_at: chrono::Utc::now(),
         };
 
-        let result = engine.resolve_account_code(
-            &[rule], "debit", &serde_json::json!({}),
-        );
+        let result = engine.resolve_account_code(&[rule], "debit", &serde_json::json!({}));
         assert_eq!(result, Some("2100".to_string()));
     }
 
@@ -1018,18 +1259,24 @@ mod tests {
         };
 
         let result = engine.resolve_account_code(
-            std::slice::from_ref(&rule), "debit", &serde_json::json!({"expense_category": "Travel"}),
+            std::slice::from_ref(&rule),
+            "debit",
+            &serde_json::json!({"expense_category": "Travel"}),
         );
         assert_eq!(result, Some("6100".to_string()));
 
         let result = engine.resolve_account_code(
-            std::slice::from_ref(&rule), "debit", &serde_json::json!({"expense_category": "Meals"}),
+            std::slice::from_ref(&rule),
+            "debit",
+            &serde_json::json!({"expense_category": "Meals"}),
         );
         assert_eq!(result, Some("6200".to_string()));
 
         // Unknown category returns None
         let result = engine.resolve_account_code(
-            &[rule], "debit", &serde_json::json!({"expense_category": "Unknown"}),
+            &[rule],
+            "debit",
+            &serde_json::json!({"expense_category": "Unknown"}),
         );
         assert!(result.is_none());
     }
@@ -1066,7 +1313,9 @@ mod tests {
 
         // Conditions match - should return account code
         let result = engine.resolve_account_code(
-            std::slice::from_ref(&rule_matching), "debit", &serde_json::json!({"category": "Travel"}),
+            std::slice::from_ref(&rule_matching),
+            "debit",
+            &serde_json::json!({"category": "Travel"}),
         );
         assert_eq!(result, Some("6100".to_string()));
 
@@ -1098,10 +1347,15 @@ mod tests {
 
         // Conditions don't match - should skip this rule and return None (no fallback)
         let result = engine.resolve_account_code(
-            &[rule_non_matching], "debit", &serde_json::json!({"category": "Travel"}),
+            &[rule_non_matching],
+            "debit",
+            &serde_json::json!({"category": "Travel"}),
         );
-        assert!(result.is_none(),
-            "Expected None when conditions don't match, got {:?}", result);
+        assert!(
+            result.is_none(),
+            "Expected None when conditions don't match, got {:?}",
+            result
+        );
 
         // Empty conditions always match
         let rule_empty = AccountingDerivationRule {
@@ -1130,7 +1384,9 @@ mod tests {
         };
 
         let result = engine.resolve_account_code(
-            &[rule_empty], "debit", &serde_json::json!({"category": "Travel"}),
+            &[rule_empty],
+            "debit",
+            &serde_json::json!({"category": "Travel"}),
         );
         assert_eq!(result, Some("9999".to_string()));
     }
@@ -1191,7 +1447,9 @@ mod tests {
 
         // Higher priority (lower number) should be returned first
         let result = engine.resolve_account_code(
-            &[low_priority.clone(), high_priority.clone()], "debit", &serde_json::json!({}),
+            &[low_priority.clone(), high_priority.clone()],
+            "debit",
+            &serde_json::json!({}),
         );
         assert_eq!(result, Some("2100".to_string()));
     }
@@ -1226,9 +1484,7 @@ mod tests {
         };
 
         // Looking for credit rules but only have debit
-        let result = engine.resolve_account_code(
-            &[rule], "credit", &serde_json::json!({}),
-        );
+        let result = engine.resolve_account_code(&[rule], "credit", &serde_json::json!({}));
         assert!(result.is_none());
     }
 
@@ -1288,9 +1544,8 @@ mod tests {
     fn test_dashboard_summary_empty() {
         let engine = create_engine();
         let rt = tokio::runtime::Runtime::new().unwrap();
-        let summary = rt.block_on(async {
-            engine.get_dashboard_summary(Uuid::new_v4()).await.unwrap()
-        });
+        let summary =
+            rt.block_on(async { engine.get_dashboard_summary(Uuid::new_v4()).await.unwrap() });
 
         assert_eq!(summary.total_entries, 0);
         assert_eq!(summary.draft_count, 0);
@@ -1305,11 +1560,27 @@ mod tests {
         let engine = create_engine();
         let rt = tokio::runtime::Runtime::new().unwrap();
         let result = rt.block_on(async {
-            engine.create_accounting_method(
-                Uuid::new_v4(), "TEST", "Test", None,
-                "invalid_app", "invoice", None, None, None, None,
-                None, None, None, None, None, None, None,
-            ).await
+            engine
+                .create_accounting_method(
+                    Uuid::new_v4(),
+                    "TEST",
+                    "Test",
+                    None,
+                    "invalid_app",
+                    "invoice",
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+                .await
         });
         assert!(result.is_err());
         if let Err(AtlasError::ValidationFailed(msg)) = result {
@@ -1324,11 +1595,27 @@ mod tests {
         let engine = create_engine();
         let rt = tokio::runtime::Runtime::new().unwrap();
         let result = rt.block_on(async {
-            engine.create_accounting_method(
-                Uuid::new_v4(), "TEST", "Test", None,
-                "payables", "invoice", Some("invalid"), None, None, None,
-                None, None, None, None, None, None, None,
-            ).await
+            engine
+                .create_accounting_method(
+                    Uuid::new_v4(),
+                    "TEST",
+                    "Test",
+                    None,
+                    "payables",
+                    "invoice",
+                    Some("invalid"),
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+                .await
         });
         assert!(result.is_err());
         if let Err(AtlasError::ValidationFailed(msg)) = result {
@@ -1343,12 +1630,27 @@ mod tests {
         let engine = create_engine();
         let rt = tokio::runtime::Runtime::new().unwrap();
         let result = rt.block_on(async {
-            engine.create_derivation_rule(
-                Uuid::new_v4(), Uuid::new_v4(), "TEST", "Test", None,
-                "debit", 10, serde_json::json!({}), None,
-                "invalid_type", None, serde_json::json!({}), None,
-                10, None, None, None,
-            ).await
+            engine
+                .create_derivation_rule(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    "TEST",
+                    "Test",
+                    None,
+                    "debit",
+                    10,
+                    serde_json::json!({}),
+                    None,
+                    "invalid_type",
+                    None,
+                    serde_json::json!({}),
+                    None,
+                    10,
+                    None,
+                    None,
+                    None,
+                )
+                .await
         });
         assert!(result.is_err());
         if let Err(AtlasError::ValidationFailed(msg)) = result {
@@ -1363,12 +1665,27 @@ mod tests {
         let engine = create_engine();
         let rt = tokio::runtime::Runtime::new().unwrap();
         let result = rt.block_on(async {
-            engine.create_derivation_rule(
-                Uuid::new_v4(), Uuid::new_v4(), "TEST", "Test", None,
-                "debit", 10, serde_json::json!({}), None,
-                "constant", None, serde_json::json!({}), None,  // missing fixed_account_code
-                10, None, None, None,
-            ).await
+            engine
+                .create_derivation_rule(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    "TEST",
+                    "Test",
+                    None,
+                    "debit",
+                    10,
+                    serde_json::json!({}),
+                    None,
+                    "constant",
+                    None,
+                    serde_json::json!({}),
+                    None, // missing fixed_account_code
+                    10,
+                    None,
+                    None,
+                    None,
+                )
+                .await
         });
         assert!(result.is_err());
         if let Err(AtlasError::ValidationFailed(msg)) = result {

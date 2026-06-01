@@ -2,19 +2,18 @@
 //!
 //! Oracle Fusion: Fixed Assets > Mass Additions
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateMassAdditionRequest {
@@ -34,14 +33,27 @@ pub async fn create_mass_addition(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.mass_addition_engine.create_from_invoice(
-        org_id, None, payload.invoice_number.as_deref(),
-        None, None,
-        payload.description.as_deref(), &payload.cost,
-        None, payload.supplier_number.as_deref(), None,
-        payload.category_code.as_deref(), payload.book_code.as_deref(),
-        payload.asset_type.as_deref(), Some(user_id),
-    ).await {
+    match state
+        .financials
+        .mass_addition_engine
+        .create_from_invoice(
+            org_id,
+            None,
+            payload.invoice_number.as_deref(),
+            None,
+            None,
+            payload.description.as_deref(),
+            &payload.cost,
+            None,
+            payload.supplier_number.as_deref(),
+            None,
+            payload.category_code.as_deref(),
+            payload.book_code.as_deref(),
+            payload.asset_type.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(ma) => Ok(created_json(ma)),
         Err(e) => {
             error!("Failed to create mass addition: {}", e);
@@ -61,7 +73,10 @@ pub async fn get_mass_addition(
     match state.financials.mass_addition_engine.get(id).await {
         Ok(Some(ma)) => Ok(to_json(ma)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get mass addition: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get mass addition: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -77,7 +92,16 @@ pub async fn list_mass_additions(
     Query(query): Query<ListMassAdditionsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.mass_addition_engine.list(org_id, query.status.as_deref(), query.category_code.as_deref()).await {
+    match state
+        .financials
+        .mass_addition_engine
+        .list(
+            org_id,
+            query.status.as_deref(),
+            query.category_code.as_deref(),
+        )
+        .await
+    {
         Ok(items) => Ok(Json(serde_json::json!({ "data": items }))),
         Err(e) => {
             error!("Failed to list mass additions: {}", e);
@@ -98,7 +122,8 @@ pub async fn hold_mass_addition(
         Err(e) => {
             error!("Failed to hold mass addition: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -115,7 +140,8 @@ pub async fn release_mass_addition(
         Err(e) => {
             error!("Failed to release mass addition: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -124,19 +150,27 @@ pub async fn release_mass_addition(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RejectRequest { pub reason: String }
+pub struct RejectRequest {
+    pub reason: String,
+}
 
 pub async fn reject_mass_addition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(payload): Json<RejectRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.mass_addition_engine.reject(id, &payload.reason).await {
+    match state
+        .financials
+        .mass_addition_engine
+        .reject(id, &payload.reason)
+        .await
+    {
         Ok(ma) => Ok(to_json(ma)),
         Err(e) => {
             error!("Failed to reject mass addition: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -145,19 +179,27 @@ pub async fn reject_mass_addition(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct MergeRequest { pub target_id: Uuid }
+pub struct MergeRequest {
+    pub target_id: Uuid,
+}
 
 pub async fn merge_mass_addition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(payload): Json<MergeRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.mass_addition_engine.merge(id, payload.target_id).await {
+    match state
+        .financials
+        .mass_addition_engine
+        .merge(id, payload.target_id)
+        .await
+    {
         Ok(ma) => Ok(to_json(ma)),
         Err(e) => {
             error!("Failed to merge mass addition: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -174,7 +216,8 @@ pub async fn convert_mass_addition(
         Err(e) => {
             error!("Failed to convert mass addition: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -187,8 +230,16 @@ pub async fn get_mass_addition_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.mass_addition_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .mass_addition_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dash) => Ok(to_json(dash)),
-        Err(e) => { error!("Failed to get mass additions dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get mass additions dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

@@ -12,13 +12,12 @@
 //! 5. Approve/reject compensation changes
 //! 6. Generate employee compensation statements
 
-use atlas_shared::{
-    CompensationPlan, CompensationComponent, CompensationCycle,
-    CompensationBudgetPool, CompensationWorksheet, CompensationWorksheetLine,
-    CompensationStatement, CompensationDashboard,
-    AtlasError, AtlasResult,
-};
 use super::CompensationRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CompensationBudgetPool, CompensationComponent, CompensationCycle,
+    CompensationDashboard, CompensationPlan, CompensationStatement, CompensationWorksheet,
+    CompensationWorksheetLine,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -28,23 +27,31 @@ const VALID_PLAN_TYPES: &[&str] = &["salary", "bonus", "equity", "benefits", "mi
 #[allow(dead_code)]
 const VALID_PLAN_STATUSES: &[&str] = &["active", "inactive", "archived"];
 const VALID_COMPONENT_TYPES: &[&str] = &[
-    "salary", "merit", "bonus", "equity", "commission", "allowance", "benefits",
+    "salary",
+    "merit",
+    "bonus",
+    "equity",
+    "commission",
+    "allowance",
+    "benefits",
 ];
 const VALID_FREQUENCIES: &[&str] = &["annual", "semi_annual", "quarterly", "monthly", "one_time"];
 const VALID_CYCLE_TYPES: &[&str] = &["annual", "mid_year", "off_cycle", "promotion"];
 const VALID_CYCLE_STATUSES: &[&str] = &[
-    "draft", "active", "allocation", "review", "completed", "cancelled",
+    "draft",
+    "active",
+    "allocation",
+    "review",
+    "completed",
+    "cancelled",
 ];
 const VALID_POOL_TYPES: &[&str] = &["merit", "bonus", "equity", "general"];
 #[allow(dead_code)]
 const VALID_POOL_STATUSES: &[&str] = &["active", "exhausted", "closed"];
-const VALID_WORKSHEET_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "rejected", "completed",
-];
+const VALID_WORKSHEET_STATUSES: &[&str] =
+    &["draft", "submitted", "approved", "rejected", "completed"];
 #[allow(dead_code)]
-const VALID_LINE_STATUSES: &[&str] = &[
-    "pending", "recommended", "approved", "rejected",
-];
+const VALID_LINE_STATUSES: &[&str] = &["pending", "recommended", "approved", "rejected"];
 #[allow(dead_code)]
 const VALID_STATEMENT_STATUSES: &[&str] = &["draft", "published", "archived"];
 
@@ -89,20 +96,38 @@ impl CompensationEngine {
         if !VALID_PLAN_TYPES.contains(&plan_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid plan_type '{}'. Must be one of: {}",
-                plan_type, VALID_PLAN_TYPES.join(", ")
+                plan_type,
+                VALID_PLAN_TYPES.join(", ")
             )));
         }
-        if self.repository.get_plan_by_code(org_id, &code_upper).await?.is_some() {
+        if self
+            .repository
+            .get_plan_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Compensation plan '{code_upper}' already exists"
             )));
         }
 
-        info!("Creating compensation plan '{}' for org {}", code_upper, org_id);
-        self.repository.create_plan(
-            org_id, &code_upper, plan_name, description, plan_type,
-            effective_start_date, effective_end_date, eligibility_criteria, created_by,
-        ).await
+        info!(
+            "Creating compensation plan '{}' for org {}",
+            code_upper, org_id
+        );
+        self.repository
+            .create_plan(
+                org_id,
+                &code_upper,
+                plan_name,
+                description,
+                plan_type,
+                effective_start_date,
+                effective_end_date,
+                eligibility_criteria,
+                created_by,
+            )
+            .await
     }
 
     /// Get plan by ID
@@ -111,8 +136,14 @@ impl CompensationEngine {
     }
 
     /// Get plan by code
-    pub async fn get_plan_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CompensationPlan>> {
-        self.repository.get_plan_by_code(org_id, &code.to_uppercase()).await
+    pub async fn get_plan_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CompensationPlan>> {
+        self.repository
+            .get_plan_by_code(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List plans
@@ -123,7 +154,9 @@ impl CompensationEngine {
     /// Delete plan
     pub async fn delete_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deleting compensation plan '{}' for org {}", code, org_id);
-        self.repository.delete_plan(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_plan(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -149,28 +182,39 @@ impl CompensationEngine {
         if !VALID_COMPONENT_TYPES.contains(&component_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid component_type '{}'. Must be one of: {}",
-                component_type, VALID_COMPONENT_TYPES.join(", ")
+                component_type,
+                VALID_COMPONENT_TYPES.join(", ")
             )));
         }
         if let Some(freq) = frequency {
             if !VALID_FREQUENCIES.contains(&freq) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid frequency '{}'. Must be one of: {}",
-                    freq, VALID_FREQUENCIES.join(", ")
+                    freq,
+                    VALID_FREQUENCIES.join(", ")
                 )));
             }
         }
         // Verify plan exists
-        self.repository.get_plan(plan_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation plan {plan_id} not found")
-            ))?;
+        self.repository.get_plan(plan_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Compensation plan {plan_id} not found"))
+        })?;
 
-        info!("Creating component '{}' for plan {}", component_name, plan_id);
-        self.repository.create_component(
-            org_id, plan_id, component_name, component_type,
-            description, is_recurring, frequency,
-        ).await
+        info!(
+            "Creating component '{}' for plan {}",
+            component_name, plan_id
+        );
+        self.repository
+            .create_component(
+                org_id,
+                plan_id,
+                component_name,
+                component_type,
+                description,
+                is_recurring,
+                frequency,
+            )
+            .await
     }
 
     /// List components for a plan
@@ -208,7 +252,8 @@ impl CompensationEngine {
         if !VALID_CYCLE_TYPES.contains(&cycle_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid cycle_type '{}'. Must be one of: {}",
-                cycle_type, VALID_CYCLE_TYPES.join(", ")
+                cycle_type,
+                VALID_CYCLE_TYPES.join(", ")
             )));
         }
         if end_date <= start_date {
@@ -225,11 +270,23 @@ impl CompensationEngine {
             ));
         }
 
-        info!("Creating compensation cycle '{}' for org {}", cycle_name, org_id);
-        self.repository.create_cycle(
-            org_id, cycle_name, description, cycle_type,
-            start_date, end_date, total_budget, currency_code, created_by,
-        ).await
+        info!(
+            "Creating compensation cycle '{}' for org {}",
+            cycle_name, org_id
+        );
+        self.repository
+            .create_cycle(
+                org_id,
+                cycle_name,
+                description,
+                cycle_type,
+                start_date,
+                end_date,
+                total_budget,
+                currency_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get cycle by ID
@@ -238,12 +295,17 @@ impl CompensationEngine {
     }
 
     /// List cycles
-    pub async fn list_cycles(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CompensationCycle>> {
+    pub async fn list_cycles(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CompensationCycle>> {
         if let Some(s) = status {
             if !VALID_CYCLE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid cycle status '{}'. Must be one of: {}",
-                    s, VALID_CYCLE_STATUSES.join(", ")
+                    s,
+                    VALID_CYCLE_STATUSES.join(", ")
                 )));
             }
         }
@@ -251,18 +313,22 @@ impl CompensationEngine {
     }
 
     /// Transition cycle status
-    pub async fn transition_cycle(&self, id: Uuid, new_status: &str) -> AtlasResult<CompensationCycle> {
+    pub async fn transition_cycle(
+        &self,
+        id: Uuid,
+        new_status: &str,
+    ) -> AtlasResult<CompensationCycle> {
         if !VALID_CYCLE_STATUSES.contains(&new_status) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid cycle status '{}'. Must be one of: {}",
-                new_status, VALID_CYCLE_STATUSES.join(", ")
+                new_status,
+                VALID_CYCLE_STATUSES.join(", ")
             )));
         }
 
-        let cycle = self.repository.get_cycle(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation cycle {id} not found")
-            ))?;
+        let cycle = self.repository.get_cycle(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Compensation cycle {id} not found"))
+        })?;
 
         // Validate transition
         let valid_transitions: &[&[&str]] = &[
@@ -274,25 +340,29 @@ impl CompensationEngine {
             &["active", "cancelled"],
         ];
 
-        let transition_valid = valid_transitions.iter()
+        let transition_valid = valid_transitions
+            .iter()
             .any(|t| t[0] == cycle.status && t[1] == new_status);
 
         if !transition_valid {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot transition cycle from '{}' to '{}'", cycle.status, new_status
+                "Cannot transition cycle from '{}' to '{}'",
+                cycle.status, new_status
             )));
         }
 
-        info!("Transitioning compensation cycle {} from {} to {}", id, cycle.status, new_status);
+        info!(
+            "Transitioning compensation cycle {} from {} to {}",
+            id, cycle.status, new_status
+        );
         self.repository.update_cycle_status(id, new_status).await
     }
 
     /// Delete a cycle
     pub async fn delete_cycle(&self, id: Uuid) -> AtlasResult<()> {
-        let cycle = self.repository.get_cycle(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation cycle {id} not found")
-            ))?;
+        let cycle = self.repository.get_cycle(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Compensation cycle {id} not found"))
+        })?;
         if cycle.status != "draft" {
             return Err(AtlasError::WorkflowError(
                 "Only draft cycles can be deleted".to_string(),
@@ -328,7 +398,8 @@ impl CompensationEngine {
         if !VALID_POOL_TYPES.contains(&pool_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid pool_type '{}'. Must be one of: {}",
-                pool_type, VALID_POOL_TYPES.join(", ")
+                pool_type,
+                VALID_POOL_TYPES.join(", ")
             )));
         }
         let budget: f64 = total_budget.parse().map_err(|_| {
@@ -341,17 +412,29 @@ impl CompensationEngine {
         }
 
         // Verify cycle exists
-        self.repository.get_cycle(cycle_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation cycle {cycle_id} not found")
-            ))?;
+        self.repository.get_cycle(cycle_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Compensation cycle {cycle_id} not found"))
+        })?;
 
-        info!("Creating budget pool '{}' for cycle {}", pool_name, cycle_id);
-        self.repository.create_budget_pool(
-            org_id, cycle_id, pool_name, pool_type,
-            manager_id, manager_name, department_id, department_name,
-            total_budget, currency_code, created_by,
-        ).await
+        info!(
+            "Creating budget pool '{}' for cycle {}",
+            pool_name, cycle_id
+        );
+        self.repository
+            .create_budget_pool(
+                org_id,
+                cycle_id,
+                pool_name,
+                pool_type,
+                manager_id,
+                manager_name,
+                department_id,
+                department_name,
+                total_budget,
+                currency_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get budget pool
@@ -360,7 +443,10 @@ impl CompensationEngine {
     }
 
     /// List budget pools for a cycle
-    pub async fn list_budget_pools(&self, cycle_id: Uuid) -> AtlasResult<Vec<CompensationBudgetPool>> {
+    pub async fn list_budget_pools(
+        &self,
+        cycle_id: Uuid,
+    ) -> AtlasResult<Vec<CompensationBudgetPool>> {
         self.repository.list_budget_pools(cycle_id).await
     }
 
@@ -384,10 +470,9 @@ impl CompensationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CompensationWorksheet> {
         // Verify cycle exists
-        let cycle = self.repository.get_cycle(cycle_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation cycle {cycle_id} not found")
-            ))?;
+        let cycle = self.repository.get_cycle(cycle_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Compensation cycle {cycle_id} not found"))
+        })?;
 
         if cycle.status != "allocation" {
             return Err(AtlasError::WorkflowError(format!(
@@ -398,16 +483,25 @@ impl CompensationEngine {
 
         // Verify pool if provided
         if let Some(pid) = pool_id {
-            self.repository.get_budget_pool(pid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Budget pool {pid} not found")
-                ))?;
+            self.repository.get_budget_pool(pid).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Budget pool {pid} not found"))
+            })?;
         }
 
-        info!("Creating worksheet for manager {} in cycle {}", manager_id, cycle_id);
-        self.repository.create_worksheet(
-            org_id, cycle_id, pool_id, manager_id, manager_name, created_by,
-        ).await
+        info!(
+            "Creating worksheet for manager {} in cycle {}",
+            manager_id, cycle_id
+        );
+        self.repository
+            .create_worksheet(
+                org_id,
+                cycle_id,
+                pool_id,
+                manager_id,
+                manager_name,
+                created_by,
+            )
+            .await
     }
 
     /// Get worksheet
@@ -416,12 +510,17 @@ impl CompensationEngine {
     }
 
     /// List worksheets for a cycle
-    pub async fn list_worksheets(&self, cycle_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CompensationWorksheet>> {
+    pub async fn list_worksheets(
+        &self,
+        cycle_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CompensationWorksheet>> {
         if let Some(s) = status {
             if !VALID_WORKSHEET_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid worksheet status '{}'. Must be one of: {}",
-                    s, VALID_WORKSHEET_STATUSES.join(", ")
+                    s,
+                    VALID_WORKSHEET_STATUSES.join(", ")
                 )));
             }
         }
@@ -430,14 +529,16 @@ impl CompensationEngine {
 
     /// Submit worksheet for approval
     pub async fn submit_worksheet(&self, id: Uuid) -> AtlasResult<CompensationWorksheet> {
-        let ws = self.repository.get_worksheet(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {id} not found")
-            ))?;
+        let ws = self
+            .repository
+            .get_worksheet(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Worksheet {id} not found")))?;
 
         if ws.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot submit worksheet in '{}' status. Must be 'draft'.", ws.status
+                "Cannot submit worksheet in '{}' status. Must be 'draft'.",
+                ws.status
             )));
         }
 
@@ -450,30 +551,41 @@ impl CompensationEngine {
         }
 
         info!("Submitting worksheet {} for approval", id);
-        self.repository.update_worksheet_status(id, "submitted").await
+        self.repository
+            .update_worksheet_status(id, "submitted")
+            .await
     }
 
     /// Approve worksheet
     pub async fn approve_worksheet(&self, id: Uuid) -> AtlasResult<CompensationWorksheet> {
-        let ws = self.repository.get_worksheet(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {id} not found")
-            ))?;
+        let ws = self
+            .repository
+            .get_worksheet(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Worksheet {id} not found")))?;
 
         if ws.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot approve worksheet in '{}' status. Must be 'submitted'.", ws.status
+                "Cannot approve worksheet in '{}' status. Must be 'submitted'.",
+                ws.status
             )));
         }
 
         info!("Approving worksheet {}", id);
-        let approved = self.repository.update_worksheet_status(id, "approved").await?;
+        let approved = self
+            .repository
+            .update_worksheet_status(id, "approved")
+            .await?;
 
         // Update all lines to approved
         let lines = self.repository.list_worksheet_lines(id).await?;
         for line in &lines {
             if line.status == "recommended" || line.status == "pending" {
-                if let Err(e) = self.repository.update_line_status(line.id, "approved").await {
+                if let Err(e) = self
+                    .repository
+                    .update_line_status(line.id, "approved")
+                    .await
+                {
                     tracing::warn!("Failed to approve line {}: {}", line.id, e);
                 }
             }
@@ -487,27 +599,32 @@ impl CompensationEngine {
 
     /// Reject worksheet
     pub async fn reject_worksheet(&self, id: Uuid) -> AtlasResult<CompensationWorksheet> {
-        let ws = self.repository.get_worksheet(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {id} not found")
-            ))?;
+        let ws = self
+            .repository
+            .get_worksheet(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Worksheet {id} not found")))?;
 
         if ws.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot reject worksheet in '{}' status. Must be 'submitted'.", ws.status
+                "Cannot reject worksheet in '{}' status. Must be 'submitted'.",
+                ws.status
             )));
         }
 
         info!("Rejecting worksheet {}", id);
-        self.repository.update_worksheet_status(id, "rejected").await
+        self.repository
+            .update_worksheet_status(id, "rejected")
+            .await
     }
 
     /// Delete worksheet
     pub async fn delete_worksheet(&self, id: Uuid) -> AtlasResult<()> {
-        let ws = self.repository.get_worksheet(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {id} not found")
-            ))?;
+        let ws = self
+            .repository
+            .get_worksheet(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Worksheet {id} not found")))?;
         if ws.status != "draft" {
             return Err(AtlasError::WorkflowError(
                 "Only draft worksheets can be deleted".to_string(),
@@ -538,14 +655,18 @@ impl CompensationEngine {
         manager_comments: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CompensationWorksheetLine> {
-        let ws = self.repository.get_worksheet(worksheet_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {worksheet_id} not found")
-            ))?;
+        let ws = self
+            .repository
+            .get_worksheet(worksheet_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Worksheet {worksheet_id} not found"))
+            })?;
 
         if ws.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot add lines to worksheet in '{}' status. Must be 'draft'.", ws.status
+                "Cannot add lines to worksheet in '{}' status. Must be 'draft'.",
+                ws.status
             )));
         }
 
@@ -566,21 +687,43 @@ impl CompensationEngine {
         }
 
         let change_amount = proposed - current;
-        let change_percent = if current > 0.0 { (change_amount / current) * 100.0 } else { 0.0 };
+        let change_percent = if current > 0.0 {
+            (change_amount / current) * 100.0
+        } else {
+            0.0
+        };
         let total_comp = proposed + merit + bonus + equity;
 
-        let line = self.repository.create_worksheet_line(
-            org_id, worksheet_id, employee_id, employee_name,
-            job_title, department_name,
-            current_base_salary, proposed_base_salary,
-            &format!("{change_amount:.2}"),
-            &format!("{change_percent:.4}"),
-            merit_amount, bonus_amount, equity_amount,
-            &format!("{total_comp:.2}"),
-            performance_rating,
-            &format!("{:.4}", if current > 0.0 { proposed / current } else { 0.0 }),
-            manager_comments, created_by,
-        ).await?;
+        let line = self
+            .repository
+            .create_worksheet_line(
+                org_id,
+                worksheet_id,
+                employee_id,
+                employee_name,
+                job_title,
+                department_name,
+                current_base_salary,
+                proposed_base_salary,
+                &format!("{change_amount:.2}"),
+                &format!("{change_percent:.4}"),
+                merit_amount,
+                bonus_amount,
+                equity_amount,
+                &format!("{total_comp:.2}"),
+                performance_rating,
+                &format!(
+                    "{:.4}",
+                    if current > 0.0 {
+                        proposed / current
+                    } else {
+                        0.0
+                    }
+                ),
+                manager_comments,
+                created_by,
+            )
+            .await?;
 
         // Recalculate worksheet totals
         self.recalculate_worksheet_totals(worksheet_id).await?;
@@ -598,16 +741,18 @@ impl CompensationEngine {
         equity_amount: &str,
         manager_comments: Option<&str>,
     ) -> AtlasResult<CompensationWorksheetLine> {
-        let line = self.repository.get_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet line {line_id} not found")
-            ))?;
+        let line = self.repository.get_line(line_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Worksheet line {line_id} not found"))
+        })?;
 
         // Verify worksheet is still in draft
-        let ws = self.repository.get_worksheet(line.worksheet_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {} not found", line.worksheet_id)
-            ))?;
+        let ws = self
+            .repository
+            .get_worksheet(line.worksheet_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Worksheet {} not found", line.worksheet_id))
+            })?;
         if ws.status != "draft" {
             return Err(AtlasError::WorkflowError(
                 "Cannot update lines on a non-draft worksheet".to_string(),
@@ -623,21 +768,35 @@ impl CompensationEngine {
         let current: f64 = line.current_base_salary.parse().unwrap_or(0.0);
 
         let change_amount = proposed - current;
-        let change_percent = if current > 0.0 { (change_amount / current) * 100.0 } else { 0.0 };
+        let change_percent = if current > 0.0 {
+            (change_amount / current) * 100.0
+        } else {
+            0.0
+        };
         let total_comp = proposed + merit + bonus + equity;
 
-        let updated = self.repository.update_worksheet_line(
-            line_id,
-            proposed_base_salary,
-            &format!("{change_amount:.2}"),
-            &format!("{change_percent:.4}"),
-            merit_amount,
-            bonus_amount,
-            equity_amount,
-            &format!("{total_comp:.2}"),
-            &format!("{:.4}", if current > 0.0 { proposed / current } else { 0.0 }),
-            manager_comments,
-        ).await?;
+        let updated = self
+            .repository
+            .update_worksheet_line(
+                line_id,
+                proposed_base_salary,
+                &format!("{change_amount:.2}"),
+                &format!("{change_percent:.4}"),
+                merit_amount,
+                bonus_amount,
+                equity_amount,
+                &format!("{total_comp:.2}"),
+                &format!(
+                    "{:.4}",
+                    if current > 0.0 {
+                        proposed / current
+                    } else {
+                        0.0
+                    }
+                ),
+                manager_comments,
+            )
+            .await?;
 
         // Recalculate worksheet totals
         self.recalculate_worksheet_totals(line.worksheet_id).await?;
@@ -646,21 +805,26 @@ impl CompensationEngine {
     }
 
     /// List worksheet lines
-    pub async fn list_worksheet_lines(&self, worksheet_id: Uuid) -> AtlasResult<Vec<CompensationWorksheetLine>> {
+    pub async fn list_worksheet_lines(
+        &self,
+        worksheet_id: Uuid,
+    ) -> AtlasResult<Vec<CompensationWorksheetLine>> {
         self.repository.list_worksheet_lines(worksheet_id).await
     }
 
     /// Delete a worksheet line
     pub async fn delete_worksheet_line(&self, line_id: Uuid) -> AtlasResult<()> {
-        let line = self.repository.get_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet line {line_id} not found")
-            ))?;
+        let line = self.repository.get_line(line_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Worksheet line {line_id} not found"))
+        })?;
 
-        let ws = self.repository.get_worksheet(line.worksheet_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Worksheet {} not found", line.worksheet_id)
-            ))?;
+        let ws = self
+            .repository
+            .get_worksheet(line.worksheet_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Worksheet {} not found", line.worksheet_id))
+            })?;
         if ws.status != "draft" {
             return Err(AtlasError::WorkflowError(
                 "Cannot delete lines from a non-draft worksheet".to_string(),
@@ -702,23 +866,36 @@ impl CompensationEngine {
         let total = direct + indirect;
 
         // Verify cycle exists
-        self.repository.get_cycle(cycle_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Compensation cycle {cycle_id} not found")
-            ))?;
+        self.repository.get_cycle(cycle_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Compensation cycle {cycle_id} not found"))
+        })?;
 
-        info!("Generating compensation statement for employee {} in cycle {}", employee_id, cycle_id);
+        info!(
+            "Generating compensation statement for employee {} in cycle {}",
+            employee_id, cycle_id
+        );
 
-        self.repository.upsert_statement(
-            org_id, cycle_id, employee_id, employee_name,
-            chrono::Utc::now().date_naive(),
-            base_salary, merit_increase, bonus, equity, benefits_value,
-            &format!("{total:.2}"),
-            &format!("{direct:.2}"),
-            &format!("{indirect:.2}"),
-            "0", "0",
-            currency_code, components,
-        ).await
+        self.repository
+            .upsert_statement(
+                org_id,
+                cycle_id,
+                employee_id,
+                employee_name,
+                chrono::Utc::now().date_naive(),
+                base_salary,
+                merit_increase,
+                bonus,
+                equity,
+                benefits_value,
+                &format!("{total:.2}"),
+                &format!("{direct:.2}"),
+                &format!("{indirect:.2}"),
+                "0",
+                "0",
+                currency_code,
+                components,
+            )
+            .await
     }
 
     /// Get a statement
@@ -727,8 +904,14 @@ impl CompensationEngine {
     }
 
     /// Get statement by cycle and employee
-    pub async fn get_statement_by_employee(&self, cycle_id: Uuid, employee_id: Uuid) -> AtlasResult<Option<CompensationStatement>> {
-        self.repository.get_statement_by_employee(cycle_id, employee_id).await
+    pub async fn get_statement_by_employee(
+        &self,
+        cycle_id: Uuid,
+        employee_id: Uuid,
+    ) -> AtlasResult<Option<CompensationStatement>> {
+        self.repository
+            .get_statement_by_employee(cycle_id, employee_id)
+            .await
     }
 
     /// List statements for a cycle
@@ -738,14 +921,16 @@ impl CompensationEngine {
 
     /// Publish a statement (make visible to employee)
     pub async fn publish_statement(&self, id: Uuid) -> AtlasResult<CompensationStatement> {
-        let stmt = self.repository.get_statement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Statement {id} not found")
-            ))?;
+        let stmt = self
+            .repository
+            .get_statement(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Statement {id} not found")))?;
 
         if stmt.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot publish statement in '{}' status. Must be 'draft'.", stmt.status
+                "Cannot publish statement in '{}' status. Must be 'draft'.",
+                stmt.status
             )));
         }
 
@@ -776,52 +961,60 @@ impl CompensationEngine {
         let lines = self.repository.list_worksheet_lines(worksheet_id).await?;
 
         let total_employees = lines.len() as i32;
-        let total_current: f64 = lines.iter()
+        let total_current: f64 = lines
+            .iter()
             .map(|l| l.current_base_salary.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_proposed: f64 = lines.iter()
+        let total_proposed: f64 = lines
+            .iter()
             .map(|l| l.proposed_base_salary.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_merit: f64 = lines.iter()
+        let total_merit: f64 = lines
+            .iter()
             .map(|l| l.merit_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_bonus: f64 = lines.iter()
+        let total_bonus: f64 = lines
+            .iter()
             .map(|l| l.bonus_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_equity: f64 = lines.iter()
+        let total_equity: f64 = lines
+            .iter()
             .map(|l| l.equity_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_change: f64 = total_proposed - total_current + total_merit + total_bonus + total_equity;
+        let total_change: f64 =
+            total_proposed - total_current + total_merit + total_bonus + total_equity;
 
-        self.repository.update_worksheet_totals(
-            worksheet_id,
-            total_employees,
-            &format!("{total_current:.2}"),
-            &format!("{total_proposed:.2}"),
-            &format!("{total_merit:.2}"),
-            &format!("{total_bonus:.2}"),
-            &format!("{total_equity:.2}"),
-            &format!("{total_change:.2}"),
-        ).await
+        self.repository
+            .update_worksheet_totals(
+                worksheet_id,
+                total_employees,
+                &format!("{total_current:.2}"),
+                &format!("{total_proposed:.2}"),
+                &format!("{total_merit:.2}"),
+                &format!("{total_bonus:.2}"),
+                &format!("{total_equity:.2}"),
+                &format!("{total_change:.2}"),
+            )
+            .await
     }
 
     /// Recalculate cycle totals from worksheets
     async fn recalculate_cycle_totals(&self, cycle_id: Uuid) -> AtlasResult<()> {
         let worksheets = self.repository.list_worksheets(cycle_id, None).await?;
-        let approved: Vec<_> = worksheets.iter().filter(|w| w.status == "approved").collect();
+        let approved: Vec<_> = worksheets
+            .iter()
+            .filter(|w| w.status == "approved")
+            .collect();
 
-        let total_approved: f64 = approved.iter()
+        let total_approved: f64 = approved
+            .iter()
             .map(|w| w.total_compensation_change.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_employees: i32 = approved.iter()
-            .map(|w| w.total_employees)
-            .sum();
+        let total_employees: i32 = approved.iter().map(|w| w.total_employees).sum();
 
-        self.repository.update_cycle_totals(
-            cycle_id,
-            &format!("{total_approved:.2}"),
-            total_employees,
-        ).await
+        self.repository
+            .update_cycle_totals(cycle_id, &format!("{total_approved:.2}"), total_employees)
+            .await
     }
 }
 
@@ -904,7 +1097,11 @@ mod tests {
         let current: f64 = 100000.0;
         let proposed: f64 = 110000.0;
         let change = proposed - current;
-        let pct = if current > 0.0 { (change / current) * 100.0 } else { 0.0 };
+        let pct = if current > 0.0 {
+            (change / current) * 100.0
+        } else {
+            0.0
+        };
         assert!((change - 10000.0).abs() < 0.01);
         assert!((pct - 10.0).abs() < 0.01);
     }
@@ -923,7 +1120,11 @@ mod tests {
     fn test_compa_ratio_calculation() {
         let current: f64 = 100000.0;
         let proposed: f64 = 110000.0;
-        let ratio = if current > 0.0 { proposed / current } else { 0.0 };
+        let ratio = if current > 0.0 {
+            proposed / current
+        } else {
+            0.0
+        };
         assert!((ratio - 1.1).abs() < 0.001);
     }
 
@@ -939,13 +1140,23 @@ mod tests {
         ];
 
         // Valid transitions
-        assert!(valid_transitions.iter().any(|t| t[0] == "draft" && t[1] == "active"));
-        assert!(valid_transitions.iter().any(|t| t[0] == "active" && t[1] == "allocation"));
-        assert!(valid_transitions.iter().any(|t| t[0] == "allocation" && t[1] == "review"));
+        assert!(valid_transitions
+            .iter()
+            .any(|t| t[0] == "draft" && t[1] == "active"));
+        assert!(valid_transitions
+            .iter()
+            .any(|t| t[0] == "active" && t[1] == "allocation"));
+        assert!(valid_transitions
+            .iter()
+            .any(|t| t[0] == "allocation" && t[1] == "review"));
 
         // Invalid transitions
-        assert!(!valid_transitions.iter().any(|t| t[0] == "draft" && t[1] == "completed"));
-        assert!(!valid_transitions.iter().any(|t| t[0] == "completed" && t[1] == "draft"));
+        assert!(!valid_transitions
+            .iter()
+            .any(|t| t[0] == "draft" && t[1] == "completed"));
+        assert!(!valid_transitions
+            .iter()
+            .any(|t| t[0] == "completed" && t[1] == "draft"));
     }
 
     #[test]

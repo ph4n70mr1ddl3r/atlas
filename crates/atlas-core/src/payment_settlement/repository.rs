@@ -2,8 +2,8 @@
 //!
 //! `PostgreSQL` storage for settlement batches, settlement lines, and activity audit trail.
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -180,33 +180,82 @@ pub struct SettlementLineCreateParams {
 #[async_trait]
 pub trait PaymentSettlementRepository: Send + Sync {
     // Batches
-    async fn create_batch(&self, params: &SettlementBatchCreateParams) -> AtlasResult<SettlementBatch>;
+    async fn create_batch(
+        &self,
+        params: &SettlementBatchCreateParams,
+    ) -> AtlasResult<SettlementBatch>;
     async fn get_batch(&self, id: Uuid) -> AtlasResult<Option<SettlementBatch>>;
-    async fn get_batch_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<SettlementBatch>>;
-    async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SettlementBatch>>;
+    async fn get_batch_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<SettlementBatch>>;
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SettlementBatch>>;
     async fn update_batch_status(&self, id: Uuid, status: &str) -> AtlasResult<SettlementBatch>;
-    async fn update_batch_submission(&self, id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<SettlementBatch>;
-    async fn update_batch_approval(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<SettlementBatch>;
-    async fn update_batch_settlement(&self, id: Uuid, settled_by: Option<Uuid>) -> AtlasResult<SettlementBatch>;
-    async fn update_batch_cancellation(&self, id: Uuid, cancelled_by: Option<Uuid>, reason: Option<&str>) -> AtlasResult<SettlementBatch>;
-    async fn update_batch_totals(&self, id: Uuid, invoices: i32, invoice_amt: f64, discount: f64, settled: f64, charges: f64, net: f64) -> AtlasResult<()>;
+    async fn update_batch_submission(
+        &self,
+        id: Uuid,
+        submitted_by: Option<Uuid>,
+    ) -> AtlasResult<SettlementBatch>;
+    async fn update_batch_approval(
+        &self,
+        id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<SettlementBatch>;
+    async fn update_batch_settlement(
+        &self,
+        id: Uuid,
+        settled_by: Option<Uuid>,
+    ) -> AtlasResult<SettlementBatch>;
+    async fn update_batch_cancellation(
+        &self,
+        id: Uuid,
+        cancelled_by: Option<Uuid>,
+        reason: Option<&str>,
+    ) -> AtlasResult<SettlementBatch>;
+    async fn update_batch_totals(
+        &self,
+        id: Uuid,
+        invoices: i32,
+        invoice_amt: f64,
+        discount: f64,
+        settled: f64,
+        charges: f64,
+        net: f64,
+    ) -> AtlasResult<()>;
     async fn delete_batch(&self, org_id: Uuid, number: &str) -> AtlasResult<()>;
     async fn get_next_batch_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Lines
-    async fn create_line(&self, params: &SettlementLineCreateParams) -> AtlasResult<SettlementLine>;
+    async fn create_line(&self, params: &SettlementLineCreateParams)
+        -> AtlasResult<SettlementLine>;
     async fn get_line(&self, id: Uuid) -> AtlasResult<Option<SettlementLine>>;
     async fn list_lines(&self, batch_id: Uuid) -> AtlasResult<Vec<SettlementLine>>;
-    async fn update_line_status(&self, id: Uuid, status: &str, error_message: Option<&str>) -> AtlasResult<SettlementLine>;
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        error_message: Option<&str>,
+    ) -> AtlasResult<SettlementLine>;
     async fn delete_line(&self, batch_id: Uuid, line_id: Uuid) -> AtlasResult<()>;
     async fn get_next_line_number(&self, batch_id: Uuid) -> AtlasResult<i32>;
 
     // Activities
     async fn create_activity(
-        &self, org_id: Uuid, batch_id: Uuid, line_id: Option<Uuid>,
-        activity_type: &str, description: Option<&str>,
-        old_status: Option<&str>, new_status: Option<&str>,
-        performed_by: Option<Uuid>, performed_by_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        batch_id: Uuid,
+        line_id: Option<Uuid>,
+        activity_type: &str,
+        description: Option<&str>,
+        old_status: Option<&str>,
+        new_status: Option<&str>,
+        performed_by: Option<Uuid>,
+        performed_by_name: Option<&str>,
         details: Option<serde_json::Value>,
     ) -> AtlasResult<SettlementActivity>;
     async fn list_activities(&self, batch_id: Uuid) -> AtlasResult<Vec<SettlementActivity>>;
@@ -224,7 +273,7 @@ pub struct PostgresPaymentSettlementRepository {
 }
 
 impl PostgresPaymentSettlementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -232,7 +281,10 @@ impl PostgresPaymentSettlementRepository {
 
 #[async_trait]
 impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
-    async fn create_batch(&self, params: &SettlementBatchCreateParams) -> AtlasResult<SettlementBatch> {
+    async fn create_batch(
+        &self,
+        params: &SettlementBatchCreateParams,
+    ) -> AtlasResult<SettlementBatch> {
         let seq = self.get_next_batch_number(params.org_id).await.unwrap_or(1);
         let batch_number = format!("STL-{seq:06}");
 
@@ -277,7 +329,11 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         Ok(row)
     }
 
-    async fn get_batch_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<SettlementBatch>> {
+    async fn get_batch_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<SettlementBatch>> {
         let row = sqlx::query_as::<_, SettlementBatch>(
             "SELECT * FROM _atlas.settlement_batches WHERE organization_id = $1 AND batch_number = $2",
         )
@@ -289,7 +345,11 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         Ok(row)
     }
 
-    async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SettlementBatch>> {
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SettlementBatch>> {
         let rows = sqlx::query_as::<_, SettlementBatch>(
             r"SELECT * FROM _atlas.settlement_batches
                WHERE organization_id = $1
@@ -317,7 +377,11 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         Ok(row)
     }
 
-    async fn update_batch_submission(&self, id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<SettlementBatch> {
+    async fn update_batch_submission(
+        &self,
+        id: Uuid,
+        submitted_by: Option<Uuid>,
+    ) -> AtlasResult<SettlementBatch> {
         let row = sqlx::query_as::<_, SettlementBatch>(
             r"UPDATE _atlas.settlement_batches
                SET submitted_by = $2, submitted_at = now(), updated_at = now()
@@ -331,7 +395,11 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         Ok(row)
     }
 
-    async fn update_batch_approval(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<SettlementBatch> {
+    async fn update_batch_approval(
+        &self,
+        id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<SettlementBatch> {
         let row = sqlx::query_as::<_, SettlementBatch>(
             r"UPDATE _atlas.settlement_batches
                SET approved_by = $2, approved_at = now(), updated_at = now()
@@ -345,7 +413,11 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         Ok(row)
     }
 
-    async fn update_batch_settlement(&self, id: Uuid, settled_by: Option<Uuid>) -> AtlasResult<SettlementBatch> {
+    async fn update_batch_settlement(
+        &self,
+        id: Uuid,
+        settled_by: Option<Uuid>,
+    ) -> AtlasResult<SettlementBatch> {
         let row = sqlx::query_as::<_, SettlementBatch>(
             r"UPDATE _atlas.settlement_batches
                SET settled_by = $2, settled_at = now(), updated_at = now()
@@ -359,7 +431,12 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         Ok(row)
     }
 
-    async fn update_batch_cancellation(&self, id: Uuid, cancelled_by: Option<Uuid>, reason: Option<&str>) -> AtlasResult<SettlementBatch> {
+    async fn update_batch_cancellation(
+        &self,
+        id: Uuid,
+        cancelled_by: Option<Uuid>,
+        reason: Option<&str>,
+    ) -> AtlasResult<SettlementBatch> {
         let row = sqlx::query_as::<_, SettlementBatch>(
             r"UPDATE _atlas.settlement_batches
                SET cancelled_by = $2, cancelled_at = now(), cancel_reason = $3, updated_at = now()
@@ -374,7 +451,16 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         Ok(row)
     }
 
-    async fn update_batch_totals(&self, id: Uuid, invoices: i32, invoice_amt: f64, discount: f64, settled: f64, charges: f64, net: f64) -> AtlasResult<()> {
+    async fn update_batch_totals(
+        &self,
+        id: Uuid,
+        invoices: i32,
+        invoice_amt: f64,
+        discount: f64,
+        settled: f64,
+        charges: f64,
+        net: f64,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.settlement_batches
                SET total_invoices = $2, total_invoice_amount = $3,
@@ -405,7 +491,9 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Settlement batch not found".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Settlement batch not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -423,10 +511,17 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
     }
 
     // Lines
-    async fn create_line(&self, params: &SettlementLineCreateParams) -> AtlasResult<SettlementLine> {
-        let line_number = self.get_next_line_number(params.batch_id).await.unwrap_or(1);
+    async fn create_line(
+        &self,
+        params: &SettlementLineCreateParams,
+    ) -> AtlasResult<SettlementLine> {
+        let line_number = self
+            .get_next_line_number(params.batch_id)
+            .await
+            .unwrap_or(1);
         let remaining_balance = params.amount_due - params.amount_paid;
-        let net_settlement = params.amount_paid - params.discount_taken - params.bank_charges + params.adjustment_amount;
+        let net_settlement = params.amount_paid - params.discount_taken - params.bank_charges
+            + params.adjustment_amount;
 
         let row = sqlx::query_as::<_, SettlementLine>(
             r"INSERT INTO _atlas.settlement_lines
@@ -496,7 +591,12 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
         Ok(rows)
     }
 
-    async fn update_line_status(&self, id: Uuid, status: &str, error_message: Option<&str>) -> AtlasResult<SettlementLine> {
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        error_message: Option<&str>,
+    ) -> AtlasResult<SettlementLine> {
         let row = sqlx::query_as::<_, SettlementLine>(
             r"UPDATE _atlas.settlement_lines
                SET status = $2, error_message = COALESCE($3, error_message), updated_at = now()
@@ -512,16 +612,17 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
     }
 
     async fn delete_line(&self, batch_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
-        let result = sqlx::query(
-            "DELETE FROM _atlas.settlement_lines WHERE batch_id = $1 AND id = $2",
-        )
-        .bind(batch_id)
-        .bind(line_id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let result =
+            sqlx::query("DELETE FROM _atlas.settlement_lines WHERE batch_id = $1 AND id = $2")
+                .bind(batch_id)
+                .bind(line_id)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Settlement line not found".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Settlement line not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -540,10 +641,16 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 
     // Activities
     async fn create_activity(
-        &self, org_id: Uuid, batch_id: Uuid, line_id: Option<Uuid>,
-        activity_type: &str, description: Option<&str>,
-        old_status: Option<&str>, new_status: Option<&str>,
-        performed_by: Option<Uuid>, performed_by_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        batch_id: Uuid,
+        line_id: Option<Uuid>,
+        activity_type: &str,
+        description: Option<&str>,
+        old_status: Option<&str>,
+        new_status: Option<&str>,
+        performed_by: Option<Uuid>,
+        performed_by_name: Option<&str>,
         details: Option<serde_json::Value>,
     ) -> AtlasResult<SettlementActivity> {
         let row = sqlx::query_as::<_, SettlementActivity>(
@@ -620,7 +727,11 @@ impl PaymentSettlementRepository for PostgresPaymentSettlementRepository {
 }
 
 impl PostgresPaymentSettlementRepository {
-    async fn get_grouped_counts(&self, org_id: Uuid, column: &str) -> AtlasResult<serde_json::Value> {
+    async fn get_grouped_counts(
+        &self,
+        org_id: Uuid,
+        column: &str,
+    ) -> AtlasResult<serde_json::Value> {
         let query = format!(
             "SELECT {column} as key, COUNT(*) as cnt, COALESCE(SUM(total_net_payment), 0) as total FROM _atlas.settlement_batches WHERE organization_id = $1 GROUP BY {column}"
         );

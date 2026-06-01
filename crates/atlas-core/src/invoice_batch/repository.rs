@@ -2,8 +2,8 @@
 //!
 //! `PostgreSQL` storage for AP invoice batches and batch activity audit trail.
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -105,8 +105,16 @@ pub trait InvoiceBatchRepository: Send + Sync {
     ) -> AtlasResult<InvoiceBatch>;
 
     async fn get_batch(&self, org_id: Uuid, id: Uuid) -> AtlasResult<InvoiceBatch>;
-    async fn get_batch_by_number(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<InvoiceBatch>;
-    async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InvoiceBatch>>;
+    async fn get_batch_by_number(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<InvoiceBatch>;
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<InvoiceBatch>>;
     async fn delete_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<()>;
 
     async fn update_status(
@@ -129,7 +137,12 @@ pub trait InvoiceBatchRepository: Send + Sync {
     async fn set_submitted(&self, id: Uuid, submitted_by: Uuid) -> AtlasResult<InvoiceBatch>;
     async fn set_approved(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<InvoiceBatch>;
     async fn set_posted(&self, id: Uuid, posted_by: Uuid) -> AtlasResult<InvoiceBatch>;
-    async fn set_cancelled(&self, id: Uuid, cancelled_by: Uuid, reason: Option<&str>) -> AtlasResult<InvoiceBatch>;
+    async fn set_cancelled(
+        &self,
+        id: Uuid,
+        cancelled_by: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<InvoiceBatch>;
 
     async fn add_activity(
         &self,
@@ -158,7 +171,7 @@ pub struct PostgresInvoiceBatchRepository {
 }
 
 impl PostgresInvoiceBatchRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -215,7 +228,7 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
 
     async fn get_batch(&self, org_id: Uuid, id: Uuid) -> AtlasResult<InvoiceBatch> {
         sqlx::query_as::<_, InvoiceBatch>(
-            "SELECT * FROM _atlas.ap_invoice_batches WHERE id = $1 AND organization_id = $2"
+            "SELECT * FROM _atlas.ap_invoice_batches WHERE id = $1 AND organization_id = $2",
         )
         .bind(id)
         .bind(org_id)
@@ -225,7 +238,11 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice batch {id} not found")))
     }
 
-    async fn get_batch_by_number(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<InvoiceBatch> {
+    async fn get_batch_by_number(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<InvoiceBatch> {
         sqlx::query_as::<_, InvoiceBatch>(
             "SELECT * FROM _atlas.ap_invoice_batches WHERE batch_number = $1 AND organization_id = $2"
         )
@@ -237,7 +254,11 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice batch '{batch_number}' not found")))
     }
 
-    async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InvoiceBatch>> {
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<InvoiceBatch>> {
         let batches = if let Some(s) = status {
             sqlx::query_as::<_, InvoiceBatch>(
                 "SELECT * FROM _atlas.ap_invoice_batches WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC"
@@ -380,7 +401,12 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
         .map_err(|e| AtlasError::DatabaseError(format!("Failed to post batch: {e}")))
     }
 
-    async fn set_cancelled(&self, id: Uuid, cancelled_by: Uuid, reason: Option<&str>) -> AtlasResult<InvoiceBatch> {
+    async fn set_cancelled(
+        &self,
+        id: Uuid,
+        cancelled_by: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<InvoiceBatch> {
         sqlx::query_as::<_, InvoiceBatch>(
             r"UPDATE _atlas.ap_invoice_batches
                SET status = 'cancelled', cancelled_by = $2, cancelled_at = now(),
@@ -484,12 +510,10 @@ impl InvoiceBatchRepository for PostgresInvoiceBatchRepository {
     async fn recalculate_totals(&self, batch_id: Uuid) -> AtlasResult<InvoiceBatch> {
         // Recalculate from the ap_invoices linked to this batch
         // For now, return the current batch (full implementation would join with ap_invoices)
-        sqlx::query_as::<_, InvoiceBatch>(
-            "SELECT * FROM _atlas.ap_invoice_batches WHERE id = $1"
-        )
-        .bind(batch_id)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(format!("Failed to recalculate totals: {e}")))
+        sqlx::query_as::<_, InvoiceBatch>("SELECT * FROM _atlas.ap_invoice_batches WHERE id = $1")
+            .bind(batch_id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(format!("Failed to recalculate totals: {e}")))
     }
 }

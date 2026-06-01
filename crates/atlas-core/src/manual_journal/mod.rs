@@ -13,8 +13,8 @@
 //!
 //! Oracle Fusion equivalent: General Ledger > Journals > New Journal
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ManualJournalEngine;
 pub use repository::{ManualJournalRepository, PostgresManualJournalRepository};

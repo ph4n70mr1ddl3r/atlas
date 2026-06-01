@@ -20,8 +20,8 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::auth::Claims;
+use crate::AppState;
 
 // ============================================================================
 // Inspection Plans
@@ -65,7 +65,9 @@ pub async fn create_plan(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let plan = state.scm.quality_engine
+    let plan = state
+        .scm
+        .quality_engine
         .create_plan(
             org_id,
             &payload.plan_code,
@@ -109,7 +111,9 @@ pub async fn get_plan(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let plan = state.scm.quality_engine
+    let plan = state
+        .scm
+        .quality_engine
         .get_plan(org_id, &code)
         .await
         .map_err(|e| {
@@ -135,7 +139,9 @@ pub async fn list_plans(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let plans = state.scm.quality_engine
+    let plans = state
+        .scm
+        .quality_engine
         .list_plans(org_id, params.active_only.unwrap_or(false))
         .await
         .map_err(|e| {
@@ -156,7 +162,9 @@ pub async fn delete_plan(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.scm.quality_engine
+    state
+        .scm
+        .quality_engine
         .delete_plan(org_id, &code)
         .await
         .map_err(|e| {
@@ -199,7 +207,9 @@ pub async fn create_criterion(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let criterion = state.scm.quality_engine
+    let criterion = state
+        .scm
+        .quality_engine
         .create_criterion(
             org_id,
             plan_id,
@@ -236,7 +246,9 @@ pub async fn list_criteria(
     State(state): State<Arc<AppState>>,
     Path(plan_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let criteria = state.scm.quality_engine
+    let criteria = state
+        .scm
+        .quality_engine
         .list_criteria(plan_id)
         .await
         .map_err(|e| {
@@ -254,7 +266,9 @@ pub async fn delete_criterion(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.scm.quality_engine
+    state
+        .scm
+        .quality_engine
         .delete_criterion(id)
         .await
         .map_err(|e| {
@@ -300,7 +314,9 @@ pub async fn create_inspection(
     let inspection_date = chrono::NaiveDate::parse_from_str(&payload.inspection_date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let inspection = state.scm.quality_engine
+    let inspection = state
+        .scm
+        .quality_engine
         .create_inspection(
             org_id,
             payload.plan_id,
@@ -340,7 +356,9 @@ pub async fn get_inspection(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let inspection = state.scm.quality_engine
+    let inspection = state
+        .scm
+        .quality_engine
         .get_inspection(id)
         .await
         .map_err(|e| {
@@ -367,7 +385,9 @@ pub async fn list_inspections(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let inspections = state.scm.quality_engine
+    let inspections = state
+        .scm
+        .quality_engine
         .list_inspections(org_id, params.status.as_deref(), params.plan_id)
         .await
         .map_err(|e| {
@@ -385,7 +405,9 @@ pub async fn start_inspection(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let inspection = state.scm.quality_engine
+    let inspection = state
+        .scm
+        .quality_engine
         .start_inspection(id)
         .await
         .map_err(|e| {
@@ -412,7 +434,9 @@ pub async fn complete_inspection(
     Path(id): Path<Uuid>,
     Json(payload): Json<CompleteInspectionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let inspection = state.scm.quality_engine
+    let inspection = state
+        .scm
+        .quality_engine
         .complete_inspection(id, &payload.verdict, payload.notes.as_deref())
         .await
         .map_err(|e| {
@@ -432,7 +456,9 @@ pub async fn cancel_inspection(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let inspection = state.scm.quality_engine
+    let inspection = state
+        .scm
+        .quality_engine
         .cancel_inspection(id)
         .await
         .map_err(|e| {
@@ -477,7 +503,9 @@ pub async fn create_result(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let result = state.scm.quality_engine
+    let result = state
+        .scm
+        .quality_engine
         .create_result(
             org_id,
             inspection_id,
@@ -516,7 +544,9 @@ pub async fn list_results(
     State(state): State<Arc<AppState>>,
     Path(inspection_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let results = state.scm.quality_engine
+    let results = state
+        .scm
+        .quality_engine
         .list_results(inspection_id)
         .await
         .map_err(|e| {
@@ -565,7 +595,9 @@ pub async fn create_ncr(
     let detected_date = chrono::NaiveDate::parse_from_str(&payload.detected_date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let ncr = state.scm.quality_engine
+    let ncr = state
+        .scm
+        .quality_engine
         .create_ncr(
             org_id,
             &payload.title,
@@ -604,13 +636,10 @@ pub async fn get_ncr(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let ncr = state.scm.quality_engine
-        .get_ncr(id)
-        .await
-        .map_err(|e| {
-            tracing::error!("Get NCR error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let ncr = state.scm.quality_engine.get_ncr(id).await.map_err(|e| {
+        tracing::error!("Get NCR error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     match ncr {
         Some(n) => Ok(Json(crate::handlers::records::to_json_or_null(n))),
@@ -631,7 +660,9 @@ pub async fn list_ncrs(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let ncrs = state.scm.quality_engine
+    let ncrs = state
+        .scm
+        .quality_engine
         .list_ncrs(org_id, params.status.as_deref(), params.severity.as_deref())
         .await
         .map_err(|e| {
@@ -652,7 +683,9 @@ pub async fn investigate_ncr(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let ncr = state.scm.quality_engine
+    let ncr = state
+        .scm
+        .quality_engine
         .investigate_ncr(id)
         .await
         .map_err(|e| {
@@ -671,7 +704,9 @@ pub async fn start_ncr_corrective_action(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let ncr = state.scm.quality_engine
+    let ncr = state
+        .scm
+        .quality_engine
         .start_corrective_action_phase(id)
         .await
         .map_err(|e| {
@@ -699,7 +734,9 @@ pub async fn resolve_ncr(
     Path(id): Path<Uuid>,
     Json(payload): Json<ResolveNcrRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let ncr = state.scm.quality_engine
+    let ncr = state
+        .scm
+        .quality_engine
         .resolve_ncr(
             id,
             &payload.resolution_description,
@@ -724,17 +761,14 @@ pub async fn close_ncr(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let ncr = state.scm.quality_engine
-        .close_ncr(id)
-        .await
-        .map_err(|e| {
-            tracing::error!("Close NCR error: {}", e);
-            match e {
-                atlas_shared::AtlasError::WorkflowError(_) => StatusCode::CONFLICT,
-                atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            }
-        })?;
+    let ncr = state.scm.quality_engine.close_ncr(id).await.map_err(|e| {
+        tracing::error!("Close NCR error: {}", e);
+        match e {
+            atlas_shared::AtlasError::WorkflowError(_) => StatusCode::CONFLICT,
+            atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    })?;
 
     Ok(Json(crate::handlers::records::to_json_or_null(ncr)))
 }
@@ -771,7 +805,9 @@ pub async fn create_corrective_action(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let action = state.scm.quality_engine
+    let action = state
+        .scm
+        .quality_engine
         .create_corrective_action(
             org_id,
             ncr_id,
@@ -807,7 +843,9 @@ pub async fn get_corrective_action(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let action = state.scm.quality_engine
+    let action = state
+        .scm
+        .quality_engine
         .get_corrective_action(id)
         .await
         .map_err(|e| {
@@ -832,7 +870,9 @@ pub async fn list_corrective_actions(
     Path(ncr_id): Path<Uuid>,
     Query(params): Query<ListCorrectiveActionsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let actions = state.scm.quality_engine
+    let actions = state
+        .scm
+        .quality_engine
         .list_corrective_actions(ncr_id, params.status.as_deref())
         .await
         .map_err(|e| {
@@ -853,7 +893,9 @@ pub async fn start_corrective_action(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let action = state.scm.quality_engine
+    let action = state
+        .scm
+        .quality_engine
         .start_corrective_action(id)
         .await
         .map_err(|e| {
@@ -879,7 +921,9 @@ pub async fn complete_corrective_action(
     Path(id): Path<Uuid>,
     Json(payload): Json<CompleteCorrectiveActionRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let action = state.scm.quality_engine
+    let action = state
+        .scm
+        .quality_engine
         .complete_corrective_action(id, payload.effectiveness_rating)
         .await
         .map_err(|e| {
@@ -899,7 +943,9 @@ pub async fn verify_corrective_action(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let action = state.scm.quality_engine
+    let action = state
+        .scm
+        .quality_engine
         .verify_corrective_action(id)
         .await
         .map_err(|e| {
@@ -942,7 +988,9 @@ pub async fn create_hold(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let hold = state.scm.quality_engine
+    let hold = state
+        .scm
+        .quality_engine
         .create_hold(
             org_id,
             &payload.reason,
@@ -977,13 +1025,10 @@ pub async fn get_hold(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let hold = state.scm.quality_engine
-        .get_hold(id)
-        .await
-        .map_err(|e| {
-            tracing::error!("Get hold error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let hold = state.scm.quality_engine.get_hold(id).await.map_err(|e| {
+        tracing::error!("Get hold error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     match hold {
         Some(h) => Ok(Json(crate::handlers::records::to_json_or_null(h))),
@@ -1004,7 +1049,9 @@ pub async fn list_holds(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let holds = state.scm.quality_engine
+    let holds = state
+        .scm
+        .quality_engine
         .list_holds(org_id, params.status.as_deref(), params.item_id)
         .await
         .map_err(|e| {
@@ -1032,7 +1079,9 @@ pub async fn release_hold(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let hold = state.scm.quality_engine
+    let hold = state
+        .scm
+        .quality_engine
         .release_hold(id, Some(user_id), payload.release_notes.as_deref())
         .await
         .map_err(|e| {
@@ -1057,7 +1106,9 @@ pub async fn get_quality_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let dashboard = state.scm.quality_engine
+    let dashboard = state
+        .scm
+        .quality_engine
         .get_dashboard_summary(org_id)
         .await
         .map_err(|e| {

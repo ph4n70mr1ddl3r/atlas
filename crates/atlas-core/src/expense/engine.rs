@@ -5,28 +5,28 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Expenses > Expense Reports, Categories, Policies
 
-use atlas_shared::{
-    ExpenseCategory, ExpensePolicy, ExpenseReport, ExpenseLine,
-    AtlasError, AtlasResult,
-};
 use super::ExpenseRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ExpenseCategory, ExpenseLine, ExpensePolicy, ExpenseReport,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid expense types
-const VALID_EXPENSE_TYPES: &[&str] = &[
-    "expense", "per_diem", "mileage", "credit_card",
-];
+const VALID_EXPENSE_TYPES: &[&str] = &["expense", "per_diem", "mileage", "credit_card"];
 
 /// Valid violation actions
-const VALID_VIOLATION_ACTIONS: &[&str] = &[
-    "warn", "block", "require_justification",
-];
+const VALID_VIOLATION_ACTIONS: &[&str] = &["warn", "block", "require_justification"];
 
 /// Valid report statuses for transitions
 const VALID_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "rejected", "reimbursed", "cancelled",
+    "draft",
+    "submitted",
+    "approved",
+    "rejected",
+    "reimbursed",
+    "cancelled",
 ];
 
 /// Expense engine for managing expense reports, categories, and policies
@@ -71,20 +71,38 @@ impl ExpenseEngine {
             ));
         }
 
-        info!("Creating expense category '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating expense category '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_category(
-            org_id, &code_upper, name, description,
-            receipt_required, receipt_threshold,
-            is_per_diem, default_per_diem_rate,
-            is_mileage, default_mileage_rate,
-            expense_account_code, created_by,
-        ).await
+        self.repository
+            .create_category(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                receipt_required,
+                receipt_threshold,
+                is_per_diem,
+                default_per_diem_rate,
+                is_mileage,
+                default_mileage_rate,
+                expense_account_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get an expense category by code
-    pub async fn get_category(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ExpenseCategory>> {
-        self.repository.get_category(org_id, &code.to_uppercase()).await
+    pub async fn get_category(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ExpenseCategory>> {
+        self.repository
+            .get_category(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List all categories for an organization
@@ -94,8 +112,13 @@ impl ExpenseEngine {
 
     /// Deactivate a category
     pub async fn delete_category(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        info!("Deactivating expense category '{}' for org {}", code, org_id);
-        self.repository.delete_category(org_id, &code.to_uppercase()).await
+        info!(
+            "Deactivating expense category '{}' for org {}",
+            code, org_id
+        );
+        self.repository
+            .delete_category(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -126,16 +149,17 @@ impl ExpenseEngine {
         }
         if !VALID_VIOLATION_ACTIONS.contains(&violation_action) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid violation_action '{}'. Must be one of: {}", violation_action, VALID_VIOLATION_ACTIONS.join(", ")
+                "Invalid violation_action '{}'. Must be one of: {}",
+                violation_action,
+                VALID_VIOLATION_ACTIONS.join(", ")
             )));
         }
 
         // Resolve category code to ID if provided
         let category_id = if let Some(cc) = category_code {
-            let cat = self.get_category(org_id, cc).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Expense category '{cc}' not found")
-                ))?;
+            let cat = self.get_category(org_id, cc).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Expense category '{cc}' not found"))
+            })?;
             Some(cat.id)
         } else {
             None
@@ -151,21 +175,35 @@ impl ExpenseEngine {
 
         info!("Creating expense policy '{}' for org {}", name, org_id);
 
-        self.repository.create_policy(
-            org_id, name, description, category_id,
-            min_amount, max_amount, daily_limit, report_limit,
-            requires_approval_on_violation, violation_action,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_policy(
+                org_id,
+                name,
+                description,
+                category_id,
+                min_amount,
+                max_amount,
+                daily_limit,
+                report_limit,
+                requires_approval_on_violation,
+                violation_action,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// List policies for an organization, optionally filtered by category
-    pub async fn list_policies(&self, org_id: Uuid, category_code: Option<&str>) -> AtlasResult<Vec<ExpensePolicy>> {
+    pub async fn list_policies(
+        &self,
+        org_id: Uuid,
+        category_code: Option<&str>,
+    ) -> AtlasResult<Vec<ExpensePolicy>> {
         let category_id = if let Some(cc) = category_code {
-            let cat = self.get_category(org_id, cc).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Expense category '{cc}' not found")
-                ))?;
+            let cat = self.get_category(org_id, cc).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Expense category '{cc}' not found"))
+            })?;
             Some(cat.id)
         } else {
             None
@@ -219,15 +257,29 @@ impl ExpenseEngine {
             }
         }
 
-        info!("Creating expense report '{}' for org {} employee {}", report_number, org_id, employee_id);
+        info!(
+            "Creating expense report '{}' for org {} employee {}",
+            report_number, org_id, employee_id
+        );
 
-        self.repository.create_report(
-            org_id, report_number, title, description,
-            employee_id, employee_name, department_id, purpose,
-            project_id, currency_code,
-            trip_start_date, trip_end_date, cost_center,
-            created_by,
-        ).await
+        self.repository
+            .create_report(
+                org_id,
+                report_number,
+                title,
+                description,
+                employee_id,
+                employee_name,
+                department_id,
+                purpose,
+                project_id,
+                currency_code,
+                trip_start_date,
+                trip_end_date,
+                cost_center,
+                created_by,
+            )
+            .await
     }
 
     /// Get an expense report by ID
@@ -236,8 +288,14 @@ impl ExpenseEngine {
     }
 
     /// Get an expense report by number
-    pub async fn get_report_by_number(&self, org_id: Uuid, report_number: &str) -> AtlasResult<Option<ExpenseReport>> {
-        self.repository.get_report_by_number(org_id, report_number).await
+    pub async fn get_report_by_number(
+        &self,
+        org_id: Uuid,
+        report_number: &str,
+    ) -> AtlasResult<Option<ExpenseReport>> {
+        self.repository
+            .get_report_by_number(org_id, report_number)
+            .await
     }
 
     /// List expense reports with optional filters
@@ -250,11 +308,15 @@ impl ExpenseEngine {
         if let Some(s) = status {
             if !VALID_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_reports(org_id, employee_id, status).await
+        self.repository
+            .list_reports(org_id, employee_id, status)
+            .await
     }
 
     // ========================================================================
@@ -264,15 +326,19 @@ impl ExpenseEngine {
     /// Submit an expense report for approval
     /// Only draft reports can be submitted
     pub async fn submit_report(&self, report_id: Uuid) -> AtlasResult<ExpenseReport> {
-        let report = self.repository.get_report(report_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {report_id} not found")
-            ))?;
+        let report = self
+            .repository
+            .get_report(report_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Expense report {report_id} not found"))
+            })?;
 
         if report.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit report in '{}' status. Must be 'draft'.", report.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit report in '{}' status. Must be 'draft'.",
+                report.status
+            )));
         }
 
         // Check report has at least one line
@@ -284,7 +350,9 @@ impl ExpenseEngine {
         }
 
         info!("Submitting expense report {}", report_id);
-        self.repository.update_report_status(report_id, "submitted", None, None, None).await
+        self.repository
+            .update_report_status(report_id, "submitted", None, None, None)
+            .await
     }
 
     /// Approve an expense report
@@ -293,19 +361,25 @@ impl ExpenseEngine {
         report_id: Uuid,
         approved_by: Uuid,
     ) -> AtlasResult<ExpenseReport> {
-        let report = self.repository.get_report(report_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {report_id} not found")
-            ))?;
+        let report = self
+            .repository
+            .get_report(report_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Expense report {report_id} not found"))
+            })?;
 
         if report.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve report in '{}' status. Must be 'submitted'.", report.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve report in '{}' status. Must be 'submitted'.",
+                report.status
+            )));
         }
 
         info!("Approving expense report {} by {}", report_id, approved_by);
-        self.repository.update_report_status(report_id, "approved", Some(approved_by), None, None).await
+        self.repository
+            .update_report_status(report_id, "approved", Some(approved_by), None, None)
+            .await
     }
 
     /// Reject an expense report
@@ -315,58 +389,77 @@ impl ExpenseEngine {
         rejected_by: Uuid,
         reason: Option<&str>,
     ) -> AtlasResult<ExpenseReport> {
-        let report = self.repository.get_report(report_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {report_id} not found")
-            ))?;
+        let report = self
+            .repository
+            .get_report(report_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Expense report {report_id} not found"))
+            })?;
 
         if report.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reject report in '{}' status. Must be 'submitted'.", report.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reject report in '{}' status. Must be 'submitted'.",
+                report.status
+            )));
         }
 
         info!("Rejecting expense report {} by {}", report_id, rejected_by);
-        self.repository.update_report_status(report_id, "rejected", Some(rejected_by), reason, None).await
+        self.repository
+            .update_report_status(report_id, "rejected", Some(rejected_by), reason, None)
+            .await
     }
 
     /// Mark an expense report as reimbursed
-    pub async fn reimburse_report(
-        &self,
-        report_id: Uuid,
-    ) -> AtlasResult<ExpenseReport> {
-        let report = self.repository.get_report(report_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {report_id} not found")
-            ))?;
+    pub async fn reimburse_report(&self, report_id: Uuid) -> AtlasResult<ExpenseReport> {
+        let report = self
+            .repository
+            .get_report(report_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Expense report {report_id} not found"))
+            })?;
 
         if report.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reimburse report in '{}' status. Must be 'approved'.", report.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reimburse report in '{}' status. Must be 'approved'.",
+                report.status
+            )));
         }
 
         info!("Reimbursing expense report {}", report_id);
-        self.repository.update_report_status(
-            report_id, "reimbursed", report.approved_by, None, Some(chrono::Utc::now()),
-        ).await
+        self.repository
+            .update_report_status(
+                report_id,
+                "reimbursed",
+                report.approved_by,
+                None,
+                Some(chrono::Utc::now()),
+            )
+            .await
     }
 
     /// Cancel a draft expense report
     pub async fn cancel_report(&self, report_id: Uuid) -> AtlasResult<ExpenseReport> {
-        let report = self.repository.get_report(report_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {report_id} not found")
-            ))?;
+        let report = self
+            .repository
+            .get_report(report_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Expense report {report_id} not found"))
+            })?;
 
         if report.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel report in '{}' status. Must be 'draft'.", report.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel report in '{}' status. Must be 'draft'.",
+                report.status
+            )));
         }
 
         info!("Cancelling expense report {}", report_id);
-        self.repository.update_report_status(report_id, "cancelled", None, None, None).await
+        self.repository
+            .update_report_status(report_id, "cancelled", None, None, None)
+            .await
     }
 
     // ========================================================================
@@ -402,10 +495,13 @@ impl ExpenseEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ExpenseLine> {
         // Validate report exists and is in draft status
-        let report = self.repository.get_report(report_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {report_id} not found")
-            ))?;
+        let report = self
+            .repository
+            .get_report(report_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Expense report {report_id} not found"))
+            })?;
 
         if report.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -415,13 +511,15 @@ impl ExpenseEngine {
 
         if !VALID_EXPENSE_TYPES.contains(&expense_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid expense_type '{}'. Must be one of: {}", expense_type, VALID_EXPENSE_TYPES.join(", ")
+                "Invalid expense_type '{}'. Must be one of: {}",
+                expense_type,
+                VALID_EXPENSE_TYPES.join(", ")
             )));
         }
 
-        let amount_val: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amount_val: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
         if amount_val < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Amount must be non-negative".to_string(),
@@ -436,10 +534,9 @@ impl ExpenseEngine {
         let mut expense_account_code: Option<String> = None;
 
         if let Some(cc) = category_code {
-            let cat = self.get_category(org_id, cc).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Expense category '{cc}' not found")
-                ))?;
+            let cat = self.get_category(org_id, cc).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Expense category '{cc}' not found"))
+            })?;
             category_id = Some(cat.id);
             category_name = Some(cat.name);
             expense_account_code = cat.expense_account_code;
@@ -449,7 +546,11 @@ impl ExpenseEngine {
                 let days = per_diem_days.unwrap_or(1.0);
                 let rate: f64 = per_diem_rate
                     .map(|r| r.parse().unwrap_or(0.0))
-                    .or_else(|| cat.default_per_diem_rate.as_ref().map(|r| r.parse().unwrap_or(0.0)))
+                    .or_else(|| {
+                        cat.default_per_diem_rate
+                            .as_ref()
+                            .map(|r| r.parse().unwrap_or(0.0))
+                    })
                     .unwrap_or(0.0);
                 resolved_amount = days * rate;
             }
@@ -459,7 +560,11 @@ impl ExpenseEngine {
                 let distance = mileage_distance.unwrap_or(0.0);
                 let rate: f64 = mileage_rate
                     .map(|r| r.parse().unwrap_or(0.0))
-                    .or_else(|| cat.default_mileage_rate.as_ref().map(|r| r.parse().unwrap_or(0.0)))
+                    .or_else(|| {
+                        cat.default_mileage_rate
+                            .as_ref()
+                            .map(|r| r.parse().unwrap_or(0.0))
+                    })
                     .unwrap_or(0.0);
                 resolved_amount = distance * rate;
             }
@@ -470,28 +575,56 @@ impl ExpenseEngine {
         let line_number = (existing_lines.len() + 1) as i32;
 
         // Validate against expense policies
-        let (policy_violation, policy_violation_message) =
-            self.validate_line_against_policies(org_id, category_id.as_ref(), resolved_amount, &expense_date).await?;
+        let (policy_violation, policy_violation_message) = self
+            .validate_line_against_policies(
+                org_id,
+                category_id.as_ref(),
+                resolved_amount,
+                &expense_date,
+            )
+            .await?;
 
         let is_reimb = is_reimbursable.unwrap_or(true);
 
-        info!("Adding expense line to report {} (line {})", report_id, line_number);
+        info!(
+            "Adding expense line to report {} (line {})",
+            report_id, line_number
+        );
 
-        let line = self.repository.create_line(
-            org_id, report_id, line_number,
-            category_id, category_name.as_deref(), &resolved_expense_type,
-            description, expense_date,
-            &format!("{resolved_amount:.2}"),
-            original_currency, original_amount, exchange_rate,
-            is_reimb,
-            has_receipt.unwrap_or(false), receipt_reference,
-            merchant_name, location, attendees,
-            per_diem_days, per_diem_rate,
-            mileage_distance, mileage_rate, mileage_unit,
-            mileage_from, mileage_to,
-            policy_violation, policy_violation_message.as_deref(),
-            expense_account_code.as_deref(), created_by,
-        ).await?;
+        let line = self
+            .repository
+            .create_line(
+                org_id,
+                report_id,
+                line_number,
+                category_id,
+                category_name.as_deref(),
+                &resolved_expense_type,
+                description,
+                expense_date,
+                &format!("{resolved_amount:.2}"),
+                original_currency,
+                original_amount,
+                exchange_rate,
+                is_reimb,
+                has_receipt.unwrap_or(false),
+                receipt_reference,
+                merchant_name,
+                location,
+                attendees,
+                per_diem_days,
+                per_diem_rate,
+                mileage_distance,
+                mileage_rate,
+                mileage_unit,
+                mileage_from,
+                mileage_to,
+                policy_violation,
+                policy_violation_message.as_deref(),
+                expense_account_code.as_deref(),
+                created_by,
+            )
+            .await?;
 
         // Recalculate report totals
         self.recalculate_report_totals(report_id).await?;
@@ -501,10 +634,13 @@ impl ExpenseEngine {
 
     /// Delete an expense line from a report
     pub async fn delete_line(&self, report_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
-        let report = self.repository.get_report(report_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Expense report {report_id} not found")
-            ))?;
+        let report = self
+            .repository
+            .get_report(report_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Expense report {report_id} not found"))
+            })?;
 
         if report.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -537,7 +673,10 @@ impl ExpenseEngine {
         amount: f64,
         _expense_date: &chrono::NaiveDate,
     ) -> AtlasResult<(bool, Option<String>)> {
-        let policies = self.repository.list_policies(org_id, category_id.copied()).await?;
+        let policies = self
+            .repository
+            .list_policies(org_id, category_id.copied())
+            .await?;
 
         let mut violations = Vec::new();
         for policy in &policies {
@@ -610,13 +749,15 @@ impl ExpenseEngine {
             }
         }
 
-        self.repository.update_report_totals(
-            report_id,
-            &format!("{total:.2}"),
-            &format!("{reimbursable:.2}"),
-            &format!("{receipt_required:.2}"),
-            receipt_count,
-        ).await?;
+        self.repository
+            .update_report_totals(
+                report_id,
+                &format!("{total:.2}"),
+                &format!("{reimbursable:.2}"),
+                &format!("{receipt_required:.2}"),
+                receipt_count,
+            )
+            .await?;
 
         Ok(())
     }

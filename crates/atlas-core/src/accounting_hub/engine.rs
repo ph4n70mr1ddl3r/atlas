@@ -6,28 +6,29 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Accounting Hub
 
-use atlas_shared::{
-    ExternalSystem, AccountingEvent, TransactionMappingRule, AccountingHubDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::AccountingHubRepository;
+use atlas_shared::{
+    AccountingEvent, AccountingHubDashboardSummary, AtlasError, AtlasResult, ExternalSystem,
+    TransactionMappingRule,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid system types
-const VALID_SYSTEM_TYPES: &[&str] = &[
-    "erp", "billing", "pos", "banking", "insurance", "custom",
-];
+const VALID_SYSTEM_TYPES: &[&str] = &["erp", "billing", "pos", "banking", "insurance", "custom"];
 
 /// Valid event classes
-const VALID_EVENT_CLASSES: &[&str] = &[
-    "invoice", "payment", "adjustment", "transfer", "custom",
-];
+const VALID_EVENT_CLASSES: &[&str] = &["invoice", "payment", "adjustment", "transfer", "custom"];
 
 /// Valid event statuses
 const VALID_EVENT_STATUSES: &[&str] = &[
-    "received", "validated", "accounted", "posted", "transferred", "error",
+    "received",
+    "validated",
+    "accounted",
+    "posted",
+    "transferred",
+    "error",
 ];
 
 /// Accounting Hub Engine
@@ -62,26 +63,47 @@ impl AccountingHubEngine {
         }
         if !VALID_SYSTEM_TYPES.contains(&system_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid system_type '{}'. Must be one of: {}", system_type, VALID_SYSTEM_TYPES.join(", ")
+                "Invalid system_type '{}'. Must be one of: {}",
+                system_type,
+                VALID_SYSTEM_TYPES.join(", ")
             )));
         }
 
-        if self.repository.get_external_system(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(
-                format!("External system code '{code}' already exists")
-            ));
+        if self
+            .repository
+            .get_external_system(org_id, code)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "External system code '{code}' already exists"
+            )));
         }
 
-        info!("Registering external system {} ({}) for org {}", code, system_type, org_id);
+        info!(
+            "Registering external system {} ({}) for org {}",
+            code, system_type, org_id
+        );
 
-        self.repository.create_external_system(
-            org_id, code, name, description, system_type,
-            connection_config, created_by,
-        ).await
+        self.repository
+            .create_external_system(
+                org_id,
+                code,
+                name,
+                description,
+                system_type,
+                connection_config,
+                created_by,
+            )
+            .await
     }
 
     /// Get an external system by code
-    pub async fn get_external_system(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ExternalSystem>> {
+    pub async fn get_external_system(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ExternalSystem>> {
         self.repository.get_external_system(org_id, code).await
     }
 
@@ -92,10 +114,12 @@ impl AccountingHubEngine {
 
     /// Delete an external system
     pub async fn delete_external_system(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        self.repository.get_external_system(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("External system '{code}' not found")
-            ))?;
+        self.repository
+            .get_external_system(org_id, code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("External system '{code}' not found"))
+            })?;
 
         self.repository.delete_external_system(org_id, code).await
     }
@@ -130,7 +154,9 @@ impl AccountingHubEngine {
         }
         if !VALID_EVENT_CLASSES.contains(&event_class) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid event_class '{}'. Must be one of: {}", event_class, VALID_EVENT_CLASSES.join(", ")
+                "Invalid event_class '{}'. Must be one of: {}",
+                event_class,
+                VALID_EVENT_CLASSES.join(", ")
             )));
         }
         if priority < 0 {
@@ -140,24 +166,50 @@ impl AccountingHubEngine {
         }
 
         // Verify external system exists
-        self.repository.get_external_system_by_id(external_system_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("External system {external_system_id} not found")
-            ))?;
+        self.repository
+            .get_external_system_by_id(external_system_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "External system {external_system_id} not found"
+                ))
+            })?;
 
-        info!("Creating mapping rule {} for external system {}", code, external_system_id);
+        info!(
+            "Creating mapping rule {} for external system {}",
+            code, external_system_id
+        );
 
-        self.repository.create_mapping_rule(
-            org_id, external_system_id, code, name, description,
-            event_type, event_class, priority, conditions, field_mappings,
-            accounting_method_id, stop_on_match, effective_from, effective_to,
-            created_by,
-        ).await
+        self.repository
+            .create_mapping_rule(
+                org_id,
+                external_system_id,
+                code,
+                name,
+                description,
+                event_type,
+                event_class,
+                priority,
+                conditions,
+                field_mappings,
+                accounting_method_id,
+                stop_on_match,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// List mapping rules
-    pub async fn list_mapping_rules(&self, org_id: Uuid, external_system_id: Option<Uuid>) -> AtlasResult<Vec<TransactionMappingRule>> {
-        self.repository.list_mapping_rules(org_id, external_system_id).await
+    pub async fn list_mapping_rules(
+        &self,
+        org_id: Uuid,
+        external_system_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<TransactionMappingRule>> {
+        self.repository
+            .list_mapping_rules(org_id, external_system_id)
+            .await
     }
 
     /// Delete a mapping rule
@@ -191,36 +243,61 @@ impl AccountingHubEngine {
         }
         if !VALID_EVENT_CLASSES.contains(&event_class) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid event_class '{}'. Must be one of: {}", event_class, VALID_EVENT_CLASSES.join(", ")
+                "Invalid event_class '{}'. Must be one of: {}",
+                event_class,
+                VALID_EVENT_CLASSES.join(", ")
             )));
         }
 
         // Verify external system exists
-        let system = self.repository.get_external_system_by_id(external_system_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("External system {external_system_id} not found")
-            ))?;
+        let system = self
+            .repository
+            .get_external_system_by_id(external_system_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "External system {external_system_id} not found"
+                ))
+            })?;
 
         let event_number = format!("AE-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Receiving accounting event {} from {} ({})", event_number, system.code, event_type);
+        info!(
+            "Receiving accounting event {} from {} ({})",
+            event_number, system.code, event_type
+        );
 
-        let event = self.repository.create_accounting_event(
-            org_id, &event_number, external_system_id, Some(&system.code),
-            event_type, event_class, source_event_id, payload.clone(),
-            serde_json::json!({}), // Will be populated during processing
-            None, // Accounting method determined during processing
-            "received", event_date, None,
-            currency_code, total_amount, description, created_by,
-        ).await?;
+        let event = self
+            .repository
+            .create_accounting_event(
+                org_id,
+                &event_number,
+                external_system_id,
+                Some(&system.code),
+                event_type,
+                event_class,
+                source_event_id,
+                payload.clone(),
+                serde_json::json!({}), // Will be populated during processing
+                None,                  // Accounting method determined during processing
+                "received",
+                event_date,
+                None,
+                currency_code,
+                total_amount,
+                description,
+                created_by,
+            )
+            .await?;
 
         // Auto-process: validate and apply mapping rules
         self.process_event(event.id).await?;
 
         // Refresh after processing
-        self.repository.get_accounting_event(event.id).await?.ok_or_else(|| AtlasError::Internal(
-            "Event disappeared after processing".to_string(),
-        ))
+        self.repository
+            .get_accounting_event(event.id)
+            .await?
+            .ok_or_else(|| AtlasError::Internal("Event disappeared after processing".to_string()))
     }
 
     /// Get an accounting event by ID
@@ -239,11 +316,15 @@ impl AccountingHubEngine {
         if let Some(s) = status {
             if !VALID_EVENT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_EVENT_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_EVENT_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_accounting_events(org_id, status, external_system_id, event_type).await
+        self.repository
+            .list_accounting_events(org_id, status, external_system_id, event_type)
+            .await
     }
 
     // ========================================================================
@@ -252,10 +333,13 @@ impl AccountingHubEngine {
 
     /// Process a received event: validate and apply mapping rules
     async fn process_event(&self, event_id: Uuid) -> AtlasResult<()> {
-        let event = self.repository.get_accounting_event(event_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Accounting event {event_id} not found")
-            ))?;
+        let event = self
+            .repository
+            .get_accounting_event(event_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Accounting event {event_id} not found"))
+            })?;
 
         if event.status != "received" {
             return Ok(()); // Already processed
@@ -264,9 +348,9 @@ impl AccountingHubEngine {
         // Step 1: Validate required fields
         let validation_result = self.validate_event(&event);
         if let Err(e) = validation_result {
-            self.repository.update_event_status(
-                event_id, "error", Some(&e.to_string()), None, None, None,
-            ).await?;
+            self.repository
+                .update_event_status(event_id, "error", Some(&e.to_string()), None, None, None)
+                .await?;
             return Err(e);
         }
 
@@ -275,29 +359,36 @@ impl AccountingHubEngine {
 
         match mapping_result {
             Ok((attributes, method_id)) => {
-                self.repository.update_event_status(
-                    event_id, "validated", None,
-                    Some(attributes), None, None,
-                ).await?;
+                self.repository
+                    .update_event_status(event_id, "validated", None, Some(attributes), None, None)
+                    .await?;
 
                 // Store the determined accounting method
                 if let Some(mid) = method_id {
-                    let _event = self.repository.get_accounting_event(event_id).await?
-                        .ok_or_else(|| AtlasError::EntityNotFound(
-                            format!("Accounting event {event_id} not found")
-                        ))?;
+                    let _event = self
+                        .repository
+                        .get_accounting_event(event_id)
+                        .await?
+                        .ok_or_else(|| {
+                            AtlasError::EntityNotFound(format!(
+                                "Accounting event {event_id} not found"
+                            ))
+                        })?;
 
                     // In a full implementation, we would create SLA journal entries here
                     // For now, mark as accounted
                     let _ = mid; // Acknowledge usage
                 }
 
-                info!("Successfully processed accounting event {}", event.event_number);
+                info!(
+                    "Successfully processed accounting event {}",
+                    event.event_number
+                );
             }
             Err(e) => {
-                self.repository.update_event_status(
-                    event_id, "error", Some(&e.to_string()), None, None, None,
-                ).await?;
+                self.repository
+                    .update_event_status(event_id, "error", Some(&e.to_string()), None, None, None)
+                    .await?;
                 return Err(e);
             }
         }
@@ -325,16 +416,23 @@ impl AccountingHubEngine {
         &self,
         event: &AccountingEvent,
     ) -> AtlasResult<(serde_json::Value, Option<Uuid>)> {
-        let rules = self.repository.list_active_mapping_rules(
-            event.organization_id, event.external_system_id, &event.event_type,
-        ).await?;
+        let rules = self
+            .repository
+            .list_active_mapping_rules(
+                event.organization_id,
+                event.external_system_id,
+                &event.event_type,
+            )
+            .await?;
 
         let mut attributes = serde_json::json!({});
         let mut matched_method_id: Option<Uuid> = None;
 
         for rule in &rules {
             // Check conditions
-            if !rule.conditions.is_null() && !Self::conditions_match(&rule.conditions, &event.payload) {
+            if !rule.conditions.is_null()
+                && !Self::conditions_match(&rule.conditions, &event.payload)
+            {
                 continue;
             }
 
@@ -363,20 +461,26 @@ impl AccountingHubEngine {
 
     /// Check if conditions match against a payload
     fn conditions_match(conditions: &serde_json::Value, payload: &serde_json::Value) -> bool {
-        let Some(obj) = conditions.as_object() else { return true; };
-        if obj.is_empty() { return true; }
+        let Some(obj) = conditions.as_object() else {
+            return true;
+        };
+        if obj.is_empty() {
+            return true;
+        }
 
         for (key, expected) in obj {
             let actual = Self::extract_value(payload, key);
             match (actual, expected) {
                 (Some(a), serde_json::Value::String(s))
-                    if a.as_str().unwrap_or("") != s.as_str() => {
-                        return false;
-                    }
+                    if a.as_str().unwrap_or("") != s.as_str() =>
+                {
+                    return false;
+                }
                 (Some(a), serde_json::Value::Number(n))
-                    if a.as_f64().unwrap_or(0.0) != n.as_f64().unwrap_or(0.0) => {
-                        return false;
-                    }
+                    if a.as_f64().unwrap_or(0.0) != n.as_f64().unwrap_or(0.0) =>
+                {
+                    return false;
+                }
                 (None, _) => return false,
                 _ => {}
             }
@@ -399,7 +503,10 @@ impl AccountingHubEngine {
     // ========================================================================
 
     /// Get the Accounting Hub dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<AccountingHubDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<AccountingHubDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 }
@@ -449,10 +556,8 @@ mod tests {
 
     #[test]
     fn test_conditions_match_null() {
-        let result = AccountingHubEngine::conditions_match(
-            &serde_json::Value::Null,
-            &serde_json::json!({}),
-        );
+        let result =
+            AccountingHubEngine::conditions_match(&serde_json::Value::Null, &serde_json::json!({}));
         assert!(result);
     }
 

@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Order Management > Returns > Return Material Authorization
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::CustomerReturnsEngine;
 pub use repository::{CustomerReturnsRepository, PostgresCustomerReturnsRepository};

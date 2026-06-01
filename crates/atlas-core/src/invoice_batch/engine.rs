@@ -5,22 +5,16 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Payables > Invoice Batches
 
+use super::repository::{InvoiceBatch, InvoiceBatchRepository};
 use atlas_shared::{AtlasError, AtlasResult};
-use super::repository::{
-    InvoiceBatchRepository, InvoiceBatch,
-};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 // Valid statuses
-const VALID_BATCH_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "posted", "cancelled",
-];
+const VALID_BATCH_STATUSES: &[&str] = &["draft", "submitted", "approved", "posted", "cancelled"];
 
-const VALID_SOURCES: &[&str] = &[
-    "manual", "import", "edi", "project", "expense", "other",
-];
+const VALID_SOURCES: &[&str] = &["manual", "import", "edi", "project", "expense", "other"];
 
 const _VALID_CURRENCIES: &[&str] = &[
     "USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "INR", "BRL", "MXN",
@@ -43,7 +37,9 @@ impl InvoiceBatchEngine {
     fn validate_source(source: &str) -> AtlasResult<()> {
         if !VALID_SOURCES.contains(&source) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid source '{}'. Must be one of: {}", source, VALID_SOURCES.join(", ")
+                "Invalid source '{}'. Must be one of: {}",
+                source,
+                VALID_SOURCES.join(", ")
             )));
         }
         Ok(())
@@ -52,7 +48,9 @@ impl InvoiceBatchEngine {
     fn validate_batch_status(status: &str) -> AtlasResult<()> {
         if !VALID_BATCH_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid status '{}'. Must be one of: {}", status, VALID_BATCH_STATUSES.join(", ")
+                "Invalid status '{}'. Must be one of: {}",
+                status,
+                VALID_BATCH_STATUSES.join(", ")
             )));
         }
         Ok(())
@@ -131,32 +129,38 @@ impl InvoiceBatchEngine {
 
         let batch_number = Self::generate_batch_number();
 
-        let batch = self.repo.create_batch(
-            org_id,
-            &batch_number,
-            batch_name,
-            description,
-            currency_code,
-            exchange_rate_type,
-            exchange_rate,
-            gl_date,
-            accounting_period,
-            source,
-            control_total,
-            control_count,
-            created_by,
-        ).await?;
+        let batch = self
+            .repo
+            .create_batch(
+                org_id,
+                &batch_number,
+                batch_name,
+                description,
+                currency_code,
+                exchange_rate_type,
+                exchange_rate,
+                gl_date,
+                accounting_period,
+                source,
+                control_total,
+                control_count,
+                created_by,
+            )
+            .await?;
 
         // Log creation activity
-        self.repo.add_activity(
-            batch.id,
-            "created",
-            Some(&format!("Batch '{batch_name}' created")),
-            None,
-            Some("draft"),
-            created_by,
-            None,
-        ).await.ok();
+        self.repo
+            .add_activity(
+                batch.id,
+                "created",
+                Some(&format!("Batch '{batch_name}' created")),
+                None,
+                Some("draft"),
+                created_by,
+                None,
+            )
+            .await
+            .ok();
 
         Ok(batch)
     }
@@ -167,7 +171,11 @@ impl InvoiceBatchEngine {
     }
 
     /// Get a batch by batch number
-    pub async fn get_batch_by_number(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<InvoiceBatch> {
+    pub async fn get_batch_by_number(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<InvoiceBatch> {
         self.repo.get_batch_by_number(org_id, batch_number).await
     }
 
@@ -185,7 +193,10 @@ impl InvoiceBatchEngine {
 
     /// Delete a draft batch by number
     pub async fn delete_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<()> {
-        info!("Deleting invoice batch '{}' for org {}", batch_number, org_id);
+        info!(
+            "Deleting invoice batch '{}' for org {}",
+            batch_number, org_id
+        );
         self.repo.delete_batch(org_id, batch_number).await
     }
 
@@ -232,23 +243,27 @@ impl InvoiceBatchEngine {
         }
 
         if !validation_errors.is_empty() {
-            return Err(AtlasError::ValidationFailed(
-                format!("Batch validation failed: {}", validation_errors.join("; "))
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Batch validation failed: {}",
+                validation_errors.join("; ")
+            )));
         }
 
         let old_status = batch.status.clone();
         let updated = self.repo.set_submitted(id, submitted_by).await?;
 
-        self.repo.add_activity(
-            id,
-            "submitted",
-            Some("Batch submitted for approval"),
-            Some(&old_status),
-            Some("submitted"),
-            Some(submitted_by),
-            None,
-        ).await.ok();
+        self.repo
+            .add_activity(
+                id,
+                "submitted",
+                Some("Batch submitted for approval"),
+                Some(&old_status),
+                Some("submitted"),
+                Some(submitted_by),
+                None,
+            )
+            .await
+            .ok();
 
         Ok(updated)
     }
@@ -268,15 +283,18 @@ impl InvoiceBatchEngine {
         let old_status = batch.status.clone();
         let updated = self.repo.set_approved(id, approved_by).await?;
 
-        self.repo.add_activity(
-            id,
-            "approved",
-            Some("Batch approved"),
-            Some(&old_status),
-            Some("approved"),
-            Some(approved_by),
-            None,
-        ).await.ok();
+        self.repo
+            .add_activity(
+                id,
+                "approved",
+                Some("Batch approved"),
+                Some(&old_status),
+                Some("approved"),
+                Some(approved_by),
+                None,
+            )
+            .await
+            .ok();
 
         Ok(updated)
     }
@@ -296,15 +314,21 @@ impl InvoiceBatchEngine {
         let old_status = batch.status.clone();
         let updated = self.repo.set_posted(id, posted_by).await?;
 
-        self.repo.add_activity(
-            id,
-            "posted",
-            Some(&format!("Batch posted to GL ({} invoices, {:.2} total)", batch.total_invoice_count, batch.total_amount)),
-            Some(&old_status),
-            Some("posted"),
-            Some(posted_by),
-            None,
-        ).await.ok();
+        self.repo
+            .add_activity(
+                id,
+                "posted",
+                Some(&format!(
+                    "Batch posted to GL ({} invoices, {:.2} total)",
+                    batch.total_invoice_count, batch.total_amount
+                )),
+                Some(&old_status),
+                Some("posted"),
+                Some(posted_by),
+                None,
+            )
+            .await
+            .ok();
 
         Ok(updated)
     }
@@ -325,15 +349,21 @@ impl InvoiceBatchEngine {
         let old_status = batch.status.clone();
         let updated = self.repo.set_cancelled(id, cancelled_by, reason).await?;
 
-        self.repo.add_activity(
-            id,
-            "cancelled",
-            Some(&format!("Batch cancelled{}", reason.map(|r| format!(": {r}")).unwrap_or_default())),
-            Some(&old_status),
-            Some("cancelled"),
-            Some(cancelled_by),
-            reason.map(|r| serde_json::json!({"reason": r})),
-        ).await.ok();
+        self.repo
+            .add_activity(
+                id,
+                "cancelled",
+                Some(&format!(
+                    "Batch cancelled{}",
+                    reason.map(|r| format!(": {r}")).unwrap_or_default()
+                )),
+                Some(&old_status),
+                Some("cancelled"),
+                Some(cancelled_by),
+                reason.map(|r| serde_json::json!({"reason": r})),
+            )
+            .await
+            .ok();
 
         Ok(updated)
     }
@@ -356,23 +386,32 @@ impl InvoiceBatchEngine {
         let new_tax_amount = batch.total_tax_amount + tax_amount;
         let new_total = new_invoice_amount + new_tax_amount;
 
-        self.repo.update_totals(
-            batch_id,
-            new_count,
-            new_invoice_amount,
-            new_tax_amount,
-            new_total,
-        ).await?;
+        self.repo
+            .update_totals(
+                batch_id,
+                new_count,
+                new_invoice_amount,
+                new_tax_amount,
+                new_total,
+            )
+            .await?;
 
-        self.repo.add_activity(
-            batch_id,
-            "invoice_added",
-            Some(&format!("Invoice added (amount: {invoice_amount:.2}, tax: {tax_amount:.2})")),
-            None,
-            None,
-            None,
-            Some(serde_json::json!({"invoice_amount": invoice_amount, "tax_amount": tax_amount})),
-        ).await.ok();
+        self.repo
+            .add_activity(
+                batch_id,
+                "invoice_added",
+                Some(&format!(
+                    "Invoice added (amount: {invoice_amount:.2}, tax: {tax_amount:.2})"
+                )),
+                None,
+                None,
+                None,
+                Some(
+                    serde_json::json!({"invoice_amount": invoice_amount, "tax_amount": tax_amount}),
+                ),
+            )
+            .await
+            .ok();
 
         self.repo.recalculate_totals(batch_id).await
     }
@@ -391,23 +430,30 @@ impl InvoiceBatchEngine {
         let new_tax_amount = batch.total_tax_amount - tax_amount;
         let new_total = new_invoice_amount + new_tax_amount;
 
-        self.repo.update_totals(
-            batch_id,
-            new_count,
-            new_invoice_amount,
-            new_tax_amount,
-            new_total,
-        ).await?;
+        self.repo
+            .update_totals(
+                batch_id,
+                new_count,
+                new_invoice_amount,
+                new_tax_amount,
+                new_total,
+            )
+            .await?;
 
-        self.repo.add_activity(
-            batch_id,
-            "invoice_removed",
-            Some(&format!("Invoice removed (amount: {invoice_amount:.2})")),
-            None,
-            None,
-            None,
-            Some(serde_json::json!({"invoice_amount": invoice_amount, "tax_amount": tax_amount})),
-        ).await.ok();
+        self.repo
+            .add_activity(
+                batch_id,
+                "invoice_removed",
+                Some(&format!("Invoice removed (amount: {invoice_amount:.2})")),
+                None,
+                None,
+                None,
+                Some(
+                    serde_json::json!({"invoice_amount": invoice_amount, "tax_amount": tax_amount}),
+                ),
+            )
+            .await
+            .ok();
 
         self.repo.recalculate_totals(batch_id).await
     }
@@ -417,12 +463,18 @@ impl InvoiceBatchEngine {
     // ========================================================================
 
     /// List all activities for a batch
-    pub async fn list_activities(&self, batch_id: Uuid) -> AtlasResult<Vec<super::repository::InvoiceBatchActivity>> {
+    pub async fn list_activities(
+        &self,
+        batch_id: Uuid,
+    ) -> AtlasResult<Vec<super::repository::InvoiceBatchActivity>> {
         self.repo.list_activities(batch_id).await
     }
 
     /// Get dashboard summary
-    pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<super::repository::InvoiceBatchSummary> {
+    pub async fn get_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<super::repository::InvoiceBatchSummary> {
         self.repo.get_dashboard(org_id).await
     }
 
@@ -450,9 +502,15 @@ impl InvoiceBatchEngine {
             }
         }
 
-        let vs = if errors.is_empty() { "valid" } else { "invalid" };
+        let vs = if errors.is_empty() {
+            "valid"
+        } else {
+            "invalid"
+        };
         let ve = serde_json::to_value(&errors).unwrap_or(serde_json::json!([]));
 
-        self.repo.update_status(id, &batch.status, Some(vs), Some(ve)).await
+        self.repo
+            .update_status(id, &batch.status, Some(vs), Some(ve))
+            .await
     }
 }

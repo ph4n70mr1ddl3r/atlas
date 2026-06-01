@@ -18,11 +18,11 @@ mod engine;
 
 pub use engine::ThirdPartyPaymentEngine;
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 
 /// Third-party payment header
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,40 +125,91 @@ pub struct ThirdPartyPaymentDashboard {
 #[async_trait]
 pub trait ThirdPartyPaymentRepository: Send + Sync {
     async fn create_payment(
-        &self, org_id: Uuid, payment_number: &str, payment_type: &str,
-        source_entity_type: &str, source_entity_id: Uuid, source_entity_name: &str,
-        payee_name: &str, payee_tax_id: Option<&str>, payee_address: Option<&str>,
-        payee_bank_account: Option<&str>, amount: &str, currency_code: &str,
-        payment_method: Option<&str>, payment_date: Option<chrono::NaiveDate>,
-        due_date: Option<chrono::NaiveDate>, reference_document: Option<&str>,
-        reference_document_id: Option<Uuid>, description: Option<&str>,
-        case_number: Option<&str>, court_jurisdiction: Option<&str>,
-        is_recurring: bool, recurrence_frequency: Option<&str>,
+        &self,
+        org_id: Uuid,
+        payment_number: &str,
+        payment_type: &str,
+        source_entity_type: &str,
+        source_entity_id: Uuid,
+        source_entity_name: &str,
+        payee_name: &str,
+        payee_tax_id: Option<&str>,
+        payee_address: Option<&str>,
+        payee_bank_account: Option<&str>,
+        amount: &str,
+        currency_code: &str,
+        payment_method: Option<&str>,
+        payment_date: Option<chrono::NaiveDate>,
+        due_date: Option<chrono::NaiveDate>,
+        reference_document: Option<&str>,
+        reference_document_id: Option<Uuid>,
+        description: Option<&str>,
+        case_number: Option<&str>,
+        court_jurisdiction: Option<&str>,
+        is_recurring: bool,
+        recurrence_frequency: Option<&str>,
         recurrence_start_date: Option<chrono::NaiveDate>,
         recurrence_end_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ThirdPartyPayment>;
 
     async fn get_payment(&self, id: Uuid) -> AtlasResult<Option<ThirdPartyPayment>>;
-    async fn get_payment_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<ThirdPartyPayment>>;
+    async fn get_payment_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<ThirdPartyPayment>>;
     async fn list_payments(
-        &self, org_id: Uuid, status: Option<&str>, payment_type: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        payment_type: Option<&str>,
         source_entity_id: Option<Uuid>,
     ) -> AtlasResult<Vec<ThirdPartyPayment>>;
 
     async fn update_status(&self, id: Uuid, status: &str) -> AtlasResult<ThirdPartyPayment>;
     async fn submit_payment(&self, id: Uuid) -> AtlasResult<ThirdPartyPayment>;
-    async fn approve_payment(&self, id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<ThirdPartyPayment>;
-    async fn reject_payment(&self, id: Uuid, reason: Option<&str>, rejected_by: Option<Uuid>) -> AtlasResult<ThirdPartyPayment>;
-    async fn place_on_hold(&self, id: Uuid, reason: Option<&str>, held_by: Option<Uuid>) -> AtlasResult<ThirdPartyPayment>;
+    async fn approve_payment(
+        &self,
+        id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<ThirdPartyPayment>;
+    async fn reject_payment(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+        rejected_by: Option<Uuid>,
+    ) -> AtlasResult<ThirdPartyPayment>;
+    async fn place_on_hold(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+        held_by: Option<Uuid>,
+    ) -> AtlasResult<ThirdPartyPayment>;
     async fn release_hold(&self, id: Uuid) -> AtlasResult<ThirdPartyPayment>;
-    async fn record_payment(&self, id: Uuid, payment_ref: &str, paid_by: Option<Uuid>) -> AtlasResult<ThirdPartyPayment>;
-    async fn cancel_payment(&self, id: Uuid, reason: Option<&str>, cancelled_by: Option<Uuid>) -> AtlasResult<ThirdPartyPayment>;
+    async fn record_payment(
+        &self,
+        id: Uuid,
+        payment_ref: &str,
+        paid_by: Option<Uuid>,
+    ) -> AtlasResult<ThirdPartyPayment>;
+    async fn cancel_payment(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+        cancelled_by: Option<Uuid>,
+    ) -> AtlasResult<ThirdPartyPayment>;
 
     async fn add_line(
-        &self, org_id: Uuid, payment_id: Uuid, line_number: i32,
-        line_type: &str, description: Option<&str>, amount: &str,
-        gl_account: Option<&str>, cost_center: Option<&str>,
+        &self,
+        org_id: Uuid,
+        payment_id: Uuid,
+        line_number: i32,
+        line_type: &str,
+        description: Option<&str>,
+        amount: &str,
+        gl_account: Option<&str>,
+        cost_center: Option<&str>,
         tax_code: Option<&str>,
     ) -> AtlasResult<ThirdPartyPaymentLine>;
 
@@ -171,44 +222,151 @@ pub trait ThirdPartyPaymentRepository: Send + Sync {
 
 /// `PostgreSQL` stub implementation
 #[allow(dead_code)]
-pub struct PostgresThirdPartyPaymentRepository { #[allow(dead_code)] pool: PgPool }
-impl PostgresThirdPartyPaymentRepository { #[must_use] 
-pub const fn new(pool: PgPool) -> Self { Self { pool } } }
+pub struct PostgresThirdPartyPaymentRepository {
+    #[allow(dead_code)]
+    pool: PgPool,
+}
+impl PostgresThirdPartyPaymentRepository {
+    #[must_use]
+    pub const fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
 
 #[async_trait]
 impl ThirdPartyPaymentRepository for PostgresThirdPartyPaymentRepository {
     async fn create_payment(
-        &self, _: Uuid, _: &str, _: &str, _: &str, _: Uuid, _: &str,
-        _: &str, _: Option<&str>, _: Option<&str>, _: Option<&str>,
-        _: &str, _: &str, _: Option<&str>, _: Option<chrono::NaiveDate>,
-        _: Option<chrono::NaiveDate>, _: Option<&str>, _: Option<Uuid>,
-        _: Option<&str>, _: Option<&str>, _: Option<&str>,
-        _: bool, _: Option<&str>, _: Option<chrono::NaiveDate>,
-        _: Option<chrono::NaiveDate>, _: Option<Uuid>,
-    ) -> AtlasResult<ThirdPartyPayment> { Err(AtlasError::DatabaseError("Not implemented".into())) }
+        &self,
+        _: Uuid,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: Uuid,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+        _: Option<chrono::NaiveDate>,
+        _: Option<chrono::NaiveDate>,
+        _: Option<&str>,
+        _: Option<Uuid>,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: bool,
+        _: Option<&str>,
+        _: Option<chrono::NaiveDate>,
+        _: Option<chrono::NaiveDate>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<ThirdPartyPayment> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
 
-    async fn get_payment(&self, _: Uuid) -> AtlasResult<Option<ThirdPartyPayment>> { Ok(None) }
-    async fn get_payment_by_number(&self, _: Uuid, _: &str) -> AtlasResult<Option<ThirdPartyPayment>> { Ok(None) }
-    async fn list_payments(&self, _: Uuid, _: Option<&str>, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<Vec<ThirdPartyPayment>> { Ok(vec![]) }
-    async fn update_status(&self, _: Uuid, _: &str) -> AtlasResult<ThirdPartyPayment> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn submit_payment(&self, _: Uuid) -> AtlasResult<ThirdPartyPayment> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn approve_payment(&self, _: Uuid, _: Option<Uuid>) -> AtlasResult<ThirdPartyPayment> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn reject_payment(&self, _: Uuid, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<ThirdPartyPayment> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn place_on_hold(&self, _: Uuid, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<ThirdPartyPayment> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn release_hold(&self, _: Uuid) -> AtlasResult<ThirdPartyPayment> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn record_payment(&self, _: Uuid, _: &str, _: Option<Uuid>) -> AtlasResult<ThirdPartyPayment> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn cancel_payment(&self, _: Uuid, _: Option<&str>, _: Option<Uuid>) -> AtlasResult<ThirdPartyPayment> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn add_line(&self, _: Uuid, _: Uuid, _: i32, _: &str, _: Option<&str>, _: &str, _: Option<&str>, _: Option<&str>, _: Option<&str>) -> AtlasResult<ThirdPartyPaymentLine> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn list_lines(&self, _: Uuid) -> AtlasResult<Vec<ThirdPartyPaymentLine>> { Ok(vec![]) }
-    async fn get_line(&self, _: Uuid) -> AtlasResult<Option<ThirdPartyPaymentLine>> { Ok(None) }
-    async fn remove_line(&self, _: Uuid) -> AtlasResult<()> { Ok(()) }
+    async fn get_payment(&self, _: Uuid) -> AtlasResult<Option<ThirdPartyPayment>> {
+        Ok(None)
+    }
+    async fn get_payment_by_number(
+        &self,
+        _: Uuid,
+        _: &str,
+    ) -> AtlasResult<Option<ThirdPartyPayment>> {
+        Ok(None)
+    }
+    async fn list_payments(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<Vec<ThirdPartyPayment>> {
+        Ok(vec![])
+    }
+    async fn update_status(&self, _: Uuid, _: &str) -> AtlasResult<ThirdPartyPayment> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn submit_payment(&self, _: Uuid) -> AtlasResult<ThirdPartyPayment> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn approve_payment(&self, _: Uuid, _: Option<Uuid>) -> AtlasResult<ThirdPartyPayment> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn reject_payment(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<ThirdPartyPayment> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn place_on_hold(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<ThirdPartyPayment> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn release_hold(&self, _: Uuid) -> AtlasResult<ThirdPartyPayment> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn record_payment(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: Option<Uuid>,
+    ) -> AtlasResult<ThirdPartyPayment> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn cancel_payment(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+        _: Option<Uuid>,
+    ) -> AtlasResult<ThirdPartyPayment> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn add_line(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: i32,
+        _: &str,
+        _: Option<&str>,
+        _: &str,
+        _: Option<&str>,
+        _: Option<&str>,
+        _: Option<&str>,
+    ) -> AtlasResult<ThirdPartyPaymentLine> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn list_lines(&self, _: Uuid) -> AtlasResult<Vec<ThirdPartyPaymentLine>> {
+        Ok(vec![])
+    }
+    async fn get_line(&self, _: Uuid) -> AtlasResult<Option<ThirdPartyPaymentLine>> {
+        Ok(None)
+    }
+    async fn remove_line(&self, _: Uuid) -> AtlasResult<()> {
+        Ok(())
+    }
     async fn get_dashboard(&self, _: Uuid) -> AtlasResult<ThirdPartyPaymentDashboard> {
         Ok(ThirdPartyPaymentDashboard {
-            total_payments: 0, draft_count: 0, pending_approval_count: 0,
-            approved_count: 0, paid_count: 0, on_hold_count: 0, cancelled_count: 0,
-            total_amount: "0.00".into(), paid_amount: "0.00".into(),
-            pending_amount: "0.00".into(), on_hold_amount: "0.00".into(),
-            payments_by_type: serde_json::json!([]), upcoming_due: serde_json::json!([]),
+            total_payments: 0,
+            draft_count: 0,
+            pending_approval_count: 0,
+            approved_count: 0,
+            paid_count: 0,
+            on_hold_count: 0,
+            cancelled_count: 0,
+            total_amount: "0.00".into(),
+            paid_amount: "0.00".into(),
+            pending_amount: "0.00".into(),
+            on_hold_amount: "0.00".into(),
+            payments_by_type: serde_json::json!([]),
+            upcoming_due: serde_json::json!([]),
         })
     }
 }

@@ -5,67 +5,51 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Order Management > Pricing > Advanced Pricing
 
-use atlas_shared::{
-    PriceList, PriceListLine, PriceTier, DiscountRule, ChargeDefinition,
-    PricingStrategy, PriceCalculationLog,
-    PriceCalculationResult, PriceCalculationStep,
-    PricingDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::PricingRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ChargeDefinition, DiscountRule, PriceCalculationLog,
+    PriceCalculationResult, PriceCalculationStep, PriceList, PriceListLine, PriceTier,
+    PricingDashboardSummary, PricingStrategy,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid price list types
-const VALID_LIST_TYPES: &[&str] = &[
-    "sale", "purchase", "transfer", "internal",
-];
+const VALID_LIST_TYPES: &[&str] = &["sale", "purchase", "transfer", "internal"];
 
 /// Valid pricing bases
-const VALID_PRICING_BASES: &[&str] = &[
-    "fixed", "cost_plus", "competitive", "tiered",
-];
+const VALID_PRICING_BASES: &[&str] = &["fixed", "cost_plus", "competitive", "tiered"];
 
 /// Valid discount types
-const VALID_DISCOUNT_TYPES: &[&str] = &[
-    "percentage", "fixed_amount", "fixed_price",
-];
+const VALID_DISCOUNT_TYPES: &[&str] = &["percentage", "fixed_amount", "fixed_price"];
 
 /// Valid application methods for discounts
-const VALID_APPLICATION_METHODS: &[&str] = &[
-    "line", "order", "group",
-];
+const VALID_APPLICATION_METHODS: &[&str] = &["line", "order", "group"];
 
 /// Valid stacking rules for discounts
-const VALID_STACKING_RULES: &[&str] = &[
-    "exclusive", "stackable", "best_price",
-];
+const VALID_STACKING_RULES: &[&str] = &["exclusive", "stackable", "best_price"];
 
 /// Valid charge types
-const VALID_CHARGE_TYPES: &[&str] = &[
-    "surcharge", "shipping", "handling", "insurance", "freight",
-];
+const VALID_CHARGE_TYPES: &[&str] = &["surcharge", "shipping", "handling", "insurance", "freight"];
 
 /// Valid charge categories
-const VALID_CHARGE_CATEGORIES: &[&str] = &[
-    "handling", "shipping", "insurance", "tax", "misc",
-];
+const VALID_CHARGE_CATEGORIES: &[&str] = &["handling", "shipping", "insurance", "tax", "misc"];
 
 /// Valid charge calculation methods
-const VALID_CHARGE_CALC_METHODS: &[&str] = &[
-    "fixed", "percentage", "tiered", "formula",
-];
+const VALID_CHARGE_CALC_METHODS: &[&str] = &["fixed", "percentage", "tiered", "formula"];
 
 /// Valid strategy types
 const VALID_STRATEGY_TYPES: &[&str] = &[
-    "price_list", "cost_plus", "competitive", "markup", "markdown",
+    "price_list",
+    "cost_plus",
+    "competitive",
+    "markup",
+    "markdown",
 ];
 
 /// Valid price types for tiers
-const VALID_TIER_PRICE_TYPES: &[&str] = &[
-    "fixed", "discount_from_list",
-];
+const VALID_TIER_PRICE_TYPES: &[&str] = &["fixed", "discount_from_list"];
 
 /// Advanced Pricing engine for managing price lists, discounts, charges, and calculations
 pub struct PricingEngine {
@@ -108,12 +92,16 @@ impl PricingEngine {
         }
         if !VALID_LIST_TYPES.contains(&list_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid list_type '{}'. Must be one of: {}", list_type, VALID_LIST_TYPES.join(", ")
+                "Invalid list_type '{}'. Must be one of: {}",
+                list_type,
+                VALID_LIST_TYPES.join(", ")
             )));
         }
         if !VALID_PRICING_BASES.contains(&pricing_basis) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid pricing_basis '{}'. Must be one of: {}", pricing_basis, VALID_PRICING_BASES.join(", ")
+                "Invalid pricing_basis '{}'. Must be one of: {}",
+                pricing_basis,
+                VALID_PRICING_BASES.join(", ")
             )));
         }
         if currency_code.len() != 3 {
@@ -122,17 +110,32 @@ impl PricingEngine {
             ));
         }
 
-        info!("Creating price list '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating price list '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_price_list(
-            org_id, &code_upper, name, description, currency_code,
-            list_type, pricing_basis, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_price_list(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                currency_code,
+                list_type,
+                pricing_basis,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a price list by code
     pub async fn get_price_list(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PriceList>> {
-        self.repository.get_price_list(org_id, &code.to_uppercase()).await
+        self.repository
+            .get_price_list(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List price lists with optional filters
@@ -142,18 +145,24 @@ impl PricingEngine {
         list_type: Option<&str>,
         status: Option<&str>,
     ) -> AtlasResult<Vec<PriceList>> {
-        self.repository.list_price_lists(org_id, list_type, status).await
+        self.repository
+            .list_price_lists(org_id, list_type, status)
+            .await
     }
 
     /// Activate a price list (draft -> active)
     pub async fn activate_price_list(&self, id: Uuid) -> AtlasResult<PriceList> {
-        let pl = self.repository.get_price_list_by_id(id).await?
+        let pl = self
+            .repository
+            .get_price_list_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list {id} not found")))?;
 
         if pl.status != "draft" && pl.status != "inactive" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot activate price list in '{}' status. Must be 'draft' or 'inactive'.", pl.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot activate price list in '{}' status. Must be 'draft' or 'inactive'.",
+                pl.status
+            )));
         }
 
         // Check that the price list has at least one line
@@ -170,23 +179,31 @@ impl PricingEngine {
 
     /// Deactivate a price list
     pub async fn deactivate_price_list(&self, id: Uuid) -> AtlasResult<PriceList> {
-        let pl = self.repository.get_price_list_by_id(id).await?
+        let pl = self
+            .repository
+            .get_price_list_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list {id} not found")))?;
 
         if pl.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot deactivate price list in '{}' status. Must be 'active'.", pl.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot deactivate price list in '{}' status. Must be 'active'.",
+                pl.status
+            )));
         }
 
         info!("Deactivating price list {}", pl.code);
-        self.repository.update_price_list_status(id, "inactive").await
+        self.repository
+            .update_price_list_status(id, "inactive")
+            .await
     }
 
     /// Delete (soft-delete) a price list
     pub async fn delete_price_list(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deleting price list '{}' for org {}", code, org_id);
-        self.repository.delete_price_list(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_price_list(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -212,8 +229,13 @@ impl PricingEngine {
         effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<PriceListLine> {
-        let pl = self.repository.get_price_list_by_id(price_list_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list {price_list_id} not found")))?;
+        let pl = self
+            .repository
+            .get_price_list_by_id(price_list_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Price list {price_list_id} not found"))
+            })?;
 
         if pl.status == "expired" {
             return Err(AtlasError::WorkflowError(
@@ -222,12 +244,12 @@ impl PricingEngine {
         }
 
         // Validate numeric fields
-        let lp: f64 = list_price.parse().map_err(|_| AtlasError::ValidationFailed(
-            "list_price must be a valid number".to_string(),
-        ))?;
-        let up: f64 = unit_price.parse().map_err(|_| AtlasError::ValidationFailed(
-            "unit_price must be a valid number".to_string(),
-        ))?;
+        let lp: f64 = list_price.parse().map_err(|_| {
+            AtlasError::ValidationFailed("list_price must be a valid number".to_string())
+        })?;
+        let up: f64 = unit_price.parse().map_err(|_| {
+            AtlasError::ValidationFailed("unit_price must be a valid number".to_string())
+        })?;
         if lp < 0.0 || up < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Prices cannot be negative".to_string(),
@@ -247,13 +269,26 @@ impl PricingEngine {
 
         info!("Adding price list line {} to {}", line_number, pl.code);
 
-        self.repository.create_price_list_line(
-            org_id, price_list_id, line_number,
-            item_id, item_code, item_description,
-            pricing_unit_of_measure, list_price, unit_price, cost_price,
-            margin_percent, minimum_quantity, maximum_quantity,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_price_list_line(
+                org_id,
+                price_list_id,
+                line_number,
+                item_id,
+                item_code,
+                item_description,
+                pricing_unit_of_measure,
+                list_price,
+                unit_price,
+                cost_price,
+                margin_percent,
+                minimum_quantity,
+                maximum_quantity,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a price list line by ID
@@ -262,7 +297,10 @@ impl PricingEngine {
     }
 
     /// List lines for a price list
-    pub async fn list_price_list_lines(&self, price_list_id: Uuid) -> AtlasResult<Vec<PriceListLine>> {
+    pub async fn list_price_list_lines(
+        &self,
+        price_list_id: Uuid,
+    ) -> AtlasResult<Vec<PriceListLine>> {
         self.repository.list_price_list_lines(price_list_id).await
     }
 
@@ -286,21 +324,30 @@ impl PricingEngine {
         discount_percent: &str,
         price_type: &str,
     ) -> AtlasResult<PriceTier> {
-        let line = self.repository.get_price_list_line(price_list_line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Price list line {price_list_line_id} not found")))?;
+        let line = self
+            .repository
+            .get_price_list_line(price_list_line_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Price list line {price_list_line_id} not found"
+                ))
+            })?;
 
         if !VALID_TIER_PRICE_TYPES.contains(&price_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid price_type '{}'. Must be one of: {}", price_type, VALID_TIER_PRICE_TYPES.join(", ")
+                "Invalid price_type '{}'. Must be one of: {}",
+                price_type,
+                VALID_TIER_PRICE_TYPES.join(", ")
             )));
         }
 
-        let from_qty: f64 = from_quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "from_quantity must be a valid number".to_string(),
-        ))?;
-        let price_val: f64 = price.parse().map_err(|_| AtlasError::ValidationFailed(
-            "price must be a valid number".to_string(),
-        ))?;
+        let from_qty: f64 = from_quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("from_quantity must be a valid number".to_string())
+        })?;
+        let price_val: f64 = price.parse().map_err(|_| {
+            AtlasError::ValidationFailed("price must be a valid number".to_string())
+        })?;
         if from_qty < 0.0 || price_val < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "from_quantity and price must be non-negative".to_string(),
@@ -311,12 +358,23 @@ impl PricingEngine {
         let existing_tiers = self.repository.list_price_tiers(price_list_line_id).await?;
         let tier_number = (existing_tiers.len() + 1) as i32;
 
-        info!("Adding price tier {} to line {}", tier_number, line.line_number);
+        info!(
+            "Adding price tier {} to line {}",
+            tier_number, line.line_number
+        );
 
-        self.repository.create_price_tier(
-            org_id, price_list_line_id, tier_number,
-            from_quantity, to_quantity, price, discount_percent, price_type,
-        ).await
+        self.repository
+            .create_price_tier(
+                org_id,
+                price_list_line_id,
+                tier_number,
+                from_quantity,
+                to_quantity,
+                price,
+                discount_percent,
+                price_type,
+            )
+            .await
     }
 
     /// List price tiers for a price list line
@@ -359,23 +417,29 @@ impl PricingEngine {
         }
         if !VALID_DISCOUNT_TYPES.contains(&discount_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid discount_type '{}'. Must be one of: {}", discount_type, VALID_DISCOUNT_TYPES.join(", ")
+                "Invalid discount_type '{}'. Must be one of: {}",
+                discount_type,
+                VALID_DISCOUNT_TYPES.join(", ")
             )));
         }
         if !VALID_APPLICATION_METHODS.contains(&application_method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid application_method '{}'. Must be one of: {}", application_method, VALID_APPLICATION_METHODS.join(", ")
+                "Invalid application_method '{}'. Must be one of: {}",
+                application_method,
+                VALID_APPLICATION_METHODS.join(", ")
             )));
         }
         if !VALID_STACKING_RULES.contains(&stacking_rule) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid stacking_rule '{}'. Must be one of: {}", stacking_rule, VALID_STACKING_RULES.join(", ")
+                "Invalid stacking_rule '{}'. Must be one of: {}",
+                stacking_rule,
+                VALID_STACKING_RULES.join(", ")
             )));
         }
 
-        let disc_val: f64 = discount_value.parse().map_err(|_| AtlasError::ValidationFailed(
-            "discount_value must be a valid number".to_string(),
-        ))?;
+        let disc_val: f64 = discount_value.parse().map_err(|_| {
+            AtlasError::ValidationFailed("discount_value must be a valid number".to_string())
+        })?;
         if disc_val < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "discount_value cannot be negative".to_string(),
@@ -395,30 +459,57 @@ impl PricingEngine {
             }
         }
 
-        info!("Creating discount rule '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating discount rule '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_discount_rule(
-            org_id, &code_upper, name, description,
-            discount_type, discount_value, application_method, stacking_rule,
-            priority, condition, effective_from, effective_to,
-            max_usage, created_by,
-        ).await
+        self.repository
+            .create_discount_rule(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                discount_type,
+                discount_value,
+                application_method,
+                stacking_rule,
+                priority,
+                condition,
+                effective_from,
+                effective_to,
+                max_usage,
+                created_by,
+            )
+            .await
     }
 
     /// Get a discount rule by code
-    pub async fn get_discount_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<DiscountRule>> {
-        self.repository.get_discount_rule(org_id, &code.to_uppercase()).await
+    pub async fn get_discount_rule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<DiscountRule>> {
+        self.repository
+            .get_discount_rule(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List discount rules with optional status filter
-    pub async fn list_discount_rules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DiscountRule>> {
+    pub async fn list_discount_rules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DiscountRule>> {
         self.repository.list_discount_rules(org_id, status).await
     }
 
     /// Delete (soft-delete) a discount rule
     pub async fn delete_discount_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deleting discount rule '{}' for org {}", code, org_id);
-        self.repository.delete_discount_rule(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_discount_rule(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -458,44 +549,81 @@ impl PricingEngine {
         }
         if !VALID_CHARGE_TYPES.contains(&charge_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid charge_type '{}'. Must be one of: {}", charge_type, VALID_CHARGE_TYPES.join(", ")
+                "Invalid charge_type '{}'. Must be one of: {}",
+                charge_type,
+                VALID_CHARGE_TYPES.join(", ")
             )));
         }
         if !VALID_CHARGE_CATEGORIES.contains(&charge_category) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid charge_category '{}'. Must be one of: {}", charge_category, VALID_CHARGE_CATEGORIES.join(", ")
+                "Invalid charge_category '{}'. Must be one of: {}",
+                charge_category,
+                VALID_CHARGE_CATEGORIES.join(", ")
             )));
         }
         if !VALID_CHARGE_CALC_METHODS.contains(&calculation_method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid calculation_method '{}'. Must be one of: {}", calculation_method, VALID_CHARGE_CALC_METHODS.join(", ")
+                "Invalid calculation_method '{}'. Must be one of: {}",
+                calculation_method,
+                VALID_CHARGE_CALC_METHODS.join(", ")
             )));
         }
 
-        info!("Creating charge definition '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating charge definition '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_charge_definition(
-            org_id, &code_upper, name, description,
-            charge_type, charge_category, calculation_method,
-            charge_amount, charge_percent, minimum_charge, maximum_charge,
-            taxable, condition, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_charge_definition(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                charge_type,
+                charge_category,
+                calculation_method,
+                charge_amount,
+                charge_percent,
+                minimum_charge,
+                maximum_charge,
+                taxable,
+                condition,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a charge definition by code
-    pub async fn get_charge_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ChargeDefinition>> {
-        self.repository.get_charge_definition(org_id, &code.to_uppercase()).await
+    pub async fn get_charge_definition(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ChargeDefinition>> {
+        self.repository
+            .get_charge_definition(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List charge definitions with optional type filter
-    pub async fn list_charge_definitions(&self, org_id: Uuid, charge_type: Option<&str>) -> AtlasResult<Vec<ChargeDefinition>> {
-        self.repository.list_charge_definitions(org_id, charge_type).await
+    pub async fn list_charge_definitions(
+        &self,
+        org_id: Uuid,
+        charge_type: Option<&str>,
+    ) -> AtlasResult<Vec<ChargeDefinition>> {
+        self.repository
+            .list_charge_definitions(org_id, charge_type)
+            .await
     }
 
     /// Delete a charge definition
     pub async fn delete_charge_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deleting charge definition '{}' for org {}", code, org_id);
-        self.repository.delete_charge_definition(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_charge_definition(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -527,7 +655,9 @@ impl PricingEngine {
         }
         if !VALID_STRATEGY_TYPES.contains(&strategy_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid strategy_type '{}'. Must be one of: {}", strategy_type, VALID_STRATEGY_TYPES.join(", ")
+                "Invalid strategy_type '{}'. Must be one of: {}",
+                strategy_type,
+                VALID_STRATEGY_TYPES.join(", ")
             )));
         }
 
@@ -535,25 +665,45 @@ impl PricingEngine {
         if let Some(pl_id) = price_list_id {
             let pl = self.repository.get_price_list_by_id(pl_id).await?;
             if pl.is_none() {
-                return Err(AtlasError::EntityNotFound(
-                    format!("Price list {pl_id} not found")
-                ));
+                return Err(AtlasError::EntityNotFound(format!(
+                    "Price list {pl_id} not found"
+                )));
             }
         }
 
-        info!("Creating pricing strategy '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating pricing strategy '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_pricing_strategy(
-            org_id, &code_upper, name, description,
-            strategy_type, priority, condition, price_list_id,
-            markup_percent, markdown_percent,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_pricing_strategy(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                strategy_type,
+                priority,
+                condition,
+                price_list_id,
+                markup_percent,
+                markdown_percent,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a pricing strategy by code
-    pub async fn get_pricing_strategy(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PricingStrategy>> {
-        self.repository.get_pricing_strategy(org_id, &code.to_uppercase()).await
+    pub async fn get_pricing_strategy(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PricingStrategy>> {
+        self.repository
+            .get_pricing_strategy(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List pricing strategies
@@ -581,9 +731,9 @@ impl PricingEngine {
         _customer_id: Option<Uuid>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<PriceCalculationResult> {
-        let qty: f64 = quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "quantity must be a valid number".to_string(),
-        ))?;
+        let qty: f64 = quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("quantity must be a valid number".to_string())
+        })?;
         if qty <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "quantity must be positive".to_string(),
@@ -605,7 +755,8 @@ impl PricingEngine {
         let strategies = self.repository.list_pricing_strategies(org_id).await?;
         let today = chrono::Utc::now().date_naive();
 
-        let strategy = strategies.into_iter()
+        let strategy = strategies
+            .into_iter()
             .filter(|s| s.is_active)
             .filter(|s| s.effective_from.is_none_or(|f| f <= today))
             .filter(|s| s.effective_to.is_none_or(|t| t >= today))
@@ -620,7 +771,8 @@ impl PricingEngine {
             });
 
         // Step 2: Determine the base price from price list
-        #[allow(unused_assignments)] let mut unit_list_price: f64 = 0.0;
+        #[allow(unused_assignments)]
+        let mut unit_list_price: f64 = 0.0;
 
         // First try strategy's price list
         let pl_id = if let Some(ref strat) = strategy {
@@ -633,13 +785,22 @@ impl PricingEngine {
 
         let price_list_line = if let Some(plid) = pl_id {
             price_list_id = Some(plid);
-            self.repository.find_price_list_line_by_item(plid, item_code).await?
+            self.repository
+                .find_price_list_line_by_item(plid, item_code)
+                .await?
         } else {
             // Fall back to first active sale price list that has this item
-            let pls = self.repository.list_price_lists(org_id, Some("sale"), Some("active")).await?;
+            let pls = self
+                .repository
+                .list_price_lists(org_id, Some("sale"), Some("active"))
+                .await?;
             let mut found = None;
             for pl in &pls {
-                if let Some(line) = self.repository.find_price_list_line_by_item(pl.id, item_code).await? {
+                if let Some(line) = self
+                    .repository
+                    .find_price_list_line_by_item(pl.id, item_code)
+                    .await?
+                {
                     price_list_id = Some(pl.id);
                     applied_price_list_code = Some(pl.code.clone());
                     found = Some(line);
@@ -661,7 +822,10 @@ impl PricingEngine {
                     unit_list_price = before * (1.0 + markup / 100.0);
                     steps.push(PriceCalculationStep {
                         step_type: "markup".to_string(),
-                        description: format!("Apply {}% markup from strategy {}", markup, strat.code),
+                        description: format!(
+                            "Apply {}% markup from strategy {}",
+                            markup, strat.code
+                        ),
                         amount_before: format!("{before:.4}"),
                         amount_after: format!("{unit_list_price:.4}"),
                         rule_applied: Some(strat.code.clone()),
@@ -672,7 +836,10 @@ impl PricingEngine {
                     unit_list_price = before * (1.0 - markdown / 100.0);
                     steps.push(PriceCalculationStep {
                         step_type: "markdown".to_string(),
-                        description: format!("Apply {}% markdown from strategy {}", markdown, strat.code),
+                        description: format!(
+                            "Apply {}% markdown from strategy {}",
+                            markdown, strat.code
+                        ),
                         amount_before: format!("{before:.4}"),
                         amount_after: format!("{unit_list_price:.4}"),
                         rule_applied: Some(strat.code.clone()),
@@ -684,8 +851,7 @@ impl PricingEngine {
             let tiers = self.repository.list_price_tiers(pll.id).await?;
             for tier in &tiers {
                 let from_qty: f64 = tier.from_quantity.parse().unwrap_or(0.0);
-                let to_qty: Option<f64> = tier.to_quantity.as_ref()
-                    .and_then(|t| t.parse().ok());
+                let to_qty: Option<f64> = tier.to_quantity.as_ref().and_then(|t| t.parse().ok());
 
                 let in_range = qty >= from_qty && to_qty.is_none_or(|tq| qty <= tq);
                 if in_range {
@@ -699,7 +865,10 @@ impl PricingEngine {
                     tier_applied = Some(tier.tier_number);
                     steps.push(PriceCalculationStep {
                         step_type: "tier".to_string(),
-                        description: format!("Apply tier {} pricing (qty >= {})", tier.tier_number, from_qty),
+                        description: format!(
+                            "Apply tier {} pricing (qty >= {})",
+                            tier.tier_number, from_qty
+                        ),
                         amount_before: format!("{before:.4}"),
                         amount_after: format!("{unit_list_price:.4}"),
                         rule_applied: None,
@@ -708,9 +877,9 @@ impl PricingEngine {
                 }
             }
         } else {
-            return Err(AtlasError::EntityNotFound(
-                format!("No price found for item '{item_code}' in any active price list")
-            ));
+            return Err(AtlasError::EntityNotFound(format!(
+                "No price found for item '{item_code}' in any active price list"
+            )));
         }
 
         steps.push(PriceCalculationStep {
@@ -722,10 +891,14 @@ impl PricingEngine {
         });
 
         // Step 4: Apply discount rules (sorted by priority, exclusive first)
-        let discount_rules = self.repository.list_discount_rules(org_id, Some("active")).await?;
+        let discount_rules = self
+            .repository
+            .list_discount_rules(org_id, Some("active"))
+            .await?;
         let mut discount_amount: f64 = 0.0;
 
-        let applicable_discounts: Vec<&DiscountRule> = discount_rules.iter()
+        let applicable_discounts: Vec<&DiscountRule> = discount_rules
+            .iter()
             .filter(|d| d.is_active)
             .filter(|d| d.effective_from.is_none_or(|f| f <= today))
             .filter(|d| d.effective_to.is_none_or(|t| t >= today))
@@ -775,13 +948,19 @@ impl PricingEngine {
         }
 
         // Step 5: Apply charges
-        let charges = self.repository.list_charge_definitions(org_id, None).await?;
+        let charges = self
+            .repository
+            .list_charge_definitions(org_id, None)
+            .await?;
         let mut charge_amount: f64 = 0.0;
 
         for charge in &charges {
-            if !charge.is_active { continue; }
-            if charge.effective_from.is_none_or(|f| f <= today) &&
-               charge.effective_to.is_none_or(|t| t >= today) {
+            if !charge.is_active {
+                continue;
+            }
+            if charge.effective_from.is_none_or(|f| f <= today)
+                && charge.effective_to.is_none_or(|t| t >= today)
+            {
                 let before_charge = charge_amount;
                 match charge.calculation_method.as_str() {
                     "fixed" => {
@@ -827,22 +1006,28 @@ impl PricingEngine {
         let extended_price = unit_selling_price.mul_add(qty, charge_amount);
 
         // Log the calculation
-        self.repository.create_calculation_log(
-            org_id, entity_type, entity_id, line_id,
-            price_list_line.as_ref().and_then(|l| l.item_id),
-            Some(item_code), Some(quantity),
-            &format!("{unit_list_price:.4}"),
-            &format!("{unit_selling_price:.4}"),
-            &format!("{discount_amount:.4}"),
-            discount_rule_id,
-            &format!("{charge_amount:.4}"),
-            charge_def_id,
-            strategy_id,
-            price_list_id,
-            serde_json::to_value(&steps).unwrap_or(serde_json::json!([])),
-            currency_code,
-            created_by,
-        ).await?;
+        self.repository
+            .create_calculation_log(
+                org_id,
+                entity_type,
+                entity_id,
+                line_id,
+                price_list_line.as_ref().and_then(|l| l.item_id),
+                Some(item_code),
+                Some(quantity),
+                &format!("{unit_list_price:.4}"),
+                &format!("{unit_selling_price:.4}"),
+                &format!("{discount_amount:.4}"),
+                discount_rule_id,
+                &format!("{charge_amount:.4}"),
+                charge_def_id,
+                strategy_id,
+                price_list_id,
+                serde_json::to_value(&steps).unwrap_or(serde_json::json!([])),
+                currency_code,
+                created_by,
+            )
+            .await?;
 
         Ok(PriceCalculationResult {
             list_price: format!("{unit_list_price:.4}"),
@@ -867,7 +1052,9 @@ impl PricingEngine {
         entity_type: Option<&str>,
         entity_id: Option<Uuid>,
     ) -> AtlasResult<Vec<PriceCalculationLog>> {
-        self.repository.list_calculation_logs(org_id, entity_type, entity_id).await
+        self.repository
+            .list_calculation_logs(org_id, entity_type, entity_id)
+            .await
     }
 
     // ========================================================================
@@ -875,39 +1062,58 @@ impl PricingEngine {
     // ========================================================================
 
     /// Get a pricing dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<PricingDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<PricingDashboardSummary> {
         let price_lists = self.repository.list_price_lists(org_id, None, None).await?;
         let discount_rules = self.repository.list_discount_rules(org_id, None).await?;
-        let charge_defs = self.repository.list_charge_definitions(org_id, None).await?;
+        let charge_defs = self
+            .repository
+            .list_charge_definitions(org_id, None)
+            .await?;
         let strategies = self.repository.list_pricing_strategies(org_id).await?;
-        let calc_logs = self.repository.list_calculation_logs(org_id, None, None).await?;
+        let calc_logs = self
+            .repository
+            .list_calculation_logs(org_id, None, None)
+            .await?;
 
         let today = chrono::Utc::now().date_naive();
-        let total_calculations_today = calc_logs.iter()
+        let total_calculations_today = calc_logs
+            .iter()
             .filter(|l| l.calculation_date.date_naive() == today)
             .count() as i32;
 
-        let active_price_lists = price_lists.iter().filter(|pl| pl.status == "active").count() as i32;
-        let active_discount_rules = discount_rules.iter().filter(|dr| dr.status == "active" && dr.is_active).count() as i32;
+        let active_price_lists = price_lists
+            .iter()
+            .filter(|pl| pl.status == "active")
+            .count() as i32;
+        let active_discount_rules = discount_rules
+            .iter()
+            .filter(|dr| dr.status == "active" && dr.is_active)
+            .count() as i32;
 
         // Group by status
         let mut pl_by_status = serde_json::Map::new();
         for pl in &price_lists {
-            let count = pl_by_status.entry(pl.status.clone())
+            let count = pl_by_status
+                .entry(pl.status.clone())
                 .or_insert(serde_json::Value::Number(0.into()));
             *count = serde_json::Value::Number((count.as_u64().unwrap_or(0) + 1).into());
         }
 
         let mut dr_by_type = serde_json::Map::new();
         for dr in &discount_rules {
-            let count = dr_by_type.entry(dr.discount_type.clone())
+            let count = dr_by_type
+                .entry(dr.discount_type.clone())
                 .or_insert(serde_json::Value::Number(0.into()));
             *count = serde_json::Value::Number((count.as_u64().unwrap_or(0) + 1).into());
         }
 
         let mut charges_by_type = serde_json::Map::new();
         for cd in &charge_defs {
-            let count = charges_by_type.entry(cd.charge_type.clone())
+            let count = charges_by_type
+                .entry(cd.charge_type.clone())
                 .or_insert(serde_json::Value::Number(0.into()));
             *count = serde_json::Value::Number((count.as_u64().unwrap_or(0) + 1).into());
         }

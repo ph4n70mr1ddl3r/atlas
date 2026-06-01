@@ -5,57 +5,55 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > General Ledger > Financial Reporting Center
 
-use atlas_shared::{
-    FinancialReportTemplate, FinancialReportRow, FinancialReportColumn,
-    FinancialReportRun, FinancialReportResult,
-    FinancialReportFavourite, FinancialReportingSummary,
-    AtlasError, AtlasResult,
-};
 use super::FinancialReportingRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, FinancialReportColumn, FinancialReportFavourite,
+    FinancialReportResult, FinancialReportRow, FinancialReportRun, FinancialReportTemplate,
+    FinancialReportingSummary,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid report types
 const VALID_REPORT_TYPES: &[&str] = &[
-    "trial_balance", "income_statement", "balance_sheet", "cash_flow", "custom",
+    "trial_balance",
+    "income_statement",
+    "balance_sheet",
+    "cash_flow",
+    "custom",
 ];
 
 /// Valid line types for report rows
-const VALID_LINE_TYPES: &[&str] = &[
-    "header", "data", "total", "subtotal", "separator", "text",
-];
+const VALID_LINE_TYPES: &[&str] = &["header", "data", "total", "subtotal", "separator", "text"];
 
 /// Valid column types
 const VALID_COLUMN_TYPES: &[&str] = &[
-    "actuals", "budget", "variance", "percent_variance",
-    "prior_year", "ytd", "qtd", "custom",
+    "actuals",
+    "budget",
+    "variance",
+    "percent_variance",
+    "prior_year",
+    "ytd",
+    "qtd",
+    "custom",
 ];
 
 /// Valid period types
-const VALID_PERIOD_TYPES: &[&str] = &[
-    "period", "qtd", "ytd", "inception_to_date",
-];
+const VALID_PERIOD_TYPES: &[&str] = &["period", "qtd", "ytd", "inception_to_date"];
 
 /// Valid compute actions for rows
-const VALID_ROW_COMPUTE_ACTIONS: &[&str] = &[
-    "total", "subtotal", "variance", "percent", "constant",
-];
+const VALID_ROW_COMPUTE_ACTIONS: &[&str] =
+    &["total", "subtotal", "variance", "percent", "constant"];
 
 /// Valid compute actions for columns
-const VALID_COLUMN_COMPUTE_ACTIONS: &[&str] = &[
-    "total", "variance", "percent_variance", "ratio",
-];
+const VALID_COLUMN_COMPUTE_ACTIONS: &[&str] = &["total", "variance", "percent_variance", "ratio"];
 
 /// Valid run statuses
-const VALID_RUN_STATUSES: &[&str] = &[
-    "draft", "generated", "approved", "published", "archived",
-];
+const VALID_RUN_STATUSES: &[&str] = &["draft", "generated", "approved", "published", "archived"];
 
 /// Valid rounding options
-const VALID_ROUNDING_OPTIONS: &[&str] = &[
-    "none", "thousands", "millions", "units",
-];
+const VALID_ROUNDING_OPTIONS: &[&str] = &["none", "thousands", "millions", "units"];
 
 /// Financial Reporting engine
 pub struct FinancialReportingEngine {
@@ -95,32 +93,55 @@ impl FinancialReportingEngine {
         if !VALID_REPORT_TYPES.contains(&report_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid report type '{}'. Must be one of: {}",
-                report_type, VALID_REPORT_TYPES.join(", ")
+                report_type,
+                VALID_REPORT_TYPES.join(", ")
             )));
         }
         if !VALID_ROUNDING_OPTIONS.contains(&rounding_option) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid rounding option '{}'. Must be one of: {}",
-                rounding_option, VALID_ROUNDING_OPTIONS.join(", ")
+                rounding_option,
+                VALID_ROUNDING_OPTIONS.join(", ")
             )));
         }
 
-        info!("Creating report template '{}' of type '{}' for org {}", code, report_type, org_id);
+        info!(
+            "Creating report template '{}' of type '{}' for org {}",
+            code, report_type, org_id
+        );
 
-        self.repository.create_template(
-            org_id, code, name, description, report_type,
-            currency_code, row_display_order, column_display_order,
-            rounding_option, show_zero_amounts, segment_filter, created_by,
-        ).await
+        self.repository
+            .create_template(
+                org_id,
+                code,
+                name,
+                description,
+                report_type,
+                currency_code,
+                row_display_order,
+                column_display_order,
+                rounding_option,
+                show_zero_amounts,
+                segment_filter,
+                created_by,
+            )
+            .await
     }
 
     /// Get a template by code
-    pub async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<FinancialReportTemplate>> {
+    pub async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<FinancialReportTemplate>> {
         self.repository.get_template(org_id, code).await
     }
 
     /// Get a template by ID
-    pub async fn get_template_by_id(&self, id: Uuid) -> AtlasResult<Option<FinancialReportTemplate>> {
+    pub async fn get_template_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<FinancialReportTemplate>> {
         self.repository.get_template_by_id(id).await
     }
 
@@ -134,7 +155,8 @@ impl FinancialReportingEngine {
             if !VALID_REPORT_TYPES.contains(&rt) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid report type filter '{}'. Must be one of: {}",
-                    rt, VALID_REPORT_TYPES.join(", ")
+                    rt,
+                    VALID_REPORT_TYPES.join(", ")
                 )));
             }
         }
@@ -181,23 +203,28 @@ impl FinancialReportingEngine {
         if !VALID_LINE_TYPES.contains(&line_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid line type '{}'. Must be one of: {}",
-                line_type, VALID_LINE_TYPES.join(", ")
+                line_type,
+                VALID_LINE_TYPES.join(", ")
             )));
         }
         if let Some(ca) = compute_action {
             if !VALID_ROW_COMPUTE_ACTIONS.contains(&ca) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid compute action '{}'. Must be one of: {}",
-                    ca, VALID_ROW_COMPUTE_ACTIONS.join(", ")
+                    ca,
+                    VALID_ROW_COMPUTE_ACTIONS.join(", ")
                 )));
             }
         }
 
         // Validate template exists
-        let template = self.repository.get_template_by_id(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report template {template_id} not found")
-            ))?;
+        let template = self
+            .repository
+            .get_template_by_id(template_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Report template {template_id} not found"))
+            })?;
 
         if template.organization_id != org_id {
             return Err(AtlasError::Forbidden(
@@ -214,13 +241,28 @@ impl FinancialReportingEngine {
 
         info!("Adding row {} to template {}", row_number, template_id);
 
-        self.repository.create_row(
-            org_id, template_id, row_number, line_type, label, indent_level,
-            account_range_from, account_range_to, account_filter,
-            compute_action, compute_source_rows,
-            show_line, bold, underline, double_underline,
-            page_break_before, scaling_factor, parent_row_id,
-        ).await
+        self.repository
+            .create_row(
+                org_id,
+                template_id,
+                row_number,
+                line_type,
+                label,
+                indent_level,
+                account_range_from,
+                account_range_to,
+                account_filter,
+                compute_action,
+                compute_source_rows,
+                show_line,
+                bold,
+                underline,
+                double_underline,
+                page_break_before,
+                scaling_factor,
+                parent_row_id,
+            )
+            .await
     }
 
     /// List rows for a template
@@ -262,29 +304,35 @@ impl FinancialReportingEngine {
         if !VALID_COLUMN_TYPES.contains(&column_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid column type '{}'. Must be one of: {}",
-                column_type, VALID_COLUMN_TYPES.join(", ")
+                column_type,
+                VALID_COLUMN_TYPES.join(", ")
             )));
         }
         if !VALID_PERIOD_TYPES.contains(&period_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid period type '{}'. Must be one of: {}",
-                period_type, VALID_PERIOD_TYPES.join(", ")
+                period_type,
+                VALID_PERIOD_TYPES.join(", ")
             )));
         }
         if let Some(ca) = compute_action {
             if !VALID_COLUMN_COMPUTE_ACTIONS.contains(&ca) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid column compute action '{}'. Must be one of: {}",
-                    ca, VALID_COLUMN_COMPUTE_ACTIONS.join(", ")
+                    ca,
+                    VALID_COLUMN_COMPUTE_ACTIONS.join(", ")
                 )));
             }
         }
 
         // Validate template exists
-        let template = self.repository.get_template_by_id(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report template {template_id} not found")
-            ))?;
+        let template = self
+            .repository
+            .get_template_by_id(template_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Report template {template_id} not found"))
+            })?;
 
         if template.organization_id != org_id {
             return Err(AtlasError::Forbidden(
@@ -292,14 +340,28 @@ impl FinancialReportingEngine {
             ));
         }
 
-        info!("Adding column {} to template {}", column_number, template_id);
+        info!(
+            "Adding column {} to template {}",
+            column_number, template_id
+        );
 
-        self.repository.create_column(
-            org_id, template_id, column_number, column_type,
-            header_label, sub_header_label, period_offset, period_type,
-            compute_action, compute_source_columns,
-            show_column, column_width, format_override,
-        ).await
+        self.repository
+            .create_column(
+                org_id,
+                template_id,
+                column_number,
+                column_type,
+                header_label,
+                sub_header_label,
+                period_offset,
+                period_type,
+                compute_action,
+                compute_source_columns,
+                show_column,
+                column_width,
+                format_override,
+            )
+            .await
     }
 
     /// List columns for a template
@@ -331,10 +393,13 @@ impl FinancialReportingEngine {
         include_unposted: bool,
         generated_by: Option<Uuid>,
     ) -> AtlasResult<FinancialReportRun> {
-        let template = self.repository.get_template(org_id, template_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report template '{template_code}' not found")
-            ))?;
+        let template = self
+            .repository
+            .get_template(org_id, template_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Report template '{template_code}' not found"))
+            })?;
 
         if !template.is_active {
             return Err(AtlasError::ValidationFailed(
@@ -344,24 +409,21 @@ impl FinancialReportingEngine {
 
         // Validate date parameters based on report type
         match template.report_type.as_str() {
-            "trial_balance"
-                if as_of_date.is_none() => {
-                    return Err(AtlasError::ValidationFailed(
-                        "Trial balance requires as_of_date".to_string(),
-                    ));
-                }
-            "income_statement" | "cash_flow"
-                if (period_from.is_none() || period_to.is_none()) => {
-                    return Err(AtlasError::ValidationFailed(
-                        "Income statement / cash flow requires period_from and period_to".to_string(),
-                    ));
-                }
-            "balance_sheet"
-                if as_of_date.is_none() => {
-                    return Err(AtlasError::ValidationFailed(
-                        "Balance sheet requires as_of_date".to_string(),
-                    ));
-                }
+            "trial_balance" if as_of_date.is_none() => {
+                return Err(AtlasError::ValidationFailed(
+                    "Trial balance requires as_of_date".to_string(),
+                ));
+            }
+            "income_statement" | "cash_flow" if (period_from.is_none() || period_to.is_none()) => {
+                return Err(AtlasError::ValidationFailed(
+                    "Income statement / cash flow requires period_from and period_to".to_string(),
+                ));
+            }
+            "balance_sheet" if as_of_date.is_none() => {
+                return Err(AtlasError::ValidationFailed(
+                    "Balance sheet requires as_of_date".to_string(),
+                ));
+            }
             _ => {}
         }
 
@@ -377,17 +439,35 @@ impl FinancialReportingEngine {
         let run_number = format!("FR-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
         let effective_currency = currency_code.unwrap_or(&template.currency_code);
 
-        info!("Generating report run {} from template '{}'", run_number, template_code);
+        info!(
+            "Generating report run {} from template '{}'",
+            run_number, template_code
+        );
 
-        let run = self.repository.create_run(
-            org_id, template.id, &run_number, name, description,
-            as_of_date, period_from, period_to,
-            effective_currency, segment_filter, include_unposted, generated_by,
-        ).await?;
+        let run = self
+            .repository
+            .create_run(
+                org_id,
+                template.id,
+                &run_number,
+                name,
+                description,
+                as_of_date,
+                period_from,
+                period_to,
+                effective_currency,
+                segment_filter,
+                include_unposted,
+                generated_by,
+            )
+            .await?;
 
         // Load template rows and columns
         let rows = self.repository.list_rows_by_template(template.id).await?;
-        let columns = self.repository.list_columns_by_template(template.id).await?;
+        let columns = self
+            .repository
+            .list_columns_by_template(template.id)
+            .await?;
 
         // Generate result cells
         let mut total_debit = 0.0_f64;
@@ -397,14 +477,17 @@ impl FinancialReportingEngine {
         let mut result_count = 0i32;
 
         for row in &rows {
-            if !row.show_line { continue; }
+            if !row.show_line {
+                continue;
+            }
 
             for col in &columns {
-                if !col.show_column { continue; }
+                if !col.show_column {
+                    continue;
+                }
 
-                let (debit, credit, begin_bal, end_bal, amount) = self.compute_cell(
-                    row, col, &template,
-                );
+                let (debit, credit, begin_bal, end_bal, amount) =
+                    self.compute_cell(row, col, &template);
 
                 total_debit += debit;
                 total_credit += credit;
@@ -414,19 +497,25 @@ impl FinancialReportingEngine {
                 let amount_str = format!("{amount:.2}");
                 let display = format_amount(&amount_str, &template.rounding_option);
 
-                self.repository.create_result(
-                    org_id, run.id, row.id, col.id,
-                    row.row_number, col.column_number,
-                    &format!("{amount:.2}"),
-                    &format!("{debit:.2}"),
-                    &format!("{credit:.2}"),
-                    &format!("{begin_bal:.2}"),
-                    &format!("{end_bal:.2}"),
-                    row.compute_action.is_some(),
-                    row.compute_action.as_deref(),
-                    Some(&display),
-                    None,
-                ).await?;
+                self.repository
+                    .create_result(
+                        org_id,
+                        run.id,
+                        row.id,
+                        col.id,
+                        row.row_number,
+                        col.column_number,
+                        &format!("{amount:.2}"),
+                        &format!("{debit:.2}"),
+                        &format!("{credit:.2}"),
+                        &format!("{begin_bal:.2}"),
+                        &format!("{end_bal:.2}"),
+                        row.compute_action.is_some(),
+                        row.compute_action.as_deref(),
+                        Some(&display),
+                        None,
+                    )
+                    .await?;
 
                 result_count += 1;
             }
@@ -435,20 +524,23 @@ impl FinancialReportingEngine {
         let net_change = total_debit - total_credit;
 
         // Update run totals
-        self.repository.update_run_totals(
-            run.id,
-            &format!("{total_debit:.2}"),
-            &format!("{total_credit:.2}"),
-            &format!("{net_change:.2}"),
-            &format!("{total_beginning:.2}"),
-            &format!("{total_ending:.2}"),
-            result_count,
-        ).await?;
+        self.repository
+            .update_run_totals(
+                run.id,
+                &format!("{total_debit:.2}"),
+                &format!("{total_credit:.2}"),
+                &format!("{net_change:.2}"),
+                &format!("{total_beginning:.2}"),
+                &format!("{total_ending:.2}"),
+                result_count,
+            )
+            .await?;
 
         // Mark as generated
-        let updated_run = self.repository.update_run_status(
-            run.id, "generated", generated_by, None, None,
-        ).await?;
+        let updated_run = self
+            .repository
+            .update_run_status(run.id, "generated", generated_by, None, None)
+            .await?;
 
         Ok(updated_run)
     }
@@ -497,7 +589,11 @@ impl FinancialReportingEngine {
     }
 
     /// Get a report run by run number
-    pub async fn get_run_by_number(&self, org_id: Uuid, run_number: &str) -> AtlasResult<Option<FinancialReportRun>> {
+    pub async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+    ) -> AtlasResult<Option<FinancialReportRun>> {
         self.repository.get_run_by_number(org_id, run_number).await
     }
 
@@ -511,7 +607,9 @@ impl FinancialReportingEngine {
         if let Some(s) = status {
             if !VALID_RUN_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_RUN_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_RUN_STATUSES.join(", ")
                 )));
             }
         }
@@ -533,19 +631,22 @@ impl FinancialReportingEngine {
         run_id: Uuid,
         approved_by: Uuid,
     ) -> AtlasResult<FinancialReportRun> {
-        let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report run {run_id} not found")
-            ))?;
+        let run =
+            self.repository.get_run(run_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Report run {run_id} not found"))
+            })?;
 
         if run.status != "generated" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve report in '{}' status. Must be 'generated'.", run.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve report in '{}' status. Must be 'generated'.",
+                run.status
+            )));
         }
 
         info!("Approving report run {}", run.run_number);
-        self.repository.update_run_status(run_id, "approved", None, Some(approved_by), None).await
+        self.repository
+            .update_run_status(run_id, "approved", None, Some(approved_by), None)
+            .await
     }
 
     /// Publish an approved report
@@ -554,36 +655,42 @@ impl FinancialReportingEngine {
         run_id: Uuid,
         published_by: Uuid,
     ) -> AtlasResult<FinancialReportRun> {
-        let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report run {run_id} not found")
-            ))?;
+        let run =
+            self.repository.get_run(run_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Report run {run_id} not found"))
+            })?;
 
         if run.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot publish report in '{}' status. Must be 'approved'.", run.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot publish report in '{}' status. Must be 'approved'.",
+                run.status
+            )));
         }
 
         info!("Publishing report run {}", run.run_number);
-        self.repository.update_run_status(run_id, "published", None, None, Some(published_by)).await
+        self.repository
+            .update_run_status(run_id, "published", None, None, Some(published_by))
+            .await
     }
 
     /// Archive a published report
     pub async fn archive_report(&self, run_id: Uuid) -> AtlasResult<FinancialReportRun> {
-        let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Report run {run_id} not found")
-            ))?;
+        let run =
+            self.repository.get_run(run_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Report run {run_id} not found"))
+            })?;
 
         if run.status != "published" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot archive report in '{}' status. Must be 'published'.", run.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot archive report in '{}' status. Must be 'published'.",
+                run.status
+            )));
         }
 
         info!("Archiving report run {}", run.run_number);
-        self.repository.update_run_status(run_id, "archived", None, None, None).await
+        self.repository
+            .update_run_status(run_id, "archived", None, None, None)
+            .await
     }
 
     // ========================================================================
@@ -599,53 +706,142 @@ impl FinancialReportingEngine {
         currency_code: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<FinancialReportTemplate> {
-        let template = self.create_template(
-            org_id, code, name,
-            Some("Standard Trial Balance report"),
-            "trial_balance", currency_code,
-            "sequential", "sequential", "none",
-            false, serde_json::json!({}), created_by,
-        ).await?;
+        let template = self
+            .create_template(
+                org_id,
+                code,
+                name,
+                Some("Standard Trial Balance report"),
+                "trial_balance",
+                currency_code,
+                "sequential",
+                "sequential",
+                "none",
+                false,
+                serde_json::json!({}),
+                created_by,
+            )
+            .await?;
 
         // Add standard columns: Account, Debit, Credit, Net Balance
-        self.repository.create_column(
-            org_id, template.id, 1, "actuals",
-            "Beginning Balance", None, 0, "period",
-            None, serde_json::json!([]), true, None, None,
-        ).await?;
+        self.repository
+            .create_column(
+                org_id,
+                template.id,
+                1,
+                "actuals",
+                "Beginning Balance",
+                None,
+                0,
+                "period",
+                None,
+                serde_json::json!([]),
+                true,
+                None,
+                None,
+            )
+            .await?;
 
-        self.repository.create_column(
-            org_id, template.id, 2, "actuals",
-            "Debit", None, 0, "period",
-            None, serde_json::json!([]), true, None, None,
-        ).await?;
+        self.repository
+            .create_column(
+                org_id,
+                template.id,
+                2,
+                "actuals",
+                "Debit",
+                None,
+                0,
+                "period",
+                None,
+                serde_json::json!([]),
+                true,
+                None,
+                None,
+            )
+            .await?;
 
-        self.repository.create_column(
-            org_id, template.id, 3, "actuals",
-            "Credit", None, 0, "period",
-            None, serde_json::json!([]), true, None, None,
-        ).await?;
+        self.repository
+            .create_column(
+                org_id,
+                template.id,
+                3,
+                "actuals",
+                "Credit",
+                None,
+                0,
+                "period",
+                None,
+                serde_json::json!([]),
+                true,
+                None,
+                None,
+            )
+            .await?;
 
-        self.repository.create_column(
-            org_id, template.id, 4, "actuals",
-            "Ending Balance", None, 0, "period",
-            None, serde_json::json!([]), true, None, None,
-        ).await?;
+        self.repository
+            .create_column(
+                org_id,
+                template.id,
+                4,
+                "actuals",
+                "Ending Balance",
+                None,
+                0,
+                "period",
+                None,
+                serde_json::json!([]),
+                true,
+                None,
+                None,
+            )
+            .await?;
 
         // Add header row and total row
-        self.repository.create_row(
-            org_id, template.id, 1, "header", "Trial Balance",
-            0, None, None, serde_json::json!({}),
-            None, serde_json::json!([]),
-            true, true, false, true, false, None, None,
-        ).await?;
+        self.repository
+            .create_row(
+                org_id,
+                template.id,
+                1,
+                "header",
+                "Trial Balance",
+                0,
+                None,
+                None,
+                serde_json::json!({}),
+                None,
+                serde_json::json!([]),
+                true,
+                true,
+                false,
+                true,
+                false,
+                None,
+                None,
+            )
+            .await?;
 
-        self.repository.create_row(
-            org_id, template.id, 999, "total", "Total",
-            0, None, None, serde_json::json!({}),
-            Some("total"), serde_json::json!([]),
-            true, true, false, true, false, None, None,
-        ).await?;
+        self.repository
+            .create_row(
+                org_id,
+                template.id,
+                999,
+                "total",
+                "Total",
+                0,
+                None,
+                None,
+                serde_json::json!({}),
+                Some("total"),
+                serde_json::json!([]),
+                true,
+                true,
+                false,
+                true,
+                false,
+                None,
+                None,
+            )
+            .await?;
 
         Ok(template)
     }
@@ -659,26 +855,59 @@ impl FinancialReportingEngine {
         currency_code: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<FinancialReportTemplate> {
-        let template = self.create_template(
-            org_id, code, name,
-            Some("Standard Income Statement report"),
-            "income_statement", currency_code,
-            "sequential", "sequential", "none",
-            false, serde_json::json!({}), created_by,
-        ).await?;
+        let template = self
+            .create_template(
+                org_id,
+                code,
+                name,
+                Some("Standard Income Statement report"),
+                "income_statement",
+                currency_code,
+                "sequential",
+                "sequential",
+                "none",
+                false,
+                serde_json::json!({}),
+                created_by,
+            )
+            .await?;
 
         // Columns: Current Period, YTD
-        self.repository.create_column(
-            org_id, template.id, 1, "actuals",
-            "Current Period", None, 0, "period",
-            None, serde_json::json!([]), true, None, None,
-        ).await?;
+        self.repository
+            .create_column(
+                org_id,
+                template.id,
+                1,
+                "actuals",
+                "Current Period",
+                None,
+                0,
+                "period",
+                None,
+                serde_json::json!([]),
+                true,
+                None,
+                None,
+            )
+            .await?;
 
-        self.repository.create_column(
-            org_id, template.id, 2, "ytd",
-            "Year-to-Date", None, 0, "ytd",
-            None, serde_json::json!([]), true, None, None,
-        ).await?;
+        self.repository
+            .create_column(
+                org_id,
+                template.id,
+                2,
+                "ytd",
+                "Year-to-Date",
+                None,
+                0,
+                "ytd",
+                None,
+                serde_json::json!([]),
+                true,
+                None,
+                None,
+            )
+            .await?;
 
         // Standard rows for Income Statement
         let sections = [
@@ -707,18 +936,32 @@ impl FinancialReportingEngine {
                 _ => (None, None, None),
             };
 
-            self.repository.create_row(
-                org_id, template.id, *row_num, line_type, label,
-                if *line_type == "header" { 0 } else { i32::from(*line_type == "data") },
-                account_from, account_to, serde_json::json!({}),
-                compute, serde_json::json!([]),
-                true,
-                *line_type == "header" || *line_type == "total",
-                *line_type == "total",
-                *line_type == "total",
-                *line_type == "header",
-                None, None,
-            ).await?;
+            self.repository
+                .create_row(
+                    org_id,
+                    template.id,
+                    *row_num,
+                    line_type,
+                    label,
+                    if *line_type == "header" {
+                        0
+                    } else {
+                        i32::from(*line_type == "data")
+                    },
+                    account_from,
+                    account_to,
+                    serde_json::json!({}),
+                    compute,
+                    serde_json::json!([]),
+                    true,
+                    *line_type == "header" || *line_type == "total",
+                    *line_type == "total",
+                    *line_type == "total",
+                    *line_type == "header",
+                    None,
+                    None,
+                )
+                .await?;
         }
 
         Ok(template)
@@ -733,20 +976,41 @@ impl FinancialReportingEngine {
         currency_code: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<FinancialReportTemplate> {
-        let template = self.create_template(
-            org_id, code, name,
-            Some("Standard Balance Sheet report"),
-            "balance_sheet", currency_code,
-            "sequential", "sequential", "none",
-            false, serde_json::json!({}), created_by,
-        ).await?;
+        let template = self
+            .create_template(
+                org_id,
+                code,
+                name,
+                Some("Standard Balance Sheet report"),
+                "balance_sheet",
+                currency_code,
+                "sequential",
+                "sequential",
+                "none",
+                false,
+                serde_json::json!({}),
+                created_by,
+            )
+            .await?;
 
         // Single column: As-of date balance
-        self.repository.create_column(
-            org_id, template.id, 1, "actuals",
-            "Balance", None, 0, "period",
-            None, serde_json::json!([]), true, None, None,
-        ).await?;
+        self.repository
+            .create_column(
+                org_id,
+                template.id,
+                1,
+                "actuals",
+                "Balance",
+                None,
+                0,
+                "period",
+                None,
+                serde_json::json!([]),
+                true,
+                None,
+                None,
+            )
+            .await?;
 
         // Standard Balance Sheet rows
         let sections = [
@@ -784,7 +1048,11 @@ impl FinancialReportingEngine {
 
         for (row_num, line_type, label) in &sections {
             let indent = match *line_type {
-                "header" => i32::from(!(label.starts_with("ASSETS") || label.starts_with("LIABILITIES") || label.starts_with("STOCKHOLDERS"))),
+                "header" => i32::from(
+                    !(label.starts_with("ASSETS")
+                        || label.starts_with("LIABILITIES")
+                        || label.starts_with("STOCKHOLDERS")),
+                ),
                 "data" => 2,
                 _ => 0,
             };
@@ -794,18 +1062,28 @@ impl FinancialReportingEngine {
                 _ => (None, None, None),
             };
 
-            self.repository.create_row(
-                org_id, template.id, *row_num, line_type, label,
-                indent,
-                account_from, account_to, serde_json::json!({}),
-                compute, serde_json::json!([]),
-                true,
-                *line_type == "header" || *line_type == "total",
-                *line_type == "total",
-                *line_type == "total",
-                *line_type == "header",
-                None, None,
-            ).await?;
+            self.repository
+                .create_row(
+                    org_id,
+                    template.id,
+                    *row_num,
+                    line_type,
+                    label,
+                    indent,
+                    account_from,
+                    account_to,
+                    serde_json::json!({}),
+                    compute,
+                    serde_json::json!([]),
+                    true,
+                    *line_type == "header" || *line_type == "total",
+                    *line_type == "total",
+                    *line_type == "total",
+                    *line_type == "header",
+                    None,
+                    None,
+                )
+                .await?;
         }
 
         Ok(template)
@@ -824,10 +1102,13 @@ impl FinancialReportingEngine {
         display_name: Option<&str>,
     ) -> AtlasResult<FinancialReportFavourite> {
         // Validate template exists
-        let template = self.repository.get_template_by_id(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Template {template_id} not found")
-            ))?;
+        let template = self
+            .repository
+            .get_template_by_id(template_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Template {template_id} not found"))
+            })?;
 
         if template.organization_id != org_id {
             return Err(AtlasError::Forbidden(
@@ -835,15 +1116,24 @@ impl FinancialReportingEngine {
             ));
         }
 
-        info!("Adding template {} to favourites for user {}", template_id, user_id);
+        info!(
+            "Adding template {} to favourites for user {}",
+            template_id, user_id
+        );
 
         // Get next position
         let existing = self.repository.list_favourites(org_id, user_id).await?;
         let position = existing.len() as i32;
 
-        self.repository.create_favourite(
-            org_id, user_id, template_id, display_name.or(Some(&template.name)), position,
-        ).await
+        self.repository
+            .create_favourite(
+                org_id,
+                user_id,
+                template_id,
+                display_name.or(Some(&template.name)),
+                position,
+            )
+            .await
     }
 
     /// List user's favourite reports
@@ -862,7 +1152,9 @@ impl FinancialReportingEngine {
         user_id: Uuid,
         template_id: Uuid,
     ) -> AtlasResult<()> {
-        self.repository.delete_favourite(org_id, user_id, template_id).await
+        self.repository
+            .delete_favourite(org_id, user_id, template_id)
+            .await
     }
 
     // ========================================================================
@@ -870,7 +1162,10 @@ impl FinancialReportingEngine {
     // ========================================================================
 
     /// Get financial reporting dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<FinancialReportingSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<FinancialReportingSummary> {
         self.repository.get_reporting_summary(org_id).await
     }
 }

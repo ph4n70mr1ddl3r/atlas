@@ -73,7 +73,10 @@ mod risk_profile_tests {
 
     pub async fn test_get_risk_profile(client: &reqwest::Client, base_url: &str, token: &str) {
         let resp = client
-            .get(&format!("{}/api/v1/payment-risk/profiles/RP-TEST-001", base_url))
+            .get(&format!(
+                "{}/api/v1/payment-risk/profiles/RP-TEST-001",
+                base_url
+            ))
             .header("Authorization", format!("Bearer {}", token))
             .send()
             .await
@@ -122,7 +125,10 @@ mod fraud_alert_tests {
 
     pub async fn test_list_fraud_alerts(client: &reqwest::Client, base_url: &str, token: &str) {
         let resp = client
-            .get(&format!("{}/api/v1/payment-risk/alerts?status=open", base_url))
+            .get(&format!(
+                "{}/api/v1/payment-risk/alerts?status=open",
+                base_url
+            ))
             .header("Authorization", format!("Bearer {}", token))
             .send()
             .await
@@ -142,7 +148,11 @@ mod fraud_alert_tests {
 mod sanctions_screening_tests {
     use super::*;
 
-    pub async fn test_create_screening_result(client: &reqwest::Client, base_url: &str, token: &str) {
+    pub async fn test_create_screening_result(
+        client: &reqwest::Client,
+        base_url: &str,
+        token: &str,
+    ) {
         let body = json!({
             "screening_type": "supplier_onboarding",
             "supplier_name": "Test Supplier Inc.",
@@ -160,7 +170,11 @@ mod sanctions_screening_tests {
             .await
             .unwrap();
 
-        assert_eq!(resp.status(), 201, "Create screening result should return 201");
+        assert_eq!(
+            resp.status(),
+            201,
+            "Create screening result should return 201"
+        );
         let data: serde_json::Value = resp.json().await.unwrap();
         assert_eq!(data["match_status"], "no_match");
     }
@@ -174,7 +188,12 @@ mod sanctions_screening_tests {
 mod supplier_assessment_tests {
     use super::*;
 
-    pub async fn test_create_assessment(client: &reqwest::Client, base_url: &str, token: &str, supplier_id: &str) {
+    pub async fn test_create_assessment(
+        client: &reqwest::Client,
+        base_url: &str,
+        token: &str,
+        supplier_id: &str,
+    ) {
         let body = json!({
             "supplier_id": supplier_id,
             "supplier_name": "Test Supplier Inc.",

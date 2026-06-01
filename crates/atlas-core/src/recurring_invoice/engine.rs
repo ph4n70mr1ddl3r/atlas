@@ -5,13 +5,11 @@
 //!
 //! Oracle Fusion Cloud ERP: Financials > Payables > Recurring Invoices
 
-use atlas_shared::{AtlasError, AtlasResult};
 use super::repository::{
-    RecurringInvoiceRepository,
-    RecurringInvoiceTemplate, RecurringInvoiceTemplateLine,
-    RecurringInvoiceGeneration,
-    TemplateCreateParams, TemplateLineCreateParams,
+    RecurringInvoiceGeneration, RecurringInvoiceRepository, RecurringInvoiceTemplate,
+    RecurringInvoiceTemplateLine, TemplateCreateParams, TemplateLineCreateParams,
 };
+use atlas_shared::{AtlasError, AtlasResult};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -20,13 +18,23 @@ use uuid::Uuid;
 const VALID_INVOICE_TYPES: &[&str] = &["standard", "credit_memo", "debit_memo", "prepayment"];
 const VALID_AMOUNT_TYPES: &[&str] = &["fixed", "variable", "adjusted"];
 const VALID_RECURRENCE_TYPES: &[&str] = &[
-    "daily", "weekly", "monthly", "quarterly", "semi_annual", "annual",
+    "daily",
+    "weekly",
+    "monthly",
+    "quarterly",
+    "semi_annual",
+    "annual",
 ];
 const VALID_LINE_TYPES: &[&str] = &["item", "freight", "tax", "miscellaneous"];
 const VALID_GL_DATE_BASIS: &[&str] = &["generation_date", "due_date", "period_end"];
 const VALID_STATUSES: &[&str] = &["draft", "active", "suspended", "completed", "cancelled"];
 const VALID_GENERATION_STATUSES: &[&str] = &[
-    "generated", "submitted", "approved", "paid", "cancelled", "error",
+    "generated",
+    "submitted",
+    "approved",
+    "paid",
+    "cancelled",
+    "error",
 ];
 
 /// Recurring Invoice Engine
@@ -87,25 +95,29 @@ impl RecurringInvoiceEngine {
         if !VALID_INVOICE_TYPES.contains(&invoice_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid invoice_type '{}'. Must be one of: {}",
-                invoice_type, VALID_INVOICE_TYPES.join(", ")
+                invoice_type,
+                VALID_INVOICE_TYPES.join(", ")
             )));
         }
         if !VALID_AMOUNT_TYPES.contains(&amount_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid amount_type '{}'. Must be one of: {}",
-                amount_type, VALID_AMOUNT_TYPES.join(", ")
+                amount_type,
+                VALID_AMOUNT_TYPES.join(", ")
             )));
         }
         if !VALID_RECURRENCE_TYPES.contains(&recurrence_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid recurrence_type '{}'. Must be one of: {}",
-                recurrence_type, VALID_RECURRENCE_TYPES.join(", ")
+                recurrence_type,
+                VALID_RECURRENCE_TYPES.join(", ")
             )));
         }
         if !VALID_GL_DATE_BASIS.contains(&gl_date_basis) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid gl_date_basis '{}'. Must be one of: {}",
-                gl_date_basis, VALID_GL_DATE_BASIS.join(", ")
+                gl_date_basis,
+                VALID_GL_DATE_BASIS.join(", ")
             )));
         }
         if recurrence_interval < 1 {
@@ -177,7 +189,10 @@ impl RecurringInvoiceEngine {
             gl_date_basis: gl_date_basis.to_string(),
         };
 
-        info!("Recurring Invoice: Creating template '{}' for org {}", template_number, org_id);
+        info!(
+            "Recurring Invoice: Creating template '{}' for org {}",
+            template_number, org_id
+        );
         self.repo.create_template(org_id, &params, created_by).await
     }
 
@@ -192,7 +207,9 @@ impl RecurringInvoiceEngine {
         org_id: Uuid,
         template_number: &str,
     ) -> AtlasResult<Option<RecurringInvoiceTemplate>> {
-        self.repo.get_template_by_number(org_id, template_number).await
+        self.repo
+            .get_template_by_number(org_id, template_number)
+            .await
     }
 
     /// List templates with optional filters
@@ -216,11 +233,15 @@ impl RecurringInvoiceEngine {
         if !VALID_STATUSES.contains(&new_status) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid status '{}'. Must be one of: {}",
-                new_status, VALID_STATUSES.join(", ")
+                new_status,
+                VALID_STATUSES.join(", ")
             )));
         }
 
-        let template = self.repo.get_template(id).await?
+        let template = self
+            .repo
+            .get_template(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Template not found".to_string()))?;
 
         Self::validate_status_transition(&template.status, new_status)?;
@@ -228,7 +249,9 @@ impl RecurringInvoiceEngine {
         // Calculate next generation date when activating
         let next_gen = if new_status == "active" {
             Some(Self::calculate_next_generation_date(
-                template.last_generation_date.unwrap_or(chrono::Utc::now().naive_utc().date()),
+                template
+                    .last_generation_date
+                    .unwrap_or(chrono::Utc::now().naive_utc().date()),
                 &template.recurrence_type,
                 template.recurrence_interval,
             ))
@@ -236,17 +259,17 @@ impl RecurringInvoiceEngine {
             None
         };
 
-        info!("Recurring Invoice: Transitioning template {} from {} to {}",
-            template.template_number, template.status, new_status);
-        self.repo.update_template_status(id, new_status, next_gen).await
+        info!(
+            "Recurring Invoice: Transitioning template {} from {} to {}",
+            template.template_number, template.status, new_status
+        );
+        self.repo
+            .update_template_status(id, new_status, next_gen)
+            .await
     }
 
     /// Delete a draft template
-    pub async fn delete_template(
-        &self,
-        org_id: Uuid,
-        template_number: &str,
-    ) -> AtlasResult<()> {
+    pub async fn delete_template(&self, org_id: Uuid, template_number: &str) -> AtlasResult<()> {
         self.repo.delete_template(org_id, template_number).await
     }
 
@@ -275,7 +298,10 @@ impl RecurringInvoiceEngine {
         expenditure_type: Option<&str>,
     ) -> AtlasResult<RecurringInvoiceTemplateLine> {
         // Validate template exists and is in draft status
-        let template = self.repo.get_template(template_id).await?
+        let template = self
+            .repo
+            .get_template(template_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Template not found".to_string()))?;
 
         if template.status != "draft" {
@@ -287,7 +313,8 @@ impl RecurringInvoiceEngine {
         if !VALID_LINE_TYPES.contains(&line_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid line_type '{}'. Must be one of: {}",
-                line_type, VALID_LINE_TYPES.join(", ")
+                line_type,
+                VALID_LINE_TYPES.join(", ")
             )));
         }
 
@@ -336,8 +363,13 @@ impl RecurringInvoiceEngine {
             expenditure_type: expenditure_type.map(std::string::ToString::to_string),
         };
 
-        info!("Recurring Invoice: Adding line to template {}", template.template_number);
-        self.repo.create_template_line(org_id, template_id, line_number, &params).await
+        info!(
+            "Recurring Invoice: Adding line to template {}",
+            template.template_number
+        );
+        self.repo
+            .create_template_line(org_id, template_id, line_number, &params)
+            .await
     }
 
     /// List lines for a template
@@ -349,13 +381,12 @@ impl RecurringInvoiceEngine {
     }
 
     /// Remove a line from a template
-    pub async fn remove_template_line(
-        &self,
-        template_id: Uuid,
-        line_id: Uuid,
-    ) -> AtlasResult<()> {
+    pub async fn remove_template_line(&self, template_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
         // Validate template is in draft
-        let template = self.repo.get_template(template_id).await?
+        let template = self
+            .repo
+            .get_template(template_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Template not found".to_string()))?;
 
         if template.status != "draft" {
@@ -381,7 +412,10 @@ impl RecurringInvoiceEngine {
         period_number: Option<i32>,
         generated_by: Option<Uuid>,
     ) -> AtlasResult<RecurringInvoiceGeneration> {
-        let template = self.repo.get_template(template_id).await?
+        let template = self
+            .repo
+            .get_template(template_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Template not found".to_string()))?;
 
         if template.status != "active" {
@@ -415,26 +449,24 @@ impl RecurringInvoiceEngine {
 
         // Calculate amounts from template lines
         let lines = self.repo.list_template_lines(template_id).await?;
-        let total_invoice_amount: f64 = lines.iter()
-            .map(|l| l.amount)
-            .sum();
-        let total_tax_amount: f64 = lines.iter()
-            .map(|l| l.tax_amount)
-            .sum();
+        let total_invoice_amount: f64 = lines.iter().map(|l| l.amount).sum();
+        let total_tax_amount: f64 = lines.iter().map(|l| l.tax_amount).sum();
         let total_amount = total_invoice_amount + total_tax_amount;
 
         if total_amount <= 0.0 {
             return Err(AtlasError::ValidationFailed(
-                "Total invoice amount must be positive. Add lines to the template first.".to_string(),
+                "Total invoice amount must be positive. Add lines to the template first."
+                    .to_string(),
             ));
         }
 
         // Calculate dates
-        let invoice_due_date = invoice_date + chrono::Duration::days(i64::from(template.payment_due_days));
+        let invoice_due_date =
+            invoice_date + chrono::Duration::days(i64::from(template.payment_due_days));
         let gl_date = match template.gl_date_basis.as_str() {
             "due_date" => invoice_due_date,
             "period_end" => invoice_date, // simplified
-            _ => invoice_date, // generation_date
+            _ => invoice_date,            // generation_date
         };
 
         let generation_number = template.generation_count + 1;
@@ -445,29 +477,29 @@ impl RecurringInvoiceEngine {
         );
 
         // Create generation record
-        let generation = self.repo.create_generation(
-            template.organization_id,
-            template_id,
-            generation_number,
-            invoice_date,
-            invoice_due_date,
-            gl_date,
-            total_invoice_amount,
-            total_tax_amount,
-            total_amount,
-            period_name,
-            fiscal_year,
-            period_number,
-            generated_by,
-        ).await?;
+        let generation = self
+            .repo
+            .create_generation(
+                template.organization_id,
+                template_id,
+                generation_number,
+                invoice_date,
+                invoice_due_date,
+                gl_date,
+                total_invoice_amount,
+                total_tax_amount,
+                total_amount,
+                period_name,
+                fiscal_year,
+                period_number,
+                generated_by,
+            )
+            .await?;
 
         // Update template
-        self.repo.update_template_generation(
-            template_id,
-            invoice_date,
-            Some(next_gen),
-            total_amount,
-        ).await?;
+        self.repo
+            .update_template_generation(template_id, invoice_date, Some(next_gen), total_amount)
+            .await?;
 
         info!(
             "Recurring Invoice: Generated invoice #{} for template '{}' (amount: {:.2})",
@@ -484,7 +516,9 @@ impl RecurringInvoiceEngine {
         template_id: Option<Uuid>,
         generation_status: Option<&str>,
     ) -> AtlasResult<Vec<RecurringInvoiceGeneration>> {
-        self.repo.list_generations(org_id, template_id, generation_status).await
+        self.repo
+            .list_generations(org_id, template_id, generation_status)
+            .await
     }
 
     /// Update generation status
@@ -497,10 +531,13 @@ impl RecurringInvoiceEngine {
         if !VALID_GENERATION_STATUSES.contains(&generation_status) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid generation_status '{}'. Must be one of: {}",
-                generation_status, VALID_GENERATION_STATUSES.join(", ")
+                generation_status,
+                VALID_GENERATION_STATUSES.join(", ")
             )));
         }
-        self.repo.update_generation_status(id, generation_status, error_message).await
+        self.repo
+            .update_generation_status(id, generation_status, error_message)
+            .await
     }
 
     // ========================================================================
@@ -508,7 +545,10 @@ impl RecurringInvoiceEngine {
     // ========================================================================
 
     /// Get the recurring invoice dashboard
-    pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<super::repository::RecurringInvoiceDashboard> {
+    pub async fn get_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<super::repository::RecurringInvoiceDashboard> {
         self.repo.get_dashboard(org_id).await
     }
 
@@ -537,7 +577,7 @@ impl RecurringInvoiceEngine {
     }
 
     /// Calculate the next generation date based on recurrence
-    #[must_use] 
+    #[must_use]
     pub fn calculate_next_generation_date(
         current_date: chrono::NaiveDate,
         recurrence_type: &str,
@@ -550,32 +590,28 @@ impl RecurringInvoiceEngine {
             "monthly" => {
                 let mut next = current_date;
                 for _ in 0..i {
-                    next = next.checked_add_months(chrono::Months::new(1))
+                    next = next
+                        .checked_add_months(chrono::Months::new(1))
                         .unwrap_or(next);
                 }
                 next
             }
-            "quarterly" => {
-                current_date.checked_add_months(chrono::Months::new(i * 3))
-                    .unwrap_or(current_date)
-            }
-            "semi_annual" => {
-                current_date.checked_add_months(chrono::Months::new(i * 6))
-                    .unwrap_or(current_date)
-            }
-            "annual" => {
-                current_date.checked_add_months(chrono::Months::new(i * 12))
-                    .unwrap_or(current_date)
-            }
+            "quarterly" => current_date
+                .checked_add_months(chrono::Months::new(i * 3))
+                .unwrap_or(current_date),
+            "semi_annual" => current_date
+                .checked_add_months(chrono::Months::new(i * 6))
+                .unwrap_or(current_date),
+            "annual" => current_date
+                .checked_add_months(chrono::Months::new(i * 12))
+                .unwrap_or(current_date),
             _ => current_date,
         }
     }
 
     /// Calculate total template amount from lines
-    #[must_use] 
-    pub fn calculate_template_total(
-        lines: &[RecurringInvoiceTemplateLine],
-    ) -> (f64, f64, f64) {
+    #[must_use]
+    pub fn calculate_template_total(lines: &[RecurringInvoiceTemplateLine]) -> (f64, f64, f64) {
         let invoice_amount: f64 = lines.iter().map(|l| l.amount).sum();
         let tax_amount: f64 = lines.iter().map(|l| l.tax_amount).sum();
         let total = invoice_amount + tax_amount;
@@ -583,7 +619,7 @@ impl RecurringInvoiceEngine {
     }
 
     /// Calculate invoice due date from invoice date and payment terms
-    #[must_use] 
+    #[must_use]
     pub fn calculate_due_date(
         invoice_date: chrono::NaiveDate,
         payment_due_days: i32,

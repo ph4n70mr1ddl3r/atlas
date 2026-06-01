@@ -4,19 +4,18 @@
 //! Oracle Fusion equivalent: General Ledger > Setup > Chart of Accounts >
 //!   Cross-Validation Rules
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
-    Json,
+    Extension, Json,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
+use tracing::{error, info};
 use uuid::Uuid;
-use tracing::{info, error};
-use crate::AppState;
-use crate::handlers::auth::Claims;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Rules
@@ -48,22 +47,36 @@ pub async fn create_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.shared.cvr_engine.create_rule(
-        org_id,
-        &body.code,
-        &body.name,
-        body.description.as_deref(),
-        &body.rule_type,
-        &body.error_message,
-        body.priority.unwrap_or(10),
-        body.segment_names,
-        body.effective_from,
-        body.effective_to,
-        user_id,
-    ).await {
+    match state
+        .shared
+        .cvr_engine
+        .create_rule(
+            org_id,
+            &body.code,
+            &body.name,
+            body.description.as_deref(),
+            &body.rule_type,
+            &body.error_message,
+            body.priority.unwrap_or(10),
+            body.segment_names,
+            body.effective_from,
+            body.effective_to,
+            user_id,
+        )
+        .await
+    {
         Ok(rule) => {
-            info!("Created cross-validation rule '{}' for org {}", rule.code, org_id);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
+            info!(
+                "Created cross-validation rule '{}' for org {}",
+                rule.code, org_id
+            );
+            Ok((
+                StatusCode::CREATED,
+                Json(serde_json::to_value(rule).unwrap_or_else(|e| {
+                    tracing::error!("Serialization error: {}", e);
+                    serde_json::Value::Null
+                })),
+            ))
         }
         Err(e) => {
             error!("Failed to create cross-validation rule: {}", e);
@@ -79,7 +92,12 @@ pub async fn list_rules(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.shared.cvr_engine.list_rules(org_id, query.enabled_only.unwrap_or(false)).await {
+    match state
+        .shared
+        .cvr_engine
+        .list_rules(org_id, query.enabled_only.unwrap_or(false))
+        .await
+    {
         Ok(list) => Ok(Json(json!(list))),
         Err(e) => {
             error!("Failed to list cross-validation rules: {}", e);
@@ -96,7 +114,10 @@ pub async fn get_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.shared.cvr_engine.get_rule(org_id, &code).await {
-        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => Err(map_error_status(&e)),
     }
@@ -110,7 +131,10 @@ pub async fn enable_rule(
     match state.shared.cvr_engine.enable_rule(id).await {
         Ok(rule) => {
             info!("Enabled cross-validation rule '{}'", rule.code);
-            Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
+            Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })))
         }
         Err(e) => Err(map_error_status(&e)),
     }
@@ -124,7 +148,10 @@ pub async fn disable_rule(
     match state.shared.cvr_engine.disable_rule(id).await {
         Ok(rule) => {
             info!("Disabled cross-validation rule '{}'", rule.code);
-            Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))
+            Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })))
         }
         Err(e) => Err(map_error_status(&e)),
     }
@@ -165,16 +192,27 @@ pub async fn create_rule_line(
 ) -> Result<(StatusCode, Json<Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.shared.cvr_engine.create_rule_line(
-        org_id,
-        &rule_code,
-        &body.line_type,
-        body.patterns,
-        body.display_order.unwrap_or(1),
-    ).await {
+    match state
+        .shared
+        .cvr_engine
+        .create_rule_line(
+            org_id,
+            &rule_code,
+            &body.line_type,
+            body.patterns,
+            body.display_order.unwrap_or(1),
+        )
+        .await
+    {
         Ok(line) => {
             info!("Created {} line for rule {}", line.line_type, rule_code);
-            Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))))
+            Ok((
+                StatusCode::CREATED,
+                Json(serde_json::to_value(line).unwrap_or_else(|e| {
+                    tracing::error!("Serialization error: {}", e);
+                    serde_json::Value::Null
+                })),
+            ))
         }
         Err(e) => {
             error!("Failed to create rule line: {}", e);
@@ -189,7 +227,11 @@ pub async fn list_rule_lines(
     Path(rule_code): Path<String>,
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let rule = state.shared.cvr_engine.get_rule(org_id, &rule_code).await
+    let rule = state
+        .shared
+        .cvr_engine
+        .get_rule(org_id, &rule_code)
+        .await
         .map_err(|e| map_error_status(&e))?
         .ok_or(StatusCode::NOT_FOUND)?;
 
@@ -229,8 +271,16 @@ pub async fn validate_combination(
 ) -> Result<Json<Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.shared.cvr_engine.validate_combination(org_id, &body.segment_values).await {
-        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .shared
+        .cvr_engine
+        .validate_combination(org_id, &body.segment_values)
+        .await
+    {
+        Ok(result) => Ok(Json(serde_json::to_value(result).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to validate combination: {}", e);
             Err(map_error_status(&e))
@@ -249,7 +299,10 @@ pub async fn get_cvr_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     match state.shared.cvr_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => Err(map_error_status(&e)),
     }
 }

@@ -6,14 +6,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > General Ledger > Allocations
 
-use atlas_shared::{
-    AllocationPool, AllocationBase, AllocationBaseValue,
-    AllocationRule, AllocationRuleTarget,
-    AllocationRun, AllocationRunLine,
-    AllocationSummary,
-    AtlasError, AtlasResult,
-};
 use super::CostAllocationRepository;
+use atlas_shared::{
+    AllocationBase, AllocationBaseValue, AllocationPool, AllocationRule, AllocationRuleTarget,
+    AllocationRun, AllocationRunLine, AllocationSummary, AtlasError, AtlasResult,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -83,17 +80,26 @@ impl CostAllocationEngine {
         if !VALID_POOL_TYPES.contains(&pool_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid pool type '{}'. Must be one of: {}",
-                pool_type, VALID_POOL_TYPES.join(", ")
+                pool_type,
+                VALID_POOL_TYPES.join(", ")
             )));
         }
 
         info!("Creating allocation pool '{}' for org {}", code, org_id);
 
-        self.repository.create_pool(
-            org_id, code, name, description, pool_type,
-            source_account_codes, source_department_id, source_cost_center,
-            created_by,
-        ).await
+        self.repository
+            .create_pool(
+                org_id,
+                code,
+                name,
+                description,
+                pool_type,
+                source_account_codes,
+                source_department_id,
+                source_cost_center,
+                created_by,
+            )
+            .await
     }
 
     /// Get a pool by code
@@ -135,16 +141,25 @@ impl CostAllocationEngine {
         if !VALID_BASE_TYPES.contains(&base_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid base type '{}'. Must be one of: {}",
-                base_type, VALID_BASE_TYPES.join(", ")
+                base_type,
+                VALID_BASE_TYPES.join(", ")
             )));
         }
 
         info!("Creating allocation base '{}' for org {}", code, org_id);
 
-        self.repository.create_base(
-            org_id, code, name, description, base_type,
-            financial_account_code, unit_of_measure, created_by,
-        ).await
+        self.repository
+            .create_base(
+                org_id,
+                code,
+                name,
+                description,
+                base_type,
+                financial_account_code,
+                unit_of_measure,
+                created_by,
+            )
+            .await
     }
 
     /// Get a base by code
@@ -180,25 +195,38 @@ impl CostAllocationEngine {
         source: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AllocationBaseValue> {
-        let base = self.repository.get_base(org_id, base_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation base '{base_code}' not found")
-            ))?;
+        let base = self
+            .repository
+            .get_base(org_id, base_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation base '{base_code}' not found"))
+            })?;
 
-        let val: f64 = value.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Value must be a valid number".to_string(),
-        ))?;
+        let val: f64 = value.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Value must be a valid number".to_string())
+        })?;
         if val < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Base value must be non-negative".to_string(),
             ));
         }
 
-        self.repository.upsert_base_value(
-            org_id, base.id, base_code,
-            department_id, department_name, cost_center, project_id,
-            value, effective_date, source, created_by,
-        ).await
+        self.repository
+            .upsert_base_value(
+                org_id,
+                base.id,
+                base_code,
+                department_id,
+                department_name,
+                cost_center,
+                project_id,
+                value,
+                effective_date,
+                source,
+                created_by,
+            )
+            .await
     }
 
     /// Get base values for a given base and effective date
@@ -208,7 +236,9 @@ impl CostAllocationEngine {
         base_id: Uuid,
         effective_date: chrono::NaiveDate,
     ) -> AtlasResult<Vec<AllocationBaseValue>> {
-        self.repository.get_base_values(org_id, base_id, effective_date).await
+        self.repository
+            .get_base_values(org_id, base_id, effective_date)
+            .await
     }
 
     /// List all base values
@@ -247,32 +277,54 @@ impl CostAllocationEngine {
         if !VALID_ALLOCATION_METHODS.contains(&allocation_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid allocation method '{}'. Must be one of: {}",
-                allocation_method, VALID_ALLOCATION_METHODS.join(", ")
+                allocation_method,
+                VALID_ALLOCATION_METHODS.join(", ")
             )));
         }
 
         // Validate pool exists
-        let pool = self.repository.get_pool(org_id, pool_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation pool '{pool_code}' not found")
-            ))?;
+        let pool = self
+            .repository
+            .get_pool(org_id, pool_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation pool '{pool_code}' not found"))
+            })?;
 
         // Validate base exists
-        let base = self.repository.get_base(org_id, base_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation base '{base_code}' not found")
-            ))?;
+        let base = self
+            .repository
+            .get_base(org_id, base_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation base '{base_code}' not found"))
+            })?;
 
         let rule_number = format!("ALLOC-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating allocation rule '{}' ({}) for org {}", name, rule_number, org_id);
+        info!(
+            "Creating allocation rule '{}' ({}) for org {}",
+            name, rule_number, org_id
+        );
 
-        self.repository.create_rule(
-            org_id, &rule_number, name, description,
-            pool.id, pool_code, base.id, base_code,
-            allocation_method, journal_description, offset_account_code,
-            currency_code, is_reversing, created_by,
-        ).await
+        self.repository
+            .create_rule(
+                org_id,
+                &rule_number,
+                name,
+                description,
+                pool.id,
+                pool_code,
+                base.id,
+                base_code,
+                allocation_method,
+                journal_description,
+                offset_account_code,
+                currency_code,
+                is_reversing,
+                created_by,
+            )
+            .await
     }
 
     /// Get a rule by ID
@@ -281,11 +333,17 @@ impl CostAllocationEngine {
     }
 
     /// List rules with optional status filter
-    pub async fn list_rules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<AllocationRule>> {
+    pub async fn list_rules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<AllocationRule>> {
         if let Some(s) = status {
             if !VALID_RULE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_RULE_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_RULE_STATUSES.join(", ")
                 )));
             }
         }
@@ -294,15 +352,15 @@ impl CostAllocationEngine {
 
     /// Activate a draft rule
     pub async fn activate_rule(&self, rule_id: Uuid) -> AtlasResult<AllocationRule> {
-        let rule = self.repository.get_rule(rule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation rule {rule_id} not found")
-            ))?;
+        let rule = self.repository.get_rule(rule_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Allocation rule {rule_id} not found"))
+        })?;
 
         if rule.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot activate rule in '{}' status. Must be 'draft'.", rule.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot activate rule in '{}' status. Must be 'draft'.",
+                rule.status
+            )));
         }
 
         // Validate that the rule has at least one target
@@ -319,18 +377,20 @@ impl CostAllocationEngine {
 
     /// Deactivate an active rule
     pub async fn deactivate_rule(&self, rule_id: Uuid) -> AtlasResult<AllocationRule> {
-        let rule = self.repository.get_rule(rule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation rule {rule_id} not found")
-            ))?;
+        let rule = self.repository.get_rule(rule_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Allocation rule {rule_id} not found"))
+        })?;
 
         if rule.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot deactivate rule in '{}' status. Must be 'active'.", rule.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot deactivate rule in '{}' status. Must be 'active'.",
+                rule.status
+            )));
         }
 
-        self.repository.update_rule_status(rule_id, "inactive").await
+        self.repository
+            .update_rule_status(rule_id, "inactive")
+            .await
     }
 
     // ========================================================================
@@ -351,10 +411,9 @@ impl CostAllocationEngine {
         fixed_percent: Option<&str>,
         fixed_amount: Option<&str>,
     ) -> AtlasResult<AllocationRuleTarget> {
-        let rule = self.repository.get_rule(rule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation rule {rule_id} not found")
-            ))?;
+        let rule = self.repository.get_rule(rule_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Allocation rule {rule_id} not found"))
+        })?;
 
         if target_account_code.is_empty() {
             return Err(AtlasError::ValidationFailed(
@@ -365,9 +424,9 @@ impl CostAllocationEngine {
         // Validate fixed_percent sums for fixed_percent method
         if rule.allocation_method == "fixed_percent" {
             if let Some(pct_str) = fixed_percent {
-                let pct: f64 = pct_str.parse().map_err(|_| AtlasError::ValidationFailed(
-                    "Fixed percent must be a valid number".to_string(),
-                ))?;
+                let pct: f64 = pct_str.parse().map_err(|_| {
+                    AtlasError::ValidationFailed("Fixed percent must be a valid number".to_string())
+                })?;
                 if pct <= 0.0 || pct > 100.0 {
                     return Err(AtlasError::ValidationFailed(
                         "Fixed percent must be between 0 and 100".to_string(),
@@ -384,12 +443,21 @@ impl CostAllocationEngine {
         let existing_targets = self.repository.list_rule_targets(rule_id).await?;
         let line_number = (existing_targets.len() as i32) + 1;
 
-        self.repository.create_rule_target(
-            org_id, rule_id, line_number,
-            department_id, department_name, cost_center,
-            project_id, project_name,
-            target_account_code, fixed_percent, fixed_amount,
-        ).await
+        self.repository
+            .create_rule_target(
+                org_id,
+                rule_id,
+                line_number,
+                department_id,
+                department_name,
+                cost_center,
+                project_id,
+                project_name,
+                target_account_code,
+                fixed_percent,
+                fixed_amount,
+            )
+            .await
     }
 
     /// List targets for a rule
@@ -411,20 +479,20 @@ impl CostAllocationEngine {
         period_end: chrono::NaiveDate,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AllocationRun> {
-        let rule = self.repository.get_rule(rule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation rule {rule_id} not found")
-            ))?;
+        let rule = self.repository.get_rule(rule_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Allocation rule {rule_id} not found"))
+        })?;
 
         if rule.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot execute rule in '{}' status. Must be 'active'.", rule.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot execute rule in '{}' status. Must be 'active'.",
+                rule.status
+            )));
         }
 
-        let total_amount: f64 = source_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Source amount must be a valid number".to_string(),
-        ))?;
+        let total_amount: f64 = source_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Source amount must be a valid number".to_string())
+        })?;
         if total_amount <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Source amount must be positive".to_string(),
@@ -445,61 +513,94 @@ impl CostAllocationEngine {
         let allocations = match rule.allocation_method.as_str() {
             "proportional" => {
                 self.calculate_proportional_allocation(
-                    org_id, &rule, &targets, total_amount, period_start,
-                ).await?
+                    org_id,
+                    &rule,
+                    &targets,
+                    total_amount,
+                    period_start,
+                )
+                .await?
             }
-            "fixed_percent" => {
-                self.calculate_fixed_percent_allocation(&targets, total_amount)?
-            }
-            "fixed_amount" => {
-                self.calculate_fixed_amount_allocation(&targets, total_amount)?
-            }
+            "fixed_percent" => self.calculate_fixed_percent_allocation(&targets, total_amount)?,
+            "fixed_amount" => self.calculate_fixed_amount_allocation(&targets, total_amount)?,
             _ => {
-                return Err(AtlasError::ValidationFailed(
-                    format!("Unsupported allocation method: {}", rule.allocation_method)
-                ));
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Unsupported allocation method: {}",
+                    rule.allocation_method
+                )));
             }
         };
 
         let total_allocated: f64 = allocations.iter().map(|a| a.amount).sum();
         let line_count = (allocations.len() as i32) + 1; // +1 for the offset credit line
 
-        info!("Executing allocation rule {} for amount {:.2}: {} target lines",
-              rule.rule_number, total_amount, allocations.len());
+        info!(
+            "Executing allocation rule {} for amount {:.2}: {} target lines",
+            rule.rule_number,
+            total_amount,
+            allocations.len()
+        );
 
         // Create run header
-        let run = self.repository.create_run(
-            org_id, &run_number, rule_id, &rule.name, &rule.rule_number,
-            period_start, period_end,
-            &format!("{total_amount:.2}"),
-            &format!("{total_allocated:.2}"),
-            line_count, run_date, created_by,
-        ).await?;
+        let run = self
+            .repository
+            .create_run(
+                org_id,
+                &run_number,
+                rule_id,
+                &rule.name,
+                &rule.rule_number,
+                period_start,
+                period_end,
+                &format!("{total_amount:.2}"),
+                &format!("{total_allocated:.2}"),
+                line_count,
+                run_date,
+                created_by,
+            )
+            .await?;
 
         // Create debit lines for each target
         for (idx, alloc) in allocations.iter().enumerate() {
             let desc = rule.journal_description.as_deref().unwrap_or(&rule.name);
-            self.repository.create_run_line(
-                org_id, run.id, (idx as i32) + 1,
-                "debit", &alloc.target.target_account_code,
-                alloc.target.department_id, alloc.target.department_name.as_deref(),
-                alloc.target.cost_center.as_deref(), alloc.target.project_id,
-                &format!("{:.2}", alloc.amount),
-                alloc.base_value.as_deref(), alloc.percentage.as_deref(),
-                Some(desc),
-            ).await?;
+            self.repository
+                .create_run_line(
+                    org_id,
+                    run.id,
+                    (idx as i32) + 1,
+                    "debit",
+                    &alloc.target.target_account_code,
+                    alloc.target.department_id,
+                    alloc.target.department_name.as_deref(),
+                    alloc.target.cost_center.as_deref(),
+                    alloc.target.project_id,
+                    &format!("{:.2}", alloc.amount),
+                    alloc.base_value.as_deref(),
+                    alloc.percentage.as_deref(),
+                    Some(desc),
+                )
+                .await?;
         }
 
         // Create offset credit line
         let offset_account = rule.offset_account_code.as_deref().unwrap_or("9999");
-        self.repository.create_run_line(
-            org_id, run.id, line_count,
-            "credit", offset_account,
-            None, None, None, None,
-            &format!("{total_allocated:.2}"),
-            None, None,
-            Some(&format!("Offset for {}", rule.name)),
-        ).await?;
+        self.repository
+            .create_run_line(
+                org_id,
+                run.id,
+                line_count,
+                "credit",
+                offset_account,
+                None,
+                None,
+                None,
+                None,
+                &format!("{total_allocated:.2}"),
+                None,
+                None,
+                Some(&format!("Offset for {}", rule.name)),
+            )
+            .await?;
 
         Ok(run)
     }
@@ -514,18 +615,21 @@ impl CostAllocationEngine {
         effective_date: chrono::NaiveDate,
     ) -> AtlasResult<Vec<AllocationTargetResult>> {
         // Get base values
-        let base_values = self.repository.get_base_values(
-            org_id, rule.base_id, effective_date,
-        ).await?;
+        let base_values = self
+            .repository
+            .get_base_values(org_id, rule.base_id, effective_date)
+            .await?;
 
         if base_values.is_empty() {
             return Err(AtlasError::ValidationFailed(
-                "No base values found for the allocation base. Enter base values before running.".to_string(),
+                "No base values found for the allocation base. Enter base values before running."
+                    .to_string(),
             ));
         }
 
         // Build lookup: department_id -> value
-        let mut value_map: std::collections::HashMap<Option<Uuid>, f64> = std::collections::HashMap::new();
+        let mut value_map: std::collections::HashMap<Option<Uuid>, f64> =
+            std::collections::HashMap::new();
         let mut total_base: f64 = 0.0;
         for bv in &base_values {
             let val: f64 = bv.value.parse().unwrap_or(0.0);
@@ -606,7 +710,11 @@ impl CostAllocationEngine {
     }
 
     /// List runs with optional rule filter
-    pub async fn list_runs(&self, org_id: Uuid, rule_id: Option<Uuid>) -> AtlasResult<Vec<AllocationRun>> {
+    pub async fn list_runs(
+        &self,
+        org_id: Uuid,
+        rule_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AllocationRun>> {
         self.repository.list_runs(org_id, rule_id).await
     }
 
@@ -616,20 +724,26 @@ impl CostAllocationEngine {
     }
 
     /// Post a draft run (marks as posted)
-    pub async fn post_run(&self, run_id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<AllocationRun> {
-        let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation run {run_id} not found")
-            ))?;
+    pub async fn post_run(
+        &self,
+        run_id: Uuid,
+        posted_by: Option<Uuid>,
+    ) -> AtlasResult<AllocationRun> {
+        let run = self.repository.get_run(run_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Allocation run {run_id} not found"))
+        })?;
 
         if run.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot post run in '{}' status. Must be 'draft'.", run.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot post run in '{}' status. Must be 'draft'.",
+                run.status
+            )));
         }
 
         info!("Posting allocation run {}", run.run_number);
-        self.repository.update_run_status(run_id, "posted", posted_by, None, None).await
+        self.repository
+            .update_run_status(run_id, "posted", posted_by, None, None)
+            .await
     }
 
     /// Reverse a posted run
@@ -639,15 +753,15 @@ impl CostAllocationEngine {
         reversed_by: Option<Uuid>,
         reason: &str,
     ) -> AtlasResult<AllocationRun> {
-        let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Allocation run {run_id} not found")
-            ))?;
+        let run = self.repository.get_run(run_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Allocation run {run_id} not found"))
+        })?;
 
         if run.status != "posted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reverse run in '{}' status. Must be 'posted'.", run.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reverse run in '{}' status. Must be 'posted'.",
+                run.status
+            )));
         }
 
         if reason.is_empty() {
@@ -657,7 +771,9 @@ impl CostAllocationEngine {
         }
 
         info!("Reversing allocation run {}: {}", run.run_number, reason);
-        self.repository.update_run_status(run_id, "reversed", None, reversed_by, Some(reason)).await
+        self.repository
+            .update_run_status(run_id, "reversed", None, reversed_by, Some(reason))
+            .await
     }
 
     // ========================================================================

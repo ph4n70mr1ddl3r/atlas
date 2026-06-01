@@ -2,14 +2,11 @@
 //!
 //! `PostgreSQL` storage for allocation pools, bases, rules, runs, and lines.
 
-use atlas_shared::{
-    AllocationPool, AllocationBase, AllocationBaseValue,
-    AllocationRule, AllocationRuleTarget,
-    AllocationRun, AllocationRunLine,
-    AllocationSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AllocationBase, AllocationBaseValue, AllocationPool, AllocationRule, AllocationRuleTarget,
+    AllocationRun, AllocationRunLine, AllocationSummary, AtlasError, AtlasResult,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -103,8 +100,16 @@ pub trait CostAllocationRepository: Send + Sync {
     ) -> AtlasResult<AllocationRule>;
 
     async fn get_rule(&self, id: Uuid) -> AtlasResult<Option<AllocationRule>>;
-    async fn get_rule_by_number(&self, org_id: Uuid, rule_number: &str) -> AtlasResult<Option<AllocationRule>>;
-    async fn list_rules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<AllocationRule>>;
+    async fn get_rule_by_number(
+        &self,
+        org_id: Uuid,
+        rule_number: &str,
+    ) -> AtlasResult<Option<AllocationRule>>;
+    async fn list_rules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<AllocationRule>>;
     async fn update_rule_status(&self, id: Uuid, status: &str) -> AtlasResult<AllocationRule>;
 
     // ── Rule Targets ──────────────────────────────────────────────────
@@ -144,7 +149,11 @@ pub trait CostAllocationRepository: Send + Sync {
     ) -> AtlasResult<AllocationRun>;
 
     async fn get_run(&self, id: Uuid) -> AtlasResult<Option<AllocationRun>>;
-    async fn list_runs(&self, org_id: Uuid, rule_id: Option<Uuid>) -> AtlasResult<Vec<AllocationRun>>;
+    async fn list_runs(
+        &self,
+        org_id: Uuid,
+        rule_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AllocationRun>>;
     async fn update_run_status(
         &self,
         id: Uuid,
@@ -184,7 +193,7 @@ pub struct PostgresCostAllocationRepository {
 }
 
 impl PostgresCostAllocationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -214,8 +223,14 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(pool_type)
-        .bind(&source_account_codes).bind(source_department_id).bind(source_cost_center)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(pool_type)
+        .bind(&source_account_codes)
+        .bind(source_department_id)
+        .bind(source_cost_center)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -241,9 +256,10 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
 
     async fn get_pool(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AllocationPool>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.allocation_pools WHERE organization_id = $1 AND code = $2"
+            "SELECT * FROM _atlas.allocation_pools WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
+        .bind(org_id)
+        .bind(code)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -291,33 +307,37 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
 
     async fn list_pools(&self, org_id: Uuid) -> AtlasResult<Vec<AllocationPool>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.allocation_pools WHERE organization_id = $1 ORDER BY code"
+            "SELECT * FROM _atlas.allocation_pools WHERE organization_id = $1 ORDER BY code",
         )
         .bind(org_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.into_iter().map(|r| AllocationPool {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            code: r.get("code"),
-            name: r.get("name"),
-            description: r.get("description"),
-            pool_type: r.get("pool_type"),
-            source_account_codes: r.get("source_account_codes"),
-            source_department_id: r.get("source_department_id"),
-            source_cost_center: r.get("source_cost_center"),
-            is_active: r.get("is_active"),
-            metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
-            created_by: r.get("created_by"),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| AllocationPool {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                code: r.get("code"),
+                name: r.get("name"),
+                description: r.get("description"),
+                pool_type: r.get("pool_type"),
+                source_account_codes: r.get("source_account_codes"),
+                source_department_id: r.get("source_department_id"),
+                source_cost_center: r.get("source_cost_center"),
+                is_active: r.get("is_active"),
+                metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
+                created_by: r.get("created_by"),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+            })
+            .collect())
     }
 
     async fn delete_pool(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.allocation_pools WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code)
+            .bind(org_id)
+            .bind(code)
             .execute(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -347,8 +367,13 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(base_type)
-        .bind(financial_account_code).bind(unit_of_measure)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(base_type)
+        .bind(financial_account_code)
+        .bind(unit_of_measure)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -373,9 +398,10 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
 
     async fn get_base(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AllocationBase>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.allocation_bases WHERE organization_id = $1 AND code = $2"
+            "SELECT * FROM _atlas.allocation_bases WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
+        .bind(org_id)
+        .bind(code)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -421,32 +447,36 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
 
     async fn list_bases(&self, org_id: Uuid) -> AtlasResult<Vec<AllocationBase>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.allocation_bases WHERE organization_id = $1 ORDER BY code"
+            "SELECT * FROM _atlas.allocation_bases WHERE organization_id = $1 ORDER BY code",
         )
         .bind(org_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.into_iter().map(|r| AllocationBase {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            code: r.get("code"),
-            name: r.get("name"),
-            description: r.get("description"),
-            base_type: r.get("base_type"),
-            financial_account_code: r.get("financial_account_code"),
-            unit_of_measure: r.get("unit_of_measure"),
-            is_active: r.get("is_active"),
-            metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
-            created_by: r.get("created_by"),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| AllocationBase {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                code: r.get("code"),
+                name: r.get("name"),
+                description: r.get("description"),
+                base_type: r.get("base_type"),
+                financial_account_code: r.get("financial_account_code"),
+                unit_of_measure: r.get("unit_of_measure"),
+                is_active: r.get("is_active"),
+                metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
+                created_by: r.get("created_by"),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+            })
+            .collect())
     }
 
     async fn delete_base(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.allocation_bases WHERE organization_id = $1 AND code = $2")
-            .bind(org_id).bind(code)
+            .bind(org_id)
+            .bind(code)
             .execute(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -483,9 +513,17 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(base_id).bind(base_code)
-        .bind(department_id).bind(department_name).bind(cost_center).bind(project_id)
-        .bind(value).bind(effective_date).bind(source).bind(created_by)
+        .bind(org_id)
+        .bind(base_id)
+        .bind(base_code)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(cost_center)
+        .bind(project_id)
+        .bind(value)
+        .bind(effective_date)
+        .bind(source)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -499,7 +537,9 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             department_name: row.get("department_name"),
             cost_center: row.get("cost_center"),
             project_id: row.get("project_id"),
-            value: row.try_get("value").map_or_else(|_| "0".to_string(), |v: serde_json::Value| v.to_string()),
+            value: row
+                .try_get("value")
+                .map_or_else(|_| "0".to_string(), |v: serde_json::Value| v.to_string()),
             effective_date: row.get("effective_date"),
             source: row.get("source"),
             metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
@@ -522,27 +562,34 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             ORDER BY effective_date DESC, department_name
             ",
         )
-        .bind(org_id).bind(base_id).bind(effective_date)
+        .bind(org_id)
+        .bind(base_id)
+        .bind(effective_date)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.into_iter().map(|r| AllocationBaseValue {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            base_id: r.get("base_id"),
-            base_code: r.get("base_code"),
-            department_id: r.get("department_id"),
-            department_name: r.get("department_name"),
-            cost_center: r.get("cost_center"),
-            project_id: r.get("project_id"),
-            value: r.try_get("value").map_or_else(|_| "0".to_string(), |v: serde_json::Value| v.to_string()),
-            effective_date: r.get("effective_date"),
-            source: r.get("source"),
-            metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
-            created_by: r.get("created_by"),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| AllocationBaseValue {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                base_id: r.get("base_id"),
+                base_code: r.get("base_code"),
+                department_id: r.get("department_id"),
+                department_name: r.get("department_name"),
+                cost_center: r.get("cost_center"),
+                project_id: r.get("project_id"),
+                value: r
+                    .try_get("value")
+                    .map_or_else(|_| "0".to_string(), |v: serde_json::Value| v.to_string()),
+                effective_date: r.get("effective_date"),
+                source: r.get("source"),
+                metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
+                created_by: r.get("created_by"),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+            })
+            .collect())
     }
 
     async fn list_base_values(
@@ -564,23 +611,28 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             .fetch_all(&self.pool).await
         }.map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.into_iter().map(|r| AllocationBaseValue {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            base_id: r.get("base_id"),
-            base_code: r.get("base_code"),
-            department_id: r.get("department_id"),
-            department_name: r.get("department_name"),
-            cost_center: r.get("cost_center"),
-            project_id: r.get("project_id"),
-            value: r.try_get("value").map_or_else(|_| "0".to_string(), |v: serde_json::Value| v.to_string()),
-            effective_date: r.get("effective_date"),
-            source: r.get("source"),
-            metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
-            created_by: r.get("created_by"),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| AllocationBaseValue {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                base_id: r.get("base_id"),
+                base_code: r.get("base_code"),
+                department_id: r.get("department_id"),
+                department_name: r.get("department_name"),
+                cost_center: r.get("cost_center"),
+                project_id: r.get("project_id"),
+                value: r
+                    .try_get("value")
+                    .map_or_else(|_| "0".to_string(), |v: serde_json::Value| v.to_string()),
+                effective_date: r.get("effective_date"),
+                source: r.get("source"),
+                metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
+                created_by: r.get("created_by"),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+            })
+            .collect())
     }
 
     // ── Allocation Rules ──────────────────────────────────────────────
@@ -614,10 +666,20 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(rule_number).bind(name).bind(description)
-        .bind(pool_id).bind(pool_code).bind(base_id).bind(base_code)
-        .bind(allocation_method).bind(journal_description).bind(offset_account_code)
-        .bind(currency_code).bind(is_reversing).bind(created_by)
+        .bind(org_id)
+        .bind(rule_number)
+        .bind(name)
+        .bind(description)
+        .bind(pool_id)
+        .bind(pool_code)
+        .bind(base_id)
+        .bind(base_code)
+        .bind(allocation_method)
+        .bind(journal_description)
+        .bind(offset_account_code)
+        .bind(currency_code)
+        .bind(is_reversing)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -634,18 +696,27 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
         Ok(row.map(|r| row_to_rule(&r)))
     }
 
-    async fn get_rule_by_number(&self, org_id: Uuid, rule_number: &str) -> AtlasResult<Option<AllocationRule>> {
+    async fn get_rule_by_number(
+        &self,
+        org_id: Uuid,
+        rule_number: &str,
+    ) -> AtlasResult<Option<AllocationRule>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.allocation_rules WHERE organization_id = $1 AND rule_number = $2"
+            "SELECT * FROM _atlas.allocation_rules WHERE organization_id = $1 AND rule_number = $2",
         )
-        .bind(org_id).bind(rule_number)
+        .bind(org_id)
+        .bind(rule_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_rule(&r)))
     }
 
-    async fn list_rules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<AllocationRule>> {
+    async fn list_rules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<AllocationRule>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.allocation_rules
@@ -653,7 +724,8 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             ORDER BY rule_number
             ",
         )
-        .bind(org_id).bind(status)
+        .bind(org_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -698,10 +770,17 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(rule_id).bind(line_number)
-        .bind(department_id).bind(department_name).bind(cost_center)
-        .bind(project_id).bind(project_name)
-        .bind(target_account_code).bind(fixed_percent).bind(fixed_amount)
+        .bind(org_id)
+        .bind(rule_id)
+        .bind(line_number)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(cost_center)
+        .bind(project_id)
+        .bind(project_name)
+        .bind(target_account_code)
+        .bind(fixed_percent)
+        .bind(fixed_amount)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -717,8 +796,14 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             project_id: row.get("project_id"),
             project_name: row.get("project_name"),
             target_account_code: row.get("target_account_code"),
-            fixed_percent: row.try_get("fixed_percent").map(|v: serde_json::Value| v.to_string()).ok(),
-            fixed_amount: row.try_get("fixed_amount").map(|v: serde_json::Value| v.to_string()).ok(),
+            fixed_percent: row
+                .try_get("fixed_percent")
+                .map(|v: serde_json::Value| v.to_string())
+                .ok(),
+            fixed_amount: row
+                .try_get("fixed_amount")
+                .map(|v: serde_json::Value| v.to_string())
+                .ok(),
             is_active: row.get("is_active"),
             metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
             created_at: row.get("created_at"),
@@ -728,30 +813,39 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
 
     async fn list_rule_targets(&self, rule_id: Uuid) -> AtlasResult<Vec<AllocationRuleTarget>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.allocation_rule_targets WHERE rule_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.allocation_rule_targets WHERE rule_id = $1 ORDER BY line_number",
         )
         .bind(rule_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.into_iter().map(|r| AllocationRuleTarget {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            rule_id: r.get("rule_id"),
-            line_number: r.get("line_number"),
-            department_id: r.get("department_id"),
-            department_name: r.get("department_name"),
-            cost_center: r.get("cost_center"),
-            project_id: r.get("project_id"),
-            project_name: r.get("project_name"),
-            target_account_code: r.get("target_account_code"),
-            fixed_percent: r.try_get("fixed_percent").map(|v: serde_json::Value| v.to_string()).ok(),
-            fixed_amount: r.try_get("fixed_amount").map(|v: serde_json::Value| v.to_string()).ok(),
-            is_active: r.get("is_active"),
-            metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| AllocationRuleTarget {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                rule_id: r.get("rule_id"),
+                line_number: r.get("line_number"),
+                department_id: r.get("department_id"),
+                department_name: r.get("department_name"),
+                cost_center: r.get("cost_center"),
+                project_id: r.get("project_id"),
+                project_name: r.get("project_name"),
+                target_account_code: r.get("target_account_code"),
+                fixed_percent: r
+                    .try_get("fixed_percent")
+                    .map(|v: serde_json::Value| v.to_string())
+                    .ok(),
+                fixed_amount: r
+                    .try_get("fixed_amount")
+                    .map(|v: serde_json::Value| v.to_string())
+                    .ok(),
+                is_active: r.get("is_active"),
+                metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+            })
+            .collect())
     }
 
     async fn delete_rule_targets(&self, rule_id: Uuid) -> AtlasResult<()> {
@@ -791,9 +885,18 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(run_number).bind(rule_id).bind(rule_name).bind(rule_number)
-        .bind(period_start).bind(period_end).bind(total_source_amount).bind(total_allocated_amount)
-        .bind(line_count).bind(run_date).bind(created_by)
+        .bind(org_id)
+        .bind(run_number)
+        .bind(rule_id)
+        .bind(rule_name)
+        .bind(rule_number)
+        .bind(period_start)
+        .bind(period_end)
+        .bind(total_source_amount)
+        .bind(total_allocated_amount)
+        .bind(line_count)
+        .bind(run_date)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -810,7 +913,11 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
         Ok(row.map(|r| row_to_run(&r)))
     }
 
-    async fn list_runs(&self, org_id: Uuid, rule_id: Option<Uuid>) -> AtlasResult<Vec<AllocationRun>> {
+    async fn list_runs(
+        &self,
+        org_id: Uuid,
+        rule_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AllocationRun>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.allocation_runs
@@ -818,7 +925,8 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(rule_id)
+        .bind(org_id)
+        .bind(rule_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -846,7 +954,11 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(posted_by).bind(reversed_by_id).bind(reversal_reason)
+        .bind(id)
+        .bind(status)
+        .bind(posted_by)
+        .bind(reversed_by_id)
+        .bind(reversal_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -882,9 +994,19 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(run_id).bind(line_number).bind(line_type).bind(account_code)
-        .bind(department_id).bind(department_name).bind(cost_center).bind(project_id)
-        .bind(amount).bind(base_value_used).bind(percent_of_total).bind(description)
+        .bind(org_id)
+        .bind(run_id)
+        .bind(line_number)
+        .bind(line_type)
+        .bind(account_code)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(cost_center)
+        .bind(project_id)
+        .bind(amount)
+        .bind(base_value_used)
+        .bind(percent_of_total)
+        .bind(description)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -900,9 +1022,17 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
             department_name: row.get("department_name"),
             cost_center: row.get("cost_center"),
             project_id: row.get("project_id"),
-            amount: row.try_get("amount").map_or_else(|_| "0".to_string(), |v: serde_json::Value| v.to_string()),
-            base_value_used: row.try_get("base_value_used").map(|v: serde_json::Value| v.to_string()).ok(),
-            percent_of_total: row.try_get("percent_of_total").map(|v: serde_json::Value| v.to_string()).ok(),
+            amount: row
+                .try_get("amount")
+                .map_or_else(|_| "0".to_string(), |v: serde_json::Value| v.to_string()),
+            base_value_used: row
+                .try_get("base_value_used")
+                .map(|v: serde_json::Value| v.to_string())
+                .ok(),
+            percent_of_total: row
+                .try_get("percent_of_total")
+                .map(|v: serde_json::Value| v.to_string())
+                .ok(),
             description: row.get("description"),
             metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
             created_at: row.get("created_at"),
@@ -912,31 +1042,42 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
 
     async fn list_run_lines(&self, run_id: Uuid) -> AtlasResult<Vec<AllocationRunLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.allocation_run_lines WHERE run_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.allocation_run_lines WHERE run_id = $1 ORDER BY line_number",
         )
         .bind(run_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.into_iter().map(|r| AllocationRunLine {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            run_id: r.get("run_id"),
-            line_number: r.get("line_number"),
-            line_type: r.get("line_type"),
-            account_code: r.get("account_code"),
-            department_id: r.get("department_id"),
-            department_name: r.get("department_name"),
-            cost_center: r.get("cost_center"),
-            project_id: r.get("project_id"),
-            amount: r.try_get("amount").map_or_else(|_| "0".to_string(), |v: serde_json::Value| v.to_string()),
-            base_value_used: r.try_get("base_value_used").map(|v: serde_json::Value| v.to_string()).ok(),
-            percent_of_total: r.try_get("percent_of_total").map(|v: serde_json::Value| v.to_string()).ok(),
-            description: r.get("description"),
-            metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| AllocationRunLine {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                run_id: r.get("run_id"),
+                line_number: r.get("line_number"),
+                line_type: r.get("line_type"),
+                account_code: r.get("account_code"),
+                department_id: r.get("department_id"),
+                department_name: r.get("department_name"),
+                cost_center: r.get("cost_center"),
+                project_id: r.get("project_id"),
+                amount: r
+                    .try_get("amount")
+                    .map_or_else(|_| "0".to_string(), |v: serde_json::Value| v.to_string()),
+                base_value_used: r
+                    .try_get("base_value_used")
+                    .map(|v: serde_json::Value| v.to_string())
+                    .ok(),
+                percent_of_total: r
+                    .try_get("percent_of_total")
+                    .map(|v: serde_json::Value| v.to_string())
+                    .ok(),
+                description: r.get("description"),
+                metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+            })
+            .collect())
     }
 
     // ── Dashboard ─────────────────────────────────────────────────────
@@ -961,7 +1102,7 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
         let runs_row = sqlx::query(
             r"SELECT COUNT(*) as run_count,
                       COALESCE(SUM(total_allocated_amount), 0) as total_amount
-               FROM _atlas.allocation_runs WHERE organization_id = $1"
+               FROM _atlas.allocation_runs WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -971,7 +1112,9 @@ impl CostAllocationRepository for PostgresCostAllocationRepository {
         let active_rules: i64 = rules_row.try_get("cnt").unwrap_or(0);
         let pool_count: i64 = pools_row.try_get("cnt").unwrap_or(0);
         let run_count: i64 = runs_row.try_get("run_count").unwrap_or(0);
-        let total_amount: serde_json::Value = runs_row.try_get("total_amount").unwrap_or(serde_json::json!(0));
+        let total_amount: serde_json::Value = runs_row
+            .try_get("total_amount")
+            .unwrap_or(serde_json::json!(0));
 
         Ok(AllocationSummary {
             active_rule_count: active_rules as i32,

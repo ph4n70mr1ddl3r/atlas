@@ -7,17 +7,17 @@
 //! transaction of a given amount.
 
 use axum::{
-    extract::{Path, Query, State, Extension},
-    Json,
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::auth::Claims;
+use crate::AppState;
 use atlas_shared::CreateApprovalAuthorityLimitRequest;
 
 // ============================================================================
@@ -53,10 +53,19 @@ pub async fn create_authority_limit(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.approval_authority_engine.create_limit(org_id, payload, Some(user_id)).await {
-        Ok(limit) => Ok((StatusCode::CREATED, Json(serde_json::to_value(limit).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
-        })))),
+    match state
+        .hcm
+        .approval_authority_engine
+        .create_limit(org_id, payload, Some(user_id))
+        .await
+    {
+        Ok(limit) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(limit).unwrap_or_else(|e| {
+                error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create authority limit: {}", e);
             Err(match e.status_code() {
@@ -77,7 +86,8 @@ pub async fn get_authority_limit(
 
     match state.hcm.approval_authority_engine.get_limit(id).await {
         Ok(Some(limit)) => Ok(Json(serde_json::to_value(limit).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -93,21 +103,28 @@ pub async fn list_authority_limits(
     Query(query): Query<ListLimitsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&_claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = query.user_id
+    let user_id = query
+        .user_id
         .map(|s| Uuid::parse_str(&s))
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.hcm.approval_authority_engine.list_limits(
-        org_id,
-        query.status.as_deref(),
-        query.owner_type.as_deref(),
-        query.document_type.as_deref(),
-        user_id,
-        query.role_name.as_deref(),
-    ).await {
+    match state
+        .hcm
+        .approval_authority_engine
+        .list_limits(
+            org_id,
+            query.status.as_deref(),
+            query.owner_type.as_deref(),
+            query.document_type.as_deref(),
+            user_id,
+            query.role_name.as_deref(),
+        )
+        .await
+    {
         Ok(limits) => Ok(Json(serde_json::to_value(limits).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to list authority limits: {}", e);
@@ -125,7 +142,8 @@ pub async fn activate_authority_limit(
 
     match state.hcm.approval_authority_engine.activate_limit(id).await {
         Ok(limit) => Ok(Json(serde_json::to_value(limit).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to activate authority limit {}: {}", id, e);
@@ -145,9 +163,15 @@ pub async fn deactivate_authority_limit(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.hcm.approval_authority_engine.deactivate_limit(id).await {
+    match state
+        .hcm
+        .approval_authority_engine
+        .deactivate_limit(id)
+        .await
+    {
         Ok(limit) => Ok(Json(serde_json::to_value(limit).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to deactivate authority limit {}: {}", id, e);
@@ -198,31 +222,43 @@ pub async fn check_authority(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let business_unit_id = payload.business_unit_id
+    let business_unit_id = payload
+        .business_unit_id
         .map(|s| Uuid::parse_str(&s))
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let document_id = payload.document_id
+    let document_id = payload
+        .document_id
         .map(|s| Uuid::parse_str(&s))
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.hcm.approval_authority_engine.check_authority(
-        org_id,
-        user_id,
-        &claims.roles,
-        &payload.document_type,
-        &payload.amount,
-        business_unit_id,
-        payload.cost_center.as_deref(),
-        document_id,
-    ).await {
+    match state
+        .hcm
+        .approval_authority_engine
+        .check_authority(
+            org_id,
+            user_id,
+            &claims.roles,
+            &payload.document_type,
+            &payload.amount,
+            business_unit_id,
+            payload.cost_center.as_deref(),
+            document_id,
+        )
+        .await
+    {
         Ok(audit) => {
-            let status = if audit.result == "approved" { StatusCode::OK } else { StatusCode::FORBIDDEN };
+            let status = if audit.result == "approved" {
+                StatusCode::OK
+            } else {
+                StatusCode::FORBIDDEN
+            };
             // We return the body either way, but set the status code
             let val = serde_json::to_value(&audit).unwrap_or_else(|e| {
-                error!("Serialization error: {}", e); serde_json::Value::Null
+                error!("Serialization error: {}", e);
+                serde_json::Value::Null
             });
             // axum doesn't let us change status easily here, so return 200 with the result
             let _ = status;
@@ -248,20 +284,27 @@ pub async fn list_check_audits(
     Query(query): Query<ListAuditsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&_claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = query.user_id
+    let user_id = query
+        .user_id
         .map(|s| Uuid::parse_str(&s))
         .transpose()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.hcm.approval_authority_engine.list_check_audits(
-        org_id,
-        user_id,
-        query.document_type.as_deref(),
-        query.result.as_deref(),
-        query.limit,
-    ).await {
+    match state
+        .hcm
+        .approval_authority_engine
+        .list_check_audits(
+            org_id,
+            user_id,
+            query.document_type.as_deref(),
+            query.result.as_deref(),
+            query.limit,
+        )
+        .await
+    {
         Ok(audits) => Ok(Json(serde_json::to_value(audits).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to list check audits: {}", e);
@@ -280,9 +323,15 @@ pub async fn get_authority_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.approval_authority_engine.get_dashboard(org_id).await {
+    match state
+        .hcm
+        .approval_authority_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to get authority dashboard: {}", e);

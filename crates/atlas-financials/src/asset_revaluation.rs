@@ -132,7 +132,7 @@ mod tests {
     #[test]
     fn test_asset_revaluation() {
         let service = AssetRevaluationService::new();
-        
+
         let req = AssetRevaluationRequest {
             book_type_code: "CORP_BOOK".to_string(),
             description: Some("Year end revaluation".to_string()),
@@ -143,7 +143,7 @@ mod tests {
 
         let result = service.create_revaluation(req);
         assert!(result.is_ok());
-        
+
         let res = result.unwrap();
         assert_eq!(res.status, "COMPLETED");
         assert_eq!(res.processed_assets, 2);
@@ -157,7 +157,7 @@ mod tests {
     #[test]
     fn test_asset_revaluation_missing_rate() {
         let service = AssetRevaluationService::new();
-        
+
         let req = AssetRevaluationRequest {
             book_type_code: "CORP_BOOK".to_string(),
             description: Some("Invalid revaluation".to_string()),

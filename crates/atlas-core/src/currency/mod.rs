@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: General Ledger > Currency Rates Manager
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::CurrencyEngine;
 pub use repository::{CurrencyRepository, PostgresCurrencyRepository};

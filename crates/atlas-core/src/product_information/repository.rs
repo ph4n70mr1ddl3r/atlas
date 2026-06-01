@@ -3,16 +3,15 @@
 //! `PostgreSQL` storage for product items, categories, cross-references,
 //! new item requests, and item templates.
 
-use atlas_shared::{
-    ProductItem, PimCategory, PimCategoryAssignment, PimCrossReference,
-    PimNewItemRequest, PimItemTemplate, PimDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, PimCategory, PimCategoryAssignment, PimCrossReference, PimDashboard,
+    PimItemTemplate, PimNewItemRequest, ProductItem,
+};
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
 /// Repository trait for Product Information Management data storage
 #[async_trait]
@@ -56,10 +55,29 @@ pub trait ProductInformationRepository: Send + Sync {
     ) -> AtlasResult<ProductItem>;
 
     async fn get_item(&self, id: Uuid) -> AtlasResult<Option<ProductItem>>;
-    async fn get_item_by_number(&self, org_id: Uuid, item_number: &str) -> AtlasResult<Option<ProductItem>>;
-    async fn list_items(&self, org_id: Uuid, status: Option<&str>, item_type: Option<&str>, category_id: Option<Uuid>) -> AtlasResult<Vec<ProductItem>>;
-    async fn update_item_status(&self, id: Uuid, status: &str, lifecycle_phase: Option<&str>) -> AtlasResult<ProductItem>;
-    async fn update_item_lifecycle(&self, id: Uuid, lifecycle_phase: &str) -> AtlasResult<ProductItem>;
+    async fn get_item_by_number(
+        &self,
+        org_id: Uuid,
+        item_number: &str,
+    ) -> AtlasResult<Option<ProductItem>>;
+    async fn list_items(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        item_type: Option<&str>,
+        category_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ProductItem>>;
+    async fn update_item_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        lifecycle_phase: Option<&str>,
+    ) -> AtlasResult<ProductItem>;
+    async fn update_item_lifecycle(
+        &self,
+        id: Uuid,
+        lifecycle_phase: &str,
+    ) -> AtlasResult<ProductItem>;
     async fn delete_item(&self, id: Uuid) -> AtlasResult<()>;
 
     // Item Categories
@@ -75,8 +93,16 @@ pub trait ProductInformationRepository: Send + Sync {
     ) -> AtlasResult<PimCategory>;
 
     async fn get_category(&self, id: Uuid) -> AtlasResult<Option<PimCategory>>;
-    async fn get_category_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PimCategory>>;
-    async fn list_categories(&self, org_id: Uuid, parent_id: Option<Uuid>) -> AtlasResult<Vec<PimCategory>>;
+    async fn get_category_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PimCategory>>;
+    async fn list_categories(
+        &self,
+        org_id: Uuid,
+        parent_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<PimCategory>>;
     async fn delete_category(&self, id: Uuid) -> AtlasResult<()>;
 
     // Item Category Assignments
@@ -89,7 +115,10 @@ pub trait ProductInformationRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimCategoryAssignment>;
 
-    async fn get_primary_category_assignment(&self, item_id: Uuid) -> AtlasResult<Option<PimCategoryAssignment>>;
+    async fn get_primary_category_assignment(
+        &self,
+        item_id: Uuid,
+    ) -> AtlasResult<Option<PimCategoryAssignment>>;
     async fn list_item_categories(&self, item_id: Uuid) -> AtlasResult<Vec<PimCategoryAssignment>>;
     async fn remove_item_category(&self, assignment_id: Uuid) -> AtlasResult<()>;
 
@@ -107,9 +136,18 @@ pub trait ProductInformationRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimCrossReference>;
 
-    async fn get_cross_reference_by_value(&self, org_id: Uuid, xref_type: &str, value: &str) -> AtlasResult<Option<PimCrossReference>>;
+    async fn get_cross_reference_by_value(
+        &self,
+        org_id: Uuid,
+        xref_type: &str,
+        value: &str,
+    ) -> AtlasResult<Option<PimCrossReference>>;
     async fn list_cross_references(&self, item_id: Uuid) -> AtlasResult<Vec<PimCrossReference>>;
-    async fn list_all_cross_references(&self, org_id: Uuid, xref_type: Option<&str>) -> AtlasResult<Vec<PimCrossReference>>;
+    async fn list_all_cross_references(
+        &self,
+        org_id: Uuid,
+        xref_type: Option<&str>,
+    ) -> AtlasResult<Vec<PimCrossReference>>;
     async fn delete_cross_reference(&self, id: Uuid) -> AtlasResult<()>;
 
     // Item Templates
@@ -131,7 +169,11 @@ pub trait ProductInformationRepository: Send + Sync {
     ) -> AtlasResult<PimItemTemplate>;
 
     async fn get_template(&self, id: Uuid) -> AtlasResult<Option<PimItemTemplate>>;
-    async fn get_template_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PimItemTemplate>>;
+    async fn get_template_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PimItemTemplate>>;
     async fn list_templates(&self, org_id: Uuid) -> AtlasResult<Vec<PimItemTemplate>>;
     async fn delete_template(&self, id: Uuid) -> AtlasResult<()>;
 
@@ -156,7 +198,11 @@ pub trait ProductInformationRepository: Send + Sync {
     ) -> AtlasResult<PimNewItemRequest>;
 
     async fn get_new_item_request(&self, id: Uuid) -> AtlasResult<Option<PimNewItemRequest>>;
-    async fn list_new_item_requests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PimNewItemRequest>>;
+    async fn list_new_item_requests(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PimNewItemRequest>>;
     async fn update_nir_status(
         &self,
         id: Uuid,
@@ -182,7 +228,7 @@ pub struct PostgresProductInformationRepository {
 }
 
 impl PostgresProductInformationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -200,19 +246,37 @@ impl PostgresProductInformationRepository {
             lifecycle_phase: row.get("lifecycle_phase"),
             primary_uom_code: row.get("primary_uom_code"),
             secondary_uom_code: row.get("secondary_uom_code"),
-            weight: row.try_get("weight").ok().map(|v: serde_json::Value| v.to_string()),
+            weight: row
+                .try_get("weight")
+                .ok()
+                .map(|v: serde_json::Value| v.to_string()),
             weight_uom: row.get("weight_uom"),
-            volume: row.try_get("volume").ok().map(|v: serde_json::Value| v.to_string()),
+            volume: row
+                .try_get("volume")
+                .ok()
+                .map(|v: serde_json::Value| v.to_string()),
             volume_uom: row.get("volume_uom"),
             hazmat_flag: row.get("hazmat_flag"),
             lot_control_flag: row.get("lot_control_flag"),
             serial_control_flag: row.get("serial_control_flag"),
             shelf_life_days: row.get("shelf_life_days"),
-            min_order_quantity: row.try_get("min_order_quantity").ok().map(|v: serde_json::Value| v.to_string()),
-            max_order_quantity: row.try_get("max_order_quantity").ok().map(|v: serde_json::Value| v.to_string()),
+            min_order_quantity: row
+                .try_get("min_order_quantity")
+                .ok()
+                .map(|v: serde_json::Value| v.to_string()),
+            max_order_quantity: row
+                .try_get("max_order_quantity")
+                .ok()
+                .map(|v: serde_json::Value| v.to_string()),
             lead_time_days: row.get("lead_time_days"),
-            list_price: row.try_get("list_price").ok().map(|v: serde_json::Value| v.to_string()),
-            cost_price: row.try_get("cost_price").ok().map(|v: serde_json::Value| v.to_string()),
+            list_price: row
+                .try_get("list_price")
+                .ok()
+                .map(|v: serde_json::Value| v.to_string()),
+            cost_price: row
+                .try_get("cost_price")
+                .ok()
+                .map(|v: serde_json::Value| v.to_string()),
             currency_code: row.get("currency_code"),
             inventory_item_flag: row.get("inventory_item_flag"),
             purchasable_flag: row.get("purchasable_flag"),
@@ -318,7 +382,10 @@ impl PostgresProductInformationRepository {
             requested_category_id: row.get("requested_category_id"),
             justification: row.get("justification"),
             target_launch_date: row.get("target_launch_date"),
-            estimated_cost: row.try_get("estimated_cost").ok().map(|v: serde_json::Value| v.to_string()),
+            estimated_cost: row
+                .try_get("estimated_cost")
+                .ok()
+                .map(|v: serde_json::Value| v.to_string()),
             currency_code: row.get("currency_code"),
             requested_by: row.get("requested_by"),
             approved_by: row.get("approved_by"),
@@ -398,17 +465,25 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
                 $30, $31, $32, $33
             )
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(item_number).bind(item_name)
-        .bind(description).bind(long_description)
-        .bind(item_type).bind(status).bind(lifecycle_phase)
-        .bind(primary_uom_code).bind(secondary_uom_code)
+        .bind(org_id)
+        .bind(item_number)
+        .bind(item_name)
+        .bind(description)
+        .bind(long_description)
+        .bind(item_type)
+        .bind(status)
+        .bind(lifecycle_phase)
+        .bind(primary_uom_code)
+        .bind(secondary_uom_code)
         .bind(weight.and_then(|v| v.parse::<f64>().ok()))
         .bind(weight_uom)
         .bind(volume.and_then(|v| v.parse::<f64>().ok()))
         .bind(volume_uom)
-        .bind(hazmat_flag).bind(lot_control_flag).bind(serial_control_flag)
+        .bind(hazmat_flag)
+        .bind(lot_control_flag)
+        .bind(serial_control_flag)
         .bind(shelf_life_days)
         .bind(min_order_quantity.and_then(|v| v.parse::<f64>().ok()))
         .bind(max_order_quantity.and_then(|v| v.parse::<f64>().ok()))
@@ -416,11 +491,17 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         .bind(list_price.and_then(|v| v.parse::<f64>().ok()))
         .bind(cost_price.and_then(|v| v.parse::<f64>().ok()))
         .bind(currency_code)
-        .bind(inventory_item_flag).bind(purchasable_flag).bind(sellable_flag)
-        .bind(stock_enabled_flag).bind(invoice_enabled_flag)
-        .bind(default_buyer_id).bind(default_supplier_id).bind(template_id)
+        .bind(inventory_item_flag)
+        .bind(purchasable_flag)
+        .bind(sellable_flag)
+        .bind(stock_enabled_flag)
+        .bind(invoice_enabled_flag)
+        .bind(default_buyer_id)
+        .bind(default_supplier_id)
+        .bind(template_id)
         .bind(created_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_item(&row))
@@ -429,17 +510,24 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
     async fn get_item(&self, id: Uuid) -> AtlasResult<Option<ProductItem>> {
         let row = sqlx::query("SELECT * FROM _atlas.pim_items WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_item(&r)))
     }
 
-    async fn get_item_by_number(&self, org_id: Uuid, item_number: &str) -> AtlasResult<Option<ProductItem>> {
+    async fn get_item_by_number(
+        &self,
+        org_id: Uuid,
+        item_number: &str,
+    ) -> AtlasResult<Option<ProductItem>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.pim_items WHERE organization_id = $1 AND item_number = $2"
+            "SELECT * FROM _atlas.pim_items WHERE organization_id = $1 AND item_number = $2",
         )
-        .bind(org_id).bind(item_number)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(item_number)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_item(&r)))
     }
@@ -461,10 +549,14 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
                   AND ($3::text IS NULL OR i.item_type = $3)
                   AND ica.category_id = $4
                 ORDER BY i.item_number
-                "
+                ",
             )
-            .bind(org_id).bind(status).bind(item_type).bind(category_id)
-            .fetch_all(&self.pool).await
+            .bind(org_id)
+            .bind(status)
+            .bind(item_type)
+            .bind(category_id)
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else {
             sqlx::query(
@@ -474,16 +566,24 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
                   AND ($2::text IS NULL OR status = $2)
                   AND ($3::text IS NULL OR item_type = $3)
                 ORDER BY item_number
-                "
+                ",
             )
-            .bind(org_id).bind(status).bind(item_type)
-            .fetch_all(&self.pool).await
+            .bind(org_id)
+            .bind(status)
+            .bind(item_type)
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         };
         Ok(rows.iter().map(|r| self.row_to_item(r)).collect())
     }
 
-    async fn update_item_status(&self, id: Uuid, status: &str, lifecycle_phase: Option<&str>) -> AtlasResult<ProductItem> {
+    async fn update_item_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        lifecycle_phase: Option<&str>,
+    ) -> AtlasResult<ProductItem> {
         let row = if let Some(phase) = lifecycle_phase {
             sqlx::query(
                 r"
@@ -491,10 +591,13 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
                 SET status = $2, lifecycle_phase = $3, updated_at = now()
                 WHERE id = $1
                 RETURNING *
-                "
+                ",
             )
-            .bind(id).bind(status).bind(phase)
-            .fetch_one(&self.pool).await
+            .bind(id)
+            .bind(status)
+            .bind(phase)
+            .fetch_one(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else {
             sqlx::query(
@@ -503,33 +606,43 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
                 SET status = $2, updated_at = now()
                 WHERE id = $1
                 RETURNING *
-                "
+                ",
             )
-            .bind(id).bind(status)
-            .fetch_one(&self.pool).await
+            .bind(id)
+            .bind(status)
+            .fetch_one(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         };
         Ok(self.row_to_item(&row))
     }
 
-    async fn update_item_lifecycle(&self, id: Uuid, lifecycle_phase: &str) -> AtlasResult<ProductItem> {
+    async fn update_item_lifecycle(
+        &self,
+        id: Uuid,
+        lifecycle_phase: &str,
+    ) -> AtlasResult<ProductItem> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.pim_items
             SET lifecycle_phase = $2, updated_at = now()
             WHERE id = $1
             RETURNING *
-            "
+            ",
         )
-        .bind(id).bind(lifecycle_phase)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(lifecycle_phase)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_item(&row))
     }
 
     async fn delete_item(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.pim_items WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -556,25 +669,37 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(parent_category_id).bind(level_number).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(parent_category_id)
+        .bind(level_number)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_category(&row))
     }
 
     async fn get_category(&self, id: Uuid) -> AtlasResult<Option<PimCategory>> {
-        let row = sqlx::query("SELECT * FROM _atlas.pim_categories WHERE id = $1 AND is_active = true")
-            .bind(id)
-            .fetch_optional(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row =
+            sqlx::query("SELECT * FROM _atlas.pim_categories WHERE id = $1 AND is_active = true")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_category(&r)))
     }
 
-    async fn get_category_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PimCategory>> {
+    async fn get_category_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PimCategory>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.pim_categories WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -584,24 +709,32 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         Ok(row.map(|r| self.row_to_category(&r)))
     }
 
-    async fn list_categories(&self, org_id: Uuid, parent_id: Option<Uuid>) -> AtlasResult<Vec<PimCategory>> {
+    async fn list_categories(
+        &self,
+        org_id: Uuid,
+        parent_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<PimCategory>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.pim_categories
             WHERE organization_id = $1 AND is_active = true
               AND ($2::uuid IS NULL AND parent_category_id IS NULL OR parent_category_id = $2)
             ORDER BY code
-            "
+            ",
         )
-        .bind(org_id).bind(parent_id)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(parent_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| self.row_to_category(r)).collect())
     }
 
     async fn delete_category(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.pim_categories WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -625,16 +758,24 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
             )
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(item_id).bind(category_id).bind(is_primary).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(item_id)
+        .bind(category_id)
+        .bind(is_primary)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_category_assignment(&row))
     }
 
-    async fn get_primary_category_assignment(&self, item_id: Uuid) -> AtlasResult<Option<PimCategoryAssignment>> {
+    async fn get_primary_category_assignment(
+        &self,
+        item_id: Uuid,
+    ) -> AtlasResult<Option<PimCategoryAssignment>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.pim_item_category_assignments WHERE item_id = $1 AND is_primary = true"
         )
@@ -651,12 +792,17 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         .bind(item_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_category_assignment(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_category_assignment(r))
+            .collect())
     }
 
     async fn remove_item_category(&self, assignment_id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.pim_item_category_assignments WHERE id = $1")
-            .bind(assignment_id).execute(&self.pool).await
+            .bind(assignment_id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -685,18 +831,30 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(item_id).bind(cross_reference_type).bind(cross_reference_value)
-        .bind(description).bind(source_system)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(item_id)
+        .bind(cross_reference_type)
+        .bind(cross_reference_value)
+        .bind(description)
+        .bind(source_system)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_cross_reference(&row))
     }
 
-    async fn get_cross_reference_by_value(&self, org_id: Uuid, xref_type: &str, value: &str) -> AtlasResult<Option<PimCrossReference>> {
+    async fn get_cross_reference_by_value(
+        &self,
+        org_id: Uuid,
+        xref_type: &str,
+        value: &str,
+    ) -> AtlasResult<Option<PimCrossReference>> {
         let row = sqlx::query(
             r"
             SELECT * FROM _atlas.pim_item_cross_references
@@ -716,27 +874,41 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
         .bind(item_id)
         .fetch_all(&self.pool).await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_cross_reference(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_cross_reference(r))
+            .collect())
     }
 
-    async fn list_all_cross_references(&self, org_id: Uuid, xref_type: Option<&str>) -> AtlasResult<Vec<PimCrossReference>> {
+    async fn list_all_cross_references(
+        &self,
+        org_id: Uuid,
+        xref_type: Option<&str>,
+    ) -> AtlasResult<Vec<PimCrossReference>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.pim_item_cross_references
             WHERE organization_id = $1 AND is_active = true
               AND ($2::text IS NULL OR cross_reference_type = $2)
             ORDER BY cross_reference_type, cross_reference_value
-            "
+            ",
         )
-        .bind(org_id).bind(xref_type)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(xref_type)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_cross_reference(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_cross_reference(r))
+            .collect())
     }
 
     async fn delete_cross_reference(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.pim_item_cross_references WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -772,28 +944,44 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(item_type)
-        .bind(default_uom_code).bind(default_category_id)
-        .bind(default_inventory_flag).bind(default_purchasable_flag)
-        .bind(default_sellable_flag).bind(default_stock_enabled_flag)
-        .bind(&attribute_defaults).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(item_type)
+        .bind(default_uom_code)
+        .bind(default_category_id)
+        .bind(default_inventory_flag)
+        .bind(default_purchasable_flag)
+        .bind(default_sellable_flag)
+        .bind(default_stock_enabled_flag)
+        .bind(&attribute_defaults)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_template(&row))
     }
 
     async fn get_template(&self, id: Uuid) -> AtlasResult<Option<PimItemTemplate>> {
-        let row = sqlx::query("SELECT * FROM _atlas.pim_item_templates WHERE id = $1 AND is_active = true")
-            .bind(id)
-            .fetch_optional(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query(
+            "SELECT * FROM _atlas.pim_item_templates WHERE id = $1 AND is_active = true",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_template(&r)))
     }
 
-    async fn get_template_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PimItemTemplate>> {
+    async fn get_template_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PimItemTemplate>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.pim_item_templates WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -815,7 +1003,9 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
 
     async fn delete_template(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.pim_item_templates WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -854,16 +1044,25 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(request_number).bind(title).bind(description)
-        .bind(item_type).bind(priority).bind(status)
-        .bind(requested_item_number).bind(requested_item_name)
-        .bind(requested_category_id).bind(justification)
+        .bind(org_id)
+        .bind(request_number)
+        .bind(title)
+        .bind(description)
+        .bind(item_type)
+        .bind(priority)
+        .bind(status)
+        .bind(requested_item_number)
+        .bind(requested_item_name)
+        .bind(requested_category_id)
+        .bind(justification)
         .bind(target_launch_date)
         .bind(estimated_cost.and_then(|v| v.parse::<f64>().ok()))
-        .bind(currency_code).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(currency_code)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(self.row_to_nir(&row))
@@ -872,21 +1071,28 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
     async fn get_new_item_request(&self, id: Uuid) -> AtlasResult<Option<PimNewItemRequest>> {
         let row = sqlx::query("SELECT * FROM _atlas.pim_new_item_requests WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_nir(&r)))
     }
 
-    async fn list_new_item_requests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PimNewItemRequest>> {
+    async fn list_new_item_requests(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PimNewItemRequest>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.pim_new_item_requests
             WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2)
             ORDER BY created_at DESC
-            "
+            ",
         )
-        .bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| self.row_to_nir(r)).collect())
     }
@@ -908,11 +1114,15 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "
+            ",
         )
-        .bind(id).bind(status).bind(approved_by)
-        .bind(approved_at).bind(rejection_reason)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(approved_at)
+        .bind(rejection_reason)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_nir(&row))
     }
@@ -929,10 +1139,13 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
             SET status = 'implemented', implemented_item_id = $2,
                 implemented_at = COALESCE($3, now()), updated_at = now()
             WHERE id = $1
-            "
+            ",
         )
-        .bind(id).bind(implemented_item_id).bind(implemented_at)
-        .execute(&self.pool).await
+        .bind(id)
+        .bind(implemented_item_id)
+        .bind(implemented_at)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -969,21 +1182,24 @@ impl ProductInformationRepository for PostgresProductInformationRepository {
             FROM _atlas.pim_items
             WHERE organization_id = $1
             GROUP BY item_type
-            "
+            ",
         )
         .bind(org_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let items_by_type: serde_json::Value = serde_json::to_value(
-            type_rows.iter()
+            type_rows
+                .iter()
                 .map(|r| {
                     let item_type: String = r.get("item_type");
                     let count: i64 = r.get("count");
                     (item_type, count)
                 })
-                .collect::<std::collections::HashMap<String, i64>>()
-        ).unwrap_or(serde_json::json!({}));
+                .collect::<std::collections::HashMap<String, i64>>(),
+        )
+        .unwrap_or(serde_json::json!({}));
 
         Ok(PimDashboard {
             total_items: row.get::<i64, _>("total_items") as i32,

@@ -9,11 +9,14 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > General Ledger > Multi-Period Accounting
 
-use super::{MpaRepository, AtlasResult, MpaTemplate, AtlasError, MpaTemplateLine, MpaSchedule, MpaScheduleLine, MpaDashboard};
+use super::{
+    AtlasError, AtlasResult, MpaDashboard, MpaRepository, MpaSchedule, MpaScheduleLine,
+    MpaTemplate, MpaTemplateLine,
+};
+use chrono::Datelike;
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
-use chrono::Datelike;
 
 const VALID_DISTRIBUTION_METHODS: &[&str] = &["equal", "custom", "days"];
 const VALID_PERIOD_TYPES: &[&str] = &["month", "quarter", "year"];
@@ -50,35 +53,64 @@ impl MultiPeriodAccountingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<MpaTemplate> {
         if template_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Template name is required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Template name is required".into(),
+            ));
         }
         if !VALID_DISTRIBUTION_METHODS.contains(&distribution_method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid distribution method '{}'. Must be one of: {}", distribution_method, VALID_DISTRIBUTION_METHODS.join(", ")
+                "Invalid distribution method '{}'. Must be one of: {}",
+                distribution_method,
+                VALID_DISTRIBUTION_METHODS.join(", ")
             )));
         }
         if number_of_periods < 1 {
-            return Err(AtlasError::ValidationFailed("Number of periods must be at least 1".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Number of periods must be at least 1".into(),
+            ));
         }
         if !VALID_PERIOD_TYPES.contains(&period_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid period type '{}'. Must be one of: {}", period_type, VALID_PERIOD_TYPES.join(", ")
+                "Invalid period type '{}'. Must be one of: {}",
+                period_type,
+                VALID_PERIOD_TYPES.join(", ")
             )));
         }
         if currency_code.is_empty() || currency_code.len() != 3 {
-            return Err(AtlasError::ValidationFailed("Currency code must be 3 characters".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code must be 3 characters".into(),
+            ));
         }
 
-        if self.repository.get_template_by_name(org_id, template_name).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Template '{template_name}' already exists")));
+        if self
+            .repository
+            .get_template_by_name(org_id, template_name)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Template '{template_name}' already exists"
+            )));
         }
 
-        info!("Creating MPA template '{}' ({} periods, {})", template_name, number_of_periods, distribution_method);
-        self.repository.create_template(
-            org_id, template_name, description, distribution_method,
-            number_of_periods, period_type, deferred_account_code,
-            expense_account_code, currency_code, created_by,
-        ).await
+        info!(
+            "Creating MPA template '{}' ({} periods, {})",
+            template_name, number_of_periods, distribution_method
+        );
+        self.repository
+            .create_template(
+                org_id,
+                template_name,
+                description,
+                distribution_method,
+                number_of_periods,
+                period_type,
+                deferred_account_code,
+                expense_account_code,
+                currency_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get a template by ID
@@ -87,11 +119,17 @@ impl MultiPeriodAccountingEngine {
     }
 
     /// List templates with optional filter
-    pub async fn list_templates(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<MpaTemplate>> {
+    pub async fn list_templates(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<MpaTemplate>> {
         if let Some(s) = status {
             if !VALID_TEMPLATE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_TEMPLATE_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_TEMPLATE_STATUSES.join(", ")
                 )));
             }
         }
@@ -100,32 +138,48 @@ impl MultiPeriodAccountingEngine {
 
     /// Activate a template
     pub async fn activate_template(&self, template_id: Uuid) -> AtlasResult<MpaTemplate> {
-        let template = self.repository.get_template(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {template_id} not found")))?;
+        let template = self
+            .repository
+            .get_template(template_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Template {template_id} not found"))
+            })?;
 
         if template.status != "draft" && template.status != "inactive" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot activate template in '{}' status. Must be 'draft' or 'inactive'.", template.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot activate template in '{}' status. Must be 'draft' or 'inactive'.",
+                template.status
+            )));
         }
 
         info!("Activating MPA template '{}'", template.template_name);
-        self.repository.update_template_status(template_id, "active").await
+        self.repository
+            .update_template_status(template_id, "active")
+            .await
     }
 
     /// Deactivate a template
     pub async fn deactivate_template(&self, template_id: Uuid) -> AtlasResult<MpaTemplate> {
-        let template = self.repository.get_template(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {template_id} not found")))?;
+        let template = self
+            .repository
+            .get_template(template_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Template {template_id} not found"))
+            })?;
 
         if template.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot deactivate template in '{}' status. Must be 'active'.", template.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot deactivate template in '{}' status. Must be 'active'.",
+                template.status
+            )));
         }
 
         info!("Deactivating MPA template '{}'", template.template_name);
-        self.repository.update_template_status(template_id, "inactive").await
+        self.repository
+            .update_template_status(template_id, "inactive")
+            .await
     }
 
     /// Add a custom distribution line to a template
@@ -136,30 +190,48 @@ impl MultiPeriodAccountingEngine {
         percentage: &str,
         offset_days: i32,
     ) -> AtlasResult<MpaTemplateLine> {
-        let template = self.repository.get_template(template_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {template_id} not found")))?;
+        let template = self
+            .repository
+            .get_template(template_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Template {template_id} not found"))
+            })?;
 
         if template.distribution_method != "custom" {
             return Err(AtlasError::ValidationFailed(
-                "Template lines can only be added to templates with 'custom' distribution method".into()
+                "Template lines can only be added to templates with 'custom' distribution method"
+                    .into(),
             ));
         }
 
         let pct: f64 = percentage.parse().unwrap_or(f64::NAN);
         if pct.is_nan() || pct <= 0.0 || pct > 100.0 {
-            return Err(AtlasError::ValidationFailed("Percentage must be between 0 and 100".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Percentage must be between 0 and 100".into(),
+            ));
         }
 
         if period_sequence < 1 {
-            return Err(AtlasError::ValidationFailed("Period sequence must be at least 1".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Period sequence must be at least 1".into(),
+            ));
         }
 
-        info!("Adding template line to '{}' (period {}, {}%)", template.template_name, period_sequence, percentage);
-        self.repository.add_template_line(template_id, period_sequence, percentage, offset_days).await
+        info!(
+            "Adding template line to '{}' (period {}, {}%)",
+            template.template_name, period_sequence, percentage
+        );
+        self.repository
+            .add_template_line(template_id, period_sequence, percentage, offset_days)
+            .await
     }
 
     /// List template lines
-    pub async fn list_template_lines(&self, template_id: Uuid) -> AtlasResult<Vec<MpaTemplateLine>> {
+    pub async fn list_template_lines(
+        &self,
+        template_id: Uuid,
+    ) -> AtlasResult<Vec<MpaTemplateLine>> {
         self.repository.list_template_lines(template_id).await
     }
 
@@ -186,48 +258,82 @@ impl MultiPeriodAccountingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<MpaSchedule> {
         if schedule_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Schedule number is required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Schedule number is required".into(),
+            ));
         }
 
         let amount_val: f64 = total_amount.parse().unwrap_or(f64::NAN);
         if amount_val.is_nan() || amount_val <= 0.0 {
-            return Err(AtlasError::ValidationFailed("Total amount must be a positive number".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Total amount must be a positive number".into(),
+            ));
         }
 
         if let Some(end) = end_date {
             if end <= start_date {
-                return Err(AtlasError::ValidationFailed("End date must be after start date".into()));
+                return Err(AtlasError::ValidationFailed(
+                    "End date must be after start date".into(),
+                ));
             }
         }
 
         if currency_code.is_empty() || currency_code.len() != 3 {
-            return Err(AtlasError::ValidationFailed("Currency code must be 3 characters".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code must be 3 characters".into(),
+            ));
         }
 
         // Validate template exists and is active if specified
         let mut template: Option<MpaTemplate> = None;
         if let Some(tid) = template_id {
-            let t = self.repository.get_template(tid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {tid} not found")))?;
+            let t =
+                self.repository.get_template(tid).await?.ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Template {tid} not found"))
+                })?;
             if t.status != "active" {
-                return Err(AtlasError::WorkflowError(
-                    format!("Cannot use template in '{}' status. Must be 'active'.", t.status)
-                ));
+                return Err(AtlasError::WorkflowError(format!(
+                    "Cannot use template in '{}' status. Must be 'active'.",
+                    t.status
+                )));
             }
             template = Some(t);
         }
 
-        if self.repository.get_schedule_by_number(org_id, schedule_number).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Schedule '{schedule_number}' already exists")));
+        if self
+            .repository
+            .get_schedule_by_number(org_id, schedule_number)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Schedule '{schedule_number}' already exists"
+            )));
         }
 
-        info!("Creating MPA schedule '{}' (amount: {})", schedule_number, total_amount);
-        let schedule = self.repository.create_schedule(
-            org_id, schedule_number, description, template_id,
-            source_journal_entry_id, source_journal_line_id,
-            total_amount, start_date, end_date, currency_code,
-            company_code, cost_center, account_segment, created_by,
-        ).await?;
+        info!(
+            "Creating MPA schedule '{}' (amount: {})",
+            schedule_number, total_amount
+        );
+        let schedule = self
+            .repository
+            .create_schedule(
+                org_id,
+                schedule_number,
+                description,
+                template_id,
+                source_journal_entry_id,
+                source_journal_line_id,
+                total_amount,
+                start_date,
+                end_date,
+                currency_code,
+                company_code,
+                cost_center,
+                account_segment,
+                created_by,
+            )
+            .await?;
 
         // Generate schedule lines based on template or equal distribution
         if let Some(tmpl) = template {
@@ -259,19 +365,22 @@ impl MultiPeriodAccountingEngine {
                 for line in &lines {
                     let pct: f64 = line.percentage.parse().unwrap_or(0.0);
                     let amount = total * pct / 100.0;
-                    let period_start = add_periods(start, line.period_sequence - 1, &template.period_type);
+                    let period_start =
+                        add_periods(start, line.period_sequence - 1, &template.period_type);
                     let period_end = add_periods(period_start, 1, &template.period_type)
                         - chrono::Duration::days(1);
 
-                    self.repository.create_schedule_line(
-                        schedule.id,
-                        line.period_sequence,
-                        Some(&format_period_name(&period_start, &template.period_type)),
-                        period_start,
-                        period_end,
-                        &format!("{amount:.2}"),
-                        &line.percentage,
-                    ).await?;
+                    self.repository
+                        .create_schedule_line(
+                            schedule.id,
+                            line.period_sequence,
+                            Some(&format_period_name(&period_start, &template.period_type)),
+                            period_start,
+                            period_end,
+                            &format!("{amount:.2}"),
+                            &line.percentage,
+                        )
+                        .await?;
                 }
             }
             "days" => {
@@ -284,15 +393,17 @@ impl MultiPeriodAccountingEngine {
                     let pct = days_in_period / f64::from(total_days) * 100.0;
                     let amount = total * pct / 100.0;
 
-                    self.repository.create_schedule_line(
-                        schedule.id,
-                        i + 1,
-                        Some(&format_period_name(&period_start, &template.period_type)),
-                        period_start,
-                        period_end,
-                        &format!("{amount:.2}"),
-                        &format!("{pct:.4}"),
-                    ).await?;
+                    self.repository
+                        .create_schedule_line(
+                            schedule.id,
+                            i + 1,
+                            Some(&format_period_name(&period_start, &template.period_type)),
+                            period_start,
+                            period_end,
+                            &format!("{amount:.2}"),
+                            &format!("{pct:.4}"),
+                        )
+                        .await?;
                 }
             }
             _ => {}
@@ -315,15 +426,17 @@ impl MultiPeriodAccountingEngine {
             let period_start = add_months(start, i);
             let period_end = add_months(period_start, 1) - chrono::Duration::days(1);
 
-            self.repository.create_schedule_line(
-                schedule.id,
-                i + 1,
-                Some(&format_period_name(&period_start, "month")),
-                period_start,
-                period_end,
-                &format!("{per_period:.2}"),
-                &format!("{pct_per_period:.4}"),
-            ).await?;
+            self.repository
+                .create_schedule_line(
+                    schedule.id,
+                    i + 1,
+                    Some(&format_period_name(&period_start, "month")),
+                    period_start,
+                    period_end,
+                    &format!("{per_period:.2}"),
+                    &format!("{pct_per_period:.4}"),
+                )
+                .await?;
         }
         Ok(())
     }
@@ -334,11 +447,17 @@ impl MultiPeriodAccountingEngine {
     }
 
     /// List schedules with optional filter
-    pub async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<MpaSchedule>> {
+    pub async fn list_schedules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<MpaSchedule>> {
         if let Some(s) = status {
             if !VALID_SCHEDULE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_SCHEDULE_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_SCHEDULE_STATUSES.join(", ")
                 )));
             }
         }
@@ -347,47 +466,71 @@ impl MultiPeriodAccountingEngine {
 
     /// Activate a schedule
     pub async fn activate_schedule(&self, schedule_id: Uuid) -> AtlasResult<MpaSchedule> {
-        let schedule = self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
+        let schedule = self
+            .repository
+            .get_schedule(schedule_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
         if schedule.status != "draft" && schedule.status != "on_hold" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot activate schedule in '{}' status. Must be 'draft' or 'on_hold'.", schedule.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot activate schedule in '{}' status. Must be 'draft' or 'on_hold'.",
+                schedule.status
+            )));
         }
 
         info!("Activating MPA schedule '{}'", schedule.schedule_number);
-        self.repository.update_schedule_status(schedule_id, "active").await
+        self.repository
+            .update_schedule_status(schedule_id, "active")
+            .await
     }
 
     /// Put a schedule on hold
     pub async fn hold_schedule(&self, schedule_id: Uuid) -> AtlasResult<MpaSchedule> {
-        let schedule = self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
+        let schedule = self
+            .repository
+            .get_schedule(schedule_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
         if schedule.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot hold schedule in '{}' status. Must be 'active'.", schedule.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot hold schedule in '{}' status. Must be 'active'.",
+                schedule.status
+            )));
         }
 
         info!("Holding MPA schedule '{}'", schedule.schedule_number);
-        self.repository.update_schedule_status(schedule_id, "on_hold").await
+        self.repository
+            .update_schedule_status(schedule_id, "on_hold")
+            .await
     }
 
     /// Cancel a schedule
     pub async fn cancel_schedule(&self, schedule_id: Uuid) -> AtlasResult<MpaSchedule> {
-        let schedule = self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
+        let schedule = self
+            .repository
+            .get_schedule(schedule_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
         if schedule.status == "completed" || schedule.status == "cancelled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel schedule in '{}' status.", schedule.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel schedule in '{}' status.",
+                schedule.status
+            )));
         }
 
         info!("Cancelling MPA schedule '{}'", schedule.schedule_number);
-        self.repository.update_schedule_status(schedule_id, "cancelled").await
+        self.repository
+            .update_schedule_status(schedule_id, "cancelled")
+            .await
     }
 
     // ========================================================================
@@ -400,49 +543,81 @@ impl MultiPeriodAccountingEngine {
     }
 
     /// List schedule lines
-    pub async fn list_schedule_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<MpaScheduleLine>> {
+    pub async fn list_schedule_lines(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<MpaScheduleLine>> {
         self.repository.list_schedule_lines(schedule_id).await
     }
 
     /// Recognize a pending schedule line
     pub async fn recognize_line(&self, line_id: Uuid) -> AtlasResult<MpaScheduleLine> {
-        let line = self.repository.get_schedule_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {line_id} not found")))?;
+        let line = self
+            .repository
+            .get_schedule_line(line_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule line {line_id} not found"))
+            })?;
 
         if line.status != "pending" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot recognize line in '{}' status. Must be 'pending'.", line.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot recognize line in '{}' status. Must be 'pending'.",
+                line.status
+            )));
         }
 
         // Check parent schedule is active
-        let schedule = self.repository.get_schedule(line.schedule_id).await?
+        let schedule = self
+            .repository
+            .get_schedule(line.schedule_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Schedule not found".to_string()))?;
         if schedule.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot recognize line: parent schedule is in '{}' status. Must be 'active'.", schedule.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot recognize line: parent schedule is in '{}' status. Must be 'active'.",
+                schedule.status
+            )));
         }
 
-        info!("Recognizing MPA schedule line {} (period {})", line_id, line.period_sequence);
-        let line = self.repository.update_schedule_line_status(line_id, "recognized", Some(Uuid::new_v4())).await?;
+        info!(
+            "Recognizing MPA schedule line {} (period {})",
+            line_id, line.period_sequence
+        );
+        let line = self
+            .repository
+            .update_schedule_line_status(line_id, "recognized", Some(Uuid::new_v4()))
+            .await?;
 
         // Update schedule amounts
-        let recognized = self.repository.sum_recognized_for_schedule(line.schedule_id).await?;
+        let recognized = self
+            .repository
+            .sum_recognized_for_schedule(line.schedule_id)
+            .await?;
         let total: f64 = schedule.total_amount.parse().unwrap_or(0.0);
         let rec: f64 = recognized.parse().unwrap_or(0.0);
         let remaining = total - rec;
-        self.repository.update_schedule_amounts(
-            line.schedule_id,
-            &format!("{rec:.2}"),
-            &format!("{remaining:.2}"),
-        ).await?;
+        self.repository
+            .update_schedule_amounts(
+                line.schedule_id,
+                &format!("{rec:.2}"),
+                &format!("{remaining:.2}"),
+            )
+            .await?;
 
         // Auto-complete schedule if all lines recognized
-        let pending = self.repository.count_pending_lines(line.schedule_id).await?;
+        let pending = self
+            .repository
+            .count_pending_lines(line.schedule_id)
+            .await?;
         if pending == 0 {
-            info!("Auto-completing MPA schedule '{}' (all lines recognized)", schedule.schedule_number);
-            self.repository.update_schedule_status(line.schedule_id, "completed").await?;
+            info!(
+                "Auto-completing MPA schedule '{}' (all lines recognized)",
+                schedule.schedule_number
+            );
+            self.repository
+                .update_schedule_status(line.schedule_id, "completed")
+                .await?;
         }
 
         Ok(line)
@@ -450,37 +625,59 @@ impl MultiPeriodAccountingEngine {
 
     /// Reverse a recognized schedule line
     pub async fn reverse_line(&self, line_id: Uuid) -> AtlasResult<MpaScheduleLine> {
-        let line = self.repository.get_schedule_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule line {line_id} not found")))?;
+        let line = self
+            .repository
+            .get_schedule_line(line_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule line {line_id} not found"))
+            })?;
 
         if line.status != "recognized" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reverse line in '{}' status. Must be 'recognized'.", line.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reverse line in '{}' status. Must be 'recognized'.",
+                line.status
+            )));
         }
 
-        info!("Reversing MPA schedule line {} (period {})", line_id, line.period_sequence);
+        info!(
+            "Reversing MPA schedule line {} (period {})",
+            line_id, line.period_sequence
+        );
 
         // Get schedule before updating line
-        let schedule = self.repository.get_schedule(line.schedule_id).await?
+        let schedule = self
+            .repository
+            .get_schedule(line.schedule_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Schedule not found".into()))?;
 
-        let line = self.repository.update_schedule_line_status(line_id, "reversed", None).await?;
+        let line = self
+            .repository
+            .update_schedule_line_status(line_id, "reversed", None)
+            .await?;
 
         // Update schedule amounts
-        let recognized = self.repository.sum_recognized_for_schedule(line.schedule_id).await?;
+        let recognized = self
+            .repository
+            .sum_recognized_for_schedule(line.schedule_id)
+            .await?;
         let total: f64 = schedule.total_amount.parse().unwrap_or(0.0);
         let rec: f64 = recognized.parse().unwrap_or(0.0);
         let remaining = total - rec;
-        self.repository.update_schedule_amounts(
-            line.schedule_id,
-            &format!("{rec:.2}"),
-            &format!("{remaining:.2}"),
-        ).await?;
+        self.repository
+            .update_schedule_amounts(
+                line.schedule_id,
+                &format!("{rec:.2}"),
+                &format!("{remaining:.2}"),
+            )
+            .await?;
 
         // If schedule was completed, reactivate it
         if schedule.status == "completed" {
-            self.repository.update_schedule_status(line.schedule_id, "active").await?;
+            self.repository
+                .update_schedule_status(line.schedule_id, "active")
+                .await?;
         }
 
         Ok(line)
@@ -572,135 +769,262 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    fn make_template(id: Uuid, org_id: Uuid, name: &str, method: &str, periods: i32) -> MpaTemplate {
+    fn make_template(
+        id: Uuid,
+        org_id: Uuid,
+        name: &str,
+        method: &str,
+        periods: i32,
+    ) -> MpaTemplate {
         MpaTemplate {
-            id, organization_id: org_id, template_name: name.into(),
-            description: None, distribution_method: method.into(),
-            number_of_periods: periods, period_type: "month".into(),
-            deferred_account_code: None, expense_account_code: None,
-            status: "draft".into(), currency_code: "USD".into(),
-            metadata: serde_json::json!({}), created_by: None,
-            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+            id,
+            organization_id: org_id,
+            template_name: name.into(),
+            description: None,
+            distribution_method: method.into(),
+            number_of_periods: periods,
+            period_type: "month".into(),
+            deferred_account_code: None,
+            expense_account_code: None,
+            status: "draft".into(),
+            currency_code: "USD".into(),
+            metadata: serde_json::json!({}),
+            created_by: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
         }
     }
 
     #[async_trait::async_trait]
     impl MpaRepository for MockRepo {
         async fn create_template(
-            &self, org_id: Uuid, name: &str, description: Option<&str>,
-            method: &str, periods: i32, period_type: &str,
-            deferred: Option<&str>, expense: Option<&str>,
-            currency: &str, created_by: Option<Uuid>,
+            &self,
+            org_id: Uuid,
+            name: &str,
+            description: Option<&str>,
+            method: &str,
+            periods: i32,
+            period_type: &str,
+            deferred: Option<&str>,
+            expense: Option<&str>,
+            currency: &str,
+            created_by: Option<Uuid>,
         ) -> AtlasResult<MpaTemplate> {
             let t = MpaTemplate {
-                id: Uuid::new_v4(), organization_id: org_id,
-                template_name: name.into(), description: description.map(Into::into),
-                distribution_method: method.into(), number_of_periods: periods,
-                period_type: period_type.into(), deferred_account_code: deferred.map(Into::into),
+                id: Uuid::new_v4(),
+                organization_id: org_id,
+                template_name: name.into(),
+                description: description.map(Into::into),
+                distribution_method: method.into(),
+                number_of_periods: periods,
+                period_type: period_type.into(),
+                deferred_account_code: deferred.map(Into::into),
                 expense_account_code: expense.map(Into::into),
-                status: "draft".into(), currency_code: currency.into(),
-                metadata: serde_json::json!({}), created_by,
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                status: "draft".into(),
+                currency_code: currency.into(),
+                metadata: serde_json::json!({}),
+                created_by,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             };
             self.templates.lock().unwrap().push(t.clone());
             Ok(t)
         }
 
         async fn get_template(&self, id: Uuid) -> AtlasResult<Option<MpaTemplate>> {
-            Ok(self.templates.lock().unwrap().iter().find(|t| t.id == id).cloned())
+            Ok(self
+                .templates
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|t| t.id == id)
+                .cloned())
         }
 
-        async fn get_template_by_name(&self, org_id: Uuid, name: &str) -> AtlasResult<Option<MpaTemplate>> {
-            Ok(self.templates.lock().unwrap().iter()
-                .find(|t| t.organization_id == org_id && t.template_name == name).cloned())
+        async fn get_template_by_name(
+            &self,
+            org_id: Uuid,
+            name: &str,
+        ) -> AtlasResult<Option<MpaTemplate>> {
+            Ok(self
+                .templates
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|t| t.organization_id == org_id && t.template_name == name)
+                .cloned())
         }
 
-        async fn list_templates(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<MpaTemplate>> {
-            Ok(self.templates.lock().unwrap().iter()
+        async fn list_templates(
+            &self,
+            org_id: Uuid,
+            status: Option<&str>,
+        ) -> AtlasResult<Vec<MpaTemplate>> {
+            Ok(self
+                .templates
+                .lock()
+                .unwrap()
+                .iter()
                 .filter(|t| t.organization_id == org_id)
                 .filter(|t| status.is_none_or(|s| t.status == s))
-                .cloned().collect())
+                .cloned()
+                .collect())
         }
 
         async fn update_template_status(&self, id: Uuid, status: &str) -> AtlasResult<MpaTemplate> {
             let mut ts = self.templates.lock().unwrap();
-            let t = ts.iter_mut().find(|t| t.id == id)
+            let t = ts
+                .iter_mut()
+                .find(|t| t.id == id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Template {} not found", id)))?;
             t.status = status.into();
             t.updated_at = chrono::Utc::now();
             Ok(t.clone())
         }
 
-        async fn add_template_line(&self, template_id: Uuid, seq: i32, pct: &str, offset: i32) -> AtlasResult<MpaTemplateLine> {
+        async fn add_template_line(
+            &self,
+            template_id: Uuid,
+            seq: i32,
+            pct: &str,
+            offset: i32,
+        ) -> AtlasResult<MpaTemplateLine> {
             let line = MpaTemplateLine {
-                id: Uuid::new_v4(), template_id, period_sequence: seq,
-                percentage: pct.into(), offset_days: offset,
-                metadata: serde_json::json!({}), created_at: chrono::Utc::now(),
+                id: Uuid::new_v4(),
+                template_id,
+                period_sequence: seq,
+                percentage: pct.into(),
+                offset_days: offset,
+                metadata: serde_json::json!({}),
+                created_at: chrono::Utc::now(),
             };
             self.template_lines.lock().unwrap().push(line.clone());
             Ok(line)
         }
 
-        async fn list_template_lines(&self, template_id: Uuid) -> AtlasResult<Vec<MpaTemplateLine>> {
-            Ok(self.template_lines.lock().unwrap().iter()
-                .filter(|l| l.template_id == template_id).cloned().collect())
+        async fn list_template_lines(
+            &self,
+            template_id: Uuid,
+        ) -> AtlasResult<Vec<MpaTemplateLine>> {
+            Ok(self
+                .template_lines
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|l| l.template_id == template_id)
+                .cloned()
+                .collect())
         }
 
         async fn delete_template_lines(&self, template_id: Uuid) -> AtlasResult<()> {
-            self.template_lines.lock().unwrap().retain(|l| l.template_id != template_id);
+            self.template_lines
+                .lock()
+                .unwrap()
+                .retain(|l| l.template_id != template_id);
             Ok(())
         }
 
         async fn create_schedule(
-            &self, org_id: Uuid, num: &str, desc: Option<&str>,
-            template_id: Option<Uuid>, src_je: Option<Uuid>, src_jl: Option<Uuid>,
-            total: &str, start: chrono::NaiveDate, end: Option<chrono::NaiveDate>,
-            currency: &str, company: Option<&str>, cc: Option<&str>, acct: Option<&str>,
+            &self,
+            org_id: Uuid,
+            num: &str,
+            desc: Option<&str>,
+            template_id: Option<Uuid>,
+            src_je: Option<Uuid>,
+            src_jl: Option<Uuid>,
+            total: &str,
+            start: chrono::NaiveDate,
+            end: Option<chrono::NaiveDate>,
+            currency: &str,
+            company: Option<&str>,
+            cc: Option<&str>,
+            acct: Option<&str>,
             created_by: Option<Uuid>,
         ) -> AtlasResult<MpaSchedule> {
             let s = MpaSchedule {
-                id: Uuid::new_v4(), organization_id: org_id,
-                schedule_number: num.into(), description: desc.map(Into::into),
-                template_id, source_journal_entry_id: src_je, source_journal_line_id: src_jl,
-                total_amount: total.into(), recognized_amount: "0.00".into(),
+                id: Uuid::new_v4(),
+                organization_id: org_id,
+                schedule_number: num.into(),
+                description: desc.map(Into::into),
+                template_id,
+                source_journal_entry_id: src_je,
+                source_journal_line_id: src_jl,
+                total_amount: total.into(),
+                recognized_amount: "0.00".into(),
                 remaining_amount: total.into(),
-                start_date: start, end_date: end,
-                status: "draft".into(), currency_code: currency.into(),
-                company_code: company.map(Into::into), cost_center: cc.map(Into::into),
+                start_date: start,
+                end_date: end,
+                status: "draft".into(),
+                currency_code: currency.into(),
+                company_code: company.map(Into::into),
+                cost_center: cc.map(Into::into),
                 account_segment: acct.map(Into::into),
-                metadata: serde_json::json!({}), created_by,
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                metadata: serde_json::json!({}),
+                created_by,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             };
             self.schedules.lock().unwrap().push(s.clone());
             Ok(s)
         }
 
         async fn get_schedule(&self, id: Uuid) -> AtlasResult<Option<MpaSchedule>> {
-            Ok(self.schedules.lock().unwrap().iter().find(|s| s.id == id).cloned())
+            Ok(self
+                .schedules
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|s| s.id == id)
+                .cloned())
         }
 
-        async fn get_schedule_by_number(&self, org_id: Uuid, num: &str) -> AtlasResult<Option<MpaSchedule>> {
-            Ok(self.schedules.lock().unwrap().iter()
-                .find(|s| s.organization_id == org_id && s.schedule_number == num).cloned())
+        async fn get_schedule_by_number(
+            &self,
+            org_id: Uuid,
+            num: &str,
+        ) -> AtlasResult<Option<MpaSchedule>> {
+            Ok(self
+                .schedules
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|s| s.organization_id == org_id && s.schedule_number == num)
+                .cloned())
         }
 
-        async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<MpaSchedule>> {
-            Ok(self.schedules.lock().unwrap().iter()
+        async fn list_schedules(
+            &self,
+            org_id: Uuid,
+            status: Option<&str>,
+        ) -> AtlasResult<Vec<MpaSchedule>> {
+            Ok(self
+                .schedules
+                .lock()
+                .unwrap()
+                .iter()
                 .filter(|s| s.organization_id == org_id)
                 .filter(|s| status.is_none_or(|st| s.status == st))
-                .cloned().collect())
+                .cloned()
+                .collect())
         }
 
         async fn update_schedule_status(&self, id: Uuid, status: &str) -> AtlasResult<MpaSchedule> {
             let mut ss = self.schedules.lock().unwrap();
-            let s = ss.iter_mut().find(|s| s.id == id)
+            let s = ss
+                .iter_mut()
+                .find(|s| s.id == id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", id)))?;
             s.status = status.into();
             s.updated_at = chrono::Utc::now();
             Ok(s.clone())
         }
 
-        async fn update_schedule_amounts(&self, id: Uuid, recognized: &str, remaining: &str) -> AtlasResult<()> {
+        async fn update_schedule_amounts(
+            &self,
+            id: Uuid,
+            recognized: &str,
+            remaining: &str,
+        ) -> AtlasResult<()> {
             let mut ss = self.schedules.lock().unwrap();
             if let Some(s) = ss.iter_mut().find(|s| s.id == id) {
                 s.recognized_amount = recognized.into();
@@ -710,34 +1034,69 @@ mod tests {
         }
 
         async fn create_schedule_line(
-            &self, schedule_id: Uuid, seq: i32, name: Option<&str>,
-            start: chrono::NaiveDate, end: chrono::NaiveDate, amount: &str, pct: &str,
+            &self,
+            schedule_id: Uuid,
+            seq: i32,
+            name: Option<&str>,
+            start: chrono::NaiveDate,
+            end: chrono::NaiveDate,
+            amount: &str,
+            pct: &str,
         ) -> AtlasResult<MpaScheduleLine> {
             let l = MpaScheduleLine {
-                id: Uuid::new_v4(), schedule_id, period_sequence: seq,
+                id: Uuid::new_v4(),
+                schedule_id,
+                period_sequence: seq,
                 period_name: name.map(Into::into),
-                period_start_date: start, period_end_date: end,
-                amount: amount.into(), percentage: pct.into(),
-                status: "pending".into(), journal_entry_id: None,
-                recognized_at: None, metadata: serde_json::json!({}),
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                period_start_date: start,
+                period_end_date: end,
+                amount: amount.into(),
+                percentage: pct.into(),
+                status: "pending".into(),
+                journal_entry_id: None,
+                recognized_at: None,
+                metadata: serde_json::json!({}),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             };
             self.schedule_lines.lock().unwrap().push(l.clone());
             Ok(l)
         }
 
         async fn get_schedule_line(&self, id: Uuid) -> AtlasResult<Option<MpaScheduleLine>> {
-            Ok(self.schedule_lines.lock().unwrap().iter().find(|l| l.id == id).cloned())
+            Ok(self
+                .schedule_lines
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|l| l.id == id)
+                .cloned())
         }
 
-        async fn list_schedule_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<MpaScheduleLine>> {
-            Ok(self.schedule_lines.lock().unwrap().iter()
-                .filter(|l| l.schedule_id == schedule_id).cloned().collect())
+        async fn list_schedule_lines(
+            &self,
+            schedule_id: Uuid,
+        ) -> AtlasResult<Vec<MpaScheduleLine>> {
+            Ok(self
+                .schedule_lines
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|l| l.schedule_id == schedule_id)
+                .cloned()
+                .collect())
         }
 
-        async fn update_schedule_line_status(&self, id: Uuid, status: &str, je_id: Option<Uuid>) -> AtlasResult<MpaScheduleLine> {
+        async fn update_schedule_line_status(
+            &self,
+            id: Uuid,
+            status: &str,
+            je_id: Option<Uuid>,
+        ) -> AtlasResult<MpaScheduleLine> {
             let mut ls = self.schedule_lines.lock().unwrap();
-            let l = ls.iter_mut().find(|l| l.id == id)
+            let l = ls
+                .iter_mut()
+                .find(|l| l.id == id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Line {} not found", id)))?;
             l.status = status.into();
             l.journal_entry_id = je_id;
@@ -749,12 +1108,21 @@ mod tests {
         }
 
         async fn count_pending_lines(&self, schedule_id: Uuid) -> AtlasResult<i64> {
-            Ok(self.schedule_lines.lock().unwrap().iter()
-                .filter(|l| l.schedule_id == schedule_id && l.status == "pending").count() as i64)
+            Ok(self
+                .schedule_lines
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|l| l.schedule_id == schedule_id && l.status == "pending")
+                .count() as i64)
         }
 
         async fn sum_recognized_for_schedule(&self, schedule_id: Uuid) -> AtlasResult<String> {
-            let sum: f64 = self.schedule_lines.lock().unwrap().iter()
+            let sum: f64 = self
+                .schedule_lines
+                .lock()
+                .unwrap()
+                .iter()
                 .filter(|l| l.schedule_id == schedule_id && l.status == "recognized")
                 .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
                 .sum();
@@ -763,13 +1131,20 @@ mod tests {
 
         async fn get_dashboard(&self, _org_id: Uuid) -> AtlasResult<MpaDashboard> {
             Ok(MpaDashboard {
-                total_templates: 0, active_templates: 0,
-                total_schedules: 0, draft_schedules: 0, active_schedules: 0,
-                completed_schedules: 0, cancelled_schedules: 0, on_hold_schedules: 0,
+                total_templates: 0,
+                active_templates: 0,
+                total_schedules: 0,
+                draft_schedules: 0,
+                active_schedules: 0,
+                completed_schedules: 0,
+                cancelled_schedules: 0,
+                on_hold_schedules: 0,
                 total_scheduled_amount: "0.00".into(),
                 total_recognized_amount: "0.00".into(),
                 total_remaining_amount: "0.00".into(),
-                pending_lines: 0, recognized_lines: 0, reversed_lines: 0,
+                pending_lines: 0,
+                recognized_lines: 0,
+                reversed_lines: 0,
             })
         }
     }
@@ -784,11 +1159,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_template() {
-        let t = eng().create_template(
-            Uuid::new_v4(), "Insurance Amortization", Some("12-month spread"),
-            "equal", 12, "month", Some("1500"), Some("6000"),
-            "USD", None,
-        ).await.unwrap();
+        let t = eng()
+            .create_template(
+                Uuid::new_v4(),
+                "Insurance Amortization",
+                Some("12-month spread"),
+                "equal",
+                12,
+                "month",
+                Some("1500"),
+                Some("6000"),
+                "USD",
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(t.template_name, "Insurance Amortization");
         assert_eq!(t.distribution_method, "equal");
         assert_eq!(t.number_of_periods, 12);
@@ -797,38 +1182,79 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_template_empty_name_fails() {
-        let r = eng().create_template(
-            Uuid::new_v4(), "", None, "equal", 12, "month",
-            None, None, "USD", None,
-        ).await;
+        let r = eng()
+            .create_template(
+                Uuid::new_v4(),
+                "",
+                None,
+                "equal",
+                12,
+                "month",
+                None,
+                None,
+                "USD",
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_create_template_invalid_method_fails() {
-        let r = eng().create_template(
-            Uuid::new_v4(), "Bad", None, "random", 12, "month",
-            None, None, "USD", None,
-        ).await;
+        let r = eng()
+            .create_template(
+                Uuid::new_v4(),
+                "Bad",
+                None,
+                "random",
+                12,
+                "month",
+                None,
+                None,
+                "USD",
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_create_template_zero_periods_fails() {
-        let r = eng().create_template(
-            Uuid::new_v4(), "Bad", None, "equal", 0, "month",
-            None, None, "USD", None,
-        ).await;
+        let r = eng()
+            .create_template(
+                Uuid::new_v4(),
+                "Bad",
+                None,
+                "equal",
+                0,
+                "month",
+                None,
+                None,
+                "USD",
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_activate_template() {
         let e = eng();
-        let t = e.create_template(
-            Uuid::new_v4(), "T-ACT", None, "equal", 6, "month",
-            None, None, "USD", None,
-        ).await.unwrap();
+        let t = e
+            .create_template(
+                Uuid::new_v4(),
+                "T-ACT",
+                None,
+                "equal",
+                6,
+                "month",
+                None,
+                None,
+                "USD",
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(t.status, "draft");
         let t = e.activate_template(t.id).await.unwrap();
         assert_eq!(t.status, "active");
@@ -837,10 +1263,21 @@ mod tests {
     #[tokio::test]
     async fn test_activate_non_draft_fails() {
         let e = eng();
-        let t = e.create_template(
-            Uuid::new_v4(), "T-ACT2", None, "equal", 6, "month",
-            None, None, "USD", None,
-        ).await.unwrap();
+        let t = e
+            .create_template(
+                Uuid::new_v4(),
+                "T-ACT2",
+                None,
+                "equal",
+                6,
+                "month",
+                None,
+                None,
+                "USD",
+                None,
+            )
+            .await
+            .unwrap();
         e.activate_template(t.id).await.unwrap();
         let r = e.activate_template(t.id).await;
         assert!(r.is_err());
@@ -849,10 +1286,21 @@ mod tests {
     #[tokio::test]
     async fn test_deactivate_template() {
         let e = eng();
-        let t = e.create_template(
-            Uuid::new_v4(), "T-DEACT", None, "equal", 6, "month",
-            None, None, "USD", None,
-        ).await.unwrap();
+        let t = e
+            .create_template(
+                Uuid::new_v4(),
+                "T-DEACT",
+                None,
+                "equal",
+                6,
+                "month",
+                None,
+                None,
+                "USD",
+                None,
+            )
+            .await
+            .unwrap();
         e.activate_template(t.id).await.unwrap();
         let t = e.deactivate_template(t.id).await.unwrap();
         assert_eq!(t.status, "inactive");
@@ -862,8 +1310,16 @@ mod tests {
     async fn test_duplicate_template_name_fails() {
         let org = Uuid::new_v4();
         let e = eng();
-        e.create_template(org, "UNIQUE", None, "equal", 6, "month", None, None, "USD", None).await.unwrap();
-        let r = e.create_template(org, "UNIQUE", None, "equal", 3, "month", None, None, "USD", None).await;
+        e.create_template(
+            org, "UNIQUE", None, "equal", 6, "month", None, None, "USD", None,
+        )
+        .await
+        .unwrap();
+        let r = e
+            .create_template(
+                org, "UNIQUE", None, "equal", 3, "month", None, None, "USD", None,
+            )
+            .await;
         assert!(matches!(r, Err(AtlasError::Conflict(_))));
     }
 
@@ -871,10 +1327,21 @@ mod tests {
     async fn test_add_template_line() {
         let e = eng();
         // Custom method template
-        let t = e.create_template(
-            Uuid::new_v4(), "T-LINE", None, "custom", 3, "month",
-            None, None, "USD", None,
-        ).await.unwrap();
+        let t = e
+            .create_template(
+                Uuid::new_v4(),
+                "T-LINE",
+                None,
+                "custom",
+                3,
+                "month",
+                None,
+                None,
+                "USD",
+                None,
+            )
+            .await
+            .unwrap();
         let line = e.add_template_line(t.id, 1, "50.00", 0).await.unwrap();
         assert_eq!(line.period_sequence, 1);
         assert_eq!(line.percentage, "50.00");
@@ -883,10 +1350,21 @@ mod tests {
     #[tokio::test]
     async fn test_add_template_line_to_equal_template_fails() {
         let e = eng();
-        let t = e.create_template(
-            Uuid::new_v4(), "T-NO-LINE", None, "equal", 12, "month",
-            None, None, "USD", None,
-        ).await.unwrap();
+        let t = e
+            .create_template(
+                Uuid::new_v4(),
+                "T-NO-LINE",
+                None,
+                "equal",
+                12,
+                "month",
+                None,
+                None,
+                "USD",
+                None,
+            )
+            .await
+            .unwrap();
         let r = e.add_template_line(t.id, 1, "50.00", 0).await;
         assert!(r.is_err());
     }
@@ -898,13 +1376,25 @@ mod tests {
     #[tokio::test]
     async fn test_create_schedule() {
         let e = eng();
-        let s = e.create_schedule(
-            Uuid::new_v4(), "MPA-001", Some("Insurance spread"),
-            None, None, None, "12000.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
-            "USD", Some("ACME"), Some("CC01"), Some("6000"), None,
-        ).await.unwrap();
+        let s = e
+            .create_schedule(
+                Uuid::new_v4(),
+                "MPA-001",
+                Some("Insurance spread"),
+                None,
+                None,
+                None,
+                "12000.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
+                "USD",
+                Some("ACME"),
+                Some("CC01"),
+                Some("6000"),
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(s.schedule_number, "MPA-001");
         assert_eq!(s.total_amount, "12000.00");
         assert_eq!(s.status, "draft");
@@ -914,18 +1404,33 @@ mod tests {
     async fn test_create_schedule_with_template() {
         let e = eng();
         let org = Uuid::new_v4();
-        let t = e.create_template(
-            org, "TPL-12M", None, "equal", 12, "month",
-            None, None, "USD", None,
-        ).await.unwrap();
+        let t = e
+            .create_template(
+                org, "TPL-12M", None, "equal", 12, "month", None, None, "USD", None,
+            )
+            .await
+            .unwrap();
         e.activate_template(t.id).await.unwrap();
 
-        let s = e.create_schedule(
-            org, "MPA-TPL-01", None, Some(t.id), None, None, "12000.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
-            "USD", None, None, None, None,
-        ).await.unwrap();
+        let s = e
+            .create_schedule(
+                org,
+                "MPA-TPL-01",
+                None,
+                Some(t.id),
+                None,
+                None,
+                "12000.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
+                "USD",
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(s.schedule_number, "MPA-TPL-01");
 
         // Should have 12 schedule lines
@@ -937,22 +1442,49 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_schedule_negative_amount_fails() {
-        let r = eng().create_schedule(
-            Uuid::new_v4(), "MPA-BAD", None, None, None, None, "-100.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None,
-            "USD", None, None, None, None,
-        ).await;
+        let r = eng()
+            .create_schedule(
+                Uuid::new_v4(),
+                "MPA-BAD",
+                None,
+                None,
+                None,
+                None,
+                "-100.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_activate_schedule() {
         let e = eng();
-        let s = e.create_schedule(
-            Uuid::new_v4(), "MPA-ACT", None, None, None, None, "5000.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None,
-            "USD", None, None, None, None,
-        ).await.unwrap();
+        let s = e
+            .create_schedule(
+                Uuid::new_v4(),
+                "MPA-ACT",
+                None,
+                None,
+                None,
+                None,
+                "5000.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(s.status, "draft");
         let s = e.activate_schedule(s.id).await.unwrap();
         assert_eq!(s.status, "active");
@@ -961,11 +1493,25 @@ mod tests {
     #[tokio::test]
     async fn test_hold_and_resume_schedule() {
         let e = eng();
-        let s = e.create_schedule(
-            Uuid::new_v4(), "MPA-HOLD", None, None, None, None, "5000.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None,
-            "USD", None, None, None, None,
-        ).await.unwrap();
+        let s = e
+            .create_schedule(
+                Uuid::new_v4(),
+                "MPA-HOLD",
+                None,
+                None,
+                None,
+                None,
+                "5000.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         e.activate_schedule(s.id).await.unwrap();
         let s = e.hold_schedule(s.id).await.unwrap();
         assert_eq!(s.status, "on_hold");
@@ -976,11 +1522,25 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_schedule() {
         let e = eng();
-        let s = e.create_schedule(
-            Uuid::new_v4(), "MPA-CANC", None, None, None, None, "5000.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None,
-            "USD", None, None, None, None,
-        ).await.unwrap();
+        let s = e
+            .create_schedule(
+                Uuid::new_v4(),
+                "MPA-CANC",
+                None,
+                None,
+                None,
+                None,
+                "5000.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         let s = e.cancel_schedule(s.id).await.unwrap();
         assert_eq!(s.status, "cancelled");
     }
@@ -993,13 +1553,32 @@ mod tests {
     async fn test_recognize_line() {
         let e = eng();
         let org = Uuid::new_v4();
-        let t = e.create_template(org, "REC-TPL", None, "equal", 3, "month", None, None, "USD", None).await.unwrap();
+        let t = e
+            .create_template(
+                org, "REC-TPL", None, "equal", 3, "month", None, None, "USD", None,
+            )
+            .await
+            .unwrap();
         e.activate_template(t.id).await.unwrap();
-        let s = e.create_schedule(
-            org, "MPA-REC", None, Some(t.id), None, None, "3000.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None,
-            "USD", None, None, None, None,
-        ).await.unwrap();
+        let s = e
+            .create_schedule(
+                org,
+                "MPA-REC",
+                None,
+                Some(t.id),
+                None,
+                None,
+                "3000.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         e.activate_schedule(s.id).await.unwrap();
 
         let lines = e.list_schedule_lines(s.id).await.unwrap();
@@ -1018,13 +1597,32 @@ mod tests {
     async fn test_auto_complete_schedule() {
         let e = eng();
         let org = Uuid::new_v4();
-        let t = e.create_template(org, "COMP-TPL", None, "equal", 2, "month", None, None, "USD", None).await.unwrap();
+        let t = e
+            .create_template(
+                org, "COMP-TPL", None, "equal", 2, "month", None, None, "USD", None,
+            )
+            .await
+            .unwrap();
         e.activate_template(t.id).await.unwrap();
-        let s = e.create_schedule(
-            org, "MPA-COMP", None, Some(t.id), None, None, "2000.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None,
-            "USD", None, None, None, None,
-        ).await.unwrap();
+        let s = e
+            .create_schedule(
+                org,
+                "MPA-COMP",
+                None,
+                Some(t.id),
+                None,
+                None,
+                "2000.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         e.activate_schedule(s.id).await.unwrap();
 
         let lines = e.list_schedule_lines(s.id).await.unwrap();
@@ -1042,13 +1640,32 @@ mod tests {
     async fn test_reverse_line() {
         let e = eng();
         let org = Uuid::new_v4();
-        let t = e.create_template(org, "REV-TPL", None, "equal", 2, "month", None, None, "USD", None).await.unwrap();
+        let t = e
+            .create_template(
+                org, "REV-TPL", None, "equal", 2, "month", None, None, "USD", None,
+            )
+            .await
+            .unwrap();
         e.activate_template(t.id).await.unwrap();
-        let s = e.create_schedule(
-            org, "MPA-REV", None, Some(t.id), None, None, "2000.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None,
-            "USD", None, None, None, None,
-        ).await.unwrap();
+        let s = e
+            .create_schedule(
+                org,
+                "MPA-REV",
+                None,
+                Some(t.id),
+                None,
+                None,
+                "2000.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         e.activate_schedule(s.id).await.unwrap();
 
         let lines = e.list_schedule_lines(s.id).await.unwrap();
@@ -1062,13 +1679,32 @@ mod tests {
     async fn test_reverse_reactivates_completed_schedule() {
         let e = eng();
         let org = Uuid::new_v4();
-        let t = e.create_template(org, "REV2-TPL", None, "equal", 1, "month", None, None, "USD", None).await.unwrap();
+        let t = e
+            .create_template(
+                org, "REV2-TPL", None, "equal", 1, "month", None, None, "USD", None,
+            )
+            .await
+            .unwrap();
         e.activate_template(t.id).await.unwrap();
-        let s = e.create_schedule(
-            org, "MPA-REV2", None, Some(t.id), None, None, "1000.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None,
-            "USD", None, None, None, None,
-        ).await.unwrap();
+        let s = e
+            .create_schedule(
+                org,
+                "MPA-REV2",
+                None,
+                Some(t.id),
+                None,
+                None,
+                "1000.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         e.activate_schedule(s.id).await.unwrap();
 
         let lines = e.list_schedule_lines(s.id).await.unwrap();
@@ -1086,11 +1722,25 @@ mod tests {
     async fn test_recognize_line_inactive_schedule_fails() {
         let e = eng();
         let org = Uuid::new_v4();
-        let _s = e.create_schedule(
-            org, "MPA-BAD2", None, None, None, None, "1000.00",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None,
-            "USD", None, None, None, None,
-        ).await.unwrap();
+        let _s = e
+            .create_schedule(
+                org,
+                "MPA-BAD2",
+                None,
+                None,
+                None,
+                None,
+                "1000.00",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                "USD",
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         // No lines exist for this schedule, but even if they did,
         // the schedule is still in draft
         // Create a fake line ID - this won't be found

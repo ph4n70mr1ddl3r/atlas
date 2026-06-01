@@ -4,19 +4,18 @@
 //! saved searches, multi-level approval chains, duplicate detection, and
 //! enhanced import with CSV support.
 
+use crate::handlers::auth::Claims;
+use crate::handlers::records::{row_to_json, sanitize_identifier};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
-use crate::handlers::records::{sanitize_identifier, row_to_json};
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::{debug, error};
+use uuid::Uuid;
 
 // ============================================================================
 // Notifications
@@ -36,8 +35,10 @@ pub async fn get_unread_count(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    let count = state.core.notification_engine
+
+    let count = state
+        .core
+        .notification_engine
         .unread_count(org_id, user_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -57,7 +58,9 @@ pub async fn list_notifications(
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let offset = params.offset.unwrap_or(0).max(0);
 
-    let notifications = state.core.notification_engine
+    let notifications = state
+        .core
+        .notification_engine
         .list(org_id, user_id, include_read, limit, offset)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -77,7 +80,9 @@ pub async fn mark_notification_read(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.core.notification_engine
+    state
+        .core
+        .notification_engine
         .mark_read(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -92,7 +97,9 @@ pub async fn mark_all_notifications_read(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let count = state.core.notification_engine
+    let count = state
+        .core
+        .notification_engine
         .mark_all_read(org_id, user_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -105,7 +112,9 @@ pub async fn dismiss_notification(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.core.notification_engine
+    state
+        .core
+        .notification_engine
         .dismiss(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -142,19 +151,18 @@ pub async fn list_saved_searches(
     }
 
     let where_sql = where_clauses.join(" AND ");
-    let query_str = format!(
-        "SELECT * FROM _atlas.saved_searches WHERE {where_sql} ORDER BY created_at DESC"
-    );
+    let query_str =
+        format!("SELECT * FROM _atlas.saved_searches WHERE {where_sql} ORDER BY created_at DESC");
 
     let mut query = sqlx::query(&query_str).bind(org_id).bind(user_id);
     if let Some(ref entity) = params.entity {
         query = query.bind(entity);
     }
 
-    let rows = query
-        .fetch_all(&state.db_pool)
-        .await
-        .map_err(|e| { error!("Saved search query error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    let rows = query.fetch_all(&state.db_pool).await.map_err(|e| {
+        error!("Saved search query error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let searches: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
 
@@ -195,7 +203,7 @@ pub async fn create_saved_search(
              page_size, is_shared, is_default, color, icon, metadata)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, '{}'::jsonb)
         RETURNING *
-        "
+        ",
     )
     .bind(org_id)
     .bind(user_id)
@@ -214,7 +222,10 @@ pub async fn create_saved_search(
     .bind(&payload.icon)
     .fetch_one(&state.db_pool)
     .await
-    .map_err(|e| { error!("Create saved search error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    .map_err(|e| {
+        error!("Create saved search error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     Ok((StatusCode::CREATED, Json(row_to_json(&row))))
 }
@@ -227,12 +238,14 @@ pub async fn delete_saved_search(
 ) -> Result<StatusCode, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    sqlx::query("UPDATE _atlas.saved_searches SET deleted_at = now() WHERE id = $1 AND user_id = $2")
-        .bind(id)
-        .bind(user_id)
-        .execute(&state.db_pool)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    sqlx::query(
+        "UPDATE _atlas.saved_searches SET deleted_at = now() WHERE id = $1 AND user_id = $2",
+    )
+    .bind(id)
+    .bind(user_id)
+    .execute(&state.db_pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -328,7 +341,9 @@ pub async fn get_pending_approvals(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Get steps assigned to this user
-    let user_steps = state.core.approval_engine
+    let user_steps = state
+        .core
+        .approval_engine
         .get_pending_for_user(org_id, user_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -336,7 +351,12 @@ pub async fn get_pending_approvals(
     // Get steps assigned to user's roles
     let mut role_steps = Vec::new();
     for role in &claims.roles {
-        if let Ok(steps) = state.core.approval_engine.get_pending_for_role(org_id, role).await {
+        if let Ok(steps) = state
+            .core
+            .approval_engine
+            .get_pending_for_role(org_id, role)
+            .await
+        {
             role_steps.extend(steps);
         }
     }
@@ -375,7 +395,9 @@ pub async fn approve_approval_step(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let request = state.core.approval_engine
+    let request = state
+        .core
+        .approval_engine
         .approve_step(org_id, step_id, user_id, payload.comment.as_deref())
         .await
         .map_err(|e| {
@@ -396,7 +418,9 @@ pub async fn reject_approval_step(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let request = state.core.approval_engine
+    let request = state
+        .core
+        .approval_engine
         .reject_step(org_id, step_id, user_id, payload.comment.as_deref())
         .await
         .map_err(|e| {
@@ -422,7 +446,9 @@ pub async fn delegate_approval_step(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let step = state.core.approval_engine
+    let step = state
+        .core
+        .approval_engine
         .delegate_step(org_id, step_id, user_id, payload.delegated_to)
         .await
         .map_err(|e| {
@@ -467,8 +493,12 @@ pub async fn check_duplicates(
         use sqlx::Row;
         let rule_id: Uuid = rule_row.try_get("id").unwrap_or_default();
         let rule_name: String = rule_row.try_get("name").unwrap_or_default();
-        let match_criteria_val: serde_json::Value = rule_row.try_get("match_criteria").unwrap_or(serde_json::json!([]));
-        let on_duplicate: String = rule_row.try_get("on_duplicate").unwrap_or_else(|_| "warn".to_string());
+        let match_criteria_val: serde_json::Value = rule_row
+            .try_get("match_criteria")
+            .unwrap_or(serde_json::json!([]));
+        let on_duplicate: String = rule_row
+            .try_get("on_duplicate")
+            .unwrap_or_else(|_| "warn".to_string());
 
         // Parse match criteria
         let criteria_items: Vec<serde_json::Value> = match match_criteria_val.as_array() {
@@ -484,14 +514,20 @@ pub async fn check_duplicates(
             Some(ref def) => def.table_name.as_deref().unwrap_or(&payload.entity_type),
             None => &payload.entity_type,
         };
-        
+
         let safe_table = sanitize_identifier(table_name).map_err(|_| StatusCode::BAD_REQUEST)?;
 
         let mut bind_idx = 1;
         for criterion in &criteria_items {
-            let field = criterion.get("field").and_then(|f| f.as_str()).unwrap_or("");
+            let field = criterion
+                .get("field")
+                .and_then(|f| f.as_str())
+                .unwrap_or("");
             let safe_field = sanitize_identifier(field).map_err(|_| StatusCode::BAD_REQUEST)?;
-            let match_type = criterion.get("match_type").and_then(|m| m.as_str()).unwrap_or("exact");
+            let match_type = criterion
+                .get("match_type")
+                .and_then(|m| m.as_str())
+                .unwrap_or("exact");
 
             if let Some(value) = payload.data.get(field) {
                 let text_value = match value {
@@ -507,7 +543,9 @@ pub async fn check_duplicates(
                         bind_idx += 1;
                     }
                     "case_insensitive" => {
-                        conditions.push(format!("LOWER(\"{safe_field}\") = LOWER(${bind_idx}::text)"));
+                        conditions.push(format!(
+                            "LOWER(\"{safe_field}\") = LOWER(${bind_idx}::text)"
+                        ));
                         bind_values.push(text_value);
                         bind_idx += 1;
                     }
@@ -542,9 +580,10 @@ pub async fn check_duplicates(
                 for row in rows {
                     let existing_id: Uuid = row.try_get("id").unwrap_or_default();
                     let existing_data = row_to_json(&row);
-                    
+
                     // Find which fields matched
-                    let match_fields: Vec<String> = criteria_items.iter()
+                    let match_fields: Vec<String> = criteria_items
+                        .iter()
                         .filter_map(|c| {
                             let f = c.get("field").and_then(|f| f.as_str()).unwrap_or("");
                             let new_val = payload.data.get(f);
@@ -607,7 +646,7 @@ pub async fn create_duplicate_rule(
              filter_condition, on_duplicate, is_active)
         VALUES ($1, $2, $3, $4, $5, $6, $7, true)
         RETURNING *
-        "
+        ",
     )
     .bind(org_id)
     .bind(&payload.name)
@@ -618,7 +657,10 @@ pub async fn create_duplicate_rule(
     .bind(payload.on_duplicate.unwrap_or_else(|| "warn".to_string()))
     .fetch_one(&state.db_pool)
     .await
-    .map_err(|e| { error!("Create duplicate rule error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+    .map_err(|e| {
+        error!("Create duplicate rule error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     Ok((StatusCode::CREATED, Json(row_to_json(&row))))
 }

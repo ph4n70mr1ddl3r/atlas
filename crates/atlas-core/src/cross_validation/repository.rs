@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for cross-validation rules, lines, and dashboard summary.
 
-use atlas_shared::{
-    CrossValidationRule, CrossValidationRuleLine, CrossValidationDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, CrossValidationDashboardSummary, CrossValidationRule,
+    CrossValidationRuleLine,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -16,31 +16,51 @@ pub trait CrossValidationRepository: Send + Sync {
     // Rules
     async fn create_rule(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        rule_type: &str, error_message: &str, priority: i32,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        rule_type: &str,
+        error_message: &str,
+        priority: i32,
         segment_names: Vec<String>,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CrossValidationRule>;
 
     async fn get_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CrossValidationRule>>;
     async fn get_rule_by_id(&self, id: Uuid) -> AtlasResult<Option<CrossValidationRule>>;
-    async fn list_rules(&self, org_id: Uuid, enabled_only: bool) -> AtlasResult<Vec<CrossValidationRule>>;
-    async fn update_rule_enabled(&self, id: Uuid, is_enabled: bool) -> AtlasResult<CrossValidationRule>;
+    async fn list_rules(
+        &self,
+        org_id: Uuid,
+        enabled_only: bool,
+    ) -> AtlasResult<Vec<CrossValidationRule>>;
+    async fn update_rule_enabled(
+        &self,
+        id: Uuid,
+        is_enabled: bool,
+    ) -> AtlasResult<CrossValidationRule>;
     async fn delete_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Lines
     async fn create_rule_line(
         &self,
-        org_id: Uuid, rule_id: Uuid, line_type: &str,
-        patterns: &[String], display_order: i32,
+        org_id: Uuid,
+        rule_id: Uuid,
+        line_type: &str,
+        patterns: &[String],
+        display_order: i32,
     ) -> AtlasResult<CrossValidationRuleLine>;
 
     async fn list_rule_lines(&self, rule_id: Uuid) -> AtlasResult<Vec<CrossValidationRuleLine>>;
     async fn delete_rule_line(&self, id: Uuid) -> AtlasResult<()>;
 
     // Dashboard
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<CrossValidationDashboardSummary>;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<CrossValidationDashboardSummary>;
 }
 
 /// `PostgreSQL` implementation
@@ -49,7 +69,7 @@ pub struct PostgresCrossValidationRepository {
 }
 
 impl PostgresCrossValidationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -57,8 +77,7 @@ impl PostgresCrossValidationRepository {
 
 fn row_to_rule(row: &sqlx::postgres::PgRow) -> CrossValidationRule {
     let segment_names: serde_json::Value = row.get("segment_names");
-    let segment_names: Vec<String> = serde_json::from_value(segment_names)
-        .unwrap_or_default();
+    let segment_names: Vec<String> = serde_json::from_value(segment_names).unwrap_or_default();
 
     CrossValidationRule {
         id: row.get("id"),
@@ -81,8 +100,7 @@ fn row_to_rule(row: &sqlx::postgres::PgRow) -> CrossValidationRule {
 
 fn row_to_rule_line(row: &sqlx::postgres::PgRow) -> CrossValidationRuleLine {
     let patterns: serde_json::Value = row.get("patterns");
-    let patterns: Vec<String> = serde_json::from_value(patterns)
-        .unwrap_or_default();
+    let patterns: Vec<String> = serde_json::from_value(patterns).unwrap_or_default();
 
     CrossValidationRuleLine {
         id: row.get("id"),
@@ -100,10 +118,16 @@ fn row_to_rule_line(row: &sqlx::postgres::PgRow) -> CrossValidationRuleLine {
 impl CrossValidationRepository for PostgresCrossValidationRepository {
     async fn create_rule(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        rule_type: &str, error_message: &str, priority: i32,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        rule_type: &str,
+        error_message: &str,
+        priority: i32,
         segment_names: Vec<String>,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CrossValidationRule> {
         let segment_names_json = serde_json::to_value(&segment_names)
@@ -116,37 +140,49 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
             VALUES ($1,$2,$3,$4,$5,$6,true,$7,$8,$9,$10,$11)
             RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(rule_type).bind(error_message).bind(priority)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(rule_type)
+        .bind(error_message)
+        .bind(priority)
         .bind(&segment_names_json)
-        .bind(effective_from).bind(effective_to)
+        .bind(effective_from)
+        .bind(effective_to)
         .bind(created_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_rule(&row))
     }
 
     async fn get_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CrossValidationRule>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.cross_validation_rules WHERE organization_id=$1 AND code=$2"
+            "SELECT * FROM _atlas.cross_validation_rules WHERE organization_id=$1 AND code=$2",
         )
-        .bind(org_id).bind(code)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_rule(&r)))
     }
 
     async fn get_rule_by_id(&self, id: Uuid) -> AtlasResult<Option<CrossValidationRule>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.cross_validation_rules WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.cross_validation_rules WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_rule(&r)))
     }
 
-    async fn list_rules(&self, org_id: Uuid, enabled_only: bool) -> AtlasResult<Vec<CrossValidationRule>> {
+    async fn list_rules(
+        &self,
+        org_id: Uuid,
+        enabled_only: bool,
+    ) -> AtlasResult<Vec<CrossValidationRule>> {
         let rows = if enabled_only {
             sqlx::query(
                 "SELECT * FROM _atlas.cross_validation_rules WHERE organization_id=$1 AND is_enabled=true ORDER BY priority, code"
@@ -165,7 +201,11 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
         Ok(rows.iter().map(row_to_rule).collect())
     }
 
-    async fn update_rule_enabled(&self, id: Uuid, is_enabled: bool) -> AtlasResult<CrossValidationRule> {
+    async fn update_rule_enabled(
+        &self,
+        id: Uuid,
+        is_enabled: bool,
+    ) -> AtlasResult<CrossValidationRule> {
         let row = sqlx::query(
             "UPDATE _atlas.cross_validation_rules SET is_enabled=$2, updated_at=now() WHERE id=$1 RETURNING *"
         )
@@ -177,21 +217,26 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
 
     async fn delete_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         sqlx::query(
-            "DELETE FROM _atlas.cross_validation_rules WHERE organization_id=$1 AND code=$2"
+            "DELETE FROM _atlas.cross_validation_rules WHERE organization_id=$1 AND code=$2",
         )
-        .bind(org_id).bind(code)
-        .execute(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn create_rule_line(
         &self,
-        org_id: Uuid, rule_id: Uuid, line_type: &str,
-        patterns: &[String], display_order: i32,
+        org_id: Uuid,
+        rule_id: Uuid,
+        line_type: &str,
+        patterns: &[String],
+        display_order: i32,
     ) -> AtlasResult<CrossValidationRuleLine> {
-        let patterns_json = serde_json::to_value(patterns)
-            .map_err(|e| AtlasError::Internal(e.to_string()))?;
+        let patterns_json =
+            serde_json::to_value(patterns).map_err(|e| AtlasError::Internal(e.to_string()))?;
 
         let row = sqlx::query(
             r"INSERT INTO _atlas.cross_validation_rule_lines
@@ -199,9 +244,13 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
             VALUES ($1,$2,$3,$4,$5)
             RETURNING *",
         )
-        .bind(org_id).bind(rule_id).bind(line_type)
-        .bind(&patterns_json).bind(display_order)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(rule_id)
+        .bind(line_type)
+        .bind(&patterns_json)
+        .bind(display_order)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_rule_line(&row))
     }
@@ -218,12 +267,17 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
 
     async fn delete_rule_line(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.cross_validation_rule_lines WHERE id=$1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<CrossValidationDashboardSummary> {
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<CrossValidationDashboardSummary> {
         let row = sqlx::query(
             r"SELECT
                 COUNT(*) as total,
@@ -233,7 +287,8 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
             FROM _atlas.cross_validation_rules WHERE organization_id = $1",
         )
         .bind(org_id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total: i64 = row.try_get("total").unwrap_or(0);
@@ -244,9 +299,11 @@ impl CrossValidationRepository for PostgresCrossValidationRepository {
         let line_count: i64 = sqlx::query_scalar(
             r"SELECT COUNT(*) FROM _atlas.cross_validation_rule_lines l
             JOIN _atlas.cross_validation_rules r ON l.rule_id = r.id
-            WHERE r.organization_id = $1"
+            WHERE r.organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(CrossValidationDashboardSummary {

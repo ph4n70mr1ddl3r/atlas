@@ -12,8 +12,8 @@
 //!
 //! Oracle Fusion equivalent: Sustainability > Environmental Accounting, ESG Reporting
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::SustainabilityEngine;
-pub use repository::{SustainabilityRepository, PostgresSustainabilityRepository};
+pub use repository::{PostgresSustainabilityRepository, SustainabilityRepository};

@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for planning scenarios, parameters, supply/demand entries,
 //! planned orders, planning exceptions, and dashboard data.
 
-use atlas_shared::{
-    PlanningScenario, PlanningParameter, SupplyDemandEntry,
-    PlannedOrder, PlanningException, PlanningDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, PlannedOrder, PlanningDashboard, PlanningException, PlanningParameter,
+    PlanningScenario, SupplyDemandEntry,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -18,75 +17,175 @@ use uuid::Uuid;
 pub trait PlanningRepository: Send + Sync {
     // Scenarios
     async fn create_scenario(
-        &self, org_id: Uuid, scenario_number: &str, name: &str, description: Option<&str>,
-        scenario_type: &str, planning_horizon_days: i32,
-        planning_start_date: Option<chrono::NaiveDate>, planning_end_date: Option<chrono::NaiveDate>,
-        include_existing_supply: bool, include_on_hand: bool, include_wip: bool,
-        auto_firm: bool, auto_firm_days: Option<i32>, net_shortages_only: bool,
+        &self,
+        org_id: Uuid,
+        scenario_number: &str,
+        name: &str,
+        description: Option<&str>,
+        scenario_type: &str,
+        planning_horizon_days: i32,
+        planning_start_date: Option<chrono::NaiveDate>,
+        planning_end_date: Option<chrono::NaiveDate>,
+        include_existing_supply: bool,
+        include_on_hand: bool,
+        include_wip: bool,
+        auto_firm: bool,
+        auto_firm_days: Option<i32>,
+        net_shortages_only: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<PlanningScenario>;
     async fn get_scenario(&self, id: Uuid) -> AtlasResult<Option<PlanningScenario>>;
-    async fn get_scenario_by_number(&self, org_id: Uuid, scenario_number: &str) -> AtlasResult<Option<PlanningScenario>>;
-    async fn list_scenarios(&self, org_id: Uuid, scenario_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<PlanningScenario>>;
-    async fn update_scenario_status(&self, id: Uuid, status: &str) -> AtlasResult<PlanningScenario>;
-    async fn update_scenario_results(&self, id: Uuid, status: &str, total_planned_orders: i32, total_exceptions: i32) -> AtlasResult<PlanningScenario>;
+    async fn get_scenario_by_number(
+        &self,
+        org_id: Uuid,
+        scenario_number: &str,
+    ) -> AtlasResult<Option<PlanningScenario>>;
+    async fn list_scenarios(
+        &self,
+        org_id: Uuid,
+        scenario_type: Option<&str>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PlanningScenario>>;
+    async fn update_scenario_status(&self, id: Uuid, status: &str)
+        -> AtlasResult<PlanningScenario>;
+    async fn update_scenario_results(
+        &self,
+        id: Uuid,
+        status: &str,
+        total_planned_orders: i32,
+        total_exceptions: i32,
+    ) -> AtlasResult<PlanningScenario>;
 
     // Planning Parameters
     async fn upsert_planning_parameter(
-        &self, org_id: Uuid, item_id: Uuid, item_name: Option<&str>, item_number: Option<&str>,
-        planner_code: Option<&str>, planning_method: &str, make_buy: &str, lead_time_days: i32,
-        safety_stock_quantity: &str, min_order_quantity: &str,
-        max_order_quantity: Option<&str>, fixed_order_quantity: Option<&str>,
-        lot_size_policy: &str, order_multiple: &str,
-        default_supplier_id: Option<Uuid>, default_supplier_name: Option<&str>,
+        &self,
+        org_id: Uuid,
+        item_id: Uuid,
+        item_name: Option<&str>,
+        item_number: Option<&str>,
+        planner_code: Option<&str>,
+        planning_method: &str,
+        make_buy: &str,
+        lead_time_days: i32,
+        safety_stock_quantity: &str,
+        min_order_quantity: &str,
+        max_order_quantity: Option<&str>,
+        fixed_order_quantity: Option<&str>,
+        lot_size_policy: &str,
+        order_multiple: &str,
+        default_supplier_id: Option<Uuid>,
+        default_supplier_name: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<PlanningParameter>;
-    async fn get_planning_parameter_by_item(&self, org_id: Uuid, item_id: Uuid) -> AtlasResult<Option<PlanningParameter>>;
+    async fn get_planning_parameter_by_item(
+        &self,
+        org_id: Uuid,
+        item_id: Uuid,
+    ) -> AtlasResult<Option<PlanningParameter>>;
     async fn list_planning_parameters(&self, org_id: Uuid) -> AtlasResult<Vec<PlanningParameter>>;
     async fn delete_planning_parameter(&self, org_id: Uuid, item_id: Uuid) -> AtlasResult<()>;
 
     // Supply/Demand
     async fn create_supply_demand_entry(
-        &self, org_id: Uuid, scenario_id: Option<Uuid>, item_id: Uuid,
-        item_name: Option<&str>, item_number: Option<&str>,
-        entry_type: &str, source_type: &str,
-        source_id: Option<Uuid>, source_number: Option<&str>,
-        quantity: &str, quantity_remaining: &str,
-        due_date: chrono::NaiveDate, priority: i32, status: &str,
+        &self,
+        org_id: Uuid,
+        scenario_id: Option<Uuid>,
+        item_id: Uuid,
+        item_name: Option<&str>,
+        item_number: Option<&str>,
+        entry_type: &str,
+        source_type: &str,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        quantity: &str,
+        quantity_remaining: &str,
+        due_date: chrono::NaiveDate,
+        priority: i32,
+        status: &str,
     ) -> AtlasResult<SupplyDemandEntry>;
-    async fn list_supply_demand_by_scenario(&self, scenario_id: Uuid) -> AtlasResult<Vec<SupplyDemandEntry>>;
-    async fn list_supply_demand_by_scenario_filtered(&self, scenario_id: Uuid, entry_type: Option<&str>) -> AtlasResult<Vec<SupplyDemandEntry>>;
+    async fn list_supply_demand_by_scenario(
+        &self,
+        scenario_id: Uuid,
+    ) -> AtlasResult<Vec<SupplyDemandEntry>>;
+    async fn list_supply_demand_by_scenario_filtered(
+        &self,
+        scenario_id: Uuid,
+        entry_type: Option<&str>,
+    ) -> AtlasResult<Vec<SupplyDemandEntry>>;
 
     // Planned Orders
     async fn create_planned_order(
-        &self, org_id: Uuid, scenario_id: Option<Uuid>, item_id: Uuid,
-        item_name: Option<&str>, item_number: Option<&str>,
-        order_number: &str, order_type: &str, status: &str,
-        quantity: &str, quantity_firmed: &str,
-        due_date: chrono::NaiveDate, start_date: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        scenario_id: Option<Uuid>,
+        item_id: Uuid,
+        item_name: Option<&str>,
+        item_number: Option<&str>,
+        order_number: &str,
+        order_type: &str,
+        status: &str,
+        quantity: &str,
+        quantity_firmed: &str,
+        due_date: chrono::NaiveDate,
+        start_date: Option<chrono::NaiveDate>,
         need_date: Option<chrono::NaiveDate>,
-        planner_notes: Option<&str>, planning_priority: i32, order_action: &str,
-        suggested_supplier_id: Option<Uuid>, suggested_supplier_name: Option<&str>,
-        suggested_source_type: Option<&str>, suggested_source_id: Option<Uuid>,
+        planner_notes: Option<&str>,
+        planning_priority: i32,
+        order_action: &str,
+        suggested_supplier_id: Option<Uuid>,
+        suggested_supplier_name: Option<&str>,
+        suggested_source_type: Option<&str>,
+        suggested_source_id: Option<Uuid>,
         firm_deadline: Option<chrono::NaiveDate>,
         pegging_demand_id: Option<Uuid>,
     ) -> AtlasResult<PlannedOrder>;
     async fn get_planned_order(&self, id: Uuid) -> AtlasResult<Option<PlannedOrder>>;
-    async fn list_planned_orders(&self, scenario_id: Uuid, status: Option<&str>, order_type: Option<&str>) -> AtlasResult<Vec<PlannedOrder>>;
-    async fn update_planned_order_status(&self, id: Uuid, status: &str, quantity_firmed: Option<&str>, planner_notes: Option<&str>) -> AtlasResult<PlannedOrder>;
+    async fn list_planned_orders(
+        &self,
+        scenario_id: Uuid,
+        status: Option<&str>,
+        order_type: Option<&str>,
+    ) -> AtlasResult<Vec<PlannedOrder>>;
+    async fn update_planned_order_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        quantity_firmed: Option<&str>,
+        planner_notes: Option<&str>,
+    ) -> AtlasResult<PlannedOrder>;
     async fn delete_planned_orders_by_scenario(&self, scenario_id: Uuid) -> AtlasResult<()>;
 
     // Exceptions
     async fn create_exception(
-        &self, org_id: Uuid, scenario_id: Option<Uuid>, item_id: Uuid,
-        item_name: Option<&str>, item_number: Option<&str>,
-        exception_type: &str, severity: &str, message: &str,
-        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
-        affected_quantity: Option<&str>, affected_date: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        scenario_id: Option<Uuid>,
+        item_id: Uuid,
+        item_name: Option<&str>,
+        item_number: Option<&str>,
+        exception_type: &str,
+        severity: &str,
+        message: &str,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        affected_quantity: Option<&str>,
+        affected_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<PlanningException>;
     async fn get_exception(&self, id: Uuid) -> AtlasResult<Option<PlanningException>>;
-    async fn list_exceptions(&self, scenario_id: Uuid, severity: Option<&str>, resolution_status: Option<&str>) -> AtlasResult<Vec<PlanningException>>;
-    async fn update_exception_resolution(&self, id: Uuid, resolution_status: &str, resolution_notes: Option<&str>, resolved_by: Option<Uuid>) -> AtlasResult<PlanningException>;
+    async fn list_exceptions(
+        &self,
+        scenario_id: Uuid,
+        severity: Option<&str>,
+        resolution_status: Option<&str>,
+    ) -> AtlasResult<Vec<PlanningException>>;
+    async fn update_exception_resolution(
+        &self,
+        id: Uuid,
+        resolution_status: &str,
+        resolution_notes: Option<&str>,
+        resolved_by: Option<Uuid>,
+    ) -> AtlasResult<PlanningException>;
     async fn delete_exceptions_by_scenario(&self, scenario_id: Uuid) -> AtlasResult<()>;
 
     // Dashboard
@@ -99,7 +198,7 @@ pub struct PostgresPlanningRepository {
 }
 
 impl PostgresPlanningRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -153,8 +252,16 @@ fn row_to_parameter(row: &sqlx::postgres::PgRow) -> PlanningParameter {
         lead_time_days: row.get("lead_time_days"),
         safety_stock_quantity: get_num(row, "safety_stock_quantity"),
         min_order_quantity: get_num(row, "min_order_quantity"),
-        max_order_quantity: row.try_get::<Option<f64>, _>("max_order_quantity").ok().flatten().map(|v| format!("{v:.2}")),
-        fixed_order_quantity: row.try_get::<Option<f64>, _>("fixed_order_quantity").ok().flatten().map(|v| format!("{v:.2}")),
+        max_order_quantity: row
+            .try_get::<Option<f64>, _>("max_order_quantity")
+            .ok()
+            .flatten()
+            .map(|v| format!("{v:.2}")),
+        fixed_order_quantity: row
+            .try_get::<Option<f64>, _>("fixed_order_quantity")
+            .ok()
+            .flatten()
+            .map(|v| format!("{v:.2}")),
         fixed_lot_multiplier: get_num(row, "fixed_lot_multiplier"),
         order_multiple: get_num(row, "order_multiple"),
         planning_time_fence_days: row.get("planning_time_fence_days"),
@@ -247,7 +354,11 @@ fn row_to_exception(row: &sqlx::postgres::PgRow) -> PlanningException {
         source_type: row.get("source_type"),
         source_id: row.get("source_id"),
         source_number: row.get("source_number"),
-        affected_quantity: row.try_get::<Option<f64>, _>("affected_quantity").ok().flatten().map(|v| format!("{v:.2}")),
+        affected_quantity: row
+            .try_get::<Option<f64>, _>("affected_quantity")
+            .ok()
+            .flatten()
+            .map(|v| format!("{v:.2}")),
         affected_date: row.get("affected_date"),
         resolution_status: row.get("resolution_status"),
         resolution_notes: row.get("resolution_notes"),
@@ -267,11 +378,20 @@ impl PlanningRepository for PostgresPlanningRepository {
 
     async fn create_scenario(
         &self,
-        org_id: Uuid, scenario_number: &str, name: &str, description: Option<&str>,
-        scenario_type: &str, planning_horizon_days: i32,
-        planning_start_date: Option<chrono::NaiveDate>, planning_end_date: Option<chrono::NaiveDate>,
-        include_existing_supply: bool, include_on_hand: bool, include_wip: bool,
-        auto_firm: bool, auto_firm_days: Option<i32>, net_shortages_only: bool,
+        org_id: Uuid,
+        scenario_number: &str,
+        name: &str,
+        description: Option<&str>,
+        scenario_type: &str,
+        planning_horizon_days: i32,
+        planning_start_date: Option<chrono::NaiveDate>,
+        planning_end_date: Option<chrono::NaiveDate>,
+        include_existing_supply: bool,
+        include_on_hand: bool,
+        include_wip: bool,
+        auto_firm: bool,
+        auto_firm_days: Option<i32>,
+        net_shortages_only: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<PlanningScenario> {
         let row = sqlx::query(
@@ -286,11 +406,20 @@ impl PlanningRepository for PostgresPlanningRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(scenario_number).bind(name).bind(description)
-        .bind(scenario_type).bind(planning_horizon_days)
-        .bind(planning_start_date).bind(planning_end_date)
-        .bind(include_existing_supply).bind(include_on_hand).bind(include_wip)
-        .bind(auto_firm).bind(auto_firm_days).bind(net_shortages_only)
+        .bind(org_id)
+        .bind(scenario_number)
+        .bind(name)
+        .bind(description)
+        .bind(scenario_type)
+        .bind(planning_horizon_days)
+        .bind(planning_start_date)
+        .bind(planning_end_date)
+        .bind(include_existing_supply)
+        .bind(include_on_hand)
+        .bind(include_wip)
+        .bind(auto_firm)
+        .bind(auto_firm_days)
+        .bind(net_shortages_only)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -307,7 +436,11 @@ impl PlanningRepository for PostgresPlanningRepository {
         Ok(row.map(|r| row_to_scenario(&r)))
     }
 
-    async fn get_scenario_by_number(&self, org_id: Uuid, scenario_number: &str) -> AtlasResult<Option<PlanningScenario>> {
+    async fn get_scenario_by_number(
+        &self,
+        org_id: Uuid,
+        scenario_number: &str,
+    ) -> AtlasResult<Option<PlanningScenario>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.planning_scenarios WHERE organization_id = $1 AND scenario_number = $2"
         )
@@ -318,7 +451,12 @@ impl PlanningRepository for PostgresPlanningRepository {
         Ok(row.map(|r| row_to_scenario(&r)))
     }
 
-    async fn list_scenarios(&self, org_id: Uuid, scenario_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<PlanningScenario>> {
+    async fn list_scenarios(
+        &self,
+        org_id: Uuid,
+        scenario_type: Option<&str>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PlanningScenario>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.planning_scenarios
@@ -328,14 +466,20 @@ impl PlanningRepository for PostgresPlanningRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(scenario_type).bind(status)
+        .bind(org_id)
+        .bind(scenario_type)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_scenario).collect())
     }
 
-    async fn update_scenario_status(&self, id: Uuid, status: &str) -> AtlasResult<PlanningScenario> {
+    async fn update_scenario_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<PlanningScenario> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.planning_scenarios
@@ -344,14 +488,21 @@ impl PlanningRepository for PostgresPlanningRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status)
+        .bind(id)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_scenario(&row))
     }
 
-    async fn update_scenario_results(&self, id: Uuid, status: &str, total_planned_orders: i32, total_exceptions: i32) -> AtlasResult<PlanningScenario> {
+    async fn update_scenario_results(
+        &self,
+        id: Uuid,
+        status: &str,
+        total_planned_orders: i32,
+        total_exceptions: i32,
+    ) -> AtlasResult<PlanningScenario> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.planning_scenarios
@@ -364,7 +515,10 @@ impl PlanningRepository for PostgresPlanningRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(total_planned_orders).bind(total_exceptions)
+        .bind(id)
+        .bind(status)
+        .bind(total_planned_orders)
+        .bind(total_exceptions)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -377,12 +531,22 @@ impl PlanningRepository for PostgresPlanningRepository {
 
     async fn upsert_planning_parameter(
         &self,
-        org_id: Uuid, item_id: Uuid, item_name: Option<&str>, item_number: Option<&str>,
-        planner_code: Option<&str>, planning_method: &str, make_buy: &str, lead_time_days: i32,
-        safety_stock_quantity: &str, min_order_quantity: &str,
-        max_order_quantity: Option<&str>, fixed_order_quantity: Option<&str>,
-        lot_size_policy: &str, order_multiple: &str,
-        default_supplier_id: Option<Uuid>, default_supplier_name: Option<&str>,
+        org_id: Uuid,
+        item_id: Uuid,
+        item_name: Option<&str>,
+        item_number: Option<&str>,
+        planner_code: Option<&str>,
+        planning_method: &str,
+        make_buy: &str,
+        lead_time_days: i32,
+        safety_stock_quantity: &str,
+        min_order_quantity: &str,
+        max_order_quantity: Option<&str>,
+        fixed_order_quantity: Option<&str>,
+        lot_size_policy: &str,
+        order_multiple: &str,
+        default_supplier_id: Option<Uuid>,
+        default_supplier_name: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<PlanningParameter> {
         let row = sqlx::query(
@@ -415,12 +579,22 @@ impl PlanningRepository for PostgresPlanningRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(item_id).bind(item_name).bind(item_number)
-        .bind(planner_code).bind(planning_method).bind(make_buy).bind(lead_time_days)
-        .bind(safety_stock_quantity).bind(min_order_quantity)
-        .bind(max_order_quantity).bind(fixed_order_quantity)
-        .bind(lot_size_policy).bind(order_multiple)
-        .bind(default_supplier_id).bind(default_supplier_name)
+        .bind(org_id)
+        .bind(item_id)
+        .bind(item_name)
+        .bind(item_number)
+        .bind(planner_code)
+        .bind(planning_method)
+        .bind(make_buy)
+        .bind(lead_time_days)
+        .bind(safety_stock_quantity)
+        .bind(min_order_quantity)
+        .bind(max_order_quantity)
+        .bind(fixed_order_quantity)
+        .bind(lot_size_policy)
+        .bind(order_multiple)
+        .bind(default_supplier_id)
+        .bind(default_supplier_name)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -428,7 +602,11 @@ impl PlanningRepository for PostgresPlanningRepository {
         Ok(row_to_parameter(&row))
     }
 
-    async fn get_planning_parameter_by_item(&self, org_id: Uuid, item_id: Uuid) -> AtlasResult<Option<PlanningParameter>> {
+    async fn get_planning_parameter_by_item(
+        &self,
+        org_id: Uuid,
+        item_id: Uuid,
+    ) -> AtlasResult<Option<PlanningParameter>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.planning_parameters WHERE organization_id = $1 AND item_id = $2 AND is_active = true"
         )
@@ -467,12 +645,20 @@ impl PlanningRepository for PostgresPlanningRepository {
 
     async fn create_supply_demand_entry(
         &self,
-        org_id: Uuid, scenario_id: Option<Uuid>, item_id: Uuid,
-        item_name: Option<&str>, item_number: Option<&str>,
-        entry_type: &str, source_type: &str,
-        source_id: Option<Uuid>, source_number: Option<&str>,
-        quantity: &str, quantity_remaining: &str,
-        due_date: chrono::NaiveDate, priority: i32, status: &str,
+        org_id: Uuid,
+        scenario_id: Option<Uuid>,
+        item_id: Uuid,
+        item_name: Option<&str>,
+        item_number: Option<&str>,
+        entry_type: &str,
+        source_type: &str,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        quantity: &str,
+        quantity_remaining: &str,
+        due_date: chrono::NaiveDate,
+        priority: i32,
+        status: &str,
     ) -> AtlasResult<SupplyDemandEntry> {
         let row = sqlx::query(
             r"
@@ -485,16 +671,30 @@ impl PlanningRepository for PostgresPlanningRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(scenario_id).bind(item_id).bind(item_name).bind(item_number)
-        .bind(entry_type).bind(source_type).bind(source_id).bind(source_number)
-        .bind(quantity).bind(quantity_remaining).bind(due_date).bind(priority).bind(status)
+        .bind(org_id)
+        .bind(scenario_id)
+        .bind(item_id)
+        .bind(item_name)
+        .bind(item_number)
+        .bind(entry_type)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
+        .bind(quantity)
+        .bind(quantity_remaining)
+        .bind(due_date)
+        .bind(priority)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_supply_demand(&row))
     }
 
-    async fn list_supply_demand_by_scenario(&self, scenario_id: Uuid) -> AtlasResult<Vec<SupplyDemandEntry>> {
+    async fn list_supply_demand_by_scenario(
+        &self,
+        scenario_id: Uuid,
+    ) -> AtlasResult<Vec<SupplyDemandEntry>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.supply_demand_entries WHERE scenario_id = $1 ORDER BY item_id, due_date"
         )
@@ -505,7 +705,11 @@ impl PlanningRepository for PostgresPlanningRepository {
         Ok(rows.iter().map(row_to_supply_demand).collect())
     }
 
-    async fn list_supply_demand_by_scenario_filtered(&self, scenario_id: Uuid, entry_type: Option<&str>) -> AtlasResult<Vec<SupplyDemandEntry>> {
+    async fn list_supply_demand_by_scenario_filtered(
+        &self,
+        scenario_id: Uuid,
+        entry_type: Option<&str>,
+    ) -> AtlasResult<Vec<SupplyDemandEntry>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.supply_demand_entries
@@ -514,7 +718,8 @@ impl PlanningRepository for PostgresPlanningRepository {
             ORDER BY due_date
             ",
         )
-        .bind(scenario_id).bind(entry_type)
+        .bind(scenario_id)
+        .bind(entry_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -527,15 +732,26 @@ impl PlanningRepository for PostgresPlanningRepository {
 
     async fn create_planned_order(
         &self,
-        org_id: Uuid, scenario_id: Option<Uuid>, item_id: Uuid,
-        item_name: Option<&str>, item_number: Option<&str>,
-        order_number: &str, order_type: &str, status: &str,
-        quantity: &str, quantity_firmed: &str,
-        due_date: chrono::NaiveDate, start_date: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        scenario_id: Option<Uuid>,
+        item_id: Uuid,
+        item_name: Option<&str>,
+        item_number: Option<&str>,
+        order_number: &str,
+        order_type: &str,
+        status: &str,
+        quantity: &str,
+        quantity_firmed: &str,
+        due_date: chrono::NaiveDate,
+        start_date: Option<chrono::NaiveDate>,
         need_date: Option<chrono::NaiveDate>,
-        planner_notes: Option<&str>, planning_priority: i32, order_action: &str,
-        suggested_supplier_id: Option<Uuid>, suggested_supplier_name: Option<&str>,
-        suggested_source_type: Option<&str>, suggested_source_id: Option<Uuid>,
+        planner_notes: Option<&str>,
+        planning_priority: i32,
+        order_action: &str,
+        suggested_supplier_id: Option<Uuid>,
+        suggested_supplier_name: Option<&str>,
+        suggested_source_type: Option<&str>,
+        suggested_source_id: Option<Uuid>,
         firm_deadline: Option<chrono::NaiveDate>,
         pegging_demand_id: Option<Uuid>,
     ) -> AtlasResult<PlannedOrder> {
@@ -557,14 +773,28 @@ impl PlanningRepository for PostgresPlanningRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(scenario_id).bind(item_id).bind(item_name).bind(item_number)
-        .bind(order_number).bind(order_type).bind(status)
-        .bind(quantity).bind(quantity_firmed)
-        .bind(due_date).bind(start_date).bind(need_date)
-        .bind(planner_notes).bind(planning_priority).bind(order_action)
-        .bind(suggested_supplier_id).bind(suggested_supplier_name)
-        .bind(suggested_source_type).bind(suggested_source_id)
-        .bind(firm_deadline).bind(pegging_demand_id)
+        .bind(org_id)
+        .bind(scenario_id)
+        .bind(item_id)
+        .bind(item_name)
+        .bind(item_number)
+        .bind(order_number)
+        .bind(order_type)
+        .bind(status)
+        .bind(quantity)
+        .bind(quantity_firmed)
+        .bind(due_date)
+        .bind(start_date)
+        .bind(need_date)
+        .bind(planner_notes)
+        .bind(planning_priority)
+        .bind(order_action)
+        .bind(suggested_supplier_id)
+        .bind(suggested_supplier_name)
+        .bind(suggested_source_type)
+        .bind(suggested_source_id)
+        .bind(firm_deadline)
+        .bind(pegging_demand_id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -580,7 +810,12 @@ impl PlanningRepository for PostgresPlanningRepository {
         Ok(row.map(|r| row_to_planned_order(&r)))
     }
 
-    async fn list_planned_orders(&self, scenario_id: Uuid, status: Option<&str>, order_type: Option<&str>) -> AtlasResult<Vec<PlannedOrder>> {
+    async fn list_planned_orders(
+        &self,
+        scenario_id: Uuid,
+        status: Option<&str>,
+        order_type: Option<&str>,
+    ) -> AtlasResult<Vec<PlannedOrder>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.planned_orders
@@ -590,14 +825,22 @@ impl PlanningRepository for PostgresPlanningRepository {
             ORDER BY due_date, planning_priority
             ",
         )
-        .bind(scenario_id).bind(status).bind(order_type)
+        .bind(scenario_id)
+        .bind(status)
+        .bind(order_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_planned_order).collect())
     }
 
-    async fn update_planned_order_status(&self, id: Uuid, status: &str, quantity_firmed: Option<&str>, planner_notes: Option<&str>) -> AtlasResult<PlannedOrder> {
+    async fn update_planned_order_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        quantity_firmed: Option<&str>,
+        planner_notes: Option<&str>,
+    ) -> AtlasResult<PlannedOrder> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.planned_orders
@@ -609,7 +852,10 @@ impl PlanningRepository for PostgresPlanningRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(quantity_firmed).bind(planner_notes)
+        .bind(id)
+        .bind(status)
+        .bind(quantity_firmed)
+        .bind(planner_notes)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -631,11 +877,19 @@ impl PlanningRepository for PostgresPlanningRepository {
 
     async fn create_exception(
         &self,
-        org_id: Uuid, scenario_id: Option<Uuid>, item_id: Uuid,
-        item_name: Option<&str>, item_number: Option<&str>,
-        exception_type: &str, severity: &str, message: &str,
-        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
-        affected_quantity: Option<&str>, affected_date: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        scenario_id: Option<Uuid>,
+        item_id: Uuid,
+        item_name: Option<&str>,
+        item_number: Option<&str>,
+        exception_type: &str,
+        severity: &str,
+        message: &str,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        affected_quantity: Option<&str>,
+        affected_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<PlanningException> {
         let row = sqlx::query(
             r"
@@ -649,10 +903,19 @@ impl PlanningRepository for PostgresPlanningRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(scenario_id).bind(item_id).bind(item_name).bind(item_number)
-        .bind(exception_type).bind(severity).bind(message)
-        .bind(source_type).bind(source_id).bind(source_number)
-        .bind(affected_quantity).bind(affected_date)
+        .bind(org_id)
+        .bind(scenario_id)
+        .bind(item_id)
+        .bind(item_name)
+        .bind(item_number)
+        .bind(exception_type)
+        .bind(severity)
+        .bind(message)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
+        .bind(affected_quantity)
+        .bind(affected_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -668,7 +931,12 @@ impl PlanningRepository for PostgresPlanningRepository {
         Ok(row.map(|r| row_to_exception(&r)))
     }
 
-    async fn list_exceptions(&self, scenario_id: Uuid, severity: Option<&str>, resolution_status: Option<&str>) -> AtlasResult<Vec<PlanningException>> {
+    async fn list_exceptions(
+        &self,
+        scenario_id: Uuid,
+        severity: Option<&str>,
+        resolution_status: Option<&str>,
+    ) -> AtlasResult<Vec<PlanningException>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.planning_exceptions
@@ -685,7 +953,9 @@ impl PlanningRepository for PostgresPlanningRepository {
                 created_at DESC
             ",
         )
-        .bind(scenario_id).bind(severity).bind(resolution_status)
+        .bind(scenario_id)
+        .bind(severity)
+        .bind(resolution_status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -694,7 +964,10 @@ impl PlanningRepository for PostgresPlanningRepository {
 
     async fn update_exception_resolution(
         &self,
-        id: Uuid, resolution_status: &str, resolution_notes: Option<&str>, resolved_by: Option<Uuid>,
+        id: Uuid,
+        resolution_status: &str,
+        resolution_notes: Option<&str>,
+        resolved_by: Option<Uuid>,
     ) -> AtlasResult<PlanningException> {
         let row = sqlx::query(
             r"
@@ -708,7 +981,10 @@ impl PlanningRepository for PostgresPlanningRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(resolution_status).bind(resolution_notes).bind(resolved_by)
+        .bind(id)
+        .bind(resolution_status)
+        .bind(resolution_notes)
+        .bind(resolved_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -730,7 +1006,7 @@ impl PlanningRepository for PostgresPlanningRepository {
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<PlanningDashboard> {
         let total_scenarios: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.planning_scenarios WHERE organization_id = $1"
+            "SELECT COUNT(*) FROM _atlas.planning_scenarios WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -746,7 +1022,7 @@ impl PlanningRepository for PostgresPlanningRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_planned_orders: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.planned_orders WHERE organization_id = $1"
+            "SELECT COUNT(*) FROM _atlas.planned_orders WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)
@@ -770,7 +1046,7 @@ impl PlanningRepository for PostgresPlanningRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_exceptions: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.planning_exceptions WHERE organization_id = $1"
+            "SELECT COUNT(*) FROM _atlas.planning_exceptions WHERE organization_id = $1",
         )
         .bind(org_id)
         .fetch_one(&self.pool)

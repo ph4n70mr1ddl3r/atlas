@@ -10,4 +10,4 @@ mod engine;
 mod repository;
 
 pub use engine::SupplierScorecardEngine;
-pub use repository::{ScorecardRepository, PostgresScorecardRepository};
+pub use repository::{PostgresScorecardRepository, ScorecardRepository};

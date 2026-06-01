@@ -2,12 +2,11 @@
 //!
 //! `PostgreSQL` storage for expense policy rules, compliance audits, and violations.
 
-use atlas_shared::{
-    ExpensePolicyRule, ExpenseComplianceAudit, ExpenseComplianceViolation,
-    ExpenseComplianceDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, ExpenseComplianceAudit, ExpenseComplianceDashboard,
+    ExpenseComplianceViolation, ExpensePolicyRule,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -16,57 +15,124 @@ use uuid::Uuid;
 pub trait ExpensePolicyComplianceRepository: Send + Sync {
     // Policy Rules
     async fn create_rule(
-        &self, org_id: Uuid, rule_code: &str, name: &str, description: Option<&str>,
-        rule_type: &str, expense_category: &str, severity: &str, evaluation_scope: &str,
-        threshold_amount: Option<&str>, maximum_amount: Option<&str>,
-        threshold_days: i32, requires_receipt: bool, requires_justification: bool,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
-        applies_to_department: Option<&str>, applies_to_cost_center: Option<&str>,
+        &self,
+        org_id: Uuid,
+        rule_code: &str,
+        name: &str,
+        description: Option<&str>,
+        rule_type: &str,
+        expense_category: &str,
+        severity: &str,
+        evaluation_scope: &str,
+        threshold_amount: Option<&str>,
+        maximum_amount: Option<&str>,
+        threshold_days: i32,
+        requires_receipt: bool,
+        requires_justification: bool,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
+        applies_to_department: Option<&str>,
+        applies_to_cost_center: Option<&str>,
         created_by_id: Option<Uuid>,
     ) -> AtlasResult<ExpensePolicyRule>;
-    async fn get_rule(&self, org_id: Uuid, rule_code: &str) -> AtlasResult<Option<ExpensePolicyRule>>;
+    async fn get_rule(
+        &self,
+        org_id: Uuid,
+        rule_code: &str,
+    ) -> AtlasResult<Option<ExpensePolicyRule>>;
     async fn get_rule_by_id(&self, id: Uuid) -> AtlasResult<Option<ExpensePolicyRule>>;
-    async fn list_rules(&self, org_id: Uuid, status: Option<&str>, rule_type: Option<&str>) -> AtlasResult<Vec<ExpensePolicyRule>>;
+    async fn list_rules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        rule_type: Option<&str>,
+    ) -> AtlasResult<Vec<ExpensePolicyRule>>;
     async fn update_rule_status(&self, id: Uuid, status: &str) -> AtlasResult<ExpensePolicyRule>;
     async fn delete_rule(&self, org_id: Uuid, rule_code: &str) -> AtlasResult<()>;
 
     // Compliance Audits
     async fn create_audit(
-        &self, org_id: Uuid, audit_number: &str, report_id: Uuid,
-        report_number: Option<&str>, employee_id: Option<Uuid>,
-        employee_name: Option<&str>, department_id: Option<Uuid>,
-        audit_date: chrono::NaiveDate, audit_trigger: &str,
+        &self,
+        org_id: Uuid,
+        audit_number: &str,
+        report_id: Uuid,
+        report_number: Option<&str>,
+        employee_id: Option<Uuid>,
+        employee_name: Option<&str>,
+        department_id: Option<Uuid>,
+        audit_date: chrono::NaiveDate,
+        audit_trigger: &str,
     ) -> AtlasResult<ExpenseComplianceAudit>;
     async fn get_audit(&self, id: Uuid) -> AtlasResult<Option<ExpenseComplianceAudit>>;
-    async fn get_audit_by_number(&self, org_id: Uuid, audit_number: &str) -> AtlasResult<Option<ExpenseComplianceAudit>>;
-    async fn list_audits(&self, org_id: Uuid, status: Option<&str>, risk_level: Option<&str>) -> AtlasResult<Vec<ExpenseComplianceAudit>>;
+    async fn get_audit_by_number(
+        &self,
+        org_id: Uuid,
+        audit_number: &str,
+    ) -> AtlasResult<Option<ExpenseComplianceAudit>>;
+    async fn list_audits(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        risk_level: Option<&str>,
+    ) -> AtlasResult<Vec<ExpenseComplianceAudit>>;
     async fn update_audit_results(
-        &self, id: Uuid, total_lines: i32, violations_count: i32, warnings_count: i32,
-        blocks_count: i32, compliance_score: &str, risk_level: &str,
-        total_flagged_amount: &str, total_approved_amount: &str,
-        requires_manager_review: bool, requires_finance_review: bool,
+        &self,
+        id: Uuid,
+        total_lines: i32,
+        violations_count: i32,
+        warnings_count: i32,
+        blocks_count: i32,
+        compliance_score: &str,
+        risk_level: &str,
+        total_flagged_amount: &str,
+        total_approved_amount: &str,
+        requires_manager_review: bool,
+        requires_finance_review: bool,
     ) -> AtlasResult<ExpenseComplianceAudit>;
     async fn update_audit_review(
-        &self, id: Uuid, status: &str, reviewed_by_id: Option<Uuid>, review_notes: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        reviewed_by_id: Option<Uuid>,
+        review_notes: Option<&str>,
     ) -> AtlasResult<ExpenseComplianceAudit>;
     async fn get_latest_audit_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Violations
     async fn create_violation(
-        &self, org_id: Uuid, audit_id: Uuid, report_id: Uuid,
-        report_line_id: Option<Uuid>, policy_rule_id: Option<Uuid>,
-        rule_code: &str, rule_name: Option<&str>, rule_type: &str,
-        severity: &str, violation_description: Option<&str>,
-        expense_amount: Option<&str>, threshold_amount: Option<&str>,
+        &self,
+        org_id: Uuid,
+        audit_id: Uuid,
+        report_id: Uuid,
+        report_line_id: Option<Uuid>,
+        policy_rule_id: Option<Uuid>,
+        rule_code: &str,
+        rule_name: Option<&str>,
+        rule_type: &str,
+        severity: &str,
+        violation_description: Option<&str>,
+        expense_amount: Option<&str>,
+        threshold_amount: Option<&str>,
         excess_amount: Option<&str>,
     ) -> AtlasResult<ExpenseComplianceViolation>;
-    async fn list_violations(&self, audit_id: Uuid) -> AtlasResult<Vec<ExpenseComplianceViolation>>;
-    async fn get_violation_by_id(&self, id: Uuid) -> AtlasResult<Option<ExpenseComplianceViolation>>;
+    async fn list_violations(&self, audit_id: Uuid)
+        -> AtlasResult<Vec<ExpenseComplianceViolation>>;
+    async fn get_violation_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<ExpenseComplianceViolation>>;
     async fn update_violation_resolution(
-        &self, id: Uuid, resolution_status: &str, justification: Option<&str>,
-        resolved_by_id: Option<Uuid>, resolution_date: Option<chrono::NaiveDate>,
+        &self,
+        id: Uuid,
+        resolution_status: &str,
+        justification: Option<&str>,
+        resolved_by_id: Option<Uuid>,
+        resolution_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ExpenseComplianceViolation>;
-    async fn list_open_violations(&self, org_id: Uuid) -> AtlasResult<Vec<ExpenseComplianceViolation>>;
+    async fn list_open_violations(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<ExpenseComplianceViolation>>;
 
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<ExpenseComplianceDashboard>;
@@ -230,7 +296,7 @@ pub struct PostgresExpensePolicyComplianceRepository {
 }
 
 impl PostgresExpensePolicyComplianceRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -243,12 +309,24 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
     // ========================================================================
 
     async fn create_rule(
-        &self, org_id: Uuid, rule_code: &str, name: &str, description: Option<&str>,
-        rule_type: &str, expense_category: &str, severity: &str, evaluation_scope: &str,
-        threshold_amount: Option<&str>, maximum_amount: Option<&str>,
-        threshold_days: i32, requires_receipt: bool, requires_justification: bool,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
-        applies_to_department: Option<&str>, applies_to_cost_center: Option<&str>,
+        &self,
+        org_id: Uuid,
+        rule_code: &str,
+        name: &str,
+        description: Option<&str>,
+        rule_type: &str,
+        expense_category: &str,
+        severity: &str,
+        evaluation_scope: &str,
+        threshold_amount: Option<&str>,
+        maximum_amount: Option<&str>,
+        threshold_days: i32,
+        requires_receipt: bool,
+        requires_justification: bool,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
+        applies_to_department: Option<&str>,
+        applies_to_cost_center: Option<&str>,
         created_by_id: Option<Uuid>,
     ) -> AtlasResult<ExpensePolicyRule> {
         let sql = format!(
@@ -262,36 +340,63 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
             {RULE_RETURNING}"
         );
         let row = sqlx::query(&sql)
-        .bind(org_id).bind(rule_code).bind(name).bind(description)
-        .bind(rule_type).bind(expense_category).bind(severity)
-        .bind(evaluation_scope).bind(threshold_amount).bind(maximum_amount)
-        .bind(threshold_days).bind(requires_receipt).bind(requires_justification)
-        .bind(effective_from).bind(effective_to).bind(applies_to_department)
-        .bind(applies_to_cost_center).bind(created_by_id)
-        .fetch_one(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(org_id)
+            .bind(rule_code)
+            .bind(name)
+            .bind(description)
+            .bind(rule_type)
+            .bind(expense_category)
+            .bind(severity)
+            .bind(evaluation_scope)
+            .bind(threshold_amount)
+            .bind(maximum_amount)
+            .bind(threshold_days)
+            .bind(requires_receipt)
+            .bind(requires_justification)
+            .bind(effective_from)
+            .bind(effective_to)
+            .bind(applies_to_department)
+            .bind(applies_to_cost_center)
+            .bind(created_by_id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_rule(&row))
     }
 
-    async fn get_rule(&self, org_id: Uuid, rule_code: &str) -> AtlasResult<Option<ExpensePolicyRule>> {
-        let sql = format!("SELECT {RULE_COLS} FROM fin_expense_policy_rules WHERE org_id=$1 AND rule_code=$2");
+    async fn get_rule(
+        &self,
+        org_id: Uuid,
+        rule_code: &str,
+    ) -> AtlasResult<Option<ExpensePolicyRule>> {
+        let sql = format!(
+            "SELECT {RULE_COLS} FROM fin_expense_policy_rules WHERE org_id=$1 AND rule_code=$2"
+        );
         let row = sqlx::query(&sql)
-        .bind(org_id).bind(rule_code)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(org_id)
+            .bind(rule_code)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_rule(&r)))
     }
 
     async fn get_rule_by_id(&self, id: Uuid) -> AtlasResult<Option<ExpensePolicyRule>> {
         let sql = format!("SELECT {RULE_COLS} FROM fin_expense_policy_rules WHERE id=$1");
         let row = sqlx::query(&sql)
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_rule(&r)))
     }
 
-    async fn list_rules(&self, org_id: Uuid, status: Option<&str>, rule_type: Option<&str>) -> AtlasResult<Vec<ExpensePolicyRule>> {
+    async fn list_rules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        rule_type: Option<&str>,
+    ) -> AtlasResult<Vec<ExpensePolicyRule>> {
         let sql = format!(
             "SELECT {RULE_COLS} FROM fin_expense_policy_rules \
             WHERE org_id=$1 AND ($2::text IS NULL OR status=$2) \
@@ -299,9 +404,12 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
             ORDER BY rule_code"
         );
         let rows = sqlx::query(&sql)
-        .bind(org_id).bind(status).bind(rule_type)
-        .fetch_all(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(org_id)
+            .bind(status)
+            .bind(rule_type)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_rule).collect())
     }
 
@@ -311,19 +419,21 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
             updated_at=now() WHERE id=$1 {RULE_RETURNING}"
         );
         let row = sqlx::query(&sql)
-        .bind(id).bind(status)
-        .fetch_one(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(id)
+            .bind(status)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_rule(&row))
     }
 
     async fn delete_rule(&self, org_id: Uuid, rule_code: &str) -> AtlasResult<()> {
-        sqlx::query(
-            "DELETE FROM fin_expense_policy_rules WHERE org_id=$1 AND rule_code=$2"
-        )
-        .bind(org_id).bind(rule_code)
-        .execute(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query("DELETE FROM fin_expense_policy_rules WHERE org_id=$1 AND rule_code=$2")
+            .bind(org_id)
+            .bind(rule_code)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -332,10 +442,16 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
     // ========================================================================
 
     async fn create_audit(
-        &self, org_id: Uuid, audit_number: &str, report_id: Uuid,
-        report_number: Option<&str>, employee_id: Option<Uuid>,
-        employee_name: Option<&str>, department_id: Option<Uuid>,
-        audit_date: chrono::NaiveDate, audit_trigger: &str,
+        &self,
+        org_id: Uuid,
+        audit_number: &str,
+        report_id: Uuid,
+        report_number: Option<&str>,
+        employee_id: Option<Uuid>,
+        employee_name: Option<&str>,
+        department_id: Option<Uuid>,
+        audit_date: chrono::NaiveDate,
+        audit_trigger: &str,
     ) -> AtlasResult<ExpenseComplianceAudit> {
         let sql = format!(
             "INSERT INTO fin_expense_compliance_audits \
@@ -346,33 +462,52 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
             {AUDIT_RETURNING}"
         );
         let row = sqlx::query(&sql)
-        .bind(org_id).bind(audit_number).bind(report_id).bind(report_number)
-        .bind(employee_id).bind(employee_name).bind(department_id)
-        .bind(audit_date).bind(audit_trigger)
-        .fetch_one(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(org_id)
+            .bind(audit_number)
+            .bind(report_id)
+            .bind(report_number)
+            .bind(employee_id)
+            .bind(employee_name)
+            .bind(department_id)
+            .bind(audit_date)
+            .bind(audit_trigger)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_audit(&row))
     }
 
     async fn get_audit(&self, id: Uuid) -> AtlasResult<Option<ExpenseComplianceAudit>> {
         let sql = format!("SELECT {AUDIT_COLS} FROM fin_expense_compliance_audits WHERE id=$1");
         let row = sqlx::query(&sql)
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_audit(&r)))
     }
 
-    async fn get_audit_by_number(&self, org_id: Uuid, audit_number: &str) -> AtlasResult<Option<ExpenseComplianceAudit>> {
+    async fn get_audit_by_number(
+        &self,
+        org_id: Uuid,
+        audit_number: &str,
+    ) -> AtlasResult<Option<ExpenseComplianceAudit>> {
         let sql = format!("SELECT {AUDIT_COLS} FROM fin_expense_compliance_audits WHERE org_id=$1 AND audit_number=$2");
         let row = sqlx::query(&sql)
-        .bind(org_id).bind(audit_number)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(org_id)
+            .bind(audit_number)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_audit(&r)))
     }
 
-    async fn list_audits(&self, org_id: Uuid, status: Option<&str>, risk_level: Option<&str>) -> AtlasResult<Vec<ExpenseComplianceAudit>> {
+    async fn list_audits(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        risk_level: Option<&str>,
+    ) -> AtlasResult<Vec<ExpenseComplianceAudit>> {
         let sql = format!(
             "SELECT {AUDIT_COLS} FROM fin_expense_compliance_audits \
             WHERE org_id=$1 AND ($2::text IS NULL OR status=$2) \
@@ -380,17 +515,28 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
             ORDER BY audit_date DESC"
         );
         let rows = sqlx::query(&sql)
-        .bind(org_id).bind(status).bind(risk_level)
-        .fetch_all(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(org_id)
+            .bind(status)
+            .bind(risk_level)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_audit).collect())
     }
 
     async fn update_audit_results(
-        &self, id: Uuid, total_lines: i32, violations_count: i32, warnings_count: i32,
-        blocks_count: i32, compliance_score: &str, risk_level: &str,
-        total_flagged_amount: &str, total_approved_amount: &str,
-        requires_manager_review: bool, requires_finance_review: bool,
+        &self,
+        id: Uuid,
+        total_lines: i32,
+        violations_count: i32,
+        warnings_count: i32,
+        blocks_count: i32,
+        compliance_score: &str,
+        risk_level: &str,
+        total_flagged_amount: &str,
+        total_approved_amount: &str,
+        requires_manager_review: bool,
+        requires_finance_review: bool,
     ) -> AtlasResult<ExpenseComplianceAudit> {
         let sql = format!(
             "UPDATE fin_expense_compliance_audits \
@@ -402,17 +548,29 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
             WHERE id=$1 {AUDIT_RETURNING}"
         );
         let row = sqlx::query(&sql)
-        .bind(id).bind(total_lines).bind(violations_count).bind(warnings_count)
-        .bind(blocks_count).bind(compliance_score).bind(risk_level)
-        .bind(total_flagged_amount).bind(total_approved_amount)
-        .bind(requires_manager_review).bind(requires_finance_review)
-        .fetch_one(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(id)
+            .bind(total_lines)
+            .bind(violations_count)
+            .bind(warnings_count)
+            .bind(blocks_count)
+            .bind(compliance_score)
+            .bind(risk_level)
+            .bind(total_flagged_amount)
+            .bind(total_approved_amount)
+            .bind(requires_manager_review)
+            .bind(requires_finance_review)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_audit(&row))
     }
 
     async fn update_audit_review(
-        &self, id: Uuid, status: &str, reviewed_by_id: Option<Uuid>, review_notes: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        reviewed_by_id: Option<Uuid>,
+        review_notes: Option<&str>,
     ) -> AtlasResult<ExpenseComplianceAudit> {
         let sql = format!(
             "UPDATE fin_expense_compliance_audits \
@@ -421,18 +579,24 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
             WHERE id=$1 {AUDIT_RETURNING}"
         );
         let row = sqlx::query(&sql)
-        .bind(id).bind(status).bind(reviewed_by_id).bind(review_notes)
-        .fetch_one(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(id)
+            .bind(status)
+            .bind(reviewed_by_id)
+            .bind(review_notes)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_audit(&row))
     }
 
     async fn get_latest_audit_number(&self, org_id: Uuid) -> AtlasResult<i32> {
         let row = sqlx::query(
             "SELECT COALESCE(MAX(CAST(SUBSTRING(audit_number FROM 5) AS INTEGER)), 0) as max_num \
-            FROM fin_expense_compliance_audits WHERE org_id=$1"
+            FROM fin_expense_compliance_audits WHERE org_id=$1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         let max: i32 = row.try_get("max_num").unwrap_or(0);
         Ok(max)
@@ -443,11 +607,19 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
     // ========================================================================
 
     async fn create_violation(
-        &self, org_id: Uuid, audit_id: Uuid, report_id: Uuid,
-        report_line_id: Option<Uuid>, policy_rule_id: Option<Uuid>,
-        rule_code: &str, rule_name: Option<&str>, rule_type: &str,
-        severity: &str, violation_description: Option<&str>,
-        expense_amount: Option<&str>, threshold_amount: Option<&str>,
+        &self,
+        org_id: Uuid,
+        audit_id: Uuid,
+        report_id: Uuid,
+        report_line_id: Option<Uuid>,
+        policy_rule_id: Option<Uuid>,
+        rule_code: &str,
+        rule_name: Option<&str>,
+        rule_type: &str,
+        severity: &str,
+        violation_description: Option<&str>,
+        expense_amount: Option<&str>,
+        threshold_amount: Option<&str>,
         excess_amount: Option<&str>,
     ) -> AtlasResult<ExpenseComplianceViolation> {
         let sql = format!(
@@ -459,35 +631,59 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
             {VIOLATION_RETURNING}"
         );
         let row = sqlx::query(&sql)
-        .bind(org_id).bind(audit_id).bind(report_id).bind(report_line_id)
-        .bind(policy_rule_id).bind(rule_code).bind(rule_name)
-        .bind(rule_type).bind(severity).bind(violation_description)
-        .bind(expense_amount).bind(threshold_amount).bind(excess_amount)
-        .fetch_one(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(org_id)
+            .bind(audit_id)
+            .bind(report_id)
+            .bind(report_line_id)
+            .bind(policy_rule_id)
+            .bind(rule_code)
+            .bind(rule_name)
+            .bind(rule_type)
+            .bind(severity)
+            .bind(violation_description)
+            .bind(expense_amount)
+            .bind(threshold_amount)
+            .bind(excess_amount)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_violation(&row))
     }
 
-    async fn list_violations(&self, audit_id: Uuid) -> AtlasResult<Vec<ExpenseComplianceViolation>> {
+    async fn list_violations(
+        &self,
+        audit_id: Uuid,
+    ) -> AtlasResult<Vec<ExpenseComplianceViolation>> {
         let sql = format!("SELECT {VIOLATION_COLS} FROM fin_expense_compliance_violations WHERE audit_id=$1 ORDER BY created_at");
         let rows = sqlx::query(&sql)
-        .bind(audit_id).fetch_all(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(audit_id)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_violation).collect())
     }
 
-    async fn get_violation_by_id(&self, id: Uuid) -> AtlasResult<Option<ExpenseComplianceViolation>> {
-        let sql = format!("SELECT {VIOLATION_COLS} FROM fin_expense_compliance_violations WHERE id=$1");
+    async fn get_violation_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<ExpenseComplianceViolation>> {
+        let sql =
+            format!("SELECT {VIOLATION_COLS} FROM fin_expense_compliance_violations WHERE id=$1");
         let row = sqlx::query(&sql)
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_violation(&r)))
     }
 
     async fn update_violation_resolution(
-        &self, id: Uuid, resolution_status: &str, justification: Option<&str>,
-        resolved_by_id: Option<Uuid>, resolution_date: Option<chrono::NaiveDate>,
+        &self,
+        id: Uuid,
+        resolution_status: &str,
+        justification: Option<&str>,
+        resolved_by_id: Option<Uuid>,
+        resolution_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ExpenseComplianceViolation> {
         let sql = format!(
             "UPDATE fin_expense_compliance_violations \
@@ -497,18 +693,27 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
             WHERE id=$1 {VIOLATION_RETURNING}"
         );
         let row = sqlx::query(&sql)
-        .bind(id).bind(resolution_status).bind(justification)
-        .bind(resolved_by_id).bind(resolution_date)
-        .fetch_one(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(id)
+            .bind(resolution_status)
+            .bind(justification)
+            .bind(resolved_by_id)
+            .bind(resolution_date)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_violation(&row))
     }
 
-    async fn list_open_violations(&self, org_id: Uuid) -> AtlasResult<Vec<ExpenseComplianceViolation>> {
+    async fn list_open_violations(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<ExpenseComplianceViolation>> {
         let sql = format!("SELECT {VIOLATION_COLS} FROM fin_expense_compliance_violations WHERE org_id=$1 AND resolution_status='open' ORDER BY created_at DESC");
         let rows = sqlx::query(&sql)
-        .bind(org_id).fetch_all(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+            .bind(org_id)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_violation).collect())
     }
 
@@ -553,8 +758,12 @@ impl ExpensePolicyComplianceRepository for PostgresExpensePolicyComplianceReposi
         let violations_period: i64 = row.try_get("violations_period").unwrap_or(0);
         let warnings_period: i64 = row.try_get("warnings_period").unwrap_or(0);
         let blocks_period: i64 = row.try_get("blocks_period").unwrap_or(0);
-        let avg_score: String = row.try_get("avg_score").unwrap_or_else(|_| "100".to_string());
-        let flagged_amt: String = row.try_get("flagged_amt").unwrap_or_else(|_| "0".to_string());
+        let avg_score: String = row
+            .try_get("avg_score")
+            .unwrap_or_else(|_| "100".to_string());
+        let flagged_amt: String = row
+            .try_get("flagged_amt")
+            .unwrap_or_else(|_| "0".to_string());
         let high_risk: i64 = row.try_get("high_risk").unwrap_or(0);
         let open_violations: i64 = row.try_get("open_violations").unwrap_or(0);
 

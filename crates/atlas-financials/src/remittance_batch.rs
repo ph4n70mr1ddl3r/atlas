@@ -16,13 +16,10 @@ pub struct RemittanceClearanceResult {
 
 impl RemittanceBatchService {
     /// Creates a new Remittance Batch.
-    /// This is an Oracle Fusion Receivables feature that groups receipts 
+    /// This is an Oracle Fusion Receivables feature that groups receipts
     /// together to remit them to a bank for clearing.
     #[must_use]
-    pub fn create_batch(
-        bank_account_id: &str,
-        receipt_amounts: &[f64],
-    ) -> RemittanceBatchResult {
+    pub fn create_batch(bank_account_id: &str, receipt_amounts: &[f64]) -> RemittanceBatchResult {
         if bank_account_id.is_empty() {
             return RemittanceBatchResult {
                 batch_id: "".to_string(),

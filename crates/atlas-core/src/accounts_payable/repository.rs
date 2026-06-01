@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for AP invoices, lines, distributions, holds, and payments.
 
-use atlas_shared::{
-    ApInvoice, ApInvoiceLine, ApInvoiceDistribution, ApInvoiceHold, ApPayment,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    ApInvoice, ApInvoiceDistribution, ApInvoiceHold, ApInvoiceLine, ApPayment, AtlasError,
+    AtlasResult,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -46,8 +46,18 @@ pub trait AccountsPayableRepository: Send + Sync {
     ) -> AtlasResult<ApInvoice>;
 
     async fn get_invoice(&self, id: Uuid) -> AtlasResult<Option<ApInvoice>>;
-    async fn get_invoice_by_number(&self, org_id: Uuid, invoice_number: &str) -> AtlasResult<Option<ApInvoice>>;
-    async fn list_invoices(&self, org_id: Uuid, supplier_id: Option<Uuid>, status: Option<&str>, invoice_type: Option<&str>) -> AtlasResult<Vec<ApInvoice>>;
+    async fn get_invoice_by_number(
+        &self,
+        org_id: Uuid,
+        invoice_number: &str,
+    ) -> AtlasResult<Option<ApInvoice>>;
+    async fn list_invoices(
+        &self,
+        org_id: Uuid,
+        supplier_id: Option<Uuid>,
+        status: Option<&str>,
+        invoice_type: Option<&str>,
+    ) -> AtlasResult<Vec<ApInvoice>>;
     async fn update_invoice_status(
         &self,
         id: Uuid,
@@ -58,7 +68,13 @@ pub trait AccountsPayableRepository: Send + Sync {
         cancelled_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<ApInvoice>;
     async fn update_invoice_paid(&self, id: Uuid, amount_paid: &str) -> AtlasResult<ApInvoice>;
-    async fn update_invoice_amounts(&self, id: Uuid, invoice_amount: &str, tax_amount: &str, total_amount: &str) -> AtlasResult<()>;
+    async fn update_invoice_amounts(
+        &self,
+        id: Uuid,
+        invoice_amount: &str,
+        tax_amount: &str,
+        total_amount: &str,
+    ) -> AtlasResult<()>;
 
     // Invoice Lines
     async fn create_line(
@@ -108,7 +124,8 @@ pub trait AccountsPayableRepository: Send + Sync {
         accounting_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApInvoiceDistribution>;
-    async fn list_distributions(&self, invoice_id: Uuid) -> AtlasResult<Vec<ApInvoiceDistribution>>;
+    async fn list_distributions(&self, invoice_id: Uuid)
+        -> AtlasResult<Vec<ApInvoiceDistribution>>;
 
     // Holds
     async fn create_hold(
@@ -149,7 +166,12 @@ pub trait AccountsPayableRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ApPayment>;
     async fn get_payment(&self, id: Uuid) -> AtlasResult<Option<ApPayment>>;
-    async fn list_payments(&self, org_id: Uuid, supplier_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<ApPayment>>;
+    async fn list_payments(
+        &self,
+        org_id: Uuid,
+        supplier_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ApPayment>>;
     async fn update_payment_status(
         &self,
         id: Uuid,
@@ -165,7 +187,7 @@ pub struct PostgresAccountsPayableRepository {
 }
 
 impl PostgresAccountsPayableRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -408,14 +430,31 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(invoice_number).bind(invoice_date).bind(invoice_type).bind(description)
-        .bind(supplier_id).bind(supplier_number).bind(supplier_name).bind(supplier_site)
-        .bind(invoice_currency_code).bind(payment_currency_code)
-        .bind(exchange_rate).bind(exchange_rate_type).bind(exchange_date)
-        .bind(invoice_amount).bind(tax_amount).bind(total_amount)
-        .bind(payment_terms).bind(payment_method)
-        .bind(payment_due_date).bind(discount_date).bind(gl_date)
-        .bind(po_number).bind(receipt_number).bind(source)
+        .bind(org_id)
+        .bind(invoice_number)
+        .bind(invoice_date)
+        .bind(invoice_type)
+        .bind(description)
+        .bind(supplier_id)
+        .bind(supplier_number)
+        .bind(supplier_name)
+        .bind(supplier_site)
+        .bind(invoice_currency_code)
+        .bind(payment_currency_code)
+        .bind(exchange_rate)
+        .bind(exchange_rate_type)
+        .bind(exchange_date)
+        .bind(invoice_amount)
+        .bind(tax_amount)
+        .bind(total_amount)
+        .bind(payment_terms)
+        .bind(payment_method)
+        .bind(payment_due_date)
+        .bind(discount_date)
+        .bind(gl_date)
+        .bind(po_number)
+        .bind(receipt_number)
+        .bind(source)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -425,28 +464,37 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
     }
 
     async fn get_invoice(&self, id: Uuid) -> AtlasResult<Option<ApInvoice>> {
+        let row = sqlx::query("SELECT * FROM _atlas.ap_invoices WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        Ok(row.map(|r| self.row_to_invoice(&r)))
+    }
+
+    async fn get_invoice_by_number(
+        &self,
+        org_id: Uuid,
+        invoice_number: &str,
+    ) -> AtlasResult<Option<ApInvoice>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.ap_invoices WHERE id = $1"
+            "SELECT * FROM _atlas.ap_invoices WHERE organization_id = $1 AND invoice_number = $2",
         )
-        .bind(id)
+        .bind(org_id)
+        .bind(invoice_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_invoice(&r)))
     }
 
-    async fn get_invoice_by_number(&self, org_id: Uuid, invoice_number: &str) -> AtlasResult<Option<ApInvoice>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.ap_invoices WHERE organization_id = $1 AND invoice_number = $2"
-        )
-        .bind(org_id).bind(invoice_number)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(row.map(|r| self.row_to_invoice(&r)))
-    }
-
-    async fn list_invoices(&self, org_id: Uuid, supplier_id: Option<Uuid>, status: Option<&str>, invoice_type: Option<&str>) -> AtlasResult<Vec<ApInvoice>> {
+    async fn list_invoices(
+        &self,
+        org_id: Uuid,
+        supplier_id: Option<Uuid>,
+        status: Option<&str>,
+        invoice_type: Option<&str>,
+    ) -> AtlasResult<Vec<ApInvoice>> {
         let rows = match (supplier_id, status, invoice_type) {
             (Some(sid), Some(s), Some(t)) => sqlx::query(
                 "SELECT * FROM _atlas.ap_invoices WHERE organization_id = $1 AND supplier_id = $2 AND status = $3 AND invoice_type = $4 ORDER BY created_at DESC"
@@ -497,8 +545,12 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by).bind(cancelled_reason)
-        .bind(cancelled_by).bind(cancelled_at)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(cancelled_reason)
+        .bind(cancelled_by)
+        .bind(cancelled_at)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -516,14 +568,21 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(amount_paid)
+        .bind(id)
+        .bind(amount_paid)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_invoice(&row))
     }
 
-    async fn update_invoice_amounts(&self, id: Uuid, invoice_amount: &str, tax_amount: &str, total_amount: &str) -> AtlasResult<()> {
+    async fn update_invoice_amounts(
+        &self,
+        id: Uuid,
+        invoice_amount: &str,
+        tax_amount: &str,
+        total_amount: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"
             UPDATE _atlas.ap_invoices
@@ -533,7 +592,10 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(invoice_amount).bind(tax_amount).bind(total_amount)
+        .bind(id)
+        .bind(invoice_amount)
+        .bind(tax_amount)
+        .bind(total_amount)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -573,10 +635,21 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(invoice_id).bind(line_number).bind(line_type).bind(description)
-        .bind(amount).bind(unit_price).bind(quantity_invoiced).bind(unit_of_measure)
-        .bind(po_line_id).bind(po_line_number).bind(product_code)
-        .bind(tax_code).bind(tax_amount).bind(created_by)
+        .bind(org_id)
+        .bind(invoice_id)
+        .bind(line_number)
+        .bind(line_type)
+        .bind(description)
+        .bind(amount)
+        .bind(unit_price)
+        .bind(quantity_invoiced)
+        .bind(unit_of_measure)
+        .bind(po_line_id)
+        .bind(po_line_number)
+        .bind(product_code)
+        .bind(tax_code)
+        .bind(tax_amount)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -585,7 +658,7 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
 
     async fn list_lines(&self, invoice_id: Uuid) -> AtlasResult<Vec<ApInvoiceLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.ap_invoice_lines WHERE invoice_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.ap_invoice_lines WHERE invoice_id = $1 ORDER BY line_number",
         )
         .bind(invoice_id)
         .fetch_all(&self.pool)
@@ -650,21 +723,38 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(invoice_id).bind(invoice_line_id)
-        .bind(distribution_line_number).bind(distribution_type)
-        .bind(account_combination).bind(description).bind(amount)
-        .bind(base_amount).bind(currency_code).bind(exchange_rate)
-        .bind(gl_account).bind(cost_center).bind(department)
-        .bind(project_id).bind(task_id).bind(expenditure_type)
-        .bind(tax_code).bind(tax_recoverable).bind(tax_recoverable_amount)
-        .bind(accounting_date).bind(created_by)
+        .bind(org_id)
+        .bind(invoice_id)
+        .bind(invoice_line_id)
+        .bind(distribution_line_number)
+        .bind(distribution_type)
+        .bind(account_combination)
+        .bind(description)
+        .bind(amount)
+        .bind(base_amount)
+        .bind(currency_code)
+        .bind(exchange_rate)
+        .bind(gl_account)
+        .bind(cost_center)
+        .bind(department)
+        .bind(project_id)
+        .bind(task_id)
+        .bind(expenditure_type)
+        .bind(tax_code)
+        .bind(tax_recoverable)
+        .bind(tax_recoverable_amount)
+        .bind(accounting_date)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_distribution(&row))
     }
 
-    async fn list_distributions(&self, invoice_id: Uuid) -> AtlasResult<Vec<ApInvoiceDistribution>> {
+    async fn list_distributions(
+        &self,
+        invoice_id: Uuid,
+    ) -> AtlasResult<Vec<ApInvoiceDistribution>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.ap_invoice_distributions WHERE invoice_id = $1 ORDER BY distribution_line_number"
         )
@@ -695,7 +785,11 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(invoice_id).bind(hold_type).bind(hold_reason).bind(created_by)
+        .bind(org_id)
+        .bind(invoice_id)
+        .bind(hold_type)
+        .bind(hold_reason)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -703,19 +797,17 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
     }
 
     async fn get_hold(&self, id: Uuid) -> AtlasResult<Option<ApInvoiceHold>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.ap_invoice_holds WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.ap_invoice_holds WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_hold(&r)))
     }
 
     async fn list_holds(&self, invoice_id: Uuid) -> AtlasResult<Vec<ApInvoiceHold>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.ap_invoice_holds WHERE invoice_id = $1 ORDER BY created_at DESC"
+            "SELECT * FROM _atlas.ap_invoice_holds WHERE invoice_id = $1 ORDER BY created_at DESC",
         )
         .bind(invoice_id)
         .fetch_all(&self.pool)
@@ -751,7 +843,10 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(released_by).bind(release_reason)
+        .bind(id)
+        .bind(status)
+        .bind(released_by)
+        .bind(release_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -792,11 +887,20 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(payment_number).bind(payment_date).bind(payment_method)
-        .bind(payment_currency_code).bind(payment_amount)
-        .bind(bank_account_id).bind(bank_account_name).bind(payment_document)
-        .bind(supplier_id).bind(supplier_number).bind(supplier_name)
-        .bind(invoice_ids).bind(created_by)
+        .bind(org_id)
+        .bind(payment_number)
+        .bind(payment_date)
+        .bind(payment_method)
+        .bind(payment_currency_code)
+        .bind(payment_amount)
+        .bind(bank_account_id)
+        .bind(bank_account_name)
+        .bind(payment_document)
+        .bind(supplier_id)
+        .bind(supplier_number)
+        .bind(supplier_name)
+        .bind(invoice_ids)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -804,17 +908,20 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
     }
 
     async fn get_payment(&self, id: Uuid) -> AtlasResult<Option<ApPayment>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.ap_payments WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.ap_payments WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_payment(&r)))
     }
 
-    async fn list_payments(&self, org_id: Uuid, supplier_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<ApPayment>> {
+    async fn list_payments(
+        &self,
+        org_id: Uuid,
+        supplier_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ApPayment>> {
         let rows = match (supplier_id, status) {
             (Some(sid), Some(s)) => sqlx::query(
                 "SELECT * FROM _atlas.ap_payments WHERE organization_id = $1 AND supplier_id = $2 AND status = $3 ORDER BY created_at DESC"
@@ -850,7 +957,10 @@ impl AccountsPayableRepository for PostgresAccountsPayableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(confirmed_by).bind(cancelled_reason)
+        .bind(id)
+        .bind(status)
+        .bind(confirmed_by)
+        .bind(cancelled_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

@@ -3,13 +3,11 @@
 //! `PostgreSQL` storage for accounting methods, derivation rules,
 //! subledger journal entries, journal lines, SLA events, and GL transfer logs.
 
-use atlas_shared::{
-    AccountingMethod, AccountingDerivationRule,
-    SubledgerJournalEntry, SubledgerJournalLine,
-    SlaEvent, GlTransferLog,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AccountingDerivationRule, AccountingMethod, AtlasError, AtlasResult, GlTransferLog, SlaEvent,
+    SubledgerJournalEntry, SubledgerJournalLine,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -42,9 +40,17 @@ pub trait SubledgerAccountingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingMethod>;
 
-    async fn get_accounting_method(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AccountingMethod>>;
+    async fn get_accounting_method(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<AccountingMethod>>;
     async fn get_accounting_method_by_id(&self, id: Uuid) -> AtlasResult<Option<AccountingMethod>>;
-    async fn list_accounting_methods(&self, org_id: Uuid, application: Option<&str>) -> AtlasResult<Vec<AccountingMethod>>;
+    async fn list_accounting_methods(
+        &self,
+        org_id: Uuid,
+        application: Option<&str>,
+    ) -> AtlasResult<Vec<AccountingMethod>>;
     async fn delete_accounting_method(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // ========================================================================
@@ -72,10 +78,29 @@ pub trait SubledgerAccountingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingDerivationRule>;
 
-    async fn get_derivation_rule(&self, org_id: Uuid, method_id: Uuid, code: &str) -> AtlasResult<Option<AccountingDerivationRule>>;
-    async fn list_derivation_rules(&self, org_id: Uuid, method_id: Uuid) -> AtlasResult<Vec<AccountingDerivationRule>>;
-    async fn list_active_derivation_rules(&self, org_id: Uuid, method_id: Uuid, line_type: &str) -> AtlasResult<Vec<AccountingDerivationRule>>;
-    async fn delete_derivation_rule(&self, org_id: Uuid, method_id: Uuid, code: &str) -> AtlasResult<()>;
+    async fn get_derivation_rule(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<AccountingDerivationRule>>;
+    async fn list_derivation_rules(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+    ) -> AtlasResult<Vec<AccountingDerivationRule>>;
+    async fn list_active_derivation_rules(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+        line_type: &str,
+    ) -> AtlasResult<Vec<AccountingDerivationRule>>;
+    async fn delete_derivation_rule(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<()>;
 
     // ========================================================================
     // Subledger Journal Entries
@@ -110,7 +135,11 @@ pub trait SubledgerAccountingRepository: Send + Sync {
     ) -> AtlasResult<SubledgerJournalEntry>;
 
     async fn get_journal_entry(&self, id: Uuid) -> AtlasResult<Option<SubledgerJournalEntry>>;
-    async fn get_journal_entry_by_number(&self, org_id: Uuid, entry_number: &str) -> AtlasResult<Option<SubledgerJournalEntry>>;
+    async fn get_journal_entry_by_number(
+        &self,
+        org_id: Uuid,
+        entry_number: &str,
+    ) -> AtlasResult<Option<SubledgerJournalEntry>>;
     async fn list_journal_entries(
         &self,
         org_id: Uuid,
@@ -172,7 +201,10 @@ pub trait SubledgerAccountingRepository: Send + Sync {
         tax_amount: Option<&str>,
     ) -> AtlasResult<SubledgerJournalLine>;
 
-    async fn list_journal_lines(&self, journal_entry_id: Uuid) -> AtlasResult<Vec<SubledgerJournalLine>>;
+    async fn list_journal_lines(
+        &self,
+        journal_entry_id: Uuid,
+    ) -> AtlasResult<Vec<SubledgerJournalLine>>;
     async fn delete_journal_line(&self, id: Uuid) -> AtlasResult<()>;
 
     // ========================================================================
@@ -229,7 +261,11 @@ pub trait SubledgerAccountingRepository: Send + Sync {
     ) -> AtlasResult<GlTransferLog>;
 
     async fn get_transfer_log(&self, id: Uuid) -> AtlasResult<Option<GlTransferLog>>;
-    async fn list_transfer_logs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<GlTransferLog>>;
+    async fn list_transfer_logs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<GlTransferLog>>;
 
     // ========================================================================
     // Dashboard
@@ -244,7 +280,7 @@ pub struct PostgresSubledgerAccountingRepository {
 }
 
 impl PostgresSubledgerAccountingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -265,7 +301,10 @@ macro_rules! row_to_method {
             allow_manual_entries: $row.get("allow_manual_entries"),
             apply_rounding: $row.get("apply_rounding"),
             rounding_account_code: $row.get("rounding_account_code"),
-            rounding_threshold: $row.try_get::<f64, _>("rounding_threshold").map(|v| format!("{:.4}", v)).unwrap_or_else(|_| "0.0100".to_string()),
+            rounding_threshold: $row
+                .try_get::<f64, _>("rounding_threshold")
+                .map(|v| format!("{:.4}", v))
+                .unwrap_or_else(|_| "0.0100".to_string()),
             require_balancing: $row.get("require_balancing"),
             intercompany_balancing_account: $row.get("intercompany_balancing_account"),
             effective_from: $row.get("effective_from"),
@@ -298,11 +337,26 @@ macro_rules! row_to_entry {
             entered_currency_code: $row.get("entered_currency_code"),
             currency_conversion_date: $row.get("currency_conversion_date"),
             currency_conversion_type: $row.get("currency_conversion_type"),
-            currency_conversion_rate: $row.try_get::<f64, _>("currency_conversion_rate").ok().map(|v| format!("{:.6}", v)),
-            total_debit: $row.try_get::<f64, _>("total_debit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
-            total_credit: $row.try_get::<f64, _>("total_credit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
-            entered_debit: $row.try_get::<f64, _>("entered_debit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
-            entered_credit: $row.try_get::<f64, _>("entered_credit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
+            currency_conversion_rate: $row
+                .try_get::<f64, _>("currency_conversion_rate")
+                .ok()
+                .map(|v| format!("{:.6}", v)),
+            total_debit: $row
+                .try_get::<f64, _>("total_debit")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
+            total_credit: $row
+                .try_get::<f64, _>("total_credit")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
+            entered_debit: $row
+                .try_get::<f64, _>("entered_debit")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
+            entered_credit: $row
+                .try_get::<f64, _>("entered_credit")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
             status: $row.get("status"),
             error_message: $row.get("error_message"),
             balancing_segment: $row.get("balancing_segment"),
@@ -333,11 +387,20 @@ macro_rules! row_to_line {
             account_code: $row.get("account_code"),
             account_description: $row.get("account_description"),
             derivation_rule_id: $row.get("derivation_rule_id"),
-            entered_amount: $row.try_get::<f64, _>("entered_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
-            accounted_amount: $row.try_get::<f64, _>("accounted_amount").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
+            entered_amount: $row
+                .try_get::<f64, _>("entered_amount")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
+            accounted_amount: $row
+                .try_get::<f64, _>("accounted_amount")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
             currency_code: $row.get("currency_code"),
             conversion_date: $row.get("conversion_date"),
-            conversion_rate: $row.try_get::<f64, _>("conversion_rate").ok().map(|v| format!("{:.6}", v)),
+            conversion_rate: $row
+                .try_get::<f64, _>("conversion_rate")
+                .ok()
+                .map(|v| format!("{:.6}", v)),
             attribute_category: $row.get("attribute_category"),
             attribute1: $row.get("attribute1"),
             attribute2: $row.get("attribute2"),
@@ -350,8 +413,14 @@ macro_rules! row_to_line {
             attribute9: $row.get("attribute9"),
             attribute10: $row.get("attribute10"),
             tax_code: $row.get("tax_code"),
-            tax_rate: $row.try_get::<f64, _>("tax_rate").ok().map(|v| format!("{:.4}", v)),
-            tax_amount: $row.try_get::<f64, _>("tax_amount").ok().map(|v| format!("{:.2}", v)),
+            tax_rate: $row
+                .try_get::<f64, _>("tax_rate")
+                .ok()
+                .map(|v| format!("{:.4}", v)),
+            tax_amount: $row
+                .try_get::<f64, _>("tax_amount")
+                .ok()
+                .map(|v| format!("{:.2}", v)),
             source_line_id: $row.get("source_line_id"),
             source_line_type: $row.get("source_line_type"),
             is_reversal_line: $row.get("is_reversal_line"),
@@ -426,8 +495,14 @@ macro_rules! row_to_transfer {
             status: $row.get("status"),
             error_message: $row.get("error_message"),
             total_entries: $row.get::<Option<i32>, _>("total_entries").unwrap_or(0),
-            total_debit: $row.try_get::<f64, _>("total_debit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
-            total_credit: $row.try_get::<f64, _>("total_credit").map(|v| format!("{:.2}", v)).unwrap_or_else(|_| "0.00".to_string()),
+            total_debit: $row
+                .try_get::<f64, _>("total_debit")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
+            total_credit: $row
+                .try_get::<f64, _>("total_credit")
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|_| "0.00".to_string()),
             included_applications: $row.get("included_applications"),
             transferred_by: $row.get("transferred_by"),
             completed_at: $row.get("completed_at"),
@@ -447,12 +522,22 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn create_accounting_method(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        application: &str, transaction_type: &str, event_class: &str,
-        auto_accounting: bool, allow_manual_entries: bool, apply_rounding: bool,
-        rounding_account_code: Option<&str>, rounding_threshold: &str,
-        require_balancing: bool, intercompany_balancing_account: Option<&str>,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        application: &str,
+        transaction_type: &str,
+        event_class: &str,
+        auto_accounting: bool,
+        allow_manual_entries: bool,
+        apply_rounding: bool,
+        rounding_account_code: Option<&str>,
+        rounding_threshold: &str,
+        require_balancing: bool,
+        intercompany_balancing_account: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingMethod> {
         let row = sqlx::query(
@@ -462,14 +547,25 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
                  rounding_account_code, rounding_threshold, require_balancing,
                  intercompany_balancing_account, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(application).bind(transaction_type).bind(event_class)
-        .bind(auto_accounting).bind(allow_manual_entries).bind(apply_rounding)
-        .bind(rounding_account_code).bind(rounding_threshold.parse::<f64>().unwrap_or(0.01))
-        .bind(require_balancing).bind(intercompany_balancing_account)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(application)
+        .bind(transaction_type)
+        .bind(event_class)
+        .bind(auto_accounting)
+        .bind(allow_manual_entries)
+        .bind(apply_rounding)
+        .bind(rounding_account_code)
+        .bind(rounding_threshold.parse::<f64>().unwrap_or(0.01))
+        .bind(require_balancing)
+        .bind(intercompany_balancing_account)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -477,7 +573,11 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         Ok(row_to_method!(row))
     }
 
-    async fn get_accounting_method(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AccountingMethod>> {
+    async fn get_accounting_method(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<AccountingMethod>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.accounting_methods WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -490,18 +590,20 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
     }
 
     async fn get_accounting_method_by_id(&self, id: Uuid) -> AtlasResult<Option<AccountingMethod>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.accounting_methods WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.accounting_methods WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_method!(r)))
     }
 
-    async fn list_accounting_methods(&self, org_id: Uuid, application: Option<&str>) -> AtlasResult<Vec<AccountingMethod>> {
+    async fn list_accounting_methods(
+        &self,
+        org_id: Uuid,
+        application: Option<&str>,
+    ) -> AtlasResult<Vec<AccountingMethod>> {
         let rows = if let Some(app) = application {
             sqlx::query(
                 "SELECT * FROM _atlas.accounting_methods WHERE organization_id = $1 AND application = $2 AND is_active = true ORDER BY created_at DESC"
@@ -538,13 +640,22 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn create_derivation_rule(
         &self,
-        org_id: Uuid, accounting_method_id: Uuid, code: &str, name: &str,
-        description: Option<&str>, line_type: &str, priority: i32,
-        conditions: serde_json::Value, source_field: Option<&str>,
-        derivation_type: &str, fixed_account_code: Option<&str>,
+        org_id: Uuid,
+        accounting_method_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        line_type: &str,
+        priority: i32,
+        conditions: serde_json::Value,
+        source_field: Option<&str>,
+        derivation_type: &str,
+        fixed_account_code: Option<&str>,
         account_derivation_lookup: serde_json::Value,
-        formula_expression: Option<&str>, sequence: i32,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        formula_expression: Option<&str>,
+        sequence: i32,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingDerivationRule> {
         let row = sqlx::query(
@@ -554,12 +665,25 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
                  fixed_account_code, account_derivation_lookup, formula_expression,
                  sequence, effective_from, effective_to, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(org_id).bind(accounting_method_id).bind(code).bind(name).bind(description)
-        .bind(line_type).bind(priority).bind(&conditions).bind(source_field)
-        .bind(derivation_type).bind(fixed_account_code).bind(&account_derivation_lookup)
-        .bind(formula_expression).bind(sequence).bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(accounting_method_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(line_type)
+        .bind(priority)
+        .bind(&conditions)
+        .bind(source_field)
+        .bind(derivation_type)
+        .bind(fixed_account_code)
+        .bind(&account_derivation_lookup)
+        .bind(formula_expression)
+        .bind(sequence)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -567,7 +691,12 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         Ok(row_to_rule!(row))
     }
 
-    async fn get_derivation_rule(&self, org_id: Uuid, method_id: Uuid, code: &str) -> AtlasResult<Option<AccountingDerivationRule>> {
+    async fn get_derivation_rule(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<AccountingDerivationRule>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.accounting_derivation_rules WHERE organization_id = $1 AND accounting_method_id = $2 AND code = $3 AND is_active = true"
         )
@@ -579,7 +708,11 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         Ok(row.map(|r| row_to_rule!(r)))
     }
 
-    async fn list_derivation_rules(&self, org_id: Uuid, method_id: Uuid) -> AtlasResult<Vec<AccountingDerivationRule>> {
+    async fn list_derivation_rules(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+    ) -> AtlasResult<Vec<AccountingDerivationRule>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.accounting_derivation_rules WHERE organization_id = $1 AND accounting_method_id = $2 AND is_active = true ORDER BY priority ASC, sequence ASC"
         )
@@ -591,16 +724,23 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         Ok(rows.iter().map(|r| row_to_rule!(r)).collect())
     }
 
-    async fn list_active_derivation_rules(&self, org_id: Uuid, method_id: Uuid, line_type: &str) -> AtlasResult<Vec<AccountingDerivationRule>> {
+    async fn list_active_derivation_rules(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+        line_type: &str,
+    ) -> AtlasResult<Vec<AccountingDerivationRule>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.accounting_derivation_rules
             WHERE organization_id = $1 AND accounting_method_id = $2 AND line_type = $3
               AND is_active = true
               AND (effective_from IS NULL OR effective_from <= CURRENT_DATE)
               AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
-            ORDER BY priority ASC, sequence ASC"
+            ORDER BY priority ASC, sequence ASC",
         )
-        .bind(org_id).bind(method_id).bind(line_type)
+        .bind(org_id)
+        .bind(method_id)
+        .bind(line_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -608,7 +748,12 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         Ok(rows.iter().map(|r| row_to_rule!(r)).collect())
     }
 
-    async fn delete_derivation_rule(&self, org_id: Uuid, method_id: Uuid, code: &str) -> AtlasResult<()> {
+    async fn delete_derivation_rule(
+        &self,
+        org_id: Uuid,
+        method_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.accounting_derivation_rules SET is_active = false, updated_at = now() WHERE organization_id = $1 AND accounting_method_id = $2 AND code = $3"
         )
@@ -626,17 +771,28 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
     async fn create_journal_entry(
         &self,
         org_id: Uuid,
-        source_application: &str, source_transaction_type: &str,
-        source_transaction_id: Uuid, source_transaction_number: Option<&str>,
+        source_application: &str,
+        source_transaction_type: &str,
+        source_transaction_id: Uuid,
+        source_transaction_number: Option<&str>,
         accounting_method_id: Option<Uuid>,
-        entry_number: &str, description: Option<&str>, reference_number: Option<&str>,
-        accounting_date: chrono::NaiveDate, period_name: Option<&str>,
-        currency_code: &str, entered_currency_code: &str,
+        entry_number: &str,
+        description: Option<&str>,
+        reference_number: Option<&str>,
+        accounting_date: chrono::NaiveDate,
+        period_name: Option<&str>,
+        currency_code: &str,
+        entered_currency_code: &str,
         currency_conversion_date: Option<chrono::NaiveDate>,
-        currency_conversion_type: Option<&str>, currency_conversion_rate: Option<&str>,
-        total_debit: &str, total_credit: &str,
-        entered_debit: &str, entered_credit: &str,
-        status: &str, balancing_segment: Option<&str>, is_balanced: bool,
+        currency_conversion_type: Option<&str>,
+        currency_conversion_rate: Option<&str>,
+        total_debit: &str,
+        total_credit: &str,
+        entered_debit: &str,
+        entered_credit: &str,
+        status: &str,
+        balancing_segment: Option<&str>,
+        is_balanced: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<SubledgerJournalEntry> {
         let row = sqlx::query(
@@ -653,16 +809,31 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
                  created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
                     $17, $18, $19, $20, $21, $22, $23, 'pending', false, $24)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(org_id).bind(source_application).bind(source_transaction_type)
-        .bind(source_transaction_id).bind(source_transaction_number).bind(accounting_method_id)
-        .bind(entry_number).bind(description).bind(reference_number)
-        .bind(accounting_date).bind(period_name)
-        .bind(currency_code).bind(entered_currency_code)
-        .bind(currency_conversion_date).bind(currency_conversion_type).bind(currency_conversion_rate.and_then(|v| v.parse::<f64>().ok()))
-        .bind(total_debit.parse::<f64>().unwrap_or(0.0)).bind(total_credit.parse::<f64>().unwrap_or(0.0)).bind(entered_debit.parse::<f64>().unwrap_or(0.0)).bind(entered_credit.parse::<f64>().unwrap_or(0.0))
-        .bind(status).bind(balancing_segment).bind(is_balanced)
+        .bind(org_id)
+        .bind(source_application)
+        .bind(source_transaction_type)
+        .bind(source_transaction_id)
+        .bind(source_transaction_number)
+        .bind(accounting_method_id)
+        .bind(entry_number)
+        .bind(description)
+        .bind(reference_number)
+        .bind(accounting_date)
+        .bind(period_name)
+        .bind(currency_code)
+        .bind(entered_currency_code)
+        .bind(currency_conversion_date)
+        .bind(currency_conversion_type)
+        .bind(currency_conversion_rate.and_then(|v| v.parse::<f64>().ok()))
+        .bind(total_debit.parse::<f64>().unwrap_or(0.0))
+        .bind(total_credit.parse::<f64>().unwrap_or(0.0))
+        .bind(entered_debit.parse::<f64>().unwrap_or(0.0))
+        .bind(entered_credit.parse::<f64>().unwrap_or(0.0))
+        .bind(status)
+        .bind(balancing_segment)
+        .bind(is_balanced)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -672,18 +843,20 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
     }
 
     async fn get_journal_entry(&self, id: Uuid) -> AtlasResult<Option<SubledgerJournalEntry>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.subledger_journal_entries WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.subledger_journal_entries WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_entry!(r)))
     }
 
-    async fn get_journal_entry_by_number(&self, org_id: Uuid, entry_number: &str) -> AtlasResult<Option<SubledgerJournalEntry>> {
+    async fn get_journal_entry_by_number(
+        &self,
+        org_id: Uuid,
+        entry_number: &str,
+    ) -> AtlasResult<Option<SubledgerJournalEntry>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.subledger_journal_entries WHERE organization_id = $1 AND entry_number = $2"
         )
@@ -697,14 +870,15 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn list_journal_entries(
         &self,
-        org_id: Uuid, status: Option<&str>,
+        org_id: Uuid,
+        status: Option<&str>,
         source_application: Option<&str>,
         source_transaction_type: Option<&str>,
         accounting_date_from: Option<chrono::NaiveDate>,
         accounting_date_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Vec<SubledgerJournalEntry>> {
         let mut query = String::from(
-            "SELECT * FROM _atlas.subledger_journal_entries WHERE organization_id = $1"
+            "SELECT * FROM _atlas.subledger_journal_entries WHERE organization_id = $1",
         );
         let mut param_idx = 2;
 
@@ -731,13 +905,24 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         query.push_str(" ORDER BY accounting_date DESC, created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
-        if let Some(s) = status { q = q.bind(s); }
-        if let Some(a) = source_application { q = q.bind(a); }
-        if let Some(t) = source_transaction_type { q = q.bind(t); }
-        if let Some(f) = accounting_date_from { q = q.bind(f); }
-        if let Some(t) = accounting_date_to { q = q.bind(t); }
+        if let Some(s) = status {
+            q = q.bind(s);
+        }
+        if let Some(a) = source_application {
+            q = q.bind(a);
+        }
+        if let Some(t) = source_transaction_type {
+            q = q.bind(t);
+        }
+        if let Some(f) = accounting_date_from {
+            q = q.bind(f);
+        }
+        if let Some(t) = accounting_date_to {
+            q = q.bind(t);
+        }
 
-        let rows = q.fetch_all(&self.pool)
+        let rows = q
+            .fetch_all(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
@@ -746,8 +931,12 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn update_journal_entry_status(
         &self,
-        id: Uuid, status: &str, error_message: Option<&str>,
-        is_balanced: Option<bool>, posted_by: Option<Uuid>, accounted_by: Option<Uuid>,
+        id: Uuid,
+        status: &str,
+        error_message: Option<&str>,
+        is_balanced: Option<bool>,
+        posted_by: Option<Uuid>,
+        accounted_by: Option<Uuid>,
     ) -> AtlasResult<SubledgerJournalEntry> {
         let row = sqlx::query(
             r"UPDATE _atlas.subledger_journal_entries
@@ -755,10 +944,14 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
                 posted_by = COALESCE($4, posted_by), accounted_by = COALESCE($5, accounted_by),
                 updated_at = now()
             WHERE id = $6
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(status).bind(error_message).bind(is_balanced)
-        .bind(posted_by).bind(accounted_by).bind(id)
+        .bind(status)
+        .bind(error_message)
+        .bind(is_balanced)
+        .bind(posted_by)
+        .bind(accounted_by)
+        .bind(id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -768,8 +961,12 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn update_journal_entry_balances(
         &self,
-        id: Uuid, total_debit: &str, total_credit: &str,
-        entered_debit: &str, entered_credit: &str, is_balanced: bool,
+        id: Uuid,
+        total_debit: &str,
+        total_credit: &str,
+        entered_debit: &str,
+        entered_credit: &str,
+        is_balanced: bool,
     ) -> AtlasResult<SubledgerJournalEntry> {
         let row = sqlx::query(
             r"UPDATE _atlas.subledger_journal_entries
@@ -777,10 +974,14 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
                 entered_debit = $3, entered_credit = $4,
                 is_balanced = $5, updated_at = now()
             WHERE id = $6
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(total_debit.parse::<f64>().unwrap_or(0.0)).bind(total_credit.parse::<f64>().unwrap_or(0.0)).bind(entered_debit.parse::<f64>().unwrap_or(0.0)).bind(entered_credit.parse::<f64>().unwrap_or(0.0))
-        .bind(is_balanced).bind(id)
+        .bind(total_debit.parse::<f64>().unwrap_or(0.0))
+        .bind(total_credit.parse::<f64>().unwrap_or(0.0))
+        .bind(entered_debit.parse::<f64>().unwrap_or(0.0))
+        .bind(entered_credit.parse::<f64>().unwrap_or(0.0))
+        .bind(is_balanced)
+        .bind(id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -794,16 +995,29 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn create_journal_line(
         &self,
-        org_id: Uuid, journal_entry_id: Uuid, line_number: i32,
-        line_type: &str, account_code: &str, account_description: Option<&str>,
+        org_id: Uuid,
+        journal_entry_id: Uuid,
+        line_number: i32,
+        line_type: &str,
+        account_code: &str,
+        account_description: Option<&str>,
         derivation_rule_id: Option<Uuid>,
-        entered_amount: &str, accounted_amount: &str,
-        currency_code: &str, conversion_date: Option<chrono::NaiveDate>, conversion_rate: Option<&str>,
+        entered_amount: &str,
+        accounted_amount: &str,
+        currency_code: &str,
+        conversion_date: Option<chrono::NaiveDate>,
+        conversion_rate: Option<&str>,
         attribute_category: Option<&str>,
-        attribute1: Option<&str>, attribute2: Option<&str>, attribute3: Option<&str>,
-        attribute4: Option<&str>, attribute5: Option<&str>,
-        source_line_id: Option<Uuid>, source_line_type: Option<&str>,
-        tax_code: Option<&str>, tax_rate: Option<&str>, tax_amount: Option<&str>,
+        attribute1: Option<&str>,
+        attribute2: Option<&str>,
+        attribute3: Option<&str>,
+        attribute4: Option<&str>,
+        attribute5: Option<&str>,
+        source_line_id: Option<Uuid>,
+        source_line_type: Option<&str>,
+        tax_code: Option<&str>,
+        tax_rate: Option<&str>,
+        tax_amount: Option<&str>,
     ) -> AtlasResult<SubledgerJournalLine> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.subledger_journal_lines
@@ -816,15 +1030,31 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
                  tax_code, tax_rate, tax_amount)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
                     $19, $20, $21, $22, $23)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(org_id).bind(journal_entry_id).bind(line_number).bind(line_type)
-        .bind(account_code).bind(account_description).bind(derivation_rule_id)
-        .bind(entered_amount.parse::<f64>().unwrap_or(0.0)).bind(accounted_amount.parse::<f64>().unwrap_or(0.0))
-        .bind(currency_code).bind(conversion_date).bind(conversion_rate.and_then(|v| v.parse::<f64>().ok()))
-        .bind(attribute_category).bind(attribute1).bind(attribute2).bind(attribute3).bind(attribute4).bind(attribute5)
-        .bind(source_line_id).bind(source_line_type)
-        .bind(tax_code).bind(tax_rate.and_then(|v| v.parse::<f64>().ok())).bind(tax_amount.and_then(|v| v.parse::<f64>().ok()))
+        .bind(org_id)
+        .bind(journal_entry_id)
+        .bind(line_number)
+        .bind(line_type)
+        .bind(account_code)
+        .bind(account_description)
+        .bind(derivation_rule_id)
+        .bind(entered_amount.parse::<f64>().unwrap_or(0.0))
+        .bind(accounted_amount.parse::<f64>().unwrap_or(0.0))
+        .bind(currency_code)
+        .bind(conversion_date)
+        .bind(conversion_rate.and_then(|v| v.parse::<f64>().ok()))
+        .bind(attribute_category)
+        .bind(attribute1)
+        .bind(attribute2)
+        .bind(attribute3)
+        .bind(attribute4)
+        .bind(attribute5)
+        .bind(source_line_id)
+        .bind(source_line_type)
+        .bind(tax_code)
+        .bind(tax_rate.and_then(|v| v.parse::<f64>().ok()))
+        .bind(tax_amount.and_then(|v| v.parse::<f64>().ok()))
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -832,7 +1062,10 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         Ok(row_to_line!(row))
     }
 
-    async fn list_journal_lines(&self, journal_entry_id: Uuid) -> AtlasResult<Vec<SubledgerJournalLine>> {
+    async fn list_journal_lines(
+        &self,
+        journal_entry_id: Uuid,
+    ) -> AtlasResult<Vec<SubledgerJournalLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.subledger_journal_lines WHERE journal_entry_id = $1 ORDER BY line_number ASC"
         )
@@ -845,13 +1078,11 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
     }
 
     async fn delete_journal_line(&self, id: Uuid) -> AtlasResult<()> {
-        sqlx::query(
-            "DELETE FROM _atlas.subledger_journal_lines WHERE id = $1"
-        )
-        .bind(id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query("DELETE FROM _atlas.subledger_journal_lines WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -861,11 +1092,17 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn create_sla_event(
         &self,
-        org_id: Uuid, event_number: &str, event_type: &str,
-        source_application: &str, source_transaction_type: &str,
-        source_transaction_id: Uuid, journal_entry_id: Option<Uuid>,
-        event_date: chrono::NaiveDate, event_status: &str,
-        description: Option<&str>, error_message: Option<&str>,
+        org_id: Uuid,
+        event_number: &str,
+        event_type: &str,
+        source_application: &str,
+        source_transaction_type: &str,
+        source_transaction_id: Uuid,
+        journal_entry_id: Option<Uuid>,
+        event_date: chrono::NaiveDate,
+        event_status: &str,
+        description: Option<&str>,
+        error_message: Option<&str>,
         processed_by: Option<Uuid>,
     ) -> AtlasResult<SlaEvent> {
         let row = sqlx::query(
@@ -875,12 +1112,20 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
                  journal_entry_id, event_date, event_status, description,
                  error_message, processed_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(org_id).bind(event_number).bind(event_type)
-        .bind(source_application).bind(source_transaction_type).bind(source_transaction_id)
-        .bind(journal_entry_id).bind(event_date).bind(event_status)
-        .bind(description).bind(error_message).bind(processed_by)
+        .bind(org_id)
+        .bind(event_number)
+        .bind(event_type)
+        .bind(source_application)
+        .bind(source_transaction_type)
+        .bind(source_transaction_id)
+        .bind(journal_entry_id)
+        .bind(event_date)
+        .bind(event_status)
+        .bind(description)
+        .bind(error_message)
+        .bind(processed_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -890,11 +1135,11 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn list_sla_events(
         &self,
-        org_id: Uuid, source_application: Option<&str>, event_type: Option<&str>,
+        org_id: Uuid,
+        source_application: Option<&str>,
+        event_type: Option<&str>,
     ) -> AtlasResult<Vec<SlaEvent>> {
-        let mut query = String::from(
-            "SELECT * FROM _atlas.sla_events WHERE organization_id = $1"
-        );
+        let mut query = String::from("SELECT * FROM _atlas.sla_events WHERE organization_id = $1");
         let mut param_idx = 2;
 
         if source_application.is_some() {
@@ -908,10 +1153,15 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         query.push_str(" ORDER BY event_date DESC, created_at DESC");
 
         let mut q = sqlx::query(&query).bind(org_id);
-        if let Some(a) = source_application { q = q.bind(a); }
-        if let Some(t) = event_type { q = q.bind(t); }
+        if let Some(a) = source_application {
+            q = q.bind(a);
+        }
+        if let Some(t) = event_type {
+            q = q.bind(t);
+        }
 
-        let rows = q.fetch_all(&self.pool)
+        let rows = q
+            .fetch_all(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
@@ -924,9 +1174,15 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn create_transfer_log(
         &self,
-        org_id: Uuid, transfer_number: &str, from_period: Option<&str>,
-        status: &str, total_entries: i32, total_debit: &str, total_credit: &str,
-        included_applications: serde_json::Value, transferred_by: Option<Uuid>,
+        org_id: Uuid,
+        transfer_number: &str,
+        from_period: Option<&str>,
+        status: &str,
+        total_entries: i32,
+        total_debit: &str,
+        total_credit: &str,
+        included_applications: serde_json::Value,
+        transferred_by: Option<Uuid>,
         entries: serde_json::Value,
     ) -> AtlasResult<GlTransferLog> {
         let row = sqlx::query(
@@ -935,11 +1191,18 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
                  total_entries, total_debit, total_credit,
                  included_applications, transferred_by, entries)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(org_id).bind(transfer_number).bind(from_period).bind(status)
-        .bind(total_entries).bind(total_debit.parse::<f64>().unwrap_or(0.0)).bind(total_credit.parse::<f64>().unwrap_or(0.0))
-        .bind(&included_applications).bind(transferred_by).bind(&entries)
+        .bind(org_id)
+        .bind(transfer_number)
+        .bind(from_period)
+        .bind(status)
+        .bind(total_entries)
+        .bind(total_debit.parse::<f64>().unwrap_or(0.0))
+        .bind(total_credit.parse::<f64>().unwrap_or(0.0))
+        .bind(&included_applications)
+        .bind(transferred_by)
+        .bind(&entries)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -949,16 +1212,21 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
 
     async fn update_transfer_log_status(
         &self,
-        id: Uuid, status: &str, error_message: Option<&str>,
+        id: Uuid,
+        status: &str,
+        error_message: Option<&str>,
         completed_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<GlTransferLog> {
         let row = sqlx::query(
             r"UPDATE _atlas.gl_transfer_log
             SET status = $1, error_message = $2, completed_at = $3, updated_at = now()
             WHERE id = $4
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(status).bind(error_message).bind(completed_at).bind(id)
+        .bind(status)
+        .bind(error_message)
+        .bind(completed_at)
+        .bind(id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -967,18 +1235,20 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
     }
 
     async fn get_transfer_log(&self, id: Uuid) -> AtlasResult<Option<GlTransferLog>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.gl_transfer_log WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.gl_transfer_log WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| row_to_transfer!(r)))
     }
 
-    async fn list_transfer_logs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<GlTransferLog>> {
+    async fn list_transfer_logs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<GlTransferLog>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.gl_transfer_log WHERE organization_id = $1 AND status = $2 ORDER BY transfer_date DESC"
@@ -1014,35 +1284,41 @@ impl SubledgerAccountingRepository for PostgresSubledgerAccountingRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let by_status: serde_json::Value = rows.iter().map(|r| {
-            let status: String = r.get("status");
-            let count: i64 = r.get("count");
-            let debit_str: Option<String> = r.get("total_debit");
-            let credit_str: Option<String> = r.get("total_credit");
-            serde_json::json!({
-                "status": status,
-                "count": count,
-                "total_debit": debit_str.unwrap_or_default(),
-                "total_credit": credit_str.unwrap_or_default(),
+        let by_status: serde_json::Value = rows
+            .iter()
+            .map(|r| {
+                let status: String = r.get("status");
+                let count: i64 = r.get("count");
+                let debit_str: Option<String> = r.get("total_debit");
+                let credit_str: Option<String> = r.get("total_credit");
+                serde_json::json!({
+                    "status": status,
+                    "count": count,
+                    "total_debit": debit_str.unwrap_or_default(),
+                    "total_credit": credit_str.unwrap_or_default(),
+                })
             })
-        }).collect();
+            .collect();
 
         let app_rows = sqlx::query(
             r"SELECT source_application, COUNT(*) as count
             FROM _atlas.subledger_journal_entries
             WHERE organization_id = $1
-            GROUP BY source_application"
+            GROUP BY source_application",
         )
         .bind(org_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let by_app: serde_json::Value = app_rows.iter().map(|r| {
-            let app: String = r.get("source_application");
-            let count: i64 = r.get("count");
-            serde_json::json!({"application": app, "count": count})
-        }).collect();
+        let by_app: serde_json::Value = app_rows
+            .iter()
+            .map(|r| {
+                let app: String = r.get("source_application");
+                let count: i64 = r.get("count");
+                serde_json::json!({"application": app, "count": count})
+            })
+            .collect();
 
         Ok(serde_json::json!({
             "by_status": by_status,

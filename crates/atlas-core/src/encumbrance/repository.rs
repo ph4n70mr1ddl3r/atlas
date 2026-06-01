@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for encumbrance types, entries, lines,
 //! liquidations, and carry-forward processing.
 
-use atlas_shared::{
-    EncumbranceType, EncumbranceEntry, EncumbranceLine,
-    EncumbranceLiquidation, EncumbranceCarryForward,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, EncumbranceCarryForward, EncumbranceEntry, EncumbranceLine,
+    EncumbranceLiquidation, EncumbranceType,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -34,7 +33,11 @@ pub trait EncumbranceRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<EncumbranceType>;
 
-    async fn get_encumbrance_type(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<EncumbranceType>>;
+    async fn get_encumbrance_type(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<EncumbranceType>>;
     async fn get_encumbrance_type_by_id(&self, id: Uuid) -> AtlasResult<Option<EncumbranceType>>;
     async fn list_encumbrance_types(&self, org_id: Uuid) -> AtlasResult<Vec<EncumbranceType>>;
     async fn delete_encumbrance_type(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
@@ -66,7 +69,11 @@ pub trait EncumbranceRepository: Send + Sync {
     ) -> AtlasResult<EncumbranceEntry>;
 
     async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<EncumbranceEntry>>;
-    async fn get_entry_by_number(&self, org_id: Uuid, entry_number: &str) -> AtlasResult<Option<EncumbranceEntry>>;
+    async fn get_entry_by_number(
+        &self,
+        org_id: Uuid,
+        entry_number: &str,
+    ) -> AtlasResult<Option<EncumbranceEntry>>;
     async fn list_entries(
         &self,
         org_id: Uuid,
@@ -192,7 +199,7 @@ pub struct PostgresEncumbranceRepository {
 }
 
 impl PostgresEncumbranceRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -365,9 +372,16 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(category)
-        .bind(allow_manual_entry).bind(default_encumbrance_account_code)
-        .bind(allow_carry_forward).bind(priority).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(category)
+        .bind(allow_manual_entry)
+        .bind(default_encumbrance_account_code)
+        .bind(allow_carry_forward)
+        .bind(priority)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -375,7 +389,11 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         Ok(row_to_encumbrance_type(&row))
     }
 
-    async fn get_encumbrance_type(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<EncumbranceType>> {
+    async fn get_encumbrance_type(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<EncumbranceType>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.encumbrance_types WHERE organization_id = $1 AND code = $2 AND is_enabled = true"
         )
@@ -455,11 +473,24 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(entry_number).bind(encumbrance_type_id).bind(encumbrance_type_code)
-        .bind(source_type).bind(source_id).bind(source_number).bind(description)
-        .bind(encumbrance_date).bind(original_amount).bind(current_amount)
-        .bind(currency_code).bind(status).bind(fiscal_year).bind(period_name)
-        .bind(expiry_date).bind(budget_line_id).bind(created_by)
+        .bind(org_id)
+        .bind(entry_number)
+        .bind(encumbrance_type_id)
+        .bind(encumbrance_type_code)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
+        .bind(description)
+        .bind(encumbrance_date)
+        .bind(original_amount)
+        .bind(current_amount)
+        .bind(currency_code)
+        .bind(status)
+        .bind(fiscal_year)
+        .bind(period_name)
+        .bind(expiry_date)
+        .bind(budget_line_id)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -476,7 +507,11 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
         Ok(row.map(|r| row_to_entry(&r)))
     }
 
-    async fn get_entry_by_number(&self, org_id: Uuid, entry_number: &str) -> AtlasResult<Option<EncumbranceEntry>> {
+    async fn get_entry_by_number(
+        &self,
+        org_id: Uuid,
+        entry_number: &str,
+    ) -> AtlasResult<Option<EncumbranceEntry>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.encumbrance_entries WHERE organization_id = $1 AND entry_number = $2"
         )
@@ -506,7 +541,11 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             ORDER BY encumbrance_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(encumbrance_type_code).bind(source_type).bind(fiscal_year)
+        .bind(org_id)
+        .bind(status)
+        .bind(encumbrance_type_code)
+        .bind(source_type)
+        .bind(fiscal_year)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -530,7 +569,11 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(current_amount).bind(liquidated_amount).bind(adjusted_amount).bind(status)
+        .bind(id)
+        .bind(current_amount)
+        .bind(liquidated_amount)
+        .bind(adjusted_amount)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -599,10 +642,21 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(entry_id).bind(line_number).bind(account_code).bind(account_description)
-        .bind(department_id).bind(department_name).bind(project_id).bind(project_name).bind(cost_center)
-        .bind(original_amount).bind(current_amount).bind(encumbrance_account_code)
-        .bind(source_line_id).bind(created_by)
+        .bind(org_id)
+        .bind(entry_id)
+        .bind(line_number)
+        .bind(account_code)
+        .bind(account_description)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(project_id)
+        .bind(project_name)
+        .bind(cost_center)
+        .bind(original_amount)
+        .bind(current_amount)
+        .bind(encumbrance_account_code)
+        .bind(source_line_id)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -621,7 +675,7 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
 
     async fn list_lines_by_entry(&self, entry_id: Uuid) -> AtlasResult<Vec<EncumbranceLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.encumbrance_lines WHERE entry_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.encumbrance_lines WHERE entry_id = $1 ORDER BY line_number",
         )
         .bind(entry_id)
         .fetch_all(&self.pool)
@@ -645,7 +699,9 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(current_amount).bind(liquidated_amount)
+        .bind(id)
+        .bind(current_amount)
+        .bind(liquidated_amount)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -691,10 +747,18 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(liquidation_number).bind(encumbrance_entry_id)
-        .bind(encumbrance_line_id).bind(liquidation_type).bind(liquidation_amount)
-        .bind(source_type).bind(source_id).bind(source_number).bind(description)
-        .bind(liquidation_date).bind(created_by)
+        .bind(org_id)
+        .bind(liquidation_number)
+        .bind(encumbrance_entry_id)
+        .bind(encumbrance_line_id)
+        .bind(liquidation_type)
+        .bind(liquidation_amount)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
+        .bind(description)
+        .bind(liquidation_date)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -726,7 +790,9 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             ORDER BY liquidation_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(entry_id).bind(status)
+        .bind(org_id)
+        .bind(entry_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -749,7 +815,10 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(reversed_by_id).bind(reversal_reason)
+        .bind(id)
+        .bind(status)
+        .bind(reversed_by_id)
+        .bind(reversal_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -778,8 +847,12 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(batch_number).bind(from_fiscal_year).bind(to_fiscal_year)
-        .bind(description).bind(created_by)
+        .bind(org_id)
+        .bind(batch_number)
+        .bind(from_fiscal_year)
+        .bind(to_fiscal_year)
+        .bind(description)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -826,7 +899,11 @@ impl EncumbranceRepository for PostgresEncumbranceRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(entry_count).bind(total_amount).bind(processed_by)
+        .bind(id)
+        .bind(status)
+        .bind(entry_count)
+        .bind(total_amount)
+        .bind(processed_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;

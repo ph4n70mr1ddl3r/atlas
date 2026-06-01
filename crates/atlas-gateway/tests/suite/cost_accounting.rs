@@ -12,11 +12,11 @@
 //! - Cost Accounting Dashboard
 //! - Validation edge cases and error handling
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_cost_accounting_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -30,7 +30,12 @@ async fn setup_cost_accounting_test() -> (std::sync::Arc<atlas_gateway::AppState
 // Helper functions
 // ============================================================================
 
-async fn create_test_cost_book(app: &axum::Router, code: &str, name: &str, method: &str) -> serde_json::Value {
+async fn create_test_cost_book(
+    app: &axum::Router,
+    code: &str,
+    name: &str,
+    method: &str,
+) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let resp = app
         .clone()
@@ -56,9 +61,15 @@ async fn create_test_cost_book(app: &axum::Router, code: &str, name: &str, metho
         .await
         .unwrap();
     let status = resp.status();
-    let b = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for cost book but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for cost book but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     serde_json::from_slice(&b).unwrap()
 }
@@ -94,9 +105,15 @@ async fn create_test_cost_element(
         .await
         .unwrap();
     let status = resp.status();
-    let b = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for cost element but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for cost element but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     serde_json::from_slice(&b).unwrap()
 }
@@ -133,9 +150,15 @@ async fn create_test_standard_cost(
         .await
         .unwrap();
     let status = resp.status();
-    let b = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for standard cost but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for standard cost but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     serde_json::from_slice(&b).unwrap()
 }
@@ -170,9 +193,15 @@ async fn create_test_adjustment(
         .await
         .unwrap();
     let status = resp.status();
-    let b = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for adjustment but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for adjustment but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     serde_json::from_slice(&b).unwrap()
 }
@@ -208,8 +237,12 @@ async fn test_cost_book_crud() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let got: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let got: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(got["code"], "STD-BOOK-01");
 
     // List
@@ -226,8 +259,12 @@ async fn test_cost_book_crud() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let list: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let list: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 1);
 
     // Update
@@ -247,8 +284,12 @@ async fn test_cost_book_crud() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let updated: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let updated: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(updated["name"], "Updated Book");
 
     // Delete
@@ -281,7 +322,10 @@ async fn test_cost_book_activate_deactivate() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/books/{}/deactivate", book_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/books/{}/deactivate",
+                    book_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -289,8 +333,12 @@ async fn test_cost_book_activate_deactivate() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let deactivated: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let deactivated: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(deactivated["isActive"], false);
 
     // Activate
@@ -299,7 +347,10 @@ async fn test_cost_book_activate_deactivate() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/books/{}/activate", book_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/books/{}/activate",
+                    book_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -307,8 +358,12 @@ async fn test_cost_book_activate_deactivate() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let activated: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let activated: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(activated["isActive"], true);
 }
 
@@ -403,8 +458,12 @@ async fn test_cost_element_update() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let updated: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let updated: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(updated["name"], "Updated Element");
     assert!(updated["defaultRate"].as_str().unwrap().contains("20"));
 }
@@ -449,8 +508,12 @@ async fn test_cost_element_crud() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let list: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let list: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 1);
 
     // Delete
@@ -598,15 +661,18 @@ async fn test_cost_profile_duplicate_code() {
                 .uri("/api/v1/cost-accounting/profiles")
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
-                .body(Body::from(serde_json::to_string(&json!({
-        "code": "DUP-PROF",
-        "name": "Second Profile",
-        "costBookId": book_id,
-        "costType": "fifo",
-        "lotLevelCosting": false,
-        "includeLandedCosts": true,
-        "overheadAbsorptionMethod": "rate"
-    })).unwrap()))
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "code": "DUP-PROF",
+                        "name": "Second Profile",
+                        "costBookId": book_id,
+                        "costType": "fifo",
+                        "lotLevelCosting": false,
+                        "includeLandedCosts": true,
+                        "overheadAbsorptionMethod": "rate"
+                    }))
+                    .unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -648,8 +714,12 @@ async fn test_cost_profile_crud() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let profile: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let profile: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(profile["code"], "PROF-01");
     let profile_id = profile["id"].as_str().unwrap();
 
@@ -739,8 +809,12 @@ async fn test_standard_cost_crud() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let updated: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let updated: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(updated["standardCost"].as_str().unwrap().contains("55"));
 
     // Supersede
@@ -749,7 +823,10 @@ async fn test_standard_cost_crud() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/standard-costs/{}/supersede", sc_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/standard-costs/{}/supersede",
+                    sc_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -757,8 +834,12 @@ async fn test_standard_cost_crud() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let superseded: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let superseded: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(superseded["status"], "superseded");
 }
 
@@ -786,7 +867,10 @@ async fn test_adjustment_full_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/adjustments/{}/lines", adj_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/adjustments/{}/lines",
+                    adj_id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -812,7 +896,10 @@ async fn test_adjustment_full_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/cost-accounting/adjustments/{}/lines", adj_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/adjustments/{}/lines",
+                    adj_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -820,8 +907,12 @@ async fn test_adjustment_full_lifecycle() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let lines: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let lines: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(lines["data"].as_array().unwrap().len(), 1);
 
     // Submit
@@ -830,7 +921,10 @@ async fn test_adjustment_full_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/adjustments/{}/submit", adj_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/adjustments/{}/submit",
+                    adj_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -838,8 +932,12 @@ async fn test_adjustment_full_lifecycle() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let submitted: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let submitted: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(submitted["status"], "submitted");
 
     // Approve
@@ -848,7 +946,10 @@ async fn test_adjustment_full_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/adjustments/{}/approve", adj_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/adjustments/{}/approve",
+                    adj_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -856,8 +957,12 @@ async fn test_adjustment_full_lifecycle() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let approved: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let approved: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(approved["status"], "approved");
     assert!(approved["approvedBy"].is_string());
 
@@ -867,7 +972,10 @@ async fn test_adjustment_full_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/adjustments/{}/post", adj_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/adjustments/{}/post",
+                    adj_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -875,8 +983,12 @@ async fn test_adjustment_full_lifecycle() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let posted: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let posted: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(posted["status"], "posted");
     assert!(posted["postedAt"].is_string());
 }
@@ -896,7 +1008,10 @@ async fn test_adjustment_rejection_path() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/adjustments/{}/submit", adj_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/adjustments/{}/submit",
+                    adj_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -911,7 +1026,10 @@ async fn test_adjustment_rejection_path() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/adjustments/{}/reject", adj_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/adjustments/{}/reject",
+                    adj_id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(r#"{"reason": "Incorrect pricing data"}"#))
@@ -920,8 +1038,12 @@ async fn test_adjustment_rejection_path() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let rejected: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let rejected: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(rejected["status"], "rejected");
 }
 
@@ -950,7 +1072,8 @@ async fn test_adjustment_delete_only_draft() {
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 
     // Create another and submit, then try to delete
-    let adj2 = create_test_adjustment(&app, book["id"].as_str().unwrap(), "overhead_adjustment").await;
+    let adj2 =
+        create_test_adjustment(&app, book["id"].as_str().unwrap(), "overhead_adjustment").await;
     let adj2_id = adj2["id"].as_str().unwrap();
 
     let resp = app
@@ -958,7 +1081,10 @@ async fn test_adjustment_delete_only_draft() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/adjustments/{}/submit", adj2_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/adjustments/{}/submit",
+                    adj2_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -1025,10 +1151,21 @@ async fn test_cost_variance_crud() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let variance: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let variance: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(variance["varianceType"], "purchase_price");
-    assert!(variance["varianceAmount"].as_str().unwrap().parse::<f64>().unwrap() > 0.0); // unfavorable
+    assert!(
+        variance["varianceAmount"]
+            .as_str()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap()
+            > 0.0
+    ); // unfavorable
     let var_id = variance["id"].as_str().unwrap();
 
     // Get
@@ -1052,7 +1189,10 @@ async fn test_cost_variance_crud() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/cost-accounting/variances?costBookId={}", book_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/variances?costBookId={}",
+                    book_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -1067,17 +1207,26 @@ async fn test_cost_variance_crud() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/cost-accounting/variances/{}/analyze", var_id))
+                .uri(&format!(
+                    "/api/v1/cost-accounting/variances/{}/analyze",
+                    var_id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
-                .body(Body::from(r#"{"notes": "Supplier price increase due to raw material shortage"}"#))
+                .body(Body::from(
+                    r#"{"notes": "Supplier price increase due to raw material shortage"}"#,
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let analyzed: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let analyzed: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(analyzed["isAnalyzed"], true);
 }
 
@@ -1142,8 +1291,12 @@ async fn test_cost_accounting_dashboard() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let dashboard: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let dashboard: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(dashboard["totalCostBooks"].as_i64().unwrap() >= 1);
     assert!(dashboard["activeCostBooks"].as_i64().unwrap() >= 1);
     assert!(dashboard["totalCostElements"].as_i64().unwrap() >= 1);

@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Cash Management > Bank Account Transfers
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::BankAccountTransferEngine;
 pub use repository::{BankAccountTransferRepository, PostgresBankAccountTransferRepository};

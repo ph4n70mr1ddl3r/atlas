@@ -53,7 +53,7 @@ impl CustomerDisputeService {
                 status: "REJECTED_MISSING_REASON".to_string(),
             };
         }
-        
+
         CustomerDisputeResult {
             dispute_id: format!("DISP-{}-{}", customer_id, invoice_id),
             invoice_id: invoice_id.to_string(),
@@ -83,7 +83,13 @@ mod tests {
 
     #[test]
     fn test_create_dispute_valid() {
-        let result = CustomerDisputeService::create_dispute("CUST-001", "INV-100", 500.0, 1000.0, "PRICING_ERROR");
+        let result = CustomerDisputeService::create_dispute(
+            "CUST-001",
+            "INV-100",
+            500.0,
+            1000.0,
+            "PRICING_ERROR",
+        );
         assert_eq!(result.customer_id, "CUST-001");
         assert_eq!(result.invoice_id, "INV-100");
         assert_eq!(result.dispute_amount, 500.0);
@@ -94,7 +100,13 @@ mod tests {
 
     #[test]
     fn test_create_dispute_invalid_amount() {
-        let result = CustomerDisputeService::create_dispute("CUST-002", "INV-101", -50.0, 1000.0, "MISSING_GOODS");
+        let result = CustomerDisputeService::create_dispute(
+            "CUST-002",
+            "INV-101",
+            -50.0,
+            1000.0,
+            "MISSING_GOODS",
+        );
         assert_eq!(result.dispute_amount, 0.0);
         assert_eq!(result.dispute_id, "");
         assert_eq!(result.status, "REJECTED_INVALID_AMOUNT");
@@ -102,21 +114,29 @@ mod tests {
 
     #[test]
     fn test_create_dispute_exceeds_balance() {
-        let result = CustomerDisputeService::create_dispute("CUST-003", "INV-102", 1500.0, 1000.0, "MISSING_GOODS");
+        let result = CustomerDisputeService::create_dispute(
+            "CUST-003",
+            "INV-102",
+            1500.0,
+            1000.0,
+            "MISSING_GOODS",
+        );
         assert_eq!(result.dispute_id, "");
         assert_eq!(result.status, "REJECTED_EXCEEDS_BALANCE");
     }
 
     #[test]
     fn test_create_dispute_missing_reason() {
-        let result = CustomerDisputeService::create_dispute("CUST-004", "INV-103", 500.0, 1000.0, "");
+        let result =
+            CustomerDisputeService::create_dispute("CUST-004", "INV-103", 500.0, 1000.0, "");
         assert_eq!(result.dispute_id, "");
         assert_eq!(result.status, "REJECTED_MISSING_REASON");
     }
 
     #[test]
     fn test_resolve_dispute_valid() {
-        let result = CustomerDisputeService::resolve_dispute("DISP-CUST-001-INV-100", "CREDIT_MEMO_ISSUED");
+        let result =
+            CustomerDisputeService::resolve_dispute("DISP-CUST-001-INV-100", "CREDIT_MEMO_ISSUED");
         assert_eq!(result, "RESOLVED");
     }
 

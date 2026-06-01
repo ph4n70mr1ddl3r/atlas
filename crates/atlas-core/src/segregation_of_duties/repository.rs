@@ -3,11 +3,11 @@
 //! `PostgreSQL` storage for `SoD` rules, violations, mitigating controls,
 //! and role assignments.
 
-use atlas_shared::{
-    SodRule, SodViolation, SodMitigatingControl, SodRoleAssignment, SodDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, SodDashboardSummary, SodMitigatingControl, SodRoleAssignment, SodRule,
+    SodViolation,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -52,8 +52,16 @@ pub trait SegregationOfDutiesRepository: Send + Sync {
         assigned_by: Option<Uuid>,
     ) -> AtlasResult<SodRoleAssignment>;
 
-    async fn get_role_assignments_for_user(&self, org_id: Uuid, user_id: Uuid) -> AtlasResult<Vec<SodRoleAssignment>>;
-    async fn list_role_assignments(&self, org_id: Uuid, user_id: Option<Uuid>) -> AtlasResult<Vec<SodRoleAssignment>>;
+    async fn get_role_assignments_for_user(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+    ) -> AtlasResult<Vec<SodRoleAssignment>>;
+    async fn list_role_assignments(
+        &self,
+        org_id: Uuid,
+        user_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SodRoleAssignment>>;
     async fn deactivate_role_assignment(&self, id: Uuid) -> AtlasResult<SodRoleAssignment>;
 
     // ========================================================================
@@ -107,9 +115,19 @@ pub trait SegregationOfDutiesRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SodMitigatingControl>;
 
-    async fn get_mitigating_controls_for_violation(&self, violation_id: Uuid) -> AtlasResult<Vec<SodMitigatingControl>>;
-    async fn list_mitigating_controls(&self, org_id: Uuid) -> AtlasResult<Vec<SodMitigatingControl>>;
-    async fn approve_mitigating_control(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<SodMitigatingControl>;
+    async fn get_mitigating_controls_for_violation(
+        &self,
+        violation_id: Uuid,
+    ) -> AtlasResult<Vec<SodMitigatingControl>>;
+    async fn list_mitigating_controls(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<SodMitigatingControl>>;
+    async fn approve_mitigating_control(
+        &self,
+        id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<SodMitigatingControl>;
     async fn revoke_mitigating_control(&self, id: Uuid) -> AtlasResult<SodMitigatingControl>;
 
     // ========================================================================
@@ -125,7 +143,7 @@ pub struct PostgresSegregationOfDutiesRepository {
 }
 
 impl PostgresSegregationOfDutiesRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -228,29 +246,39 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
             RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(serde_json::json!(first_duties)).bind(serde_json::json!(second_duties))
-        .bind(enforcement_mode).bind(risk_level)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(serde_json::json!(first_duties))
+        .bind(serde_json::json!(second_duties))
+        .bind(enforcement_mode)
+        .bind(risk_level)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_rule(&row))
     }
 
     async fn get_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<SodRule>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.sod_rules WHERE organization_id=$1 AND code=$2"
-        )
-        .bind(org_id).bind(code)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row =
+            sqlx::query("SELECT * FROM _atlas.sod_rules WHERE organization_id=$1 AND code=$2")
+                .bind(org_id)
+                .bind(code)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_rule(&r)))
     }
 
     async fn get_rule_by_id(&self, id: Uuid) -> AtlasResult<Option<SodRule>> {
         let row = sqlx::query("SELECT * FROM _atlas.sod_rules WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_rule(&r)))
     }
@@ -264,12 +292,11 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             .fetch_all(&self.pool).await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else {
-            sqlx::query(
-                "SELECT * FROM _atlas.sod_rules WHERE organization_id=$1 ORDER BY code"
-            )
-            .bind(org_id)
-            .fetch_all(&self.pool).await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
+            sqlx::query("SELECT * FROM _atlas.sod_rules WHERE organization_id=$1 ORDER BY code")
+                .bind(org_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         };
         Ok(rows.iter().map(row_to_rule).collect())
     }
@@ -279,16 +306,20 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             r"UPDATE _atlas.sod_rules SET is_active=$2, updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(is_active)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(is_active)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_rule(&row))
     }
 
     async fn delete_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.sod_rules WHERE organization_id=$1 AND code=$2")
-            .bind(org_id).bind(code)
-            .execute(&self.pool).await
+            .bind(org_id)
+            .bind(code)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -307,13 +338,22 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             VALUES ($1,$2,$3,$4,$5)
             RETURNING *",
         )
-        .bind(org_id).bind(user_id).bind(role_name).bind(duty_code).bind(assigned_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(user_id)
+        .bind(role_name)
+        .bind(duty_code)
+        .bind(assigned_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_assignment(&row))
     }
 
-    async fn get_role_assignments_for_user(&self, org_id: Uuid, user_id: Uuid) -> AtlasResult<Vec<SodRoleAssignment>> {
+    async fn get_role_assignments_for_user(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+    ) -> AtlasResult<Vec<SodRoleAssignment>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.sod_role_assignments WHERE organization_id=$1 AND user_id=$2 AND is_active=true ORDER BY duty_code"
         )
@@ -323,7 +363,11 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
         Ok(rows.iter().map(row_to_assignment).collect())
     }
 
-    async fn list_role_assignments(&self, org_id: Uuid, user_id: Option<Uuid>) -> AtlasResult<Vec<SodRoleAssignment>> {
+    async fn list_role_assignments(
+        &self,
+        org_id: Uuid,
+        user_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SodRoleAssignment>> {
         let rows = if user_id.is_some() {
             sqlx::query(
                 "SELECT * FROM _atlas.sod_role_assignments WHERE organization_id=$1 AND user_id=$2 AND is_active=true ORDER BY user_id, duty_code"
@@ -348,7 +392,8 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             WHERE id=$1 RETURNING *",
         )
         .bind(id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_assignment(&row))
     }
@@ -369,10 +414,14 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             VALUES ($1,$2,$3,$4,$5,$6)
             RETURNING *",
         )
-        .bind(org_id).bind(rule_id).bind(rule_code).bind(user_id)
+        .bind(org_id)
+        .bind(rule_id)
+        .bind(rule_code)
+        .bind(user_id)
         .bind(serde_json::json!(first_matched_duties))
         .bind(serde_json::json!(second_matched_duties))
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_violation(&row))
     }
@@ -380,7 +429,8 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
     async fn get_violation(&self, id: Uuid) -> AtlasResult<Option<SodViolation>> {
         let row = sqlx::query("SELECT * FROM _atlas.sod_violations WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_violation(&r)))
     }
@@ -401,8 +451,12 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
               AND ($4::text IS NULL OR r.risk_level=$4)
             ORDER BY v.detected_at DESC",
         )
-        .bind(org_id).bind(user_id).bind(status).bind(risk_level)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(user_id)
+        .bind(status)
+        .bind(risk_level)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_violation).collect())
     }
@@ -433,10 +487,12 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
     ) -> AtlasResult<Option<SodViolation>> {
         let row = sqlx::query(
             r"SELECT * FROM _atlas.sod_violations
-            WHERE rule_id=$1 AND user_id=$2 AND violation_status='open'"
+            WHERE rule_id=$1 AND user_id=$2 AND violation_status='open'",
         )
-        .bind(rule_id).bind(user_id)
-        .fetch_optional(&self.pool).await
+        .bind(rule_id)
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_violation(&r)))
     }
@@ -460,15 +516,25 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
             RETURNING *",
         )
-        .bind(org_id).bind(violation_id).bind(control_name).bind(control_description)
-        .bind(control_owner_id).bind(review_frequency)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(violation_id)
+        .bind(control_name)
+        .bind(control_description)
+        .bind(control_owner_id)
+        .bind(review_frequency)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_mitigation(&row))
     }
 
-    async fn get_mitigating_controls_for_violation(&self, violation_id: Uuid) -> AtlasResult<Vec<SodMitigatingControl>> {
+    async fn get_mitigating_controls_for_violation(
+        &self,
+        violation_id: Uuid,
+    ) -> AtlasResult<Vec<SodMitigatingControl>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.sod_mitigating_controls WHERE violation_id=$1 ORDER BY created_at"
         )
@@ -478,7 +544,10 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
         Ok(rows.iter().map(row_to_mitigation).collect())
     }
 
-    async fn list_mitigating_controls(&self, org_id: Uuid) -> AtlasResult<Vec<SodMitigatingControl>> {
+    async fn list_mitigating_controls(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<SodMitigatingControl>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.sod_mitigating_controls WHERE organization_id=$1 ORDER BY created_at DESC"
         )
@@ -488,14 +557,20 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
         Ok(rows.iter().map(row_to_mitigation).collect())
     }
 
-    async fn approve_mitigating_control(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<SodMitigatingControl> {
+    async fn approve_mitigating_control(
+        &self,
+        id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<SodMitigatingControl> {
         let row = sqlx::query(
             r"UPDATE _atlas.sod_mitigating_controls
             SET approved_by=$2, approved_at=now(), status='active', updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(approved_by)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(approved_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_mitigation(&row))
     }
@@ -507,7 +582,8 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             WHERE id=$1 RETURNING *",
         )
         .bind(id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_mitigation(&row))
     }
@@ -519,7 +595,9 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
                 COUNT(*) FILTER (WHERE is_active = true) as active
             FROM _atlas.sod_rules WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_rules: i64 = row.try_get("total").unwrap_or(0);
@@ -555,7 +633,8 @@ impl SegregationOfDutiesRepository for PostgresSegregationOfDutiesRepository {
             ORDER BY v.detected_at DESC LIMIT 10",
         )
         .bind(org_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(SodDashboardSummary {

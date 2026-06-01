@@ -5,18 +5,17 @@
 //! API endpoints for managing compensation plans, cycles, budget pools,
 //! manager worksheets, and employee compensation statements.
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Plan Handlers
@@ -41,17 +40,35 @@ pub async fn create_plan(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.compensation_engine.create_plan(
-        org_id, &payload.plan_code, &payload.plan_name,
-        payload.description.as_deref(), &payload.plan_type,
-        payload.effective_start_date, payload.effective_end_date,
-        payload.eligibility_criteria.unwrap_or(serde_json::json!({})),
-        Some(user_id),
-    ).await {
-        Ok(plan) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(plan)))),
+    match state
+        .hcm
+        .compensation_engine
+        .create_plan(
+            org_id,
+            &payload.plan_code,
+            &payload.plan_name,
+            payload.description.as_deref(),
+            &payload.plan_type,
+            payload.effective_start_date,
+            payload.effective_end_date,
+            payload
+                .eligibility_criteria
+                .unwrap_or(serde_json::json!({})),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(plan) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(plan)),
+        )),
         Err(e) => {
             error!("Failed to create compensation plan: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                409 => StatusCode::CONFLICT,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -62,10 +79,18 @@ pub async fn get_plan(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.hcm.compensation_engine.get_plan_by_code(org_id, &code).await {
+    match state
+        .hcm
+        .compensation_engine
+        .get_plan_by_code(org_id, &code)
+        .await
+    {
         Ok(Some(p)) => Ok(Json(crate::handlers::records::to_json_or_null(p))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -76,7 +101,10 @@ pub async fn list_plans(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.hcm.compensation_engine.list_plans(org_id).await {
         Ok(plans) => Ok(Json(serde_json::json!({"data": plans}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -86,9 +114,17 @@ pub async fn delete_plan(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.hcm.compensation_engine.delete_plan(org_id, &code).await {
+    match state
+        .hcm
+        .compensation_engine
+        .delete_plan(org_id, &code)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -113,20 +149,38 @@ pub async fn create_component(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let plan = state.hcm.compensation_engine.get_plan_by_code(org_id, &plan_code).await
+    let plan = state
+        .hcm
+        .compensation_engine
+        .get_plan_by_code(org_id, &plan_code)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    match state.hcm.compensation_engine.create_component(
-        org_id, plan.id, &payload.component_name, &payload.component_type,
-        payload.description.as_deref(),
-        payload.is_recurring.unwrap_or(true),
-        payload.frequency.as_deref(),
-    ).await {
-        Ok(comp) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(comp)))),
+    match state
+        .hcm
+        .compensation_engine
+        .create_component(
+            org_id,
+            plan.id,
+            &payload.component_name,
+            &payload.component_type,
+            payload.description.as_deref(),
+            payload.is_recurring.unwrap_or(true),
+            payload.frequency.as_deref(),
+        )
+        .await
+    {
+        Ok(comp) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(comp)),
+        )),
         Err(e) => {
             error!("Failed to create component: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -137,12 +191,19 @@ pub async fn list_components(
     Path(plan_code): Path<String>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let plan = state.hcm.compensation_engine.get_plan_by_code(org_id, &plan_code).await
+    let plan = state
+        .hcm
+        .compensation_engine
+        .get_plan_by_code(org_id, &plan_code)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
     match state.hcm.compensation_engine.list_components(plan.id).await {
         Ok(comps) => Ok(Json(serde_json::json!({"data": comps}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -169,16 +230,32 @@ pub async fn create_cycle(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.compensation_engine.create_cycle(
-        org_id, &payload.cycle_name, payload.description.as_deref(),
-        &payload.cycle_type, payload.start_date, payload.end_date,
-        &payload.total_budget, payload.currency_code.as_deref().unwrap_or("USD"),
-        Some(user_id),
-    ).await {
-        Ok(cycle) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(cycle)))),
+    match state
+        .hcm
+        .compensation_engine
+        .create_cycle(
+            org_id,
+            &payload.cycle_name,
+            payload.description.as_deref(),
+            &payload.cycle_type,
+            payload.start_date,
+            payload.end_date,
+            &payload.total_budget,
+            payload.currency_code.as_deref().unwrap_or("USD"),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(cycle) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(cycle)),
+        )),
         Err(e) => {
             error!("Failed to create cycle: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -191,7 +268,10 @@ pub async fn get_cycle(
     match state.hcm.compensation_engine.get_cycle(id).await {
         Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -206,11 +286,19 @@ pub async fn list_cycles(
     Query(query): Query<ListCyclesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.hcm.compensation_engine.list_cycles(org_id, query.status.as_deref()).await {
+    match state
+        .hcm
+        .compensation_engine
+        .list_cycles(org_id, query.status.as_deref())
+        .await
+    {
         Ok(cycles) => Ok(Json(serde_json::json!({"data": cycles}))),
         Err(e) => {
             error!("Error: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -226,11 +314,19 @@ pub async fn transition_cycle(
     Path(id): Path<Uuid>,
     Json(payload): Json<TransitionCycleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.hcm.compensation_engine.transition_cycle(id, &payload.status).await {
+    match state
+        .hcm
+        .compensation_engine
+        .transition_cycle(id, &payload.status)
+        .await
+    {
         Ok(cycle) => Ok(Json(crate::handlers::records::to_json_or_null(cycle))),
         Err(e) => {
             error!("Failed to transition cycle: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -240,9 +336,17 @@ pub async fn list_budget_pools(
     _claims: Extension<Claims>,
     Path(cycle_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.hcm.compensation_engine.list_budget_pools(cycle_id).await {
+    match state
+        .hcm
+        .compensation_engine
+        .list_budget_pools(cycle_id)
+        .await
+    {
         Ok(pools) => Ok(Json(serde_json::json!({"data": pools}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -271,17 +375,35 @@ pub async fn create_budget_pool(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.compensation_engine.create_budget_pool(
-        org_id, cycle_id, &payload.pool_name, &payload.pool_type,
-        payload.manager_id, payload.manager_name.as_deref(),
-        payload.department_id, payload.department_name.as_deref(),
-        &payload.total_budget, payload.currency_code.as_deref().unwrap_or("USD"),
-        Some(user_id),
-    ).await {
-        Ok(pool) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(pool)))),
+    match state
+        .hcm
+        .compensation_engine
+        .create_budget_pool(
+            org_id,
+            cycle_id,
+            &payload.pool_name,
+            &payload.pool_type,
+            payload.manager_id,
+            payload.manager_name.as_deref(),
+            payload.department_id,
+            payload.department_name.as_deref(),
+            &payload.total_budget,
+            payload.currency_code.as_deref().unwrap_or("USD"),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(pool) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(pool)),
+        )),
         Err(e) => {
             error!("Failed to create budget pool: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -295,7 +417,11 @@ pub async fn delete_cycle(
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Error: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -320,14 +446,30 @@ pub async fn create_worksheet(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.compensation_engine.create_worksheet(
-        org_id, cycle_id, payload.pool_id, payload.manager_id,
-        payload.manager_name.as_deref(), Some(user_id),
-    ).await {
-        Ok(ws) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ws)))),
+    match state
+        .hcm
+        .compensation_engine
+        .create_worksheet(
+            org_id,
+            cycle_id,
+            payload.pool_id,
+            payload.manager_id,
+            payload.manager_name.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(ws) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(ws)),
+        )),
         Err(e) => {
             error!("Failed to create worksheet: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -340,7 +482,10 @@ pub async fn get_worksheet(
     match state.hcm.compensation_engine.get_worksheet(id).await {
         Ok(Some(ws)) => Ok(Json(crate::handlers::records::to_json_or_null(ws))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -355,9 +500,17 @@ pub async fn list_worksheets(
     Path(cycle_id): Path<Uuid>,
     Query(query): Query<ListWorksheetsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.hcm.compensation_engine.list_worksheets(cycle_id, query.status.as_deref()).await {
+    match state
+        .hcm
+        .compensation_engine
+        .list_worksheets(cycle_id, query.status.as_deref())
+        .await
+    {
         Ok(wss) => Ok(Json(serde_json::json!({"data": wss}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -370,7 +523,11 @@ pub async fn submit_worksheet(
         Ok(ws) => Ok(Json(crate::handlers::records::to_json_or_null(ws))),
         Err(e) => {
             error!("Failed to submit worksheet: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -384,7 +541,11 @@ pub async fn approve_worksheet(
         Ok(ws) => Ok(Json(crate::handlers::records::to_json_or_null(ws))),
         Err(e) => {
             error!("Failed to approve worksheet: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -398,7 +559,11 @@ pub async fn reject_worksheet(
         Ok(ws) => Ok(Json(crate::handlers::records::to_json_or_null(ws))),
         Err(e) => {
             error!("Failed to reject worksheet: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -431,22 +596,38 @@ pub async fn add_worksheet_line(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.compensation_engine.add_worksheet_line(
-        org_id, worksheet_id, payload.employee_id,
-        payload.employee_name.as_deref(), payload.job_title.as_deref(),
-        payload.department_name.as_deref(),
-        &payload.current_base_salary, &payload.proposed_base_salary,
-        payload.merit_amount.as_deref().unwrap_or("0"),
-        payload.bonus_amount.as_deref().unwrap_or("0"),
-        payload.equity_amount.as_deref().unwrap_or("0"),
-        payload.performance_rating.as_deref(),
-        payload.manager_comments.as_deref(),
-        Some(user_id),
-    ).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(line)))),
+    match state
+        .hcm
+        .compensation_engine
+        .add_worksheet_line(
+            org_id,
+            worksheet_id,
+            payload.employee_id,
+            payload.employee_name.as_deref(),
+            payload.job_title.as_deref(),
+            payload.department_name.as_deref(),
+            &payload.current_base_salary,
+            &payload.proposed_base_salary,
+            payload.merit_amount.as_deref().unwrap_or("0"),
+            payload.bonus_amount.as_deref().unwrap_or("0"),
+            payload.equity_amount.as_deref().unwrap_or("0"),
+            payload.performance_rating.as_deref(),
+            payload.manager_comments.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(line) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(line)),
+        )),
         Err(e) => {
             error!("Failed to add worksheet line: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -466,18 +647,27 @@ pub async fn update_worksheet_line(
     Path(line_id): Path<Uuid>,
     Json(payload): Json<UpdateWorksheetLineRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.hcm.compensation_engine.update_worksheet_line(
-        line_id,
-        &payload.proposed_base_salary,
-        payload.merit_amount.as_deref().unwrap_or("0"),
-        payload.bonus_amount.as_deref().unwrap_or("0"),
-        payload.equity_amount.as_deref().unwrap_or("0"),
-        payload.manager_comments.as_deref(),
-    ).await {
+    match state
+        .hcm
+        .compensation_engine
+        .update_worksheet_line(
+            line_id,
+            &payload.proposed_base_salary,
+            payload.merit_amount.as_deref().unwrap_or("0"),
+            payload.bonus_amount.as_deref().unwrap_or("0"),
+            payload.equity_amount.as_deref().unwrap_or("0"),
+            payload.manager_comments.as_deref(),
+        )
+        .await
+    {
         Ok(line) => Ok(Json(crate::handlers::records::to_json_or_null(line))),
         Err(e) => {
             error!("Failed to update worksheet line: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -487,9 +677,17 @@ pub async fn list_worksheet_lines(
     _claims: Extension<Claims>,
     Path(worksheet_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.hcm.compensation_engine.list_worksheet_lines(worksheet_id).await {
+    match state
+        .hcm
+        .compensation_engine
+        .list_worksheet_lines(worksheet_id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -498,11 +696,20 @@ pub async fn delete_worksheet_line(
     _claims: Extension<Claims>,
     Path(line_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.hcm.compensation_engine.delete_worksheet_line(line_id).await {
+    match state
+        .hcm
+        .compensation_engine
+        .delete_worksheet_line(line_id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Error: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -532,21 +739,35 @@ pub async fn generate_statement(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.compensation_engine.generate_statement(
-        org_id, cycle_id, payload.employee_id,
-        payload.employee_name.as_deref(),
-        &payload.base_salary,
-        payload.merit_increase.as_deref().unwrap_or("0"),
-        payload.bonus.as_deref().unwrap_or("0"),
-        payload.equity.as_deref().unwrap_or("0"),
-        payload.benefits_value.as_deref().unwrap_or("0"),
-        payload.currency_code.as_deref().unwrap_or("USD"),
-        payload.components.unwrap_or(serde_json::json!([])),
-    ).await {
-        Ok(stmt) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(stmt)))),
+    match state
+        .hcm
+        .compensation_engine
+        .generate_statement(
+            org_id,
+            cycle_id,
+            payload.employee_id,
+            payload.employee_name.as_deref(),
+            &payload.base_salary,
+            payload.merit_increase.as_deref().unwrap_or("0"),
+            payload.bonus.as_deref().unwrap_or("0"),
+            payload.equity.as_deref().unwrap_or("0"),
+            payload.benefits_value.as_deref().unwrap_or("0"),
+            payload.currency_code.as_deref().unwrap_or("USD"),
+            payload.components.unwrap_or(serde_json::json!([])),
+        )
+        .await
+    {
+        Ok(stmt) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(stmt)),
+        )),
         Err(e) => {
             error!("Failed to generate statement: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -559,7 +780,10 @@ pub async fn get_statement(
     match state.hcm.compensation_engine.get_statement(id).await {
         Ok(Some(s)) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -568,9 +792,17 @@ pub async fn list_statements(
     _claims: Extension<Claims>,
     Path(cycle_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.hcm.compensation_engine.list_statements(cycle_id).await {
+    match state
+        .hcm
+        .compensation_engine
+        .list_statements(cycle_id)
+        .await
+    {
         Ok(stmts) => Ok(Json(serde_json::json!({"data": stmts}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -583,7 +815,11 @@ pub async fn publish_statement(
         Ok(s) => Ok(Json(crate::handlers::records::to_json_or_null(s))),
         Err(e) => {
             error!("Failed to publish statement: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -599,6 +835,9 @@ pub async fn get_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.hcm.compensation_engine.get_dashboard(org_id).await {
         Ok(d) => Ok(Json(crate::handlers::records::to_json_or_null(d))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

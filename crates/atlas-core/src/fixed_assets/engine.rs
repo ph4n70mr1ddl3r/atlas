@@ -7,52 +7,47 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Fixed Assets
 
-use atlas_shared::{
-    AssetCategory, AssetBook, FixedAsset, AssetDepreciationHistory,
-    AssetTransfer, AssetRetirement,
-    AtlasError, AtlasResult,
-};
 use super::FixedAssetRepository;
+use atlas_shared::{
+    AssetBook, AssetCategory, AssetDepreciationHistory, AssetRetirement, AssetTransfer, AtlasError,
+    AtlasResult, FixedAsset,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid depreciation methods
 #[allow(dead_code)]
-const VALID_DEPRECIATION_METHODS: &[&str] = &[
-    "straight_line", "declining_balance", "sum_of_years_digits",
-];
+const VALID_DEPRECIATION_METHODS: &[&str] =
+    &["straight_line", "declining_balance", "sum_of_years_digits"];
 
 /// Valid asset types
 #[allow(dead_code)]
-const VALID_ASSET_TYPES: &[&str] = &[
-    "tangible", "intangible", "leased", "cipc",
-];
+const VALID_ASSET_TYPES: &[&str] = &["tangible", "intangible", "leased", "cipc"];
 
 /// Valid asset statuses
 #[allow(dead_code)]
 const VALID_STATUSES: &[&str] = &[
-    "draft", "acquired", "in_service", "under_construction",
-    "disposed", "retired", "transferred",
+    "draft",
+    "acquired",
+    "in_service",
+    "under_construction",
+    "disposed",
+    "retired",
+    "transferred",
 ];
 
 /// Valid retirement types
 #[allow(dead_code)]
-const VALID_RETIREMENT_TYPES: &[&str] = &[
-    "sale", "scrap", "donation", "write_off", "casualty",
-];
+const VALID_RETIREMENT_TYPES: &[&str] = &["sale", "scrap", "donation", "write_off", "casualty"];
 
 /// Valid transfer statuses
 #[allow(dead_code)]
-const VALID_TRANSFER_STATUSES: &[&str] = &[
-    "pending", "approved", "rejected", "completed",
-];
+const VALID_TRANSFER_STATUSES: &[&str] = &["pending", "approved", "rejected", "completed"];
 
 /// Valid retirement statuses
 #[allow(dead_code)]
-const VALID_RETIREMENT_STATUSES: &[&str] = &[
-    "pending", "approved", "completed", "cancelled",
-];
+const VALID_RETIREMENT_STATUSES: &[&str] = &["pending", "approved", "completed", "cancelled"];
 
 /// Fixed Asset engine for managing assets, depreciation, transfers, and retirements
 pub struct FixedAssetEngine {
@@ -98,7 +93,8 @@ impl FixedAssetEngine {
         if !VALID_DEPRECIATION_METHODS.contains(&default_depreciation_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid depreciation method '{}'. Must be one of: {}",
-                default_depreciation_method, VALID_DEPRECIATION_METHODS.join(", ")
+                default_depreciation_method,
+                VALID_DEPRECIATION_METHODS.join(", ")
             )));
         }
         if default_useful_life_months <= 0 {
@@ -107,21 +103,38 @@ impl FixedAssetEngine {
             ));
         }
 
-        info!("Creating asset category '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating asset category '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_category(
-            org_id, &code_upper, name, description,
-            default_depreciation_method, default_useful_life_months,
-            default_salvage_value_percent,
-            default_asset_account_code, default_accum_depr_account_code,
-            default_depr_expense_account_code, default_gain_loss_account_code,
-            created_by,
-        ).await
+        self.repository
+            .create_category(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                default_depreciation_method,
+                default_useful_life_months,
+                default_salvage_value_percent,
+                default_asset_account_code,
+                default_accum_depr_account_code,
+                default_depr_expense_account_code,
+                default_gain_loss_account_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get an asset category by code
-    pub async fn get_category(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AssetCategory>> {
-        self.repository.get_category(org_id, &code.to_uppercase()).await
+    pub async fn get_category(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<AssetCategory>> {
+        self.repository
+            .get_category(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List all asset categories for an organization
@@ -132,7 +145,9 @@ impl FixedAssetEngine {
     /// Deactivate an asset category
     pub async fn delete_category(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deactivating asset category '{}' for org {}", code, org_id);
-        self.repository.delete_category(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_category(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -173,13 +188,23 @@ impl FixedAssetEngine {
             ));
         }
 
-        info!("Creating asset book '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating asset book '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_book(
-            org_id, &code_upper, name, description,
-            book_type, auto_depreciation, depreciation_calendar,
-            created_by,
-        ).await
+        self.repository
+            .create_book(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                book_type,
+                auto_depreciation,
+                depreciation_calendar,
+                created_by,
+            )
+            .await
     }
 
     /// Get an asset book by code
@@ -195,7 +220,9 @@ impl FixedAssetEngine {
     /// Deactivate an asset book
     pub async fn delete_book(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deactivating asset book '{}' for org {}", code, org_id);
-        self.repository.delete_book(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_book(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -251,22 +278,24 @@ impl FixedAssetEngine {
         }
         if !VALID_ASSET_TYPES.contains(&asset_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid asset type '{}'. Must be one of: {}", asset_type, VALID_ASSET_TYPES.join(", ")
+                "Invalid asset type '{}'. Must be one of: {}",
+                asset_type,
+                VALID_ASSET_TYPES.join(", ")
             )));
         }
 
-        let cost: f64 = original_cost.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Original cost must be a valid number".to_string(),
-        ))?;
+        let cost: f64 = original_cost.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Original cost must be a valid number".to_string())
+        })?;
         if cost < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Original cost must be non-negative".to_string(),
             ));
         }
 
-        let salvage: f64 = salvage_value.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Salvage value must be a valid number".to_string(),
-        ))?;
+        let salvage: f64 = salvage_value.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Salvage value must be a valid number".to_string())
+        })?;
         if salvage > cost {
             return Err(AtlasError::ValidationFailed(
                 "Salvage value cannot exceed original cost".to_string(),
@@ -284,10 +313,9 @@ impl FixedAssetEngine {
         let mut resolved_gain_loss_acct = gain_loss_account_code.map(String::from);
 
         if let Some(cc) = category_code {
-            let cat = self.get_category(org_id, cc).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Asset category '{cc}' not found")
-                ))?;
+            let cat = self.get_category(org_id, cc).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Asset category '{cc}' not found"))
+            })?;
             category_id = Some(cat.id);
             if depreciation_method.is_none() {
                 resolved_dep_method = cat.default_depreciation_method.clone();
@@ -312,7 +340,8 @@ impl FixedAssetEngine {
         if !VALID_DEPRECIATION_METHODS.contains(&resolved_dep_method.as_str()) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid depreciation method '{}'. Must be one of: {}",
-                resolved_dep_method, VALID_DEPRECIATION_METHODS.join(", ")
+                resolved_dep_method,
+                VALID_DEPRECIATION_METHODS.join(", ")
             )));
         }
 
@@ -325,35 +354,56 @@ impl FixedAssetEngine {
         // Resolve book
         let mut book_id: Option<Uuid> = None;
         if let Some(bc) = book_code {
-            let book = self.get_book(org_id, bc).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Asset book '{bc}' not found")
-                ))?;
+            let book = self.get_book(org_id, bc).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Asset book '{bc}' not found"))
+            })?;
             book_id = Some(book.id);
         }
 
-        info!("Creating fixed asset '{}' ({}) for org {}", asset_number, asset_name, org_id);
+        info!(
+            "Creating fixed asset '{}' ({}) for org {}",
+            asset_number, asset_name, org_id
+        );
 
-        self.repository.create_asset(
-            org_id, asset_number, asset_name, description,
-            category_id, category_code,
-            book_id, book_code,
-            asset_type,
-            original_cost, salvage_value, &resolved_salvage_pct,
-            &resolved_dep_method, resolved_useful_life,
-            declining_balance_rate,
-            acquisition_date,
-            location, department_id, department_name,
-            custodian_id, custodian_name,
-            serial_number, tag_number, manufacturer, model,
-            warranty_expiry, insurance_policy_number, insurance_expiry,
-            lease_number, lease_expiry,
-            resolved_asset_acct.as_deref(),
-            resolved_accum_depr_acct.as_deref(),
-            resolved_depr_expense_acct.as_deref(),
-            resolved_gain_loss_acct.as_deref(),
-            created_by,
-        ).await
+        self.repository
+            .create_asset(
+                org_id,
+                asset_number,
+                asset_name,
+                description,
+                category_id,
+                category_code,
+                book_id,
+                book_code,
+                asset_type,
+                original_cost,
+                salvage_value,
+                &resolved_salvage_pct,
+                &resolved_dep_method,
+                resolved_useful_life,
+                declining_balance_rate,
+                acquisition_date,
+                location,
+                department_id,
+                department_name,
+                custodian_id,
+                custodian_name,
+                serial_number,
+                tag_number,
+                manufacturer,
+                model,
+                warranty_expiry,
+                insurance_policy_number,
+                insurance_expiry,
+                lease_number,
+                lease_expiry,
+                resolved_asset_acct.as_deref(),
+                resolved_accum_depr_acct.as_deref(),
+                resolved_depr_expense_acct.as_deref(),
+                resolved_gain_loss_acct.as_deref(),
+                created_by,
+            )
+            .await
     }
 
     /// Get a fixed asset by ID
@@ -362,8 +412,14 @@ impl FixedAssetEngine {
     }
 
     /// Get a fixed asset by number
-    pub async fn get_asset_by_number(&self, org_id: Uuid, asset_number: &str) -> AtlasResult<Option<FixedAsset>> {
-        self.repository.get_asset_by_number(org_id, asset_number).await
+    pub async fn get_asset_by_number(
+        &self,
+        org_id: Uuid,
+        asset_number: &str,
+    ) -> AtlasResult<Option<FixedAsset>> {
+        self.repository
+            .get_asset_by_number(org_id, asset_number)
+            .await
     }
 
     /// List fixed assets with optional filters
@@ -377,11 +433,15 @@ impl FixedAssetEngine {
         if let Some(s) = status {
             if !VALID_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_assets(org_id, status, category_code, book_code).await
+        self.repository
+            .list_assets(org_id, status, category_code, book_code)
+            .await
     }
 
     // ========================================================================
@@ -389,41 +449,52 @@ impl FixedAssetEngine {
     // ========================================================================
 
     /// Place an acquired asset in service
-    pub async fn place_in_service(&self, asset_id: Uuid, in_service_date: Option<chrono::NaiveDate>) -> AtlasResult<FixedAsset> {
-        let asset = self.repository.get_asset(asset_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Fixed asset {asset_id} not found")
-            ))?;
+    pub async fn place_in_service(
+        &self,
+        asset_id: Uuid,
+        in_service_date: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<FixedAsset> {
+        let asset = self.repository.get_asset(asset_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Fixed asset {asset_id} not found"))
+        })?;
 
         if asset.status != "acquired" && asset.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot place asset in '{}' status in service. Must be 'acquired' or 'draft'.", asset.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot place asset in '{}' status in service. Must be 'acquired' or 'draft'.",
+                asset.status
+            )));
         }
 
         let service_date = in_service_date.unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-        info!("Placing fixed asset {} in service on {}", asset.asset_number, service_date);
+        info!(
+            "Placing fixed asset {} in service on {}",
+            asset.asset_number, service_date
+        );
 
-        self.repository.update_asset_status(asset_id, "in_service", Some(service_date), None, None).await
+        self.repository
+            .update_asset_status(asset_id, "in_service", Some(service_date), None, None)
+            .await
     }
 
     /// Mark an asset as acquired
     pub async fn acquire_asset(&self, asset_id: Uuid) -> AtlasResult<FixedAsset> {
-        let asset = self.repository.get_asset(asset_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Fixed asset {asset_id} not found")
-            ))?;
+        let asset = self.repository.get_asset(asset_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Fixed asset {asset_id} not found"))
+        })?;
 
         if asset.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot acquire asset in '{}' status. Must be 'draft'.", asset.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot acquire asset in '{}' status. Must be 'draft'.",
+                asset.status
+            )));
         }
 
         info!("Acquiring fixed asset {}", asset.asset_number);
 
-        self.repository.update_asset_status(asset_id, "acquired", None, None, None).await
+        self.repository
+            .update_asset_status(asset_id, "acquired", None, None, None)
+            .await
     }
 
     // ========================================================================
@@ -441,24 +512,26 @@ impl FixedAssetEngine {
         depreciation_date: chrono::NaiveDate,
         created_by: Option<Uuid>,
     ) -> AtlasResult<(f64, FixedAsset)> {
-        let asset = self.repository.get_asset(asset_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Fixed asset {asset_id} not found")
-            ))?;
+        let asset = self.repository.get_asset(asset_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Fixed asset {asset_id} not found"))
+        })?;
 
         if asset.status != "in_service" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot depreciate asset in '{}' status. Must be 'in_service'.", asset.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot depreciate asset in '{}' status. Must be 'in_service'.",
+                asset.status
+            )));
         }
 
         // Check if already depreciated for this period
-        if let Some(_existing) = self.repository.get_depreciation_for_period(
-            asset_id, fiscal_year, period_number
-        ).await? {
-            return Err(AtlasError::ValidationFailed(
-                format!("Asset already depreciated for FY{fiscal_year} period {period_number}")
-            ));
+        if let Some(_existing) = self
+            .repository
+            .get_depreciation_for_period(asset_id, fiscal_year, period_number)
+            .await?
+        {
+            return Err(AtlasError::ValidationFailed(format!(
+                "Asset already depreciated for FY{fiscal_year} period {period_number}"
+            )));
         }
 
         let depreciable_basis: f64 = asset.depreciable_basis.parse().unwrap_or(0.0);
@@ -474,26 +547,26 @@ impl FixedAssetEngine {
 
         // Calculate depreciation amount based on method
         let dep_amount = match asset.depreciation_method.as_str() {
-            "straight_line" => {
-                self.calculate_straight_line(depreciable_basis, useful_life)
-            }
+            "straight_line" => self.calculate_straight_line(depreciable_basis, useful_life),
             "declining_balance" => {
-                let rate: f64 = asset.declining_balance_rate
+                let rate: f64 = asset
+                    .declining_balance_rate
                     .as_ref()
                     .and_then(|r| r.parse().ok())
                     .unwrap_or(2.0); // Default: double declining
                 let nbv: f64 = asset.net_book_value.parse().unwrap_or(0.0);
                 self.calculate_declining_balance(nbv, rate, useful_life, asset.periods_depreciated)
             }
-            "sum_of_years_digits" => {
-                self.calculate_sum_of_years_digits(
-                    depreciable_basis, useful_life, asset.periods_depreciated
-                )
-            }
+            "sum_of_years_digits" => self.calculate_sum_of_years_digits(
+                depreciable_basis,
+                useful_life,
+                asset.periods_depreciated,
+            ),
             _ => {
-                return Err(AtlasError::ValidationFailed(
-                    format!("Unknown depreciation method: {}", asset.depreciation_method)
-                ));
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Unknown depreciation method: {}",
+                    asset.depreciation_method
+                )));
             }
         };
 
@@ -511,30 +584,41 @@ impl FixedAssetEngine {
         let salvage: f64 = asset.salvage_value.parse().unwrap_or(0.0);
         let new_nbv = (original_cost - final_accum).max(salvage);
 
-        info!("Depreciating asset {} by {:.2} (FY{} P{})", asset.asset_number, actual_dep, fiscal_year, period_number);
+        info!(
+            "Depreciating asset {} by {:.2} (FY{} P{})",
+            asset.asset_number, actual_dep, fiscal_year, period_number
+        );
 
         // Create depreciation history entry
-        self.repository.create_depreciation_entry(
-            asset.organization_id, asset_id,
-            fiscal_year, period_number, period_name,
-            depreciation_date,
-            &format!("{actual_dep:.2}"),
-            &format!("{final_accum:.2}"),
-            &format!("{new_nbv:.2}"),
-            &asset.depreciation_method,
-            created_by,
-        ).await?;
+        self.repository
+            .create_depreciation_entry(
+                asset.organization_id,
+                asset_id,
+                fiscal_year,
+                period_number,
+                period_name,
+                depreciation_date,
+                &format!("{actual_dep:.2}"),
+                &format!("{final_accum:.2}"),
+                &format!("{new_nbv:.2}"),
+                &asset.depreciation_method,
+                created_by,
+            )
+            .await?;
 
         // Update asset depreciation
         let new_periods = asset.periods_depreciated + 1;
-        let updated = self.repository.update_asset_depreciation(
-            asset_id,
-            &format!("{final_accum:.2}"),
-            &format!("{new_nbv:.2}"),
-            new_periods,
-            Some(depreciation_date),
-            &format!("{actual_dep:.2}"),
-        ).await?;
+        let updated = self
+            .repository
+            .update_asset_depreciation(
+                asset_id,
+                &format!("{final_accum:.2}"),
+                &format!("{new_nbv:.2}"),
+                new_periods,
+                Some(depreciation_date),
+                &format!("{actual_dep:.2}"),
+            )
+            .await?;
 
         Ok((actual_dep, updated))
     }
@@ -548,7 +632,13 @@ impl FixedAssetEngine {
     }
 
     /// Declining balance depreciation: NBV × (Rate / Useful Life)
-    fn calculate_declining_balance(&self, net_book_value: f64, rate: f64, useful_life_months: i32, _periods_depreciated: i32) -> f64 {
+    fn calculate_declining_balance(
+        &self,
+        net_book_value: f64,
+        rate: f64,
+        useful_life_months: i32,
+        _periods_depreciated: i32,
+    ) -> f64 {
         if useful_life_months <= 0 {
             return 0.0;
         }
@@ -558,7 +648,12 @@ impl FixedAssetEngine {
     }
 
     /// Sum-of-years-digits depreciation
-    fn calculate_sum_of_years_digits(&self, depreciable_basis: f64, useful_life_months: i32, periods_depreciated: i32) -> f64 {
+    fn calculate_sum_of_years_digits(
+        &self,
+        depreciable_basis: f64,
+        useful_life_months: i32,
+        periods_depreciated: i32,
+    ) -> f64 {
         if useful_life_months <= 0 {
             return 0.0;
         }
@@ -572,7 +667,10 @@ impl FixedAssetEngine {
     }
 
     /// List depreciation history for an asset
-    pub async fn list_depreciation_history(&self, asset_id: Uuid) -> AtlasResult<Vec<AssetDepreciationHistory>> {
+    pub async fn list_depreciation_history(
+        &self,
+        asset_id: Uuid,
+    ) -> AtlasResult<Vec<AssetDepreciationHistory>> {
         self.repository.list_depreciation_history(asset_id).await
     }
 
@@ -594,84 +692,128 @@ impl FixedAssetEngine {
         reason: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetTransfer> {
-        let asset = self.repository.get_asset(asset_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Fixed asset {asset_id} not found")
-            ))?;
+        let asset = self.repository.get_asset(asset_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Fixed asset {asset_id} not found"))
+        })?;
 
         if asset.status != "in_service" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot transfer asset in '{}' status. Must be 'in_service'.", asset.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot transfer asset in '{}' status. Must be 'in_service'.",
+                asset.status
+            )));
         }
 
         let transfer_number = format!("ATR-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating asset transfer {} for asset {}", transfer_number, asset.asset_number);
+        info!(
+            "Creating asset transfer {} for asset {}",
+            transfer_number, asset.asset_number
+        );
 
-        self.repository.create_transfer(
-            org_id, &transfer_number, asset_id,
-            asset.department_id, asset.department_name.as_deref(),
-            asset.location.as_deref(),
-            asset.custodian_id, asset.custodian_name.as_deref(),
-            to_department_id, to_department_name, to_location,
-            to_custodian_id, to_custodian_name,
-            transfer_date, reason, created_by,
-        ).await
+        self.repository
+            .create_transfer(
+                org_id,
+                &transfer_number,
+                asset_id,
+                asset.department_id,
+                asset.department_name.as_deref(),
+                asset.location.as_deref(),
+                asset.custodian_id,
+                asset.custodian_name.as_deref(),
+                to_department_id,
+                to_department_name,
+                to_location,
+                to_custodian_id,
+                to_custodian_name,
+                transfer_date,
+                reason,
+                created_by,
+            )
+            .await
     }
 
     /// Approve an asset transfer
-    pub async fn approve_transfer(&self, transfer_id: Uuid, approved_by: Uuid) -> AtlasResult<AssetTransfer> {
-        let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Asset transfer {transfer_id} not found")
-            ))?;
+    pub async fn approve_transfer(
+        &self,
+        transfer_id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<AssetTransfer> {
+        let transfer = self
+            .repository
+            .get_transfer(transfer_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Asset transfer {transfer_id} not found"))
+            })?;
 
         if transfer.status != "pending" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve transfer in '{}' status. Must be 'pending'.", transfer.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve transfer in '{}' status. Must be 'pending'.",
+                transfer.status
+            )));
         }
 
         // Update the transfer
-        let transfer = self.repository.update_transfer_status(transfer_id, "approved", Some(approved_by), None).await?;
+        let transfer = self
+            .repository
+            .update_transfer_status(transfer_id, "approved", Some(approved_by), None)
+            .await?;
 
         // Update the asset's assignment
-        self.repository.update_asset_assignment(
-            transfer.asset_id,
-            transfer.to_department_id,
-            transfer.to_department_name.as_deref(),
-            transfer.to_location.as_deref(),
-            transfer.to_custodian_id,
-            transfer.to_custodian_name.as_deref(),
-        ).await?;
+        self.repository
+            .update_asset_assignment(
+                transfer.asset_id,
+                transfer.to_department_id,
+                transfer.to_department_name.as_deref(),
+                transfer.to_location.as_deref(),
+                transfer.to_custodian_id,
+                transfer.to_custodian_name.as_deref(),
+            )
+            .await?;
 
         // Mark transfer as completed
-        let transfer = self.repository.update_transfer_status(transfer_id, "completed", None, None).await?;
+        let transfer = self
+            .repository
+            .update_transfer_status(transfer_id, "completed", None, None)
+            .await?;
 
         info!("Approved and completed asset transfer {}", transfer_id);
         Ok(transfer)
     }
 
     /// Reject an asset transfer
-    pub async fn reject_transfer(&self, transfer_id: Uuid, reason: Option<&str>) -> AtlasResult<AssetTransfer> {
-        let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Asset transfer {transfer_id} not found")
-            ))?;
+    pub async fn reject_transfer(
+        &self,
+        transfer_id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<AssetTransfer> {
+        let transfer = self
+            .repository
+            .get_transfer(transfer_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Asset transfer {transfer_id} not found"))
+            })?;
 
         if transfer.status != "pending" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot reject transfer in '{}' status. Must be 'pending'.", transfer.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot reject transfer in '{}' status. Must be 'pending'.",
+                transfer.status
+            )));
         }
 
         info!("Rejecting asset transfer {}", transfer_id);
-        self.repository.update_transfer_status(transfer_id, "rejected", None, reason).await
+        self.repository
+            .update_transfer_status(transfer_id, "rejected", None, reason)
+            .await
     }
 
     /// List asset transfers
-    pub async fn list_transfers(&self, org_id: Uuid, asset_id: Option<Uuid>) -> AtlasResult<Vec<AssetTransfer>> {
+    pub async fn list_transfers(
+        &self,
+        org_id: Uuid,
+        asset_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AssetTransfer>> {
         self.repository.list_transfers(org_id, asset_id).await
     }
 
@@ -693,30 +835,31 @@ impl FixedAssetEngine {
         notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetRetirement> {
-        let asset = self.repository.get_asset(asset_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Fixed asset {asset_id} not found")
-            ))?;
+        let asset = self.repository.get_asset(asset_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Fixed asset {asset_id} not found"))
+        })?;
 
         if asset.status != "in_service" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot retire asset in '{}' status. Must be 'in_service'.", asset.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot retire asset in '{}' status. Must be 'in_service'.",
+                asset.status
+            )));
         }
 
         if !VALID_RETIREMENT_TYPES.contains(&retirement_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid retirement type '{}'. Must be one of: {}",
-                retirement_type, VALID_RETIREMENT_TYPES.join(", ")
+                retirement_type,
+                VALID_RETIREMENT_TYPES.join(", ")
             )));
         }
 
-        let proceeds_val: f64 = proceeds.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Proceeds must be a valid number".to_string(),
-        ))?;
-        let removal_val: f64 = removal_cost.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Removal cost must be a valid number".to_string(),
-        ))?;
+        let proceeds_val: f64 = proceeds.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Proceeds must be a valid number".to_string())
+        })?;
+        let removal_val: f64 = removal_cost.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Removal cost must be a valid number".to_string())
+        })?;
 
         let nbv: f64 = asset.net_book_value.parse().unwrap_or(0.0);
         let accum: f64 = asset.accumulated_depreciation.parse().unwrap_or(0.0);
@@ -733,55 +876,92 @@ impl FixedAssetEngine {
 
         let retirement_number = format!("ARE-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating asset retirement {} for asset {} ({})", retirement_number, asset.asset_number, retirement_type);
+        info!(
+            "Creating asset retirement {} for asset {} ({})",
+            retirement_number, asset.asset_number, retirement_type
+        );
 
-        self.repository.create_retirement(
-            org_id, &retirement_number, asset_id,
-            retirement_type, retirement_date,
-            proceeds, removal_cost,
-            &format!("{nbv:.2}"),
-            &format!("{accum:.2}"),
-            &format!("{:.2}", gain_loss.abs()),
-            Some(gain_loss_type),
-            asset.gain_loss_account_code.as_deref(), // gain account
-            asset.gain_loss_account_code.as_deref(), // loss account
-            None,  // cash account
-            asset.asset_account_code.as_deref(),
-            asset.accum_depr_account_code.as_deref(),
-            reference_number, buyer_name, notes,
-            created_by,
-        ).await
+        self.repository
+            .create_retirement(
+                org_id,
+                &retirement_number,
+                asset_id,
+                retirement_type,
+                retirement_date,
+                proceeds,
+                removal_cost,
+                &format!("{nbv:.2}"),
+                &format!("{accum:.2}"),
+                &format!("{:.2}", gain_loss.abs()),
+                Some(gain_loss_type),
+                asset.gain_loss_account_code.as_deref(), // gain account
+                asset.gain_loss_account_code.as_deref(), // loss account
+                None,                                    // cash account
+                asset.asset_account_code.as_deref(),
+                asset.accum_depr_account_code.as_deref(),
+                reference_number,
+                buyer_name,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Approve an asset retirement
-    pub async fn approve_retirement(&self, retirement_id: Uuid, approved_by: Uuid) -> AtlasResult<AssetRetirement> {
-        let retirement = self.repository.get_retirement(retirement_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Asset retirement {retirement_id} not found")
-            ))?;
+    pub async fn approve_retirement(
+        &self,
+        retirement_id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<AssetRetirement> {
+        let retirement = self
+            .repository
+            .get_retirement(retirement_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Asset retirement {retirement_id} not found"))
+            })?;
 
         if retirement.status != "pending" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve retirement in '{}' status. Must be 'pending'.", retirement.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve retirement in '{}' status. Must be 'pending'.",
+                retirement.status
+            )));
         }
 
         // Update retirement status
-        let retirement = self.repository.update_retirement_status(retirement_id, "approved", Some(approved_by)).await?;
+        let retirement = self
+            .repository
+            .update_retirement_status(retirement_id, "approved", Some(approved_by))
+            .await?;
 
         // Update asset status to retired
         let today = chrono::Utc::now().date_naive();
-        self.repository.update_asset_status(retirement.asset_id, "retired", None, Some(today), Some(today)).await?;
+        self.repository
+            .update_asset_status(
+                retirement.asset_id,
+                "retired",
+                None,
+                Some(today),
+                Some(today),
+            )
+            .await?;
 
         // Mark retirement as completed
-        let retirement = self.repository.update_retirement_status(retirement_id, "completed", None).await?;
+        let retirement = self
+            .repository
+            .update_retirement_status(retirement_id, "completed", None)
+            .await?;
 
         info!("Approved and completed asset retirement {}", retirement_id);
         Ok(retirement)
     }
 
     /// List asset retirements
-    pub async fn list_retirements(&self, org_id: Uuid, asset_id: Option<Uuid>) -> AtlasResult<Vec<AssetRetirement>> {
+    pub async fn list_retirements(
+        &self,
+        org_id: Uuid,
+        asset_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<AssetRetirement>> {
         self.repository.list_retirements(org_id, asset_id).await
     }
 }

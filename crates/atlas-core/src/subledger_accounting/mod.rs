@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > General Ledger > Subledger Accounting
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::SubledgerAccountingEngine;
-pub use repository::{SubledgerAccountingRepository, PostgresSubledgerAccountingRepository};
+pub use repository::{PostgresSubledgerAccountingRepository, SubledgerAccountingRepository};

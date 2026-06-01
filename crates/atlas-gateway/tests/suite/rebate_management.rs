@@ -10,11 +10,11 @@
 //! - Validation edge cases and error handling
 //! - Full end-to-end lifecycle test
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_rebate_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -66,7 +66,9 @@ async fn create_test_agreement(
         .await
         .unwrap();
     let status = resp.status();
-    let b = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
         panic!(
             "Expected CREATED for agreement but got {}: {}",
@@ -109,7 +111,9 @@ async fn create_test_tier(
         .await
         .unwrap();
     let status = resp.status();
-    let b = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
         panic!(
             "Expected CREATED for tier but got {}: {}",
@@ -127,7 +131,14 @@ async fn create_test_tier(
 #[tokio::test]
 async fn test_create_agreement() {
     let (_state, app) = setup_rebate_test().await;
-    let agreement = create_test_agreement(&app, "RBA-001", "Supplier Volume Rebate", "supplier_rebate", "payable").await;
+    let agreement = create_test_agreement(
+        &app,
+        "RBA-001",
+        "Supplier Volume Rebate",
+        "supplier_rebate",
+        "payable",
+    )
+    .await;
     assert_eq!(agreement["agreementNumber"], "RBA-001");
     assert_eq!(agreement["name"], "Supplier Volume Rebate");
     assert_eq!(agreement["rebateType"], "supplier_rebate");
@@ -237,7 +248,8 @@ async fn test_create_agreement_invalid_dates() {
 #[tokio::test]
 async fn test_get_agreement() {
     let (_state, app) = setup_rebate_test().await;
-    let agreement = create_test_agreement(&app, "GET-RBA", "Get Me", "customer_rebate", "receivable").await;
+    let agreement =
+        create_test_agreement(&app, "GET-RBA", "Get Me", "customer_rebate", "receivable").await;
     let id = agreement["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -253,7 +265,9 @@ async fn test_get_agreement() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fetched: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(fetched["agreementNumber"], "GET-RBA");
     assert_eq!(fetched["rebateType"], "customer_rebate");
@@ -262,8 +276,22 @@ async fn test_get_agreement() {
 #[tokio::test]
 async fn test_list_agreements() {
     let (_state, app) = setup_rebate_test().await;
-    create_test_agreement(&app, "LIST-1", "Agreement One", "supplier_rebate", "payable").await;
-    create_test_agreement(&app, "LIST-2", "Agreement Two", "customer_rebate", "receivable").await;
+    create_test_agreement(
+        &app,
+        "LIST-1",
+        "Agreement One",
+        "supplier_rebate",
+        "payable",
+    )
+    .await;
+    create_test_agreement(
+        &app,
+        "LIST-2",
+        "Agreement Two",
+        "customer_rebate",
+        "receivable",
+    )
+    .await;
 
     let (k, v) = auth_header(&admin_claims());
     let resp = app
@@ -278,7 +306,9 @@ async fn test_list_agreements() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 2);
 }
@@ -286,7 +316,8 @@ async fn test_list_agreements() {
 #[tokio::test]
 async fn test_activate_agreement() {
     let (_state, app) = setup_rebate_test().await;
-    let agreement = create_test_agreement(&app, "ACT-RBA", "Activate Me", "supplier_rebate", "payable").await;
+    let agreement =
+        create_test_agreement(&app, "ACT-RBA", "Activate Me", "supplier_rebate", "payable").await;
     let id = agreement["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -303,7 +334,9 @@ async fn test_activate_agreement() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "active");
 }
@@ -311,45 +344,62 @@ async fn test_activate_agreement() {
 #[tokio::test]
 async fn test_hold_and_terminate_agreement() {
     let (_state, app) = setup_rebate_test().await;
-    let agreement = create_test_agreement(&app, "HOLD-RBA", "Hold Me", "supplier_rebate", "payable").await;
+    let agreement =
+        create_test_agreement(&app, "HOLD-RBA", "Hold Me", "supplier_rebate", "payable").await;
     let id = agreement["id"].as_str().unwrap();
 
     // Activate first
     let (k, v) = auth_header(&admin_claims());
-    let _ = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/activate", id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/rebate/agreements/{}/activate", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Hold
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/hold", id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/rebate/agreements/{}/hold", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "on_hold");
 
     // Terminate
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/terminate", id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/rebate/agreements/{}/terminate", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "terminated");
 }
@@ -382,7 +432,14 @@ async fn test_delete_agreement() {
 #[tokio::test]
 async fn test_create_tier() {
     let (_state, app) = setup_rebate_test().await;
-    let agreement = create_test_agreement(&app, "TIER-AG", "Tier Agreement", "supplier_rebate", "payable").await;
+    let agreement = create_test_agreement(
+        &app,
+        "TIER-AG",
+        "Tier Agreement",
+        "supplier_rebate",
+        "payable",
+    )
+    .await;
     let agreement_id = agreement["id"].as_str().unwrap();
 
     let tier = create_test_tier(&app, agreement_id, 1, 0.0, Some(10000.0), 2.0).await;
@@ -396,7 +453,14 @@ async fn test_create_tier() {
 #[tokio::test]
 async fn test_create_tier_invalid_rate_type() {
     let (_state, app) = setup_rebate_test().await;
-    let agreement = create_test_agreement(&app, "TIER-INV", "Invalid Tier", "supplier_rebate", "payable").await;
+    let agreement = create_test_agreement(
+        &app,
+        "TIER-INV",
+        "Invalid Tier",
+        "supplier_rebate",
+        "payable",
+    )
+    .await;
     let agreement_id = agreement["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -427,7 +491,14 @@ async fn test_create_tier_invalid_rate_type() {
 #[tokio::test]
 async fn test_list_tiers() {
     let (_state, app) = setup_rebate_test().await;
-    let agreement = create_test_agreement(&app, "TIER-LIST", "List Tiers", "supplier_rebate", "payable").await;
+    let agreement = create_test_agreement(
+        &app,
+        "TIER-LIST",
+        "List Tiers",
+        "supplier_rebate",
+        "payable",
+    )
+    .await;
     let agreement_id = agreement["id"].as_str().unwrap();
 
     create_test_tier(&app, agreement_id, 1, 0.0, Some(10000.0), 2.0).await;
@@ -447,7 +518,9 @@ async fn test_list_tiers() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(list["data"].as_array().unwrap().len(), 3);
 }
@@ -455,7 +528,8 @@ async fn test_list_tiers() {
 #[tokio::test]
 async fn test_delete_tier() {
     let (_state, app) = setup_rebate_test().await;
-    let agreement = create_test_agreement(&app, "TIER-DEL", "Del Tier", "supplier_rebate", "payable").await;
+    let agreement =
+        create_test_agreement(&app, "TIER-DEL", "Del Tier", "supplier_rebate", "payable").await;
     let agreement_id = agreement["id"].as_str().unwrap();
     let tier = create_test_tier(&app, agreement_id, 1, 0.0, Some(10000.0), 2.0).await;
     let tier_id = tier["id"].as_str().unwrap();
@@ -481,19 +555,33 @@ async fn test_delete_tier() {
 // ============================================================================
 
 async fn setup_active_agreement_with_tiers(app: &axum::Router) -> serde_json::Value {
-    let agreement = create_test_agreement(app, "TXN-AG", "Transaction Agreement", "supplier_rebate", "payable").await;
+    let agreement = create_test_agreement(
+        app,
+        "TXN-AG",
+        "Transaction Agreement",
+        "supplier_rebate",
+        "payable",
+    )
+    .await;
     let agreement_id = agreement["id"].as_str().unwrap();
 
     // Activate
     let (k, v) = auth_header(&admin_claims());
-    let _ = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/activate", agreement_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/activate",
+                    agreement_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Add tiers
     create_test_tier(app, agreement_id, 1, 0.0, Some(10000.0), 2.0).await;
@@ -515,7 +603,10 @@ async fn test_create_transaction() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/transactions",
+                    agreement_id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -537,7 +628,9 @@ async fn test_create_transaction() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let txn: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(txn["transactionNumber"], "TXN-001");
     assert_eq!(txn["status"], "eligible");
@@ -557,7 +650,10 @@ async fn test_create_transaction_higher_tier() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/transactions",
+                    agreement_id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -575,7 +671,9 @@ async fn test_create_transaction_higher_tier() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let txn: serde_json::Value = serde_json::from_slice(&body).unwrap();
     // 25000 qualifies for tier 2 (10000-50000): 3.5% -> 875.0
     assert!((txn["rebateAmount"].as_f64().unwrap() - 875.0).abs() < 0.01);
@@ -592,30 +690,45 @@ async fn test_create_transaction_duplicate_conflict() {
         "transactionNumber": "DUP-TXN",
         "transactionDate": "2024-03-15",
         "transactionAmount": 5000.0
-    })).unwrap();
+    }))
+    .unwrap();
 
     // First should succeed
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(body.clone()))
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/transactions",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(body.clone()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
 
     // Second should conflict
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(body))
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/transactions",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CONFLICT);
 }
 
@@ -627,32 +740,49 @@ async fn test_list_transactions() {
 
     let (k, v) = auth_header(&admin_claims());
     for num in ["TXN-L1", "TXN-L2"] {
-        let _ = app.clone().oneshot(
-            Request::builder()
-                .method("POST")
-                .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
-                .header("Content-Type", "application/json")
-                .header(&k, &v)
-                .body(Body::from(
-                    serde_json::to_string(&json!({
-                        "transactionNumber": num,
-                        "transactionDate": "2024-03-15",
-                        "transactionAmount": 3000.0
-                    })).unwrap(),
-                ))
-                .unwrap(),
-        ).await.unwrap();
+        let _ = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!(
+                        "/api/v1/rebate/agreements/{}/transactions",
+                        agreement_id
+                    ))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({
+                            "transactionNumber": num,
+                            "transactionDate": "2024-03-15",
+                            "transactionAmount": 3000.0
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/transactions",
+                    agreement_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 2);
 }
@@ -664,39 +794,58 @@ async fn test_update_transaction_status() {
     let agreement_id = agreement["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "transactionNumber": "STATUS-TXN",
-                    "transactionDate": "2024-03-15",
-                    "transactionAmount": 5000.0
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/transactions",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "transactionNumber": "STATUS-TXN",
+                        "transactionDate": "2024-03-15",
+                        "transactionAmount": 5000.0
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let txn: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let txn_id = txn["id"].as_str().unwrap();
 
     // Exclude the transaction
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/transactions/{}/status", txn_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({"status": "excluded", "reason": "Duplicate invoice"})).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/rebate/transactions/{}/status", txn_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(
+                        &json!({"status": "excluded", "reason": "Duplicate invoice"}),
+                    )
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "excluded");
 }
@@ -713,41 +862,59 @@ async fn test_create_accrual() {
 
     // Create a transaction first
     let (k, v) = auth_header(&admin_claims());
-    let _ = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "transactionNumber": "ACC-TXN",
-                    "transactionDate": "2024-03-15",
-                    "transactionAmount": 7500.0
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/transactions",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "transactionNumber": "ACC-TXN",
+                        "transactionDate": "2024-03-15",
+                        "transactionAmount": 7500.0
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Create accrual
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/accruals", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "accrualNumber": "ACC-001",
-                    "accrualDate": "2024-03-31",
-                    "accrualPeriod": "2024-Q1",
-                    "notes": "Q1 accrual"
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/accruals",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "accrualNumber": "ACC-001",
+                        "accrualDate": "2024-03-31",
+                        "accrualPeriod": "2024-Q1",
+                        "notes": "Q1 accrual"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let accrual: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(accrual["accrualNumber"], "ACC-001");
     assert_eq!(accrual["status"], "draft");
@@ -763,65 +930,95 @@ async fn test_post_and_reverse_accrual() {
 
     let (k, v) = auth_header(&admin_claims());
     // Create transaction + accrual
-    let _ = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "transactionNumber": "REV-TXN",
-                    "transactionDate": "2024-03-15",
-                    "transactionAmount": 5000.0
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/transactions",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "transactionNumber": "REV-TXN",
+                        "transactionDate": "2024-03-15",
+                        "transactionAmount": 5000.0
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/accruals", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "accrualNumber": "REV-ACC",
-                    "accrualDate": "2024-03-31"
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/accruals",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "accrualNumber": "REV-ACC",
+                        "accrualDate": "2024-03-31"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let accrual: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let accrual_id = accrual["id"].as_str().unwrap();
 
     // Post it
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/accruals/{}/post", accrual_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/rebate/accruals/{}/post", accrual_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let posted: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(posted["status"], "posted");
 
     // Reverse it
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/accruals/{}/reverse", accrual_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/rebate/accruals/{}/reverse", accrual_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let reversed: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(reversed["status"], "reversed");
 }
@@ -840,61 +1037,87 @@ async fn test_settlement_lifecycle() {
 
     // Create transactions
     for (num, amt) in [("SET-TXN1", 3000.0), ("SET-TXN2", 4000.0)] {
-        let _ = app.clone().oneshot(
+        let _ = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!(
+                        "/api/v1/rebate/agreements/{}/transactions",
+                        agreement_id
+                    ))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({
+                            "transactionNumber": num,
+                            "transactionDate": "2024-03-15",
+                            "transactionAmount": amt
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+    }
+
+    // Create accrual to mark them as accrued
+    let _ = app
+        .clone()
+        .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/accruals",
+                    agreement_id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
                     serde_json::to_string(&json!({
-                        "transactionNumber": num,
-                        "transactionDate": "2024-03-15",
-                        "transactionAmount": amt
-                    })).unwrap(),
+                        "accrualNumber": "SET-ACC",
+                        "accrualDate": "2024-03-31"
+                    }))
+                    .unwrap(),
                 ))
                 .unwrap(),
-        ).await.unwrap();
-    }
-
-    // Create accrual to mark them as accrued
-    let _ = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/accruals", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "accrualNumber": "SET-ACC",
-                    "accrualDate": "2024-03-31"
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+        )
+        .await
+        .unwrap();
 
     // Create settlement
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/settlements", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "settlementNumber": "SET-001",
-                    "settlementDate": "2024-04-15",
-                    "settlementPeriodFrom": "2024-01-01",
-                    "settlementPeriodTo": "2024-03-31",
-                    "settlementType": "payment",
-                    "paymentMethod": "ach",
-                    "notes": "Q1 settlement"
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/settlements",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "settlementNumber": "SET-001",
+                        "settlementDate": "2024-04-15",
+                        "settlementPeriodFrom": "2024-01-01",
+                        "settlementPeriodTo": "2024-03-31",
+                        "settlementType": "payment",
+                        "paymentMethod": "ach",
+                        "notes": "Q1 settlement"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let settlement: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(settlement["settlementNumber"], "SET-001");
     assert_eq!(settlement["status"], "pending");
@@ -904,43 +1127,67 @@ async fn test_settlement_lifecycle() {
     let settlement_id = settlement["id"].as_str().unwrap();
 
     // Approve
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/settlements/{}/approve", settlement_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/settlements/{}/approve",
+                    settlement_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let approved: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(approved["status"], "approved");
 
     // Pay
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/settlements/{}/pay", settlement_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/rebate/settlements/{}/pay", settlement_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let paid: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(paid["status"], "paid");
 
     // Check settlement lines
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri(format!("/api/v1/rebate/settlements/{}/lines", settlement_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!(
+                    "/api/v1/rebate/settlements/{}/lines",
+                    settlement_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let lines: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(lines["data"].as_array().unwrap().len(), 2);
 }
@@ -954,63 +1201,100 @@ async fn test_cancel_settlement() {
     let (k, v) = auth_header(&admin_claims());
 
     // Create transaction + accrual + settlement
-    let _ = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "transactionNumber": "CNL-TXN",
-                    "transactionDate": "2024-03-15",
-                    "transactionAmount": 5000.0
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/transactions",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "transactionNumber": "CNL-TXN",
+                        "transactionDate": "2024-03-15",
+                        "transactionAmount": 5000.0
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let _ = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/accruals", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({"accrualNumber": "CNL-ACC", "accrualDate": "2024-03-31"})).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/accruals",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(
+                        &json!({"accrualNumber": "CNL-ACC", "accrualDate": "2024-03-31"}),
+                    )
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/settlements", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "settlementNumber": "CNL-SET",
-                    "settlementDate": "2024-04-15"
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/settlements",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "settlementNumber": "CNL-SET",
+                        "settlementDate": "2024-04-15"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let settlement: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let settlement_id = settlement["id"].as_str().unwrap();
 
     // Cancel
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/settlements/{}/cancel", settlement_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/settlements/{}/cancel",
+                    settlement_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cancelled: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
@@ -1022,8 +1306,22 @@ async fn test_cancel_settlement() {
 #[tokio::test]
 async fn test_rebate_dashboard() {
     let (_state, app) = setup_rebate_test().await;
-    create_test_agreement(&app, "DASH-1", "Dashboard Agreement 1", "supplier_rebate", "payable").await;
-    create_test_agreement(&app, "DASH-2", "Dashboard Agreement 2", "customer_rebate", "receivable").await;
+    create_test_agreement(
+        &app,
+        "DASH-1",
+        "Dashboard Agreement 1",
+        "supplier_rebate",
+        "payable",
+    )
+    .await;
+    create_test_agreement(
+        &app,
+        "DASH-2",
+        "Dashboard Agreement 2",
+        "customer_rebate",
+        "receivable",
+    )
+    .await;
 
     let (k, v) = auth_header(&admin_claims());
     let resp = app
@@ -1038,7 +1336,9 @@ async fn test_rebate_dashboard() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(dashboard["totalAgreements"].as_i64().unwrap() >= 2);
 }
@@ -1054,7 +1354,14 @@ async fn test_rebate_full_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     // 1. Create a supplier rebate agreement
-    let agreement = create_test_agreement(&app, "LIFE-AG", "Full Lifecycle Agreement", "supplier_rebate", "payable").await;
+    let agreement = create_test_agreement(
+        &app,
+        "LIFE-AG",
+        "Full Lifecycle Agreement",
+        "supplier_rebate",
+        "payable",
+    )
+    .await;
     let agreement_id = agreement["id"].as_str().unwrap();
     assert_eq!(agreement["status"], "draft");
 
@@ -1064,128 +1371,186 @@ async fn test_rebate_full_lifecycle() {
     create_test_tier(&app, agreement_id, 3, 50000.0, None, 5.0).await;
 
     // 3. Activate the agreement
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/activate", agreement_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/activate",
+                    agreement_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 4. Record qualifying transactions
     for (num, amt) in [("LIFE-TXN1", 6000.0), ("LIFE-TXN2", 8000.0)] {
-        let resp = app.clone().oneshot(
-            Request::builder()
-                .method("POST")
-                .uri(format!("/api/v1/rebate/agreements/{}/transactions", agreement_id))
-                .header("Content-Type", "application/json")
-                .header(&k, &v)
-                .body(Body::from(
-                    serde_json::to_string(&json!({
-                        "transactionNumber": num,
-                        "transactionDate": "2024-02-15",
-                        "transactionAmount": amt
-                    })).unwrap(),
-                ))
-                .unwrap(),
-        ).await.unwrap();
+        let resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!(
+                        "/api/v1/rebate/agreements/{}/transactions",
+                        agreement_id
+                    ))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({
+                            "transactionNumber": num,
+                            "transactionDate": "2024-02-15",
+                            "transactionAmount": amt
+                        }))
+                        .unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::CREATED);
     }
 
     // 5. Create an accrual
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/accruals", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "accrualNumber": "LIFE-ACC",
-                    "accrualDate": "2024-03-31",
-                    "accrualPeriod": "2024-Q1"
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/accruals",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "accrualNumber": "LIFE-ACC",
+                        "accrualDate": "2024-03-31",
+                        "accrualPeriod": "2024-Q1"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let accrual: serde_json::Value = serde_json::from_slice(&body).unwrap();
     // Total: 6000 + 8000 = 14000 in tier 2: 3.5% = 490.0
     assert!((accrual["accruedAmount"].as_f64().unwrap() - 490.0).abs() < 0.01);
     let accrual_id = accrual["id"].as_str().unwrap();
 
     // 6. Post the accrual
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/accruals/{}/post", accrual_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/rebate/accruals/{}/post", accrual_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 7. Create settlement
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/agreements/{}/settlements", agreement_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "settlementNumber": "LIFE-SET",
-                    "settlementDate": "2024-04-10",
-                    "settlementType": "payment",
-                    "paymentMethod": "wire"
-                })).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/agreements/{}/settlements",
+                    agreement_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "settlementNumber": "LIFE-SET",
+                        "settlementDate": "2024-04-10",
+                        "settlementType": "payment",
+                        "paymentMethod": "wire"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let settlement: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let settlement_id = settlement["id"].as_str().unwrap();
     assert!((settlement["settlementAmount"].as_f64().unwrap() - 490.0).abs() < 0.01);
 
     // 8. Approve settlement
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/settlements/{}/approve", settlement_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/rebate/settlements/{}/approve",
+                    settlement_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 9. Pay settlement
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/rebate/settlements/{}/pay", settlement_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/rebate/settlements/{}/pay", settlement_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let paid: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(paid["status"], "paid");
 
     // 10. Verify dashboard shows the data
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri("/api/v1/rebate/dashboard")
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/rebate/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(dashboard["totalAgreements"].as_i64().unwrap() >= 1);
 }

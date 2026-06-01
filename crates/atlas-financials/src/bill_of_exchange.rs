@@ -10,7 +10,7 @@ pub struct BoEResult {
 
 impl BillOfExchangeService {
     /// Creates and processes a Bill of Exchange (BoE) document.
-    /// This is an Oracle Fusion Financials feature for managing bills of exchange, 
+    /// This is an Oracle Fusion Financials feature for managing bills of exchange,
     /// a written order used primarily in international trade that binds one party to pay a fixed sum of money to another party on demand or at a predetermined date.
     #[must_use]
     pub fn process_boe(drawee_id: &str, amount: f64, days_to_maturity: u32) -> BoEResult {
@@ -19,7 +19,7 @@ impl BillOfExchangeService {
         } else {
             "REJECTED".to_string()
         };
-        
+
         let document_id = if amount > 0.0 {
             format!("BOE-{}-{}", drawee_id, days_to_maturity)
         } else {
@@ -28,7 +28,7 @@ impl BillOfExchangeService {
 
         // Simplified maturity date calculation for demonstration purposes
         let maturity_date = format!("T+{} days", days_to_maturity);
-        
+
         BoEResult {
             document_id,
             drawee_id: drawee_id.to_string(),

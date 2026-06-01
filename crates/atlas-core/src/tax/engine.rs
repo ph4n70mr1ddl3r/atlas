@@ -5,35 +5,33 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Tax > Tax Configuration and Calculation
 
-use atlas_shared::{
-    TaxRegime, TaxJurisdiction, TaxRate, TaxDeterminationRule, TaxLine,
-    TaxCalculationRequest, TaxCalculationResult, TaxLineResult,
-    AtlasError, AtlasResult,
-};
 use super::TaxRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, TaxCalculationRequest, TaxCalculationResult, TaxDeterminationRule,
+    TaxJurisdiction, TaxLine, TaxLineResult, TaxRate, TaxRegime,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid tax types
 const VALID_TAX_TYPES: &[&str] = &[
-    "sales_tax", "vat", "gst", "withholding", "excise", "customs",
+    "sales_tax",
+    "vat",
+    "gst",
+    "withholding",
+    "excise",
+    "customs",
 ];
 
 /// Valid rate types
-const VALID_RATE_TYPES: &[&str] = &[
-    "standard", "reduced", "zero", "exempt",
-];
+const VALID_RATE_TYPES: &[&str] = &["standard", "reduced", "zero", "exempt"];
 
 /// Valid rounding rules
-const VALID_ROUNDING_RULES: &[&str] = &[
-    "nearest", "up", "down", "none",
-];
+const VALID_ROUNDING_RULES: &[&str] = &["nearest", "up", "down", "none"];
 
 /// Valid geographic levels
-const VALID_GEOGRAPHIC_LEVELS: &[&str] = &[
-    "country", "state", "county", "city", "region",
-];
+const VALID_GEOGRAPHIC_LEVELS: &[&str] = &["country", "state", "county", "city", "region"];
 
 /// Tax engine for managing tax configuration and calculations
 pub struct TaxEngine {
@@ -79,12 +77,16 @@ impl TaxEngine {
         }
         if !VALID_TAX_TYPES.contains(&tax_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid tax_type '{}'. Must be one of: {}", tax_type, VALID_TAX_TYPES.join(", ")
+                "Invalid tax_type '{}'. Must be one of: {}",
+                tax_type,
+                VALID_TAX_TYPES.join(", ")
             )));
         }
         if !VALID_ROUNDING_RULES.contains(&rounding_rule) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid rounding_rule '{}'. Must be one of: {}", rounding_rule, VALID_ROUNDING_RULES.join(", ")
+                "Invalid rounding_rule '{}'. Must be one of: {}",
+                rounding_rule,
+                VALID_ROUNDING_RULES.join(", ")
             )));
         }
         if !(0..=6).contains(&rounding_precision) {
@@ -100,18 +102,34 @@ impl TaxEngine {
             }
         }
 
-        info!("Creating tax regime '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating tax regime '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_regime(
-            org_id, &code_upper, name, description, tax_type,
-            default_inclusive, allows_recovery, rounding_rule,
-            rounding_precision, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_regime(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                tax_type,
+                default_inclusive,
+                allows_recovery,
+                rounding_rule,
+                rounding_precision,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a tax regime by code
     pub async fn get_regime(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<TaxRegime>> {
-        self.repository.get_regime(org_id, &code.to_uppercase()).await
+        self.repository
+            .get_regime(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List all tax regimes for an organization
@@ -122,7 +140,9 @@ impl TaxEngine {
     /// Deactivate a tax regime
     pub async fn delete_regime(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deactivating tax regime '{}' for org {}", code, org_id);
-        self.repository.delete_regime(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_regime(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -145,10 +165,9 @@ impl TaxEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxJurisdiction> {
         // Validate regime exists
-        let regime = self.get_regime(org_id, regime_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Tax regime '{regime_code}' not found")
-            ))?;
+        let regime = self.get_regime(org_id, regime_code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax regime '{regime_code}' not found"))
+        })?;
 
         if code.is_empty() {
             return Err(AtlasError::ValidationFailed(
@@ -163,17 +182,31 @@ impl TaxEngine {
         if !VALID_GEOGRAPHIC_LEVELS.contains(&geographic_level) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid geographic_level '{}'. Must be one of: {}",
-                geographic_level, VALID_GEOGRAPHIC_LEVELS.join(", ")
+                geographic_level,
+                VALID_GEOGRAPHIC_LEVELS.join(", ")
             )));
         }
 
-        info!("Creating tax jurisdiction '{}' for regime {} org {}", code, regime_code, org_id);
+        info!(
+            "Creating tax jurisdiction '{}' for regime {} org {}",
+            code, regime_code, org_id
+        );
 
-        self.repository.create_jurisdiction(
-            org_id, regime.id, &code.to_uppercase(), name,
-            geographic_level, country_code, state_code, county, city,
-            postal_code_pattern, created_by,
-        ).await
+        self.repository
+            .create_jurisdiction(
+                org_id,
+                regime.id,
+                &code.to_uppercase(),
+                name,
+                geographic_level,
+                country_code,
+                state_code,
+                county,
+                city,
+                postal_code_pattern,
+                created_by,
+            )
+            .await
     }
 
     /// List jurisdictions for a regime
@@ -184,33 +217,46 @@ impl TaxEngine {
     ) -> AtlasResult<Vec<TaxJurisdiction>> {
         match regime_code {
             Some(rc) => {
-                let regime = self.get_regime(org_id, rc).await?
-                    .ok_or_else(|| AtlasError::EntityNotFound(
-                        format!("Tax regime '{rc}' not found")
-                    ))?;
-                self.repository.list_jurisdictions(org_id, Some(regime.id)).await
+                let regime = self.get_regime(org_id, rc).await?.ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Tax regime '{rc}' not found"))
+                })?;
+                self.repository
+                    .list_jurisdictions(org_id, Some(regime.id))
+                    .await
             }
             None => self.repository.list_jurisdictions(org_id, None).await,
         }
     }
 
     /// Get a jurisdiction by code
-    pub async fn get_jurisdiction(&self, org_id: Uuid, regime_code: &str, code: &str) -> AtlasResult<Option<TaxJurisdiction>> {
-        let regime = self.get_regime(org_id, regime_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Tax regime '{regime_code}' not found")
-            ))?;
-        self.repository.get_jurisdiction(org_id, regime.id, &code.to_uppercase()).await
+    pub async fn get_jurisdiction(
+        &self,
+        org_id: Uuid,
+        regime_code: &str,
+        code: &str,
+    ) -> AtlasResult<Option<TaxJurisdiction>> {
+        let regime = self.get_regime(org_id, regime_code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax regime '{regime_code}' not found"))
+        })?;
+        self.repository
+            .get_jurisdiction(org_id, regime.id, &code.to_uppercase())
+            .await
     }
 
     /// Deactivate a jurisdiction
-    pub async fn delete_jurisdiction(&self, org_id: Uuid, regime_code: &str, code: &str) -> AtlasResult<()> {
-        let regime = self.get_regime(org_id, regime_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Tax regime '{regime_code}' not found")
-            ))?;
+    pub async fn delete_jurisdiction(
+        &self,
+        org_id: Uuid,
+        regime_code: &str,
+        code: &str,
+    ) -> AtlasResult<()> {
+        let regime = self.get_regime(org_id, regime_code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax regime '{regime_code}' not found"))
+        })?;
         info!("Deactivating jurisdiction '{}' for org {}", code, org_id);
-        self.repository.delete_jurisdiction(org_id, regime.id, &code.to_uppercase()).await
+        self.repository
+            .delete_jurisdiction(org_id, regime.id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -235,26 +281,30 @@ impl TaxEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxRate> {
         // Validate regime exists
-        let regime = self.get_regime(org_id, regime_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Tax regime '{regime_code}' not found")
-            ))?;
+        let regime = self.get_regime(org_id, regime_code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax regime '{regime_code}' not found"))
+        })?;
 
         // Validate jurisdiction if provided
         let jurisdiction_id = if let Some(jc) = jurisdiction_code {
-            let juris = self.repository.get_jurisdiction(org_id, regime.id, &jc.to_uppercase()).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Tax jurisdiction '{jc}' not found in regime '{regime_code}'")
-                ))?;
+            let juris = self
+                .repository
+                .get_jurisdiction(org_id, regime.id, &jc.to_uppercase())
+                .await?
+                .ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!(
+                        "Tax jurisdiction '{jc}' not found in regime '{regime_code}'"
+                    ))
+                })?;
             Some(juris.id)
         } else {
             None
         };
 
         // Validate inputs
-        let rate_pct: f64 = rate_percentage.parse().map_err(|_| AtlasError::ValidationFailed(
-            "rate_percentage must be a valid number".to_string(),
-        ))?;
+        let rate_pct: f64 = rate_percentage.parse().map_err(|_| {
+            AtlasError::ValidationFailed("rate_percentage must be a valid number".to_string())
+        })?;
         if rate_pct < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "rate_percentage must be non-negative".to_string(),
@@ -263,7 +313,9 @@ impl TaxEngine {
 
         if !VALID_RATE_TYPES.contains(&rate_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid rate_type '{}'. Must be one of: {}", rate_type, VALID_RATE_TYPES.join(", ")
+                "Invalid rate_type '{}'. Must be one of: {}",
+                rate_type,
+                VALID_RATE_TYPES.join(", ")
             )));
         }
 
@@ -276,9 +328,11 @@ impl TaxEngine {
         }
 
         let recovery_pct = if let Some(rp) = recovery_percentage {
-            let val: f64 = rp.parse().map_err(|_| AtlasError::ValidationFailed(
-                "recovery_percentage must be a valid number".to_string(),
-            ))?;
+            let val: f64 = rp.parse().map_err(|_| {
+                AtlasError::ValidationFailed(
+                    "recovery_percentage must be a valid number".to_string(),
+                )
+            })?;
             if !(0.0..=100.0).contains(&val) {
                 return Err(AtlasError::ValidationFailed(
                     "recovery_percentage must be between 0 and 100".to_string(),
@@ -289,14 +343,28 @@ impl TaxEngine {
             None
         };
 
-        info!("Creating tax rate '{}' ({}) = {}% for org {}", code, name, rate_percentage, org_id);
+        info!(
+            "Creating tax rate '{}' ({}) = {}% for org {}",
+            code, name, rate_percentage, org_id
+        );
 
-        self.repository.create_tax_rate(
-            org_id, regime.id, jurisdiction_id.as_ref(),
-            code, name, rate_percentage, rate_type,
-            tax_account_code, recoverable, recovery_pct.as_deref(),
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_tax_rate(
+                org_id,
+                regime.id,
+                jurisdiction_id.as_ref(),
+                code,
+                name,
+                rate_percentage,
+                rate_type,
+                tax_account_code,
+                recoverable,
+                recovery_pct.as_deref(),
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// List tax rates for a regime
@@ -305,19 +373,22 @@ impl TaxEngine {
         org_id: Uuid,
         regime_code: &str,
     ) -> AtlasResult<Vec<TaxRate>> {
-        let regime = self.get_regime(org_id, regime_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Tax regime '{regime_code}' not found")
-            ))?;
+        let regime = self.get_regime(org_id, regime_code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax regime '{regime_code}' not found"))
+        })?;
         self.repository.list_tax_rates(org_id, regime.id).await
     }
 
     /// Get a specific tax rate
-    pub async fn get_tax_rate(&self, org_id: Uuid, regime_code: &str, code: &str) -> AtlasResult<Option<TaxRate>> {
-        let regime = self.get_regime(org_id, regime_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Tax regime '{regime_code}' not found")
-            ))?;
+    pub async fn get_tax_rate(
+        &self,
+        org_id: Uuid,
+        regime_code: &str,
+        code: &str,
+    ) -> AtlasResult<Option<TaxRate>> {
+        let regime = self.get_regime(org_id, regime_code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax regime '{regime_code}' not found"))
+        })?;
         self.repository.get_tax_rate(org_id, regime.id, code).await
     }
 
@@ -333,17 +404,25 @@ impl TaxEngine {
         regime_id: Uuid,
         on_date: chrono::NaiveDate,
     ) -> AtlasResult<Vec<TaxRate>> {
-        self.repository.get_effective_tax_rates(org_id, regime_id, on_date).await
+        self.repository
+            .get_effective_tax_rates(org_id, regime_id, on_date)
+            .await
     }
 
     /// Deactivate a tax rate
-    pub async fn delete_tax_rate(&self, org_id: Uuid, regime_code: &str, code: &str) -> AtlasResult<()> {
-        let regime = self.get_regime(org_id, regime_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Tax regime '{regime_code}' not found")
-            ))?;
+    pub async fn delete_tax_rate(
+        &self,
+        org_id: Uuid,
+        regime_code: &str,
+        code: &str,
+    ) -> AtlasResult<()> {
+        let regime = self.get_regime(org_id, regime_code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax regime '{regime_code}' not found"))
+        })?;
         info!("Deactivating tax rate '{}' for org {}", code, org_id);
-        self.repository.delete_tax_rate(org_id, regime.id, code).await
+        self.repository
+            .delete_tax_rate(org_id, regime.id, code)
+            .await
     }
 
     // ========================================================================
@@ -365,10 +444,9 @@ impl TaxEngine {
         effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxDeterminationRule> {
-        let regime = self.get_regime(org_id, regime_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Tax regime '{regime_code}' not found")
-            ))?;
+        let regime = self.get_regime(org_id, regime_code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax regime '{regime_code}' not found"))
+        })?;
 
         // Validate action has tax_rate_codes
         if let Some(codes) = action.get("tax_rate_codes") {
@@ -383,13 +461,26 @@ impl TaxEngine {
             ));
         }
 
-        info!("Creating tax determination rule '{}' for regime {} org {}", name, regime_code, org_id);
+        info!(
+            "Creating tax determination rule '{}' for regime {} org {}",
+            name, regime_code, org_id
+        );
 
-        self.repository.create_determination_rule(
-            org_id, regime.id, name, description, priority,
-            condition, action, stop_on_match,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_determination_rule(
+                org_id,
+                regime.id,
+                name,
+                description,
+                priority,
+                condition,
+                action,
+                stop_on_match,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// List determination rules for a regime
@@ -398,11 +489,12 @@ impl TaxEngine {
         org_id: Uuid,
         regime_code: &str,
     ) -> AtlasResult<Vec<TaxDeterminationRule>> {
-        let regime = self.get_regime(org_id, regime_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Tax regime '{regime_code}' not found")
-            ))?;
-        self.repository.list_determination_rules(org_id, regime.id).await
+        let regime = self.get_regime(org_id, regime_code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax regime '{regime_code}' not found"))
+        })?;
+        self.repository
+            .list_determination_rules(org_id, regime.id)
+            .await
     }
 
     /// Find matching determination rules for a given context
@@ -412,17 +504,26 @@ impl TaxEngine {
         regime_id: Uuid,
         context: &serde_json::Value,
     ) -> AtlasResult<Vec<TaxDeterminationRule>> {
-        let all_rules = self.repository.list_determination_rules(org_id, regime_id).await?;
+        let all_rules = self
+            .repository
+            .list_determination_rules(org_id, regime_id)
+            .await?;
         let today = chrono::Utc::now().date_naive();
 
         let mut matching = Vec::new();
         for rule in all_rules {
-            if !rule.is_active { continue; }
+            if !rule.is_active {
+                continue;
+            }
             if let Some(from) = rule.effective_from {
-                if today < from { continue; }
+                if today < from {
+                    continue;
+                }
             }
             if let Some(to) = rule.effective_to {
-                if today > to { continue; }
+                if today > to {
+                    continue;
+                }
             }
             if self.matches_condition(&rule.condition, context) {
                 matching.push(rule);
@@ -435,7 +536,11 @@ impl TaxEngine {
     }
 
     /// Simple condition matching
-    fn matches_condition(&self, condition: &serde_json::Value, context: &serde_json::Value) -> bool {
+    fn matches_condition(
+        &self,
+        condition: &serde_json::Value,
+        context: &serde_json::Value,
+    ) -> bool {
         if condition.is_object() {
             let cond_obj = condition.as_object().unwrap();
             if cond_obj.is_empty() {
@@ -486,9 +591,9 @@ impl TaxEngine {
         let mut total_non_recoverable = 0.0_f64;
 
         for line in &request.lines {
-            let amount: f64 = line.amount.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Line amount must be a valid number".to_string(),
-            ))?;
+            let amount: f64 = line.amount.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Line amount must be a valid number".to_string())
+            })?;
 
             // Determine which tax rates to apply
             let tax_rate_codes = if let Some(codes) = &line.tax_rate_codes {
@@ -496,7 +601,8 @@ impl TaxEngine {
                 codes.clone()
             } else {
                 // Use determination rules
-                self.determine_tax_rates(org_id, &request.context, line, today).await?
+                self.determine_tax_rates(org_id, &request.context, line, today)
+                    .await?
             };
 
             if tax_rate_codes.is_empty() {
@@ -505,16 +611,22 @@ impl TaxEngine {
             }
 
             for rate_code in &tax_rate_codes {
-                let tax_rate = self.repository.get_tax_rate_by_code(org_id, rate_code).await?
-                    .ok_or_else(|| AtlasError::EntityNotFound(
-                        format!("Tax rate '{rate_code}' not found")
-                    ))?;
+                let tax_rate = self
+                    .repository
+                    .get_tax_rate_by_code(org_id, rate_code)
+                    .await?
+                    .ok_or_else(|| {
+                        AtlasError::EntityNotFound(format!("Tax rate '{rate_code}' not found"))
+                    })?;
 
                 // Get the regime for rounding info
-                let regime = self.repository.get_regime_by_id(tax_rate.regime_id).await?
-                    .ok_or_else(|| AtlasError::EntityNotFound(
-                        "Tax regime not found".to_string()
-                    ))?;
+                let regime = self
+                    .repository
+                    .get_regime_by_id(tax_rate.regime_id)
+                    .await?
+                    .ok_or_else(|| {
+                        AtlasError::EntityNotFound("Tax regime not found".to_string())
+                    })?;
 
                 let is_inclusive = line.is_inclusive.unwrap_or(regime.default_inclusive);
                 let precision = regime.rounding_precision;
@@ -539,11 +651,16 @@ impl TaxEngine {
 
                 // Recovery calculation
                 let (recoverable_amt, non_recoverable_amt) = if tax_rate.recoverable {
-                    let rec_pct: f64 = tax_rate.recovery_percentage
+                    let rec_pct: f64 = tax_rate
+                        .recovery_percentage
                         .as_ref()
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(100.0);
-                    let rec = self.round(tax_amount * rec_pct / 100.0, &regime.rounding_rule, precision);
+                    let rec = self.round(
+                        tax_amount * rec_pct / 100.0,
+                        &regime.rounding_rule,
+                        precision,
+                    );
                     let non_rec = self.round(tax_amount - rec, &regime.rounding_rule, precision);
                     (Some(rec), Some(non_rec))
                 } else {
@@ -581,25 +698,28 @@ impl TaxEngine {
                         } else {
                             None
                         };
-                        let _ = self.repository.create_tax_line(
-                            org_id,
-                            &request.entity_type,
-                            entity_id,
-                            line.line_id,
-                            Some(tax_rate.regime_id),
-                            tax_rate.jurisdiction_id,
-                            tax_rate.id,
-                            &format!("{taxable_amount:.2}"),
-                            &rate_pct_str,
-                            &format!("{tax_amount:.2}"),
-                            is_inclusive,
-                            inclusive_original.as_deref(),
-                            recoverable_amt.map(|v| format!("{v:.2}")).as_deref(),
-                            non_recoverable_amt.map(|v| format!("{v:.2}")).as_deref(),
-                            tax_rate.tax_account_code.as_deref(),
-                            None,
-                            created_by,
-                        ).await;
+                        let _ = self
+                            .repository
+                            .create_tax_line(
+                                org_id,
+                                &request.entity_type,
+                                entity_id,
+                                line.line_id,
+                                Some(tax_rate.regime_id),
+                                tax_rate.jurisdiction_id,
+                                tax_rate.id,
+                                &format!("{taxable_amount:.2}"),
+                                &rate_pct_str,
+                                &format!("{tax_amount:.2}"),
+                                is_inclusive,
+                                inclusive_original.as_deref(),
+                                recoverable_amt.map(|v| format!("{v:.2}")).as_deref(),
+                                non_recoverable_amt.map(|v| format!("{v:.2}")).as_deref(),
+                                tax_rate.tax_account_code.as_deref(),
+                                None,
+                                created_by,
+                            )
+                            .await;
                     }
                 }
             }
@@ -626,19 +746,34 @@ impl TaxEngine {
         let mut line_context = context.clone();
         if let Some(obj) = line_context.as_object_mut() {
             if let Some(pc) = &line.product_category {
-                obj.insert("product_category".to_string(), serde_json::Value::String(pc.clone()));
+                obj.insert(
+                    "product_category".to_string(),
+                    serde_json::Value::String(pc.clone()),
+                );
             }
             if let Some(pcode) = &line.product_code {
-                obj.insert("product_code".to_string(), serde_json::Value::String(pcode.clone()));
+                obj.insert(
+                    "product_code".to_string(),
+                    serde_json::Value::String(pcode.clone()),
+                );
             }
             if let Some(sfc) = &line.ship_from_country {
-                obj.insert("ship_from_country".to_string(), serde_json::Value::String(sfc.clone()));
+                obj.insert(
+                    "ship_from_country".to_string(),
+                    serde_json::Value::String(sfc.clone()),
+                );
             }
             if let Some(stc) = &line.ship_to_country {
-                obj.insert("ship_to_country".to_string(), serde_json::Value::String(stc.clone()));
+                obj.insert(
+                    "ship_to_country".to_string(),
+                    serde_json::Value::String(stc.clone()),
+                );
             }
             if let Some(sts) = &line.ship_to_state {
-                obj.insert("ship_to_state".to_string(), serde_json::Value::String(sts.clone()));
+                obj.insert(
+                    "ship_to_state".to_string(),
+                    serde_json::Value::String(sts.clone()),
+                );
             }
         }
 
@@ -647,15 +782,23 @@ impl TaxEngine {
         let mut rate_codes = Vec::new();
 
         for regime in &regimes {
-            if !regime.is_active { continue; }
+            if !regime.is_active {
+                continue;
+            }
             if let Some(from) = regime.effective_from {
-                if on_date < from { continue; }
+                if on_date < from {
+                    continue;
+                }
             }
             if let Some(to) = regime.effective_to {
-                if on_date > to { continue; }
+                if on_date > to {
+                    continue;
+                }
             }
 
-            let rules = self.find_matching_rules(org_id, regime.id, &line_context).await?;
+            let rules = self
+                .find_matching_rules(org_id, regime.id, &line_context)
+                .await?;
             for rule in &rules {
                 if let Some(codes) = rule.action.get("tax_rate_codes") {
                     if let Some(arr) = codes.as_array() {
@@ -715,25 +858,33 @@ impl TaxEngine {
             ));
         }
 
-        let regime = self.get_regime(org_id, regime_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Tax regime '{regime_code}' not found")
-            ))?;
+        let regime = self.get_regime(org_id, regime_code).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax regime '{regime_code}' not found"))
+        })?;
 
         let jurisdiction_id = if let Some(jc) = jurisdiction_code {
-            let juris = self.repository.get_jurisdiction(org_id, regime.id, &jc.to_uppercase()).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Tax jurisdiction '{jc}' not found")
-                ))?;
+            let juris = self
+                .repository
+                .get_jurisdiction(org_id, regime.id, &jc.to_uppercase())
+                .await?
+                .ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Tax jurisdiction '{jc}' not found"))
+                })?;
             Some(juris.id)
         } else {
             None
         };
 
-        self.repository.generate_tax_report(
-            org_id, regime.id, jurisdiction_id.as_ref(),
-            period_start, period_end, created_by,
-        ).await
+        self.repository
+            .generate_tax_report(
+                org_id,
+                regime.id,
+                jurisdiction_id.as_ref(),
+                period_start,
+                period_end,
+                created_by,
+            )
+            .await
     }
 
     /// List tax reports
@@ -744,10 +895,9 @@ impl TaxEngine {
     ) -> AtlasResult<Vec<atlas_shared::TaxReport>> {
         let regime_id = match regime_code {
             Some(rc) => {
-                let regime = self.get_regime(org_id, rc).await?
-                    .ok_or_else(|| AtlasError::EntityNotFound(
-                        format!("Tax regime '{rc}' not found")
-                    ))?;
+                let regime = self.get_regime(org_id, rc).await?.ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Tax regime '{rc}' not found"))
+                })?;
                 Some(regime.id)
             }
             None => None,

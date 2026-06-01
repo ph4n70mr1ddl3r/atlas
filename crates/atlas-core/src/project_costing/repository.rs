@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for cost transactions, burden schedules,
 //! cost adjustments, and cost distributions.
 
-use atlas_shared::{
-    ProjectCostTransaction, BurdenSchedule, BurdenScheduleLine,
-    ProjectCostAdjustment, ProjectCostDistribution, ProjectCostingSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, BurdenSchedule, BurdenScheduleLine, ProjectCostAdjustment,
+    ProjectCostDistribution, ProjectCostTransaction, ProjectCostingSummary,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -50,9 +49,24 @@ pub trait ProjectCostingRepository: Send + Sync {
     ) -> AtlasResult<ProjectCostTransaction>;
 
     async fn get_cost_transaction(&self, id: Uuid) -> AtlasResult<Option<ProjectCostTransaction>>;
-    async fn get_cost_transaction_by_number(&self, org_id: Uuid, transaction_number: &str) -> AtlasResult<Option<ProjectCostTransaction>>;
-    async fn list_cost_transactions(&self, org_id: Uuid, project_id: Option<Uuid>, cost_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<ProjectCostTransaction>>;
-    async fn update_cost_transaction_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<ProjectCostTransaction>;
+    async fn get_cost_transaction_by_number(
+        &self,
+        org_id: Uuid,
+        transaction_number: &str,
+    ) -> AtlasResult<Option<ProjectCostTransaction>>;
+    async fn list_cost_transactions(
+        &self,
+        org_id: Uuid,
+        project_id: Option<Uuid>,
+        cost_type: Option<&str>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ProjectCostTransaction>>;
+    async fn update_cost_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<ProjectCostTransaction>;
 
     // Burden Schedules
     async fn create_burden_schedule(
@@ -68,11 +82,22 @@ pub trait ProjectCostingRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BurdenSchedule>;
 
-    async fn get_burden_schedule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<BurdenSchedule>>;
+    async fn get_burden_schedule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<BurdenSchedule>>;
     async fn get_burden_schedule_by_id(&self, id: Uuid) -> AtlasResult<Option<BurdenSchedule>>;
     async fn list_burden_schedules(&self, org_id: Uuid) -> AtlasResult<Vec<BurdenSchedule>>;
-    async fn get_default_burden_schedule(&self, org_id: Uuid) -> AtlasResult<Option<BurdenSchedule>>;
-    async fn update_burden_schedule_status(&self, id: Uuid, status: &str) -> AtlasResult<BurdenSchedule>;
+    async fn get_default_burden_schedule(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Option<BurdenSchedule>>;
+    async fn update_burden_schedule_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<BurdenSchedule>;
 
     // Burden Schedule Lines
     async fn create_burden_schedule_line(
@@ -86,8 +111,16 @@ pub trait ProjectCostingRepository: Send + Sync {
         burden_account_code: Option<&str>,
     ) -> AtlasResult<BurdenScheduleLine>;
 
-    async fn list_burden_schedule_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<BurdenScheduleLine>>;
-    async fn get_applicable_burden_rate(&self, schedule_id: Uuid, cost_type: &str, expenditure_category: Option<&str>) -> AtlasResult<Option<BurdenScheduleLine>>;
+    async fn list_burden_schedule_lines(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<BurdenScheduleLine>>;
+    async fn get_applicable_burden_rate(
+        &self,
+        schedule_id: Uuid,
+        cost_type: &str,
+        expenditure_category: Option<&str>,
+    ) -> AtlasResult<Option<BurdenScheduleLine>>;
 
     // Cost Adjustments
     async fn create_cost_adjustment(
@@ -108,7 +141,11 @@ pub trait ProjectCostingRepository: Send + Sync {
     ) -> AtlasResult<ProjectCostAdjustment>;
 
     async fn get_cost_adjustment(&self, id: Uuid) -> AtlasResult<Option<ProjectCostAdjustment>>;
-    async fn list_cost_adjustments(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ProjectCostAdjustment>>;
+    async fn list_cost_adjustments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ProjectCostAdjustment>>;
     async fn update_cost_adjustment_status(
         &self,
         id: Uuid,
@@ -130,9 +167,19 @@ pub trait ProjectCostingRepository: Send + Sync {
         gl_date: chrono::NaiveDate,
     ) -> AtlasResult<ProjectCostDistribution>;
 
-    async fn list_cost_distributions(&self, transaction_id: Uuid) -> AtlasResult<Vec<ProjectCostDistribution>>;
-    async fn list_unposted_distributions(&self, org_id: Uuid) -> AtlasResult<Vec<ProjectCostDistribution>>;
-    async fn mark_distribution_posted(&self, id: Uuid, gl_batch_id: Option<Uuid>) -> AtlasResult<ProjectCostDistribution>;
+    async fn list_cost_distributions(
+        &self,
+        transaction_id: Uuid,
+    ) -> AtlasResult<Vec<ProjectCostDistribution>>;
+    async fn list_unposted_distributions(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<ProjectCostDistribution>>;
+    async fn mark_distribution_posted(
+        &self,
+        id: Uuid,
+        gl_batch_id: Option<Uuid>,
+    ) -> AtlasResult<ProjectCostDistribution>;
 
     // Dashboard
     async fn get_costing_summary(&self, org_id: Uuid) -> AtlasResult<ProjectCostingSummary>;
@@ -144,7 +191,7 @@ pub struct PostgresProjectCostingRepository {
 }
 
 impl PostgresProjectCostingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -343,14 +390,33 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(transaction_number).bind(project_id).bind(project_number)
-        .bind(task_id).bind(task_number).bind(cost_type)
-        .bind(raw_cost_amount).bind(burdened_cost_amount).bind(burden_amount)
-        .bind(currency_code).bind(transaction_date).bind(gl_date).bind(description)
-        .bind(supplier_id).bind(supplier_name).bind(employee_id).bind(employee_name)
-        .bind(expenditure_category).bind(quantity).bind(unit_of_measure).bind(unit_rate)
-        .bind(is_billable).bind(is_capitalizable)
-        .bind(original_transaction_id).bind(adjustment_type).bind(adjustment_reason)
+        .bind(org_id)
+        .bind(transaction_number)
+        .bind(project_id)
+        .bind(project_number)
+        .bind(task_id)
+        .bind(task_number)
+        .bind(cost_type)
+        .bind(raw_cost_amount)
+        .bind(burdened_cost_amount)
+        .bind(burden_amount)
+        .bind(currency_code)
+        .bind(transaction_date)
+        .bind(gl_date)
+        .bind(description)
+        .bind(supplier_id)
+        .bind(supplier_name)
+        .bind(employee_id)
+        .bind(employee_name)
+        .bind(expenditure_category)
+        .bind(quantity)
+        .bind(unit_of_measure)
+        .bind(unit_rate)
+        .bind(is_billable)
+        .bind(is_capitalizable)
+        .bind(original_transaction_id)
+        .bind(adjustment_type)
+        .bind(adjustment_reason)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -368,7 +434,11 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(row.map(|r| self.row_to_transaction(&r)))
     }
 
-    async fn get_cost_transaction_by_number(&self, org_id: Uuid, transaction_number: &str) -> AtlasResult<Option<ProjectCostTransaction>> {
+    async fn get_cost_transaction_by_number(
+        &self,
+        org_id: Uuid,
+        transaction_number: &str,
+    ) -> AtlasResult<Option<ProjectCostTransaction>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.project_cost_transactions WHERE organization_id = $1 AND transaction_number = $2"
         )
@@ -379,7 +449,13 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(row.map(|r| self.row_to_transaction(&r)))
     }
 
-    async fn list_cost_transactions(&self, org_id: Uuid, project_id: Option<Uuid>, cost_type: Option<&str>, status: Option<&str>) -> AtlasResult<Vec<ProjectCostTransaction>> {
+    async fn list_cost_transactions(
+        &self,
+        org_id: Uuid,
+        project_id: Option<Uuid>,
+        cost_type: Option<&str>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ProjectCostTransaction>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.project_cost_transactions
@@ -390,14 +466,22 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             ORDER BY transaction_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(project_id).bind(cost_type).bind(status)
+        .bind(org_id)
+        .bind(project_id)
+        .bind(cost_type)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| self.row_to_transaction(r)).collect())
     }
 
-    async fn update_cost_transaction_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<ProjectCostTransaction> {
+    async fn update_cost_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<ProjectCostTransaction> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.project_cost_transactions
@@ -408,7 +492,9 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -438,8 +524,15 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(status)
-        .bind(effective_from).bind(effective_to).bind(is_default).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(status)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(is_default)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -447,11 +540,16 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(self.row_to_schedule(&row))
     }
 
-    async fn get_burden_schedule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<BurdenSchedule>> {
+    async fn get_burden_schedule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<BurdenSchedule>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.burden_schedules WHERE organization_id = $1 AND code = $2"
+            "SELECT * FROM _atlas.burden_schedules WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
+        .bind(org_id)
+        .bind(code)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -469,7 +567,7 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
 
     async fn list_burden_schedules(&self, org_id: Uuid) -> AtlasResult<Vec<BurdenSchedule>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.burden_schedules WHERE organization_id = $1 ORDER BY code"
+            "SELECT * FROM _atlas.burden_schedules WHERE organization_id = $1 ORDER BY code",
         )
         .bind(org_id)
         .fetch_all(&self.pool)
@@ -478,13 +576,16 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(rows.iter().map(|r| self.row_to_schedule(r)).collect())
     }
 
-    async fn get_default_burden_schedule(&self, org_id: Uuid) -> AtlasResult<Option<BurdenSchedule>> {
+    async fn get_default_burden_schedule(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Option<BurdenSchedule>> {
         let row = sqlx::query(
             r"
             SELECT * FROM _atlas.burden_schedules
             WHERE organization_id = $1 AND is_default = true AND status = 'active'
             ORDER BY effective_from DESC LIMIT 1
-            "
+            ",
         )
         .bind(org_id)
         .fetch_optional(&self.pool)
@@ -493,7 +594,11 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(row.map(|r| self.row_to_schedule(&r)))
     }
 
-    async fn update_burden_schedule_status(&self, id: Uuid, status: &str) -> AtlasResult<BurdenSchedule> {
+    async fn update_burden_schedule_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<BurdenSchedule> {
         let row = sqlx::query(
             "UPDATE _atlas.burden_schedules SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         )
@@ -525,8 +630,13 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(schedule_id).bind(line_number).bind(cost_type)
-        .bind(expenditure_category).bind(burden_rate_percent).bind(burden_account_code)
+        .bind(org_id)
+        .bind(schedule_id)
+        .bind(line_number)
+        .bind(cost_type)
+        .bind(expenditure_category)
+        .bind(burden_rate_percent)
+        .bind(burden_account_code)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -534,7 +644,10 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(self.row_to_schedule_line(&row))
     }
 
-    async fn list_burden_schedule_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<BurdenScheduleLine>> {
+    async fn list_burden_schedule_lines(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<BurdenScheduleLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.burden_schedule_lines WHERE schedule_id = $1 ORDER BY line_number"
         )
@@ -545,7 +658,12 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(rows.iter().map(|r| self.row_to_schedule_line(r)).collect())
     }
 
-    async fn get_applicable_burden_rate(&self, schedule_id: Uuid, cost_type: &str, expenditure_category: Option<&str>) -> AtlasResult<Option<BurdenScheduleLine>> {
+    async fn get_applicable_burden_rate(
+        &self,
+        schedule_id: Uuid,
+        cost_type: &str,
+        expenditure_category: Option<&str>,
+    ) -> AtlasResult<Option<BurdenScheduleLine>> {
         // Try exact match on cost_type + expenditure_category first, then fall back to cost_type only
         let row = sqlx::query(
             r"
@@ -555,7 +673,9 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             LIMIT 1
             ",
         )
-        .bind(schedule_id).bind(cost_type).bind(expenditure_category)
+        .bind(schedule_id)
+        .bind(cost_type)
+        .bind(expenditure_category)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -573,7 +693,8 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             LIMIT 1
             ",
         )
-        .bind(schedule_id).bind(cost_type)
+        .bind(schedule_id)
+        .bind(cost_type)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -615,10 +736,18 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(adjustment_number).bind(original_transaction_id)
-        .bind(adjustment_type).bind(adjustment_amount).bind(new_raw_cost).bind(new_burdened_cost)
-        .bind(reason).bind(description).bind(effective_date)
-        .bind(transfer_to_project_id).bind(transfer_to_task_id)
+        .bind(org_id)
+        .bind(adjustment_number)
+        .bind(original_transaction_id)
+        .bind(adjustment_type)
+        .bind(adjustment_amount)
+        .bind(new_raw_cost)
+        .bind(new_burdened_cost)
+        .bind(reason)
+        .bind(description)
+        .bind(effective_date)
+        .bind(transfer_to_project_id)
+        .bind(transfer_to_task_id)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -636,7 +765,11 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(row.map(|r| self.row_to_adjustment(&r)))
     }
 
-    async fn list_cost_adjustments(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ProjectCostAdjustment>> {
+    async fn list_cost_adjustments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ProjectCostAdjustment>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.project_cost_adjustments
@@ -645,7 +778,8 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(status)
+        .bind(org_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -671,7 +805,10 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by).bind(created_transaction_id)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(created_transaction_id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -701,9 +838,14 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(transaction_id).bind(line_number)
-        .bind(debit_account_code).bind(credit_account_code)
-        .bind(amount).bind(distribution_type).bind(gl_date)
+        .bind(org_id)
+        .bind(transaction_id)
+        .bind(line_number)
+        .bind(debit_account_code)
+        .bind(credit_account_code)
+        .bind(amount)
+        .bind(distribution_type)
+        .bind(gl_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -711,7 +853,10 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(self.row_to_distribution(&row))
     }
 
-    async fn list_cost_distributions(&self, transaction_id: Uuid) -> AtlasResult<Vec<ProjectCostDistribution>> {
+    async fn list_cost_distributions(
+        &self,
+        transaction_id: Uuid,
+    ) -> AtlasResult<Vec<ProjectCostDistribution>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.project_cost_distributions WHERE transaction_id = $1 ORDER BY line_number"
         )
@@ -722,7 +867,10 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(rows.iter().map(|r| self.row_to_distribution(r)).collect())
     }
 
-    async fn list_unposted_distributions(&self, org_id: Uuid) -> AtlasResult<Vec<ProjectCostDistribution>> {
+    async fn list_unposted_distributions(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<ProjectCostDistribution>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.project_cost_distributions WHERE organization_id = $1 AND is_posted = false ORDER BY gl_date"
         )
@@ -733,7 +881,11 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
         Ok(rows.iter().map(|r| self.row_to_distribution(r)).collect())
     }
 
-    async fn mark_distribution_posted(&self, id: Uuid, gl_batch_id: Option<Uuid>) -> AtlasResult<ProjectCostDistribution> {
+    async fn mark_distribution_posted(
+        &self,
+        id: Uuid,
+        gl_batch_id: Option<Uuid>,
+    ) -> AtlasResult<ProjectCostDistribution> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.project_cost_distributions
@@ -742,7 +894,8 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(gl_batch_id)
+        .bind(id)
+        .bind(gl_batch_id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -774,10 +927,16 @@ impl ProjectCostingRepository for PostgresProjectCostingRepository {
 
         let project_count: i64 = row.try_get("project_count").unwrap_or(0);
         let total_raw: serde_json::Value = row.try_get("total_raw").unwrap_or(serde_json::json!(0));
-        let total_burdened: serde_json::Value = row.try_get("total_burdened").unwrap_or(serde_json::json!(0));
-        let total_burden: serde_json::Value = row.try_get("total_burden").unwrap_or(serde_json::json!(0));
-        let total_capitalized: serde_json::Value = row.try_get("total_capitalized").unwrap_or(serde_json::json!(0));
-        let total_billed: serde_json::Value = row.try_get("total_billed").unwrap_or(serde_json::json!(0));
+        let total_burdened: serde_json::Value = row
+            .try_get("total_burdened")
+            .unwrap_or(serde_json::json!(0));
+        let total_burden: serde_json::Value =
+            row.try_get("total_burden").unwrap_or(serde_json::json!(0));
+        let total_capitalized: serde_json::Value = row
+            .try_get("total_capitalized")
+            .unwrap_or(serde_json::json!(0));
+        let total_billed: serde_json::Value =
+            row.try_get("total_billed").unwrap_or(serde_json::json!(0));
 
         // Count pending adjustments
         let adj_row = sqlx::query(

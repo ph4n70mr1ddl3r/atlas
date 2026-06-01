@@ -2,11 +2,10 @@
 //!
 //! `PostgreSQL` storage for budget definitions, versions, lines, and transfers.
 
-use atlas_shared::{
-    BudgetDefinition, BudgetVersion, BudgetLine, BudgetTransfer,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, BudgetDefinition, BudgetLine, BudgetTransfer, BudgetVersion,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -31,7 +30,11 @@ pub trait BudgetRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BudgetDefinition>;
 
-    async fn get_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<BudgetDefinition>>;
+    async fn get_definition(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<BudgetDefinition>>;
     async fn get_definition_by_id(&self, id: Uuid) -> AtlasResult<Option<BudgetDefinition>>;
     async fn list_definitions(&self, org_id: Uuid) -> AtlasResult<Vec<BudgetDefinition>>;
     async fn delete_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
@@ -142,7 +145,7 @@ pub struct PostgresBudgetRepository {
 }
 
 impl PostgresBudgetRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -170,10 +173,18 @@ impl PostgresBudgetRepository {
     }
 
     fn row_to_version(&self, row: &sqlx::postgres::PgRow) -> BudgetVersion {
-        let total_budget: serde_json::Value = row.try_get("total_budget_amount").unwrap_or(serde_json::json!("0"));
-        let total_committed: serde_json::Value = row.try_get("total_committed_amount").unwrap_or(serde_json::json!("0"));
-        let total_actual: serde_json::Value = row.try_get("total_actual_amount").unwrap_or(serde_json::json!("0"));
-        let total_variance: serde_json::Value = row.try_get("total_variance_amount").unwrap_or(serde_json::json!("0"));
+        let total_budget: serde_json::Value = row
+            .try_get("total_budget_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let total_committed: serde_json::Value = row
+            .try_get("total_committed_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let total_actual: serde_json::Value = row
+            .try_get("total_actual_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let total_variance: serde_json::Value = row
+            .try_get("total_variance_amount")
+            .unwrap_or(serde_json::json!("0"));
 
         BudgetVersion {
             id: row.get("id"),
@@ -202,14 +213,30 @@ impl PostgresBudgetRepository {
     }
 
     fn row_to_line(&self, row: &sqlx::postgres::PgRow) -> BudgetLine {
-        let budget_amount: serde_json::Value = row.try_get("budget_amount").unwrap_or(serde_json::json!("0"));
-        let committed_amount: serde_json::Value = row.try_get("committed_amount").unwrap_or(serde_json::json!("0"));
-        let actual_amount: serde_json::Value = row.try_get("actual_amount").unwrap_or(serde_json::json!("0"));
-        let variance_amount: serde_json::Value = row.try_get("variance_amount").unwrap_or(serde_json::json!("0"));
-        let variance_percent: serde_json::Value = row.try_get("variance_percent").unwrap_or(serde_json::json!("0"));
-        let carry_forward: serde_json::Value = row.try_get("carry_forward_amount").unwrap_or(serde_json::json!("0"));
-        let transferred_in: serde_json::Value = row.try_get("transferred_in_amount").unwrap_or(serde_json::json!("0"));
-        let transferred_out: serde_json::Value = row.try_get("transferred_out_amount").unwrap_or(serde_json::json!("0"));
+        let budget_amount: serde_json::Value = row
+            .try_get("budget_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let committed_amount: serde_json::Value = row
+            .try_get("committed_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let actual_amount: serde_json::Value = row
+            .try_get("actual_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let variance_amount: serde_json::Value = row
+            .try_get("variance_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let variance_percent: serde_json::Value = row
+            .try_get("variance_percent")
+            .unwrap_or(serde_json::json!("0"));
+        let carry_forward: serde_json::Value = row
+            .try_get("carry_forward_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let transferred_in: serde_json::Value = row
+            .try_get("transferred_in_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let transferred_out: serde_json::Value = row
+            .try_get("transferred_out_amount")
+            .unwrap_or(serde_json::json!("0"));
 
         BudgetLine {
             id: row.get("id"),
@@ -311,9 +338,18 @@ impl BudgetRepository for PostgresBudgetRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(calendar_id).bind(fiscal_year).bind(budget_type).bind(control_level)
-        .bind(allow_carry_forward).bind(allow_transfers).bind(currency_code).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(calendar_id)
+        .bind(fiscal_year)
+        .bind(budget_type)
+        .bind(control_level)
+        .bind(allow_carry_forward)
+        .bind(allow_transfers)
+        .bind(currency_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -321,7 +357,11 @@ impl BudgetRepository for PostgresBudgetRepository {
         Ok(self.row_to_definition(&row))
     }
 
-    async fn get_definition(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<BudgetDefinition>> {
+    async fn get_definition(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<BudgetDefinition>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.budget_definitions WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -333,13 +373,11 @@ impl BudgetRepository for PostgresBudgetRepository {
     }
 
     async fn get_definition_by_id(&self, id: Uuid) -> AtlasResult<Option<BudgetDefinition>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.budget_definitions WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.budget_definitions WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_definition(&r)))
     }
 
@@ -389,8 +427,14 @@ impl BudgetRepository for PostgresBudgetRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(definition_id).bind(version_number).bind(label)
-        .bind(effective_from).bind(effective_to).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(definition_id)
+        .bind(version_number)
+        .bind(label)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -399,13 +443,11 @@ impl BudgetRepository for PostgresBudgetRepository {
     }
 
     async fn get_version(&self, id: Uuid) -> AtlasResult<Option<BudgetVersion>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.budget_versions WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.budget_versions WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_version(&r)))
     }
 
@@ -488,7 +530,11 @@ impl BudgetRepository for PostgresBudgetRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(total_budget).bind(total_committed).bind(total_actual).bind(total_variance)
+        .bind(id)
+        .bind(total_budget)
+        .bind(total_committed)
+        .bind(total_actual)
+        .bind(total_variance)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -535,13 +581,24 @@ impl BudgetRepository for PostgresBudgetRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(version_id).bind(line_number)
-        .bind(account_code).bind(account_name)
-        .bind(period_name).bind(period_start_date).bind(period_end_date)
-        .bind(fiscal_year).bind(quarter)
-        .bind(department_id).bind(department_name)
-        .bind(project_id).bind(project_name)
-        .bind(cost_center).bind(budget_amount).bind(description).bind(created_by)
+        .bind(org_id)
+        .bind(version_id)
+        .bind(line_number)
+        .bind(account_code)
+        .bind(account_name)
+        .bind(period_name)
+        .bind(period_start_date)
+        .bind(period_end_date)
+        .bind(fiscal_year)
+        .bind(quarter)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(project_id)
+        .bind(project_name)
+        .bind(cost_center)
+        .bind(budget_amount)
+        .bind(description)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -550,19 +607,17 @@ impl BudgetRepository for PostgresBudgetRepository {
     }
 
     async fn get_line(&self, id: Uuid) -> AtlasResult<Option<BudgetLine>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.budget_lines WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.budget_lines WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_line(&r)))
     }
 
     async fn list_lines_by_version(&self, version_id: Uuid) -> AtlasResult<Vec<BudgetLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.budget_lines WHERE version_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.budget_lines WHERE version_id = $1 ORDER BY line_number",
         )
         .bind(version_id)
         .fetch_all(&self.pool)
@@ -589,7 +644,11 @@ impl BudgetRepository for PostgresBudgetRepository {
             LIMIT 1
             ",
         )
-        .bind(version_id).bind(account_code).bind(period_name).bind(department_id).bind(cost_center)
+        .bind(version_id)
+        .bind(account_code)
+        .bind(period_name)
+        .bind(department_id)
+        .bind(cost_center)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -610,7 +669,8 @@ impl BudgetRepository for PostgresBudgetRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(budget_amount)
+        .bind(id)
+        .bind(budget_amount)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -618,13 +678,11 @@ impl BudgetRepository for PostgresBudgetRepository {
     }
 
     async fn delete_line(&self, id: Uuid) -> AtlasResult<()> {
-        sqlx::query(
-            "DELETE FROM _atlas.budget_lines WHERE id = $1"
-        )
-        .bind(id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query("DELETE FROM _atlas.budget_lines WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -660,10 +718,20 @@ impl BudgetRepository for PostgresBudgetRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(version_id).bind(transfer_number).bind(description)
-        .bind(from_account_code).bind(from_period_name).bind(from_department_id).bind(from_cost_center)
-        .bind(to_account_code).bind(to_period_name).bind(to_department_id).bind(to_cost_center)
-        .bind(amount).bind(created_by)
+        .bind(org_id)
+        .bind(version_id)
+        .bind(transfer_number)
+        .bind(description)
+        .bind(from_account_code)
+        .bind(from_period_name)
+        .bind(from_department_id)
+        .bind(from_cost_center)
+        .bind(to_account_code)
+        .bind(to_period_name)
+        .bind(to_department_id)
+        .bind(to_cost_center)
+        .bind(amount)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -672,19 +740,17 @@ impl BudgetRepository for PostgresBudgetRepository {
     }
 
     async fn get_transfer(&self, id: Uuid) -> AtlasResult<Option<BudgetTransfer>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.budget_transfers WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.budget_transfers WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_transfer(&r)))
     }
 
     async fn list_transfers(&self, version_id: Uuid) -> AtlasResult<Vec<BudgetTransfer>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.budget_transfers WHERE version_id = $1 ORDER BY created_at DESC"
+            "SELECT * FROM _atlas.budget_transfers WHERE version_id = $1 ORDER BY created_at DESC",
         )
         .bind(version_id)
         .fetch_all(&self.pool)

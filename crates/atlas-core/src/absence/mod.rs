@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: HCM > Absence Management > Absence Types, Plans, Entries
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::AbsenceEngine;
 pub use repository::{AbsenceRepository, PostgresAbsenceRepository};

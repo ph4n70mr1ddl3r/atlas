@@ -2,19 +2,18 @@
 //!
 //! Oracle Fusion: Financials > General Ledger > Multi-Period Accounting
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Templates
@@ -40,16 +39,23 @@ pub async fn create_template(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.mpa_engine.create_template(
-        org_id, &payload.template_name, payload.description.as_deref(),
-        payload.distribution_method.as_deref().unwrap_or("equal"),
-        payload.number_of_periods.unwrap_or(1),
-        payload.period_type.as_deref().unwrap_or("month"),
-        payload.deferred_account_code.as_deref(),
-        payload.expense_account_code.as_deref(),
-        payload.currency_code.as_deref().unwrap_or("USD"),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .mpa_engine
+        .create_template(
+            org_id,
+            &payload.template_name,
+            payload.description.as_deref(),
+            payload.distribution_method.as_deref().unwrap_or("equal"),
+            payload.number_of_periods.unwrap_or(1),
+            payload.period_type.as_deref().unwrap_or("month"),
+            payload.deferred_account_code.as_deref(),
+            payload.expense_account_code.as_deref(),
+            payload.currency_code.as_deref().unwrap_or("USD"),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(t) => Ok(created_json(t)),
         Err(e) => {
             error!("Failed to create MPA template: {}", e);
@@ -73,7 +79,12 @@ pub async fn list_templates(
     Query(query): Query<ListTemplatesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.mpa_engine.list_templates(org_id, query.status.as_deref()).await {
+    match state
+        .financials
+        .mpa_engine
+        .list_templates(org_id, query.status.as_deref())
+        .await
+    {
         Ok(templates) => Ok(Json(serde_json::json!({ "data": templates }))),
         Err(e) => {
             error!("Failed to list MPA templates: {}", e);
@@ -92,7 +103,10 @@ pub async fn get_template(
     match state.financials.mpa_engine.get_template(id).await {
         Ok(Some(t)) => Ok(to_json(t)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get MPA template: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get MPA template: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -142,15 +156,23 @@ pub async fn add_template_line(
     Path(template_id): Path<Uuid>,
     Json(payload): Json<AddTemplateLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    match state.financials.mpa_engine.add_template_line(
-        template_id, payload.period_sequence, &payload.percentage,
-        payload.offset_days.unwrap_or(0),
-    ).await {
+    match state
+        .financials
+        .mpa_engine
+        .add_template_line(
+            template_id,
+            payload.period_sequence,
+            &payload.percentage,
+            payload.offset_days.unwrap_or(0),
+        )
+        .await
+    {
         Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add template line: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -162,9 +184,17 @@ pub async fn list_template_lines(
     State(state): State<Arc<AppState>>,
     Path(template_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.mpa_engine.list_template_lines(template_id).await {
+    match state
+        .financials
+        .mpa_engine
+        .list_template_lines(template_id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
-        Err(e) => { error!("Failed to list template lines: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list template lines: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -196,15 +226,27 @@ pub async fn create_schedule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.mpa_engine.create_schedule(
-        org_id, &payload.schedule_number, payload.description.as_deref(),
-        payload.template_id, payload.source_journal_entry_id,
-        payload.source_journal_line_id, &payload.total_amount,
-        payload.start_date, payload.end_date,
-        payload.currency_code.as_deref().unwrap_or("USD"),
-        payload.company_code.as_deref(), payload.cost_center.as_deref(),
-        payload.account_segment.as_deref(), Some(user_id),
-    ).await {
+    match state
+        .financials
+        .mpa_engine
+        .create_schedule(
+            org_id,
+            &payload.schedule_number,
+            payload.description.as_deref(),
+            payload.template_id,
+            payload.source_journal_entry_id,
+            payload.source_journal_line_id,
+            &payload.total_amount,
+            payload.start_date,
+            payload.end_date,
+            payload.currency_code.as_deref().unwrap_or("USD"),
+            payload.company_code.as_deref(),
+            payload.cost_center.as_deref(),
+            payload.account_segment.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(s) => Ok(created_json(s)),
         Err(e) => {
             error!("Failed to create MPA schedule: {}", e);
@@ -230,7 +272,12 @@ pub async fn list_schedules(
     Query(query): Query<ListSchedulesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.mpa_engine.list_schedules(org_id, query.status.as_deref()).await {
+    match state
+        .financials
+        .mpa_engine
+        .list_schedules(org_id, query.status.as_deref())
+        .await
+    {
         Ok(schedules) => Ok(Json(serde_json::json!({ "data": schedules }))),
         Err(e) => {
             error!("Failed to list MPA schedules: {}", e);
@@ -249,7 +296,10 @@ pub async fn get_schedule(
     match state.financials.mpa_engine.get_schedule(id).await {
         Ok(Some(s)) => Ok(to_json(s)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get MPA schedule: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get MPA schedule: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -312,9 +362,17 @@ pub async fn list_schedule_lines(
     State(state): State<Arc<AppState>>,
     Path(schedule_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.mpa_engine.list_schedule_lines(schedule_id).await {
+    match state
+        .financials
+        .mpa_engine
+        .list_schedule_lines(schedule_id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
-        Err(e) => { error!("Failed to list schedule lines: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list schedule lines: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -363,6 +421,9 @@ pub async fn get_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.financials.mpa_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(to_json(dashboard)),
-        Err(e) => { error!("Failed to get MPA dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get MPA dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Netting
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::NettingEngine;
 pub use repository::{NettingRepository, PostgresNettingRepository};

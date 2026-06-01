@@ -6,12 +6,11 @@
 //!
 //! Oracle Fusion Cloud SCM equivalent: SCM > Landed Cost Management
 
-use atlas_shared::{
-    LandedCostTemplate, LandedCostComponent, LandedCostCharge,
-    LandedCostChargeLine, LandedCostAllocation, LandedCostSimulation,
-    LandedCostDashboard, AtlasError, AtlasResult,
-};
 use super::LandedCostRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, LandedCostAllocation, LandedCostCharge, LandedCostChargeLine,
+    LandedCostComponent, LandedCostDashboard, LandedCostSimulation, LandedCostTemplate,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -21,22 +20,23 @@ const VALID_TEMPLATE_STATUSES: &[&str] = &["active", "inactive"];
 
 /// Valid cost types for components
 const VALID_COST_TYPES: &[&str] = &[
-    "freight", "insurance", "customs_duty", "handling",
-    "brokerage", "storage", "other",
+    "freight",
+    "insurance",
+    "customs_duty",
+    "handling",
+    "brokerage",
+    "storage",
+    "other",
 ];
 
 /// Valid allocation bases
-const VALID_ALLOCATION_BASES: &[&str] = &[
-    "quantity", "weight", "volume", "value", "equal",
-];
+const VALID_ALLOCATION_BASES: &[&str] = &["quantity", "weight", "volume", "value", "equal"];
 
 /// Valid charge types
 const VALID_CHARGE_TYPES: &[&str] = &["estimated", "actual", "adjustment"];
 
 /// Valid charge statuses
-const VALID_CHARGE_STATUSES: &[&str] = &[
-    "draft", "submitted", "allocated", "posted", "cancelled",
-];
+const VALID_CHARGE_STATUSES: &[&str] = &["draft", "submitted", "allocated", "posted", "cancelled"];
 
 /// Valid rate units of measure
 const VALID_RATE_UOMS: &[&str] = &["per_unit", "percentage", "flat"];
@@ -69,18 +69,28 @@ impl LandedCostEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LandedCostTemplate> {
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Template code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Template code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Template name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Template name is required".to_string(),
+            ));
         }
 
         info!("Creating landed cost template {} in org {}", code, org_id);
-        self.repository.create_template(org_id, code, name, description, created_by).await
+        self.repository
+            .create_template(org_id, code, name, description, created_by)
+            .await
     }
 
     /// Get a template by code
-    pub async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<LandedCostTemplate>> {
+    pub async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<LandedCostTemplate>> {
         self.repository.get_template(org_id, code).await
     }
 
@@ -98,17 +108,22 @@ impl LandedCostEngine {
     ) -> AtlasResult<LandedCostTemplate> {
         if !VALID_TEMPLATE_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid status '{}'. Must be one of: {}", status, VALID_TEMPLATE_STATUSES.join(", ")
+                "Invalid status '{}'. Must be one of: {}",
+                status,
+                VALID_TEMPLATE_STATUSES.join(", ")
             )));
         }
 
-        let template = self.repository.get_template(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Template '{code}' not found")
-            ))?;
+        let template = self
+            .repository
+            .get_template(org_id, code)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template '{code}' not found")))?;
 
         info!("Updating template {} status to {}", code, status);
-        self.repository.update_template_status(template.id, status).await
+        self.repository
+            .update_template_status(template.id, status)
+            .await
     }
 
     // ========================================================================
@@ -132,33 +147,42 @@ impl LandedCostEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LandedCostComponent> {
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Component code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Component code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Component name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Component name is required".to_string(),
+            ));
         }
         if !VALID_COST_TYPES.contains(&cost_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid cost type '{}'. Must be one of: {}", cost_type, VALID_COST_TYPES.join(", ")
+                "Invalid cost type '{}'. Must be one of: {}",
+                cost_type,
+                VALID_COST_TYPES.join(", ")
             )));
         }
         if !VALID_ALLOCATION_BASES.contains(&allocation_basis) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid allocation basis '{}'. Must be one of: {}",
-                allocation_basis, VALID_ALLOCATION_BASES.join(", ")
+                allocation_basis,
+                VALID_ALLOCATION_BASES.join(", ")
             )));
         }
         if let Some(uom) = rate_uom {
             if !VALID_RATE_UOMS.contains(&uom) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid rate UOM '{}'. Must be one of: {}", uom, VALID_RATE_UOMS.join(", ")
+                    "Invalid rate UOM '{}'. Must be one of: {}",
+                    uom,
+                    VALID_RATE_UOMS.join(", ")
                 )));
             }
         }
         if let Some(rate) = default_rate {
-            let r: f64 = rate.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Default rate must be a valid number".to_string(),
-            ))?;
+            let r: f64 = rate.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Default rate must be a valid number".to_string())
+            })?;
             if r < 0.0 {
                 return Err(AtlasError::ValidationFailed(
                     "Default rate must be non-negative".to_string(),
@@ -167,20 +191,39 @@ impl LandedCostEngine {
         }
 
         info!("Creating landed cost component {} in org {}", code, org_id);
-        self.repository.create_component(
-            org_id, template_id, code, name, description,
-            cost_type, allocation_basis, default_rate, rate_uom,
-            expense_account, is_taxable, created_by,
-        ).await
+        self.repository
+            .create_component(
+                org_id,
+                template_id,
+                code,
+                name,
+                description,
+                cost_type,
+                allocation_basis,
+                default_rate,
+                rate_uom,
+                expense_account,
+                is_taxable,
+                created_by,
+            )
+            .await
     }
 
     /// Get a component by code
-    pub async fn get_component(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<LandedCostComponent>> {
+    pub async fn get_component(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<LandedCostComponent>> {
         self.repository.get_component(org_id, code).await
     }
 
     /// List components, optionally filtered by template
-    pub async fn list_components(&self, org_id: Uuid, template_id: Option<Uuid>) -> AtlasResult<Vec<LandedCostComponent>> {
+    pub async fn list_components(
+        &self,
+        org_id: Uuid,
+        template_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<LandedCostComponent>> {
         self.repository.list_components(org_id, template_id).await
     }
 
@@ -193,17 +236,22 @@ impl LandedCostEngine {
     ) -> AtlasResult<LandedCostComponent> {
         if !VALID_TEMPLATE_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid status '{}'. Must be one of: {}", status, VALID_TEMPLATE_STATUSES.join(", ")
+                "Invalid status '{}'. Must be one of: {}",
+                status,
+                VALID_TEMPLATE_STATUSES.join(", ")
             )));
         }
 
-        let component = self.repository.get_component(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Component '{code}' not found")
-            ))?;
+        let component = self
+            .repository
+            .get_component(org_id, code)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Component '{code}' not found")))?;
 
         info!("Updating component {} status to {}", code, status);
-        self.repository.update_component_status(component.id, status).await
+        self.repository
+            .update_component_status(component.id, status)
+            .await
     }
 
     // ========================================================================
@@ -227,31 +275,51 @@ impl LandedCostEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LandedCostCharge> {
         if charge_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Charge number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Charge number is required".to_string(),
+            ));
         }
         if !VALID_CHARGE_TYPES.contains(&charge_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid charge type '{}'. Must be one of: {}", charge_type, VALID_CHARGE_TYPES.join(", ")
+                "Invalid charge type '{}'. Must be one of: {}",
+                charge_type,
+                VALID_CHARGE_TYPES.join(", ")
             )));
         }
-        let amount: f64 = total_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Total amount must be a valid number".to_string(),
-        ))?;
+        let amount: f64 = total_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Total amount must be a valid number".to_string())
+        })?;
         if amount < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Total amount must be non-negative".to_string(),
             ));
         }
         if currency.is_empty() {
-            return Err(AtlasError::ValidationFailed("Currency is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency is required".to_string(),
+            ));
         }
 
-        info!("Creating landed cost charge {} in org {}", charge_number, org_id);
-        self.repository.create_charge(
-            org_id, charge_number, template_id, receipt_id,
-            purchase_order_id, supplier_id, supplier_name,
-            charge_type, charge_date, total_amount, currency, created_by,
-        ).await
+        info!(
+            "Creating landed cost charge {} in org {}",
+            charge_number, org_id
+        );
+        self.repository
+            .create_charge(
+                org_id,
+                charge_number,
+                template_id,
+                receipt_id,
+                purchase_order_id,
+                supplier_id,
+                supplier_name,
+                charge_type,
+                charge_date,
+                total_amount,
+                currency,
+                created_by,
+            )
+            .await
     }
 
     /// Get a charge by ID
@@ -260,8 +328,14 @@ impl LandedCostEngine {
     }
 
     /// Get a charge by number
-    pub async fn get_charge_by_number(&self, org_id: Uuid, charge_number: &str) -> AtlasResult<Option<LandedCostCharge>> {
-        self.repository.get_charge_by_number(org_id, charge_number).await
+    pub async fn get_charge_by_number(
+        &self,
+        org_id: Uuid,
+        charge_number: &str,
+    ) -> AtlasResult<Option<LandedCostCharge>> {
+        self.repository
+            .get_charge_by_number(org_id, charge_number)
+            .await
     }
 
     /// List charges with optional filters
@@ -275,52 +349,66 @@ impl LandedCostEngine {
         if let Some(s) = status {
             if !VALID_CHARGE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_CHARGE_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_CHARGE_STATUSES.join(", ")
                 )));
             }
         }
         if let Some(ct) = charge_type {
             if !VALID_CHARGE_TYPES.contains(&ct) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid charge type '{}'. Must be one of: {}", ct, VALID_CHARGE_TYPES.join(", ")
+                    "Invalid charge type '{}'. Must be one of: {}",
+                    ct,
+                    VALID_CHARGE_TYPES.join(", ")
                 )));
             }
         }
-        self.repository.list_charges(org_id, status, charge_type, receipt_id).await
+        self.repository
+            .list_charges(org_id, status, charge_type, receipt_id)
+            .await
     }
 
     /// Submit a charge for allocation
     pub async fn submit_charge(&self, charge_id: Uuid) -> AtlasResult<LandedCostCharge> {
-        let charge = self.repository.get_charge(charge_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Charge {charge_id} not found")
-            ))?;
+        let charge = self
+            .repository
+            .get_charge(charge_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Charge {charge_id} not found")))?;
 
         if charge.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit charge in '{}' status. Must be 'draft'.", charge.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit charge in '{}' status. Must be 'draft'.",
+                charge.status
+            )));
         }
 
         info!("Submitting charge {}", charge.charge_number);
-        self.repository.update_charge_status(charge_id, "submitted").await
+        self.repository
+            .update_charge_status(charge_id, "submitted")
+            .await
     }
 
     /// Cancel a charge
     pub async fn cancel_charge(&self, charge_id: Uuid) -> AtlasResult<LandedCostCharge> {
-        let charge = self.repository.get_charge(charge_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Charge {charge_id} not found")
-            ))?;
+        let charge = self
+            .repository
+            .get_charge(charge_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Charge {charge_id} not found")))?;
 
         if charge.status != "draft" && charge.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot cancel charge in '{}' status.", charge.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot cancel charge in '{}' status.",
+                charge.status
+            )));
         }
 
         info!("Cancelling charge {}", charge.charge_number);
-        self.repository.update_charge_status(charge_id, "cancelled").await
+        self.repository
+            .update_charge_status(charge_id, "cancelled")
+            .await
     }
 
     // ========================================================================
@@ -344,20 +432,22 @@ impl LandedCostEngine {
         expense_account: Option<&str>,
         notes: Option<&str>,
     ) -> AtlasResult<LandedCostChargeLine> {
-        let charge = self.repository.get_charge(charge_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Charge {charge_id} not found")
-            ))?;
+        let charge = self
+            .repository
+            .get_charge(charge_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Charge {charge_id} not found")))?;
 
         if charge.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot add lines to charge in '{}' status", charge.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot add lines to charge in '{}' status",
+                charge.status
+            )));
         }
 
-        let amount: f64 = charge_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Charge amount must be a valid number".to_string(),
-        ))?;
+        let amount: f64 = charge_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Charge amount must be a valid number".to_string())
+        })?;
         if amount < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Charge amount must be non-negative".to_string(),
@@ -367,25 +457,44 @@ impl LandedCostEngine {
         if !VALID_ALLOCATION_BASES.contains(&allocation_basis) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid allocation basis '{}'. Must be one of: {}",
-                allocation_basis, VALID_ALLOCATION_BASES.join(", ")
+                allocation_basis,
+                VALID_ALLOCATION_BASES.join(", ")
             )));
         }
 
         let existing_lines = self.repository.list_charge_lines(charge_id).await?;
         let line_number = (existing_lines.len() as i32) + 1;
 
-        info!("Adding line {} to charge {}", line_number, charge.charge_number);
+        info!(
+            "Adding line {} to charge {}",
+            line_number, charge.charge_number
+        );
 
-        self.repository.create_charge_line(
-            org_id, charge_id, component_id, line_number,
-            receipt_line_id, item_id, item_code, item_description,
-            charge_amount, allocation_basis, allocation_qty,
-            allocation_value, expense_account, notes,
-        ).await
+        self.repository
+            .create_charge_line(
+                org_id,
+                charge_id,
+                component_id,
+                line_number,
+                receipt_line_id,
+                item_id,
+                item_code,
+                item_description,
+                charge_amount,
+                allocation_basis,
+                allocation_qty,
+                allocation_value,
+                expense_account,
+                notes,
+            )
+            .await
     }
 
     /// List charge lines
-    pub async fn list_charge_lines(&self, charge_id: Uuid) -> AtlasResult<Vec<LandedCostChargeLine>> {
+    pub async fn list_charge_lines(
+        &self,
+        charge_id: Uuid,
+    ) -> AtlasResult<Vec<LandedCostChargeLine>> {
         self.repository.list_charge_lines(charge_id).await
     }
 
@@ -400,21 +509,23 @@ impl LandedCostEngine {
 
     /// Allocate a submitted charge to receipt lines
     pub async fn allocate_charge(&self, charge_id: Uuid) -> AtlasResult<Vec<LandedCostAllocation>> {
-        let charge = self.repository.get_charge(charge_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Charge {charge_id} not found")
-            ))?;
+        let charge = self
+            .repository
+            .get_charge(charge_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Charge {charge_id} not found")))?;
 
         if charge.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot allocate charge in '{}' status. Must be 'submitted'.", charge.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot allocate charge in '{}' status. Must be 'submitted'.",
+                charge.status
+            )));
         }
 
         let lines = self.repository.list_charge_lines(charge_id).await?;
         if lines.is_empty() {
             return Err(AtlasError::WorkflowError(
-                "Cannot allocate charge with no lines".to_string()
+                "Cannot allocate charge with no lines".to_string(),
             ));
         }
 
@@ -427,9 +538,15 @@ impl LandedCostEngine {
         }
 
         // Update charge status to allocated
-        self.repository.update_charge_status(charge_id, "allocated").await?;
+        self.repository
+            .update_charge_status(charge_id, "allocated")
+            .await?;
 
-        info!("Allocated charge {} across {} allocation entries", charge.charge_number, allocations.len());
+        info!(
+            "Allocated charge {} across {} allocation entries",
+            charge.charge_number,
+            allocations.len()
+        );
         Ok(allocations)
     }
 
@@ -444,13 +561,14 @@ impl LandedCostEngine {
         match basis {
             "equal" => {
                 // Equal split across all receipt lines
-                let receipt_lines = self.repository.get_receipt_lines_for_charge(
-                    charge.organization_id, charge.receipt_id,
-                ).await?;
+                let receipt_lines = self
+                    .repository
+                    .get_receipt_lines_for_charge(charge.organization_id, charge.receipt_id)
+                    .await?;
 
                 if receipt_lines.is_empty() {
                     return Err(AtlasError::WorkflowError(
-                        "No receipt lines found for allocation".to_string()
+                        "No receipt lines found for allocation".to_string(),
                     ));
                 }
 
@@ -467,45 +585,47 @@ impl LandedCostEngine {
                         amount_per_line
                     };
 
-                    let alloc = self.repository.create_allocation(
-                        charge.organization_id,
-                        charge.id,
-                        line.id,
-                        charge.receipt_id,
-                        Some(rl.receipt_line_id),
-                        rl.item_id,
-                        rl.item_code.as_deref(),
-                        &format!("{allocated:.6}"),
-                        "equal",
-                        Some(&format!("{count:.6}")),
-                        Some(&format!("{count:.6}")),
-                        Some(&format!("{:.4}", 1.0 / count * 100.0)),
-                        rl.unit_price.as_deref(),
-                    ).await?;
+                    let alloc = self
+                        .repository
+                        .create_allocation(
+                            charge.organization_id,
+                            charge.id,
+                            line.id,
+                            charge.receipt_id,
+                            Some(rl.receipt_line_id),
+                            rl.item_id,
+                            rl.item_code.as_deref(),
+                            &format!("{allocated:.6}"),
+                            "equal",
+                            Some(&format!("{count:.6}")),
+                            Some(&format!("{count:.6}")),
+                            Some(&format!("{:.4}", 1.0 / count * 100.0)),
+                            rl.unit_price.as_deref(),
+                        )
+                        .await?;
                     results.push(alloc);
                 }
                 Ok(results)
             }
             "quantity" | "weight" | "volume" | "value" => {
                 // Proportional allocation based on the basis
-                let receipt_lines = self.repository.get_receipt_lines_for_charge(
-                    charge.organization_id, charge.receipt_id,
-                ).await?;
+                let receipt_lines = self
+                    .repository
+                    .get_receipt_lines_for_charge(charge.organization_id, charge.receipt_id)
+                    .await?;
 
                 if receipt_lines.is_empty() {
                     return Err(AtlasError::WorkflowError(
-                        "No receipt lines found for allocation".to_string()
+                        "No receipt lines found for allocation".to_string(),
                     ));
                 }
 
-                let total_basis: f64 = receipt_lines.iter()
-                    .map(|rl| rl.basis_value(basis))
-                    .sum();
+                let total_basis: f64 = receipt_lines.iter().map(|rl| rl.basis_value(basis)).sum();
 
                 if total_basis.abs() < f64::EPSILON {
-                    return Err(AtlasError::WorkflowError(
-                        format!("Total {basis} basis is zero — cannot allocate")
-                    ));
+                    return Err(AtlasError::WorkflowError(format!(
+                        "Total {basis} basis is zero — cannot allocate"
+                    )));
                 }
 
                 let charge_amount = line.charge_amount.parse::<f64>().unwrap_or(0.0);
@@ -522,21 +642,24 @@ impl LandedCostEngine {
                     };
                     allocated_so_far += allocated;
 
-                    let alloc = self.repository.create_allocation(
-                        charge.organization_id,
-                        charge.id,
-                        line.id,
-                        charge.receipt_id,
-                        Some(rl.receipt_line_id),
-                        rl.item_id,
-                        rl.item_code.as_deref(),
-                        &format!("{allocated:.6}"),
-                        basis,
-                        Some(&format!("{line_basis:.6}")),
-                        Some(&format!("{total_basis:.6}")),
-                        Some(&format!("{:.4}", pct * 100.0)),
-                        rl.unit_price.as_deref(),
-                    ).await?;
+                    let alloc = self
+                        .repository
+                        .create_allocation(
+                            charge.organization_id,
+                            charge.id,
+                            line.id,
+                            charge.receipt_id,
+                            Some(rl.receipt_line_id),
+                            rl.item_id,
+                            rl.item_code.as_deref(),
+                            &format!("{allocated:.6}"),
+                            basis,
+                            Some(&format!("{line_basis:.6}")),
+                            Some(&format!("{total_basis:.6}")),
+                            Some(&format!("{:.4}", pct * 100.0)),
+                            rl.unit_price.as_deref(),
+                        )
+                        .await?;
                     results.push(alloc);
                 }
                 Ok(results)
@@ -548,30 +671,43 @@ impl LandedCostEngine {
     }
 
     /// Get allocations for a charge
-    pub async fn list_allocations(&self, charge_id: Uuid) -> AtlasResult<Vec<LandedCostAllocation>> {
+    pub async fn list_allocations(
+        &self,
+        charge_id: Uuid,
+    ) -> AtlasResult<Vec<LandedCostAllocation>> {
         self.repository.list_allocations(charge_id).await
     }
 
     /// Get allocations for a receipt
-    pub async fn get_allocations_for_receipt(&self, org_id: Uuid, receipt_id: Uuid) -> AtlasResult<Vec<LandedCostAllocation>> {
-        self.repository.get_allocations_for_receipt(org_id, receipt_id).await
+    pub async fn get_allocations_for_receipt(
+        &self,
+        org_id: Uuid,
+        receipt_id: Uuid,
+    ) -> AtlasResult<Vec<LandedCostAllocation>> {
+        self.repository
+            .get_allocations_for_receipt(org_id, receipt_id)
+            .await
     }
 
     /// Post an allocated charge (final step — GL journal entry would be created here)
     pub async fn post_charge(&self, charge_id: Uuid) -> AtlasResult<LandedCostCharge> {
-        let charge = self.repository.get_charge(charge_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Charge {charge_id} not found")
-            ))?;
+        let charge = self
+            .repository
+            .get_charge(charge_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Charge {charge_id} not found")))?;
 
         if charge.status != "allocated" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot post charge in '{}' status. Must be 'allocated'.", charge.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot post charge in '{}' status. Must be 'allocated'.",
+                charge.status
+            )));
         }
 
         info!("Posting charge {} to GL", charge.charge_number);
-        self.repository.update_charge_status(charge_id, "posted").await
+        self.repository
+            .update_charge_status(charge_id, "posted")
+            .await
     }
 
     // ========================================================================
@@ -592,17 +728,17 @@ impl LandedCostEngine {
         currency: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<LandedCostSimulation> {
-        let qty: f64 = estimated_quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Estimated quantity must be a valid number".to_string(),
-        ))?;
+        let qty: f64 = estimated_quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Estimated quantity must be a valid number".to_string())
+        })?;
         if qty <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Estimated quantity must be positive".to_string(),
             ));
         }
-        let price: f64 = unit_price.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Unit price must be a valid number".to_string(),
-        ))?;
+        let price: f64 = unit_price.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Unit price must be a valid number".to_string())
+        })?;
         if price < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Unit price must be non-negative".to_string(),
@@ -622,22 +758,26 @@ impl LandedCostEngine {
             }
             let charge_amt = match comp.rate_uom.as_deref() {
                 Some("per_unit") => {
-                    let rate = comp.default_rate.as_ref()
+                    let rate = comp
+                        .default_rate
+                        .as_ref()
                         .and_then(|r| r.parse::<f64>().ok())
                         .unwrap_or(0.0);
                     rate * qty
                 }
                 Some("percentage") => {
-                    let rate = comp.default_rate.as_ref()
+                    let rate = comp
+                        .default_rate
+                        .as_ref()
                         .and_then(|r| r.parse::<f64>().ok())
                         .unwrap_or(0.0);
                     price * qty * rate / 100.0
                 }
-                Some("flat") => {
-                    comp.default_rate.as_ref()
-                        .and_then(|r| r.parse::<f64>().ok())
-                        .unwrap_or(0.0)
-                }
+                Some("flat") => comp
+                    .default_rate
+                    .as_ref()
+                    .and_then(|r| r.parse::<f64>().ok())
+                    .unwrap_or(0.0),
                 _ => 0.0,
             };
 
@@ -660,17 +800,29 @@ impl LandedCostEngine {
 
         let simulation_number = format!("SIM-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating landed cost simulation {} in org {}", simulation_number, org_id);
+        info!(
+            "Creating landed cost simulation {} in org {}",
+            simulation_number, org_id
+        );
 
-        self.repository.create_simulation(
-            org_id, &simulation_number, template_id,
-            purchase_order_id, item_id, item_code, item_description,
-            estimated_quantity, unit_price, currency,
-            &serde_json::json!(estimated_charges),
-            &format!("{estimated_landed_cost:.6}"),
-            &format!("{estimated_landed_cost_per_unit:.6}"),
-            created_by,
-        ).await
+        self.repository
+            .create_simulation(
+                org_id,
+                &simulation_number,
+                template_id,
+                purchase_order_id,
+                item_id,
+                item_code,
+                item_description,
+                estimated_quantity,
+                unit_price,
+                currency,
+                &serde_json::json!(estimated_charges),
+                &format!("{estimated_landed_cost:.6}"),
+                &format!("{estimated_landed_cost_per_unit:.6}"),
+                created_by,
+            )
+            .await
     }
 
     /// Get a simulation by ID
@@ -679,11 +831,17 @@ impl LandedCostEngine {
     }
 
     /// List simulations
-    pub async fn list_simulations(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<LandedCostSimulation>> {
+    pub async fn list_simulations(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<LandedCostSimulation>> {
         if let Some(s) = status {
             if !VALID_SIMULATION_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_SIMULATION_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_SIMULATION_STATUSES.join(", ")
                 )));
             }
         }
@@ -691,20 +849,29 @@ impl LandedCostEngine {
     }
 
     /// Archive a simulation
-    pub async fn archive_simulation(&self, simulation_id: Uuid) -> AtlasResult<LandedCostSimulation> {
-        let sim = self.repository.get_simulation(simulation_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Simulation {simulation_id} not found")
-            ))?;
+    pub async fn archive_simulation(
+        &self,
+        simulation_id: Uuid,
+    ) -> AtlasResult<LandedCostSimulation> {
+        let sim = self
+            .repository
+            .get_simulation(simulation_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Simulation {simulation_id} not found"))
+            })?;
 
         if sim.status != "completed" && sim.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot archive simulation in '{}' status", sim.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot archive simulation in '{}' status",
+                sim.status
+            )));
         }
 
         info!("Archiving simulation {}", sim.simulation_number);
-        self.repository.update_simulation_status(simulation_id, "archived").await
+        self.repository
+            .update_simulation_status(simulation_id, "archived")
+            .await
     }
 
     // ========================================================================
@@ -713,30 +880,43 @@ impl LandedCostEngine {
 
     /// Get landed cost dashboard summary
     pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<LandedCostDashboard> {
-        let charges = self.repository.list_charges(org_id, None, None, None).await?;
+        let charges = self
+            .repository
+            .list_charges(org_id, None, None, None)
+            .await?;
         let simulations = self.repository.list_simulations(org_id, None).await?;
 
         let total_charges = charges.len() as i32;
-        let pending_charges = charges.iter().filter(|c| c.status == "draft" || c.status == "submitted").count() as i32;
-        let allocated_charges = charges.iter().filter(|c| c.status == "allocated" || c.status == "posted").count() as i32;
+        let pending_charges = charges
+            .iter()
+            .filter(|c| c.status == "draft" || c.status == "submitted")
+            .count() as i32;
+        let allocated_charges = charges
+            .iter()
+            .filter(|c| c.status == "allocated" || c.status == "posted")
+            .count() as i32;
 
-        let total_charge_amount: f64 = charges.iter()
+        let total_charge_amount: f64 = charges
+            .iter()
             .map(|c| c.total_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
         let allocations = self.repository.list_allocations_for_org(org_id).await?;
-        let total_allocated_amount: f64 = allocations.iter()
+        let total_allocated_amount: f64 = allocations
+            .iter()
             .map(|a| a.allocated_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
         let total_simulations = simulations.len() as i32;
 
         // Group charges by type
-        let mut type_counts: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+        let mut type_counts: std::collections::HashMap<String, i32> =
+            std::collections::HashMap::new();
         for c in &charges {
             *type_counts.entry(c.charge_type.clone()).or_insert(0) += 1;
         }
-        let charges_by_type: serde_json::Value = type_counts.into_iter()
+        let charges_by_type: serde_json::Value = type_counts
+            .into_iter()
             .map(|(k, v)| serde_json::json!({"charge_type": k, "count": v}))
             .collect();
 
@@ -744,28 +924,38 @@ impl LandedCostEngine {
         let mut recent = charges.clone();
         recent.sort_by_key(|b| std::cmp::Reverse(b.created_at));
         recent.truncate(5);
-        let recent_charges: serde_json::Value = recent.iter().map(|c| serde_json::json!({
-            "id": c.id,
-            "charge_number": c.charge_number,
-            "charge_type": c.charge_type,
-            "status": c.status,
-            "total_amount": c.total_amount,
-            "currency": c.currency,
-        })).collect();
+        let recent_charges: serde_json::Value = recent
+            .iter()
+            .map(|c| {
+                serde_json::json!({
+                    "id": c.id,
+                    "charge_number": c.charge_number,
+                    "charge_type": c.charge_type,
+                    "status": c.status,
+                    "total_amount": c.total_amount,
+                    "currency": c.currency,
+                })
+            })
+            .collect();
 
         // Top cost components by usage in charge lines
         let all_lines: Vec<_> = futures::future::join_all(
-            charges.iter().map(|c| self.repository.list_charge_lines(c.id))
-        ).await.into_iter()
-            .filter_map(std::result::Result::ok)
-            .flatten()
-            .collect();
+            charges
+                .iter()
+                .map(|c| self.repository.list_charge_lines(c.id)),
+        )
+        .await
+        .into_iter()
+        .filter_map(std::result::Result::ok)
+        .flatten()
+        .collect();
 
-        let mut comp_amounts: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+        let mut comp_amounts: std::collections::HashMap<String, f64> =
+            std::collections::HashMap::new();
         for l in &all_lines {
             if let Some(code) = &l.item_code {
-                *comp_amounts.entry(code.clone()).or_insert(0.0)
-                    += l.charge_amount.parse::<f64>().unwrap_or(0.0);
+                *comp_amounts.entry(code.clone()).or_insert(0.0) +=
+                    l.charge_amount.parse::<f64>().unwrap_or(0.0);
             }
         }
         let mut comp_vec: Vec<_> = comp_amounts.into_iter().collect();
@@ -802,14 +992,16 @@ pub struct ReceiptLineInfo {
 
 impl ReceiptLineInfo {
     /// Get the basis value for a given allocation basis
-    #[must_use] 
+    #[must_use]
     pub fn basis_value(&self, basis: &str) -> f64 {
         match basis {
             "quantity" => self.quantity,
             "weight" => self.weight.unwrap_or(0.0),
             "volume" => self.volume.unwrap_or(0.0),
             "value" => {
-                let price: f64 = self.unit_price.as_ref()
+                let price: f64 = self
+                    .unit_price
+                    .as_ref()
                     .and_then(|p| p.parse().ok())
                     .unwrap_or(0.0);
                 price * self.quantity
@@ -1005,11 +1197,7 @@ mod tests {
         // Verify the last line absorbs rounding
         let mut sum = 0.0;
         for i in 0..4 {
-            let allocated = if i == 3 {
-                total_charge - sum
-            } else {
-                per_line
-            };
+            let allocated = if i == 3 { total_charge - sum } else { per_line };
             sum += allocated;
         }
         assert!((sum - total_charge).abs() < f64::EPSILON);
@@ -1048,10 +1236,7 @@ mod tests {
         // Total value basis = 200 + 500 = 700
         // Charge = $140
         // A gets 200/700 * 140 = 40, B gets 500/700 * 140 = 100
-        let items = [
-            ("A", 10.0f64, 20.0f64),
-            ("B", 5.0f64, 100.0f64),
-        ];
+        let items = [("A", 10.0f64, 20.0f64), ("B", 5.0f64, 100.0f64)];
         let charge = 140.0f64;
         let total_value: f64 = items.iter().map(|(_, q, p)| q * p).sum();
 
@@ -1133,7 +1318,14 @@ mod tests {
 
     #[async_trait::async_trait]
     impl LandedCostRepository for MockLandedCostRepo {
-        async fn create_template(&self, _org_id: Uuid, code: &str, name: &str, _description: Option<&str>, _created_by: Option<Uuid>) -> AtlasResult<LandedCostTemplate> {
+        async fn create_template(
+            &self,
+            _org_id: Uuid,
+            code: &str,
+            name: &str,
+            _description: Option<&str>,
+            _created_by: Option<Uuid>,
+        ) -> AtlasResult<LandedCostTemplate> {
             Ok(LandedCostTemplate {
                 id: Uuid::new_v4(),
                 organization_id: _org_id,
@@ -1147,12 +1339,38 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             })
         }
-        async fn get_template(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<LandedCostTemplate>> { Ok(None) }
-        async fn list_templates(&self, _org_id: Uuid) -> AtlasResult<Vec<LandedCostTemplate>> { Ok(vec![]) }
-        async fn update_template_status(&self, _id: Uuid, _status: &str) -> AtlasResult<LandedCostTemplate> {
+        async fn get_template(
+            &self,
+            _org_id: Uuid,
+            _code: &str,
+        ) -> AtlasResult<Option<LandedCostTemplate>> {
+            Ok(None)
+        }
+        async fn list_templates(&self, _org_id: Uuid) -> AtlasResult<Vec<LandedCostTemplate>> {
+            Ok(vec![])
+        }
+        async fn update_template_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+        ) -> AtlasResult<LandedCostTemplate> {
             Err(AtlasError::NotImplemented("mock".to_string()))
         }
-        async fn create_component(&self, _org_id: Uuid, _template_id: Option<Uuid>, code: &str, name: &str, _description: Option<&str>, cost_type: &str, allocation_basis: &str, default_rate: Option<&str>, _rate_uom: Option<&str>, _expense_account: Option<&str>, _is_taxable: bool, _created_by: Option<Uuid>) -> AtlasResult<LandedCostComponent> {
+        async fn create_component(
+            &self,
+            _org_id: Uuid,
+            _template_id: Option<Uuid>,
+            code: &str,
+            name: &str,
+            _description: Option<&str>,
+            cost_type: &str,
+            allocation_basis: &str,
+            default_rate: Option<&str>,
+            _rate_uom: Option<&str>,
+            _expense_account: Option<&str>,
+            _is_taxable: bool,
+            _created_by: Option<Uuid>,
+        ) -> AtlasResult<LandedCostComponent> {
             Ok(LandedCostComponent {
                 id: Uuid::new_v4(),
                 organization_id: _org_id,
@@ -1173,12 +1391,42 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             })
         }
-        async fn get_component(&self, _org_id: Uuid, _code: &str) -> AtlasResult<Option<LandedCostComponent>> { Ok(None) }
-        async fn list_components(&self, _org_id: Uuid, _template_id: Option<Uuid>) -> AtlasResult<Vec<LandedCostComponent>> { Ok(vec![]) }
-        async fn update_component_status(&self, _id: Uuid, _status: &str) -> AtlasResult<LandedCostComponent> {
+        async fn get_component(
+            &self,
+            _org_id: Uuid,
+            _code: &str,
+        ) -> AtlasResult<Option<LandedCostComponent>> {
+            Ok(None)
+        }
+        async fn list_components(
+            &self,
+            _org_id: Uuid,
+            _template_id: Option<Uuid>,
+        ) -> AtlasResult<Vec<LandedCostComponent>> {
+            Ok(vec![])
+        }
+        async fn update_component_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+        ) -> AtlasResult<LandedCostComponent> {
             Err(AtlasError::NotImplemented("mock".to_string()))
         }
-        async fn create_charge(&self, _org_id: Uuid, charge_number: &str, _template_id: Option<Uuid>, _receipt_id: Option<Uuid>, _purchase_order_id: Option<Uuid>, _supplier_id: Option<Uuid>, _supplier_name: Option<&str>, charge_type: &str, _charge_date: Option<chrono::NaiveDate>, total_amount: &str, currency: &str, _created_by: Option<Uuid>) -> AtlasResult<LandedCostCharge> {
+        async fn create_charge(
+            &self,
+            _org_id: Uuid,
+            charge_number: &str,
+            _template_id: Option<Uuid>,
+            _receipt_id: Option<Uuid>,
+            _purchase_order_id: Option<Uuid>,
+            _supplier_id: Option<Uuid>,
+            _supplier_name: Option<&str>,
+            charge_type: &str,
+            _charge_date: Option<chrono::NaiveDate>,
+            total_amount: &str,
+            currency: &str,
+            _created_by: Option<Uuid>,
+        ) -> AtlasResult<LandedCostCharge> {
             Ok(LandedCostCharge {
                 id: Uuid::new_v4(),
                 organization_id: _org_id,
@@ -1199,13 +1447,49 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             })
         }
-        async fn get_charge(&self, _id: Uuid) -> AtlasResult<Option<LandedCostCharge>> { Ok(None) }
-        async fn get_charge_by_number(&self, _org_id: Uuid, _charge_number: &str) -> AtlasResult<Option<LandedCostCharge>> { Ok(None) }
-        async fn list_charges(&self, _org_id: Uuid, _status: Option<&str>, _charge_type: Option<&str>, _receipt_id: Option<Uuid>) -> AtlasResult<Vec<LandedCostCharge>> { Ok(vec![]) }
-        async fn update_charge_status(&self, _id: Uuid, _status: &str) -> AtlasResult<LandedCostCharge> {
+        async fn get_charge(&self, _id: Uuid) -> AtlasResult<Option<LandedCostCharge>> {
+            Ok(None)
+        }
+        async fn get_charge_by_number(
+            &self,
+            _org_id: Uuid,
+            _charge_number: &str,
+        ) -> AtlasResult<Option<LandedCostCharge>> {
+            Ok(None)
+        }
+        async fn list_charges(
+            &self,
+            _org_id: Uuid,
+            _status: Option<&str>,
+            _charge_type: Option<&str>,
+            _receipt_id: Option<Uuid>,
+        ) -> AtlasResult<Vec<LandedCostCharge>> {
+            Ok(vec![])
+        }
+        async fn update_charge_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+        ) -> AtlasResult<LandedCostCharge> {
             Err(AtlasError::NotImplemented("mock".to_string()))
         }
-        async fn create_charge_line(&self, _org_id: Uuid, _charge_id: Uuid, _component_id: Option<Uuid>, _line_number: i32, _receipt_line_id: Option<Uuid>, _item_id: Option<Uuid>, _item_code: Option<&str>, _item_description: Option<&str>, charge_amount: &str, allocation_basis: &str, _allocation_qty: Option<&str>, _allocation_value: Option<&str>, _expense_account: Option<&str>, _notes: Option<&str>) -> AtlasResult<LandedCostChargeLine> {
+        async fn create_charge_line(
+            &self,
+            _org_id: Uuid,
+            _charge_id: Uuid,
+            _component_id: Option<Uuid>,
+            _line_number: i32,
+            _receipt_line_id: Option<Uuid>,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            _item_description: Option<&str>,
+            charge_amount: &str,
+            allocation_basis: &str,
+            _allocation_qty: Option<&str>,
+            _allocation_value: Option<&str>,
+            _expense_account: Option<&str>,
+            _notes: Option<&str>,
+        ) -> AtlasResult<LandedCostChargeLine> {
             Ok(LandedCostChargeLine {
                 id: Uuid::new_v4(),
                 organization_id: _org_id,
@@ -1228,9 +1512,31 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             })
         }
-        async fn get_charge_line(&self, _id: Uuid) -> AtlasResult<Option<LandedCostChargeLine>> { Ok(None) }
-        async fn list_charge_lines(&self, _charge_id: Uuid) -> AtlasResult<Vec<LandedCostChargeLine>> { Ok(vec![]) }
-        async fn create_allocation(&self, _org_id: Uuid, _charge_id: Uuid, _charge_line_id: Uuid, _receipt_id: Option<Uuid>, _receipt_line_id: Option<Uuid>, _item_id: Option<Uuid>, _item_code: Option<&str>, allocated_amount: &str, allocation_basis: &str, _allocation_basis_value: Option<&str>, _total_basis_value: Option<&str>, _allocation_pct: Option<&str>, _original_unit_cost: Option<&str>) -> AtlasResult<LandedCostAllocation> {
+        async fn get_charge_line(&self, _id: Uuid) -> AtlasResult<Option<LandedCostChargeLine>> {
+            Ok(None)
+        }
+        async fn list_charge_lines(
+            &self,
+            _charge_id: Uuid,
+        ) -> AtlasResult<Vec<LandedCostChargeLine>> {
+            Ok(vec![])
+        }
+        async fn create_allocation(
+            &self,
+            _org_id: Uuid,
+            _charge_id: Uuid,
+            _charge_line_id: Uuid,
+            _receipt_id: Option<Uuid>,
+            _receipt_line_id: Option<Uuid>,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            allocated_amount: &str,
+            allocation_basis: &str,
+            _allocation_basis_value: Option<&str>,
+            _total_basis_value: Option<&str>,
+            _allocation_pct: Option<&str>,
+            _original_unit_cost: Option<&str>,
+        ) -> AtlasResult<LandedCostAllocation> {
             Ok(LandedCostAllocation {
                 id: Uuid::new_v4(),
                 organization_id: _org_id,
@@ -1252,11 +1558,49 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             })
         }
-        async fn list_allocations(&self, _charge_id: Uuid) -> AtlasResult<Vec<LandedCostAllocation>> { Ok(vec![]) }
-        async fn list_allocations_for_org(&self, _org_id: Uuid) -> AtlasResult<Vec<LandedCostAllocation>> { Ok(vec![]) }
-        async fn get_allocations_for_receipt(&self, _org_id: Uuid, _receipt_id: Uuid) -> AtlasResult<Vec<LandedCostAllocation>> { Ok(vec![]) }
-        async fn get_receipt_lines_for_charge(&self, _org_id: Uuid, _receipt_id: Option<Uuid>) -> AtlasResult<Vec<ReceiptLineInfo>> { Ok(vec![]) }
-        async fn create_simulation(&self, _org_id: Uuid, sim_number: &str, _template_id: Option<Uuid>, _purchase_order_id: Option<Uuid>, _item_id: Option<Uuid>, _item_code: Option<&str>, _item_description: Option<&str>, est_qty: &str, unit_price: &str, currency: &str, est_charges: &serde_json::Value, est_landed: &str, est_per_unit: &str, _created_by: Option<Uuid>) -> AtlasResult<LandedCostSimulation> {
+        async fn list_allocations(
+            &self,
+            _charge_id: Uuid,
+        ) -> AtlasResult<Vec<LandedCostAllocation>> {
+            Ok(vec![])
+        }
+        async fn list_allocations_for_org(
+            &self,
+            _org_id: Uuid,
+        ) -> AtlasResult<Vec<LandedCostAllocation>> {
+            Ok(vec![])
+        }
+        async fn get_allocations_for_receipt(
+            &self,
+            _org_id: Uuid,
+            _receipt_id: Uuid,
+        ) -> AtlasResult<Vec<LandedCostAllocation>> {
+            Ok(vec![])
+        }
+        async fn get_receipt_lines_for_charge(
+            &self,
+            _org_id: Uuid,
+            _receipt_id: Option<Uuid>,
+        ) -> AtlasResult<Vec<ReceiptLineInfo>> {
+            Ok(vec![])
+        }
+        async fn create_simulation(
+            &self,
+            _org_id: Uuid,
+            sim_number: &str,
+            _template_id: Option<Uuid>,
+            _purchase_order_id: Option<Uuid>,
+            _item_id: Option<Uuid>,
+            _item_code: Option<&str>,
+            _item_description: Option<&str>,
+            est_qty: &str,
+            unit_price: &str,
+            currency: &str,
+            est_charges: &serde_json::Value,
+            est_landed: &str,
+            est_per_unit: &str,
+            _created_by: Option<Uuid>,
+        ) -> AtlasResult<LandedCostSimulation> {
             Ok(LandedCostSimulation {
                 id: Uuid::new_v4(),
                 organization_id: _org_id,
@@ -1280,9 +1624,21 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             })
         }
-        async fn get_simulation(&self, _id: Uuid) -> AtlasResult<Option<LandedCostSimulation>> { Ok(None) }
-        async fn list_simulations(&self, _org_id: Uuid, _status: Option<&str>) -> AtlasResult<Vec<LandedCostSimulation>> { Ok(vec![]) }
-        async fn update_simulation_status(&self, _id: Uuid, _status: &str) -> AtlasResult<LandedCostSimulation> {
+        async fn get_simulation(&self, _id: Uuid) -> AtlasResult<Option<LandedCostSimulation>> {
+            Ok(None)
+        }
+        async fn list_simulations(
+            &self,
+            _org_id: Uuid,
+            _status: Option<&str>,
+        ) -> AtlasResult<Vec<LandedCostSimulation>> {
+            Ok(vec![])
+        }
+        async fn update_simulation_status(
+            &self,
+            _id: Uuid,
+            _status: &str,
+        ) -> AtlasResult<LandedCostSimulation> {
             Err(AtlasError::NotImplemented("mock".to_string()))
         }
     }
@@ -1294,9 +1650,9 @@ mod tests {
     #[tokio::test]
     async fn test_create_template_empty_code() {
         let engine = make_engine();
-        let result = engine.create_template(
-            Uuid::new_v4(), "", "Test Template", None, None,
-        ).await;
+        let result = engine
+            .create_template(Uuid::new_v4(), "", "Test Template", None, None)
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("code is required")),
@@ -1307,9 +1663,9 @@ mod tests {
     #[tokio::test]
     async fn test_create_template_empty_name() {
         let engine = make_engine();
-        let result = engine.create_template(
-            Uuid::new_v4(), "TPL-001", "", None, None,
-        ).await;
+        let result = engine
+            .create_template(Uuid::new_v4(), "TPL-001", "", None, None)
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("name is required")),
@@ -1320,9 +1676,15 @@ mod tests {
     #[tokio::test]
     async fn test_create_template_success() {
         let engine = make_engine();
-        let result = engine.create_template(
-            Uuid::new_v4(), "TPL-001", "Import Freight Template", Some("desc"), None,
-        ).await;
+        let result = engine
+            .create_template(
+                Uuid::new_v4(),
+                "TPL-001",
+                "Import Freight Template",
+                Some("desc"),
+                None,
+            )
+            .await;
         assert!(result.is_ok());
         let tpl = result.unwrap();
         assert_eq!(tpl.code, "TPL-001");
@@ -1333,10 +1695,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_component_invalid_cost_type() {
         let engine = make_engine();
-        let result = engine.create_component(
-            Uuid::new_v4(), None, "FRT-01", "Freight", None,
-            "invalid_type", "quantity", None, None, None, false, None,
-        ).await;
+        let result = engine
+            .create_component(
+                Uuid::new_v4(),
+                None,
+                "FRT-01",
+                "Freight",
+                None,
+                "invalid_type",
+                "quantity",
+                None,
+                None,
+                None,
+                false,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Invalid cost type")),
@@ -1347,10 +1721,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_component_invalid_allocation_basis() {
         let engine = make_engine();
-        let result = engine.create_component(
-            Uuid::new_v4(), None, "FRT-01", "Freight", None,
-            "freight", "invalid_basis", None, None, None, false, None,
-        ).await;
+        let result = engine
+            .create_component(
+                Uuid::new_v4(),
+                None,
+                "FRT-01",
+                "Freight",
+                None,
+                "freight",
+                "invalid_basis",
+                None,
+                None,
+                None,
+                false,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Invalid allocation basis")),
@@ -1361,10 +1747,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_component_invalid_rate_uom() {
         let engine = make_engine();
-        let result = engine.create_component(
-            Uuid::new_v4(), None, "FRT-01", "Freight", None,
-            "freight", "quantity", Some("5.00"), Some("invalid_uom"), None, false, None,
-        ).await;
+        let result = engine
+            .create_component(
+                Uuid::new_v4(),
+                None,
+                "FRT-01",
+                "Freight",
+                None,
+                "freight",
+                "quantity",
+                Some("5.00"),
+                Some("invalid_uom"),
+                None,
+                false,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Invalid rate UOM")),
@@ -1375,10 +1773,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_component_negative_rate() {
         let engine = make_engine();
-        let result = engine.create_component(
-            Uuid::new_v4(), None, "FRT-01", "Freight", None,
-            "freight", "quantity", Some("-5.00"), Some("per_unit"), None, false, None,
-        ).await;
+        let result = engine
+            .create_component(
+                Uuid::new_v4(),
+                None,
+                "FRT-01",
+                "Freight",
+                None,
+                "freight",
+                "quantity",
+                Some("-5.00"),
+                Some("per_unit"),
+                None,
+                false,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("non-negative")),
@@ -1389,10 +1799,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_component_success() {
         let engine = make_engine();
-        let result = engine.create_component(
-            Uuid::new_v4(), None, "FRT-01", "Ocean Freight", Some("desc"),
-            "freight", "quantity", Some("2.50"), Some("per_unit"), Some("5100"), true, None,
-        ).await;
+        let result = engine
+            .create_component(
+                Uuid::new_v4(),
+                None,
+                "FRT-01",
+                "Ocean Freight",
+                Some("desc"),
+                "freight",
+                "quantity",
+                Some("2.50"),
+                Some("per_unit"),
+                Some("5100"),
+                true,
+                None,
+            )
+            .await;
         assert!(result.is_ok());
         let comp = result.unwrap();
         assert_eq!(comp.code, "FRT-01");
@@ -1404,10 +1826,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_charge_invalid_type() {
         let engine = make_engine();
-        let result = engine.create_charge(
-            Uuid::new_v4(), "CHG-001", None, None, None, None, None,
-            "invalid", None, "100.00", "USD", None,
-        ).await;
+        let result = engine
+            .create_charge(
+                Uuid::new_v4(),
+                "CHG-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                "invalid",
+                None,
+                "100.00",
+                "USD",
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Invalid charge type")),
@@ -1418,10 +1852,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_charge_negative_amount() {
         let engine = make_engine();
-        let result = engine.create_charge(
-            Uuid::new_v4(), "CHG-001", None, None, None, None, None,
-            "actual", None, "-50.00", "USD", None,
-        ).await;
+        let result = engine
+            .create_charge(
+                Uuid::new_v4(),
+                "CHG-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                "actual",
+                None,
+                "-50.00",
+                "USD",
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("non-negative")),
@@ -1432,10 +1878,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_charge_empty_currency() {
         let engine = make_engine();
-        let result = engine.create_charge(
-            Uuid::new_v4(), "CHG-001", None, None, None, None, None,
-            "actual", None, "100.00", "", None,
-        ).await;
+        let result = engine
+            .create_charge(
+                Uuid::new_v4(),
+                "CHG-001",
+                None,
+                None,
+                None,
+                None,
+                None,
+                "actual",
+                None,
+                "100.00",
+                "",
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("Currency is required")),
@@ -1446,10 +1904,22 @@ mod tests {
     #[tokio::test]
     async fn test_create_charge_success() {
         let engine = make_engine();
-        let result = engine.create_charge(
-            Uuid::new_v4(), "CHG-001", None, None, None, Some(Uuid::new_v4()), Some("Acme Corp"),
-            "actual", chrono::NaiveDate::from_ymd_opt(2024, 6, 15), "1250.00", "USD", None,
-        ).await;
+        let result = engine
+            .create_charge(
+                Uuid::new_v4(),
+                "CHG-001",
+                None,
+                None,
+                None,
+                Some(Uuid::new_v4()),
+                Some("Acme Corp"),
+                "actual",
+                chrono::NaiveDate::from_ymd_opt(2024, 6, 15),
+                "1250.00",
+                "USD",
+                None,
+            )
+            .await;
         assert!(result.is_ok());
         let charge = result.unwrap();
         assert_eq!(charge.charge_number, "CHG-001");
@@ -1462,10 +1932,20 @@ mod tests {
     #[tokio::test]
     async fn test_simulation_zero_quantity() {
         let engine = make_engine();
-        let result = engine.create_simulation(
-            Uuid::new_v4(), None, None, None, None, None,
-            "0", "50.00", "USD", None,
-        ).await;
+        let result = engine
+            .create_simulation(
+                Uuid::new_v4(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                "0",
+                "50.00",
+                "USD",
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("positive")),
@@ -1476,10 +1956,20 @@ mod tests {
     #[tokio::test]
     async fn test_simulation_negative_price() {
         let engine = make_engine();
-        let result = engine.create_simulation(
-            Uuid::new_v4(), None, None, None, None, None,
-            "100", "-10.00", "USD", None,
-        ).await;
+        let result = engine
+            .create_simulation(
+                Uuid::new_v4(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                "100",
+                "-10.00",
+                "USD",
+                None,
+            )
+            .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AtlasError::ValidationFailed(msg) => assert!(msg.contains("non-negative")),
@@ -1490,10 +1980,20 @@ mod tests {
     #[tokio::test]
     async fn test_simulation_success() {
         let engine = make_engine();
-        let result = engine.create_simulation(
-            Uuid::new_v4(), None, None, None, Some("ITEM-001"), Some("Widget"),
-            "100", "50.00", "USD", None,
-        ).await;
+        let result = engine
+            .create_simulation(
+                Uuid::new_v4(),
+                None,
+                None,
+                None,
+                Some("ITEM-001"),
+                Some("Widget"),
+                "100",
+                "50.00",
+                "USD",
+                None,
+            )
+            .await;
         assert!(result.is_ok());
         let sim = result.unwrap();
         assert!(sim.simulation_number.starts_with("SIM-"));
@@ -1505,45 +2005,43 @@ mod tests {
     #[tokio::test]
     async fn test_list_charges_invalid_status_filter() {
         let engine = make_engine();
-        let result = engine.list_charges(
-            Uuid::new_v4(), Some("bogus"), None, None,
-        ).await;
+        let result = engine
+            .list_charges(Uuid::new_v4(), Some("bogus"), None, None)
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_list_charges_invalid_type_filter() {
         let engine = make_engine();
-        let result = engine.list_charges(
-            Uuid::new_v4(), None, Some("bogus"), None,
-        ).await;
+        let result = engine
+            .list_charges(Uuid::new_v4(), None, Some("bogus"), None)
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_update_template_status_invalid() {
         let engine = make_engine();
-        let result = engine.update_template_status(
-            Uuid::new_v4(), "TPL-001", "bogus",
-        ).await;
+        let result = engine
+            .update_template_status(Uuid::new_v4(), "TPL-001", "bogus")
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_update_component_status_invalid() {
         let engine = make_engine();
-        let result = engine.update_component_status(
-            Uuid::new_v4(), "FRT-01", "bogus",
-        ).await;
+        let result = engine
+            .update_component_status(Uuid::new_v4(), "FRT-01", "bogus")
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_list_simulations_invalid_status() {
         let engine = make_engine();
-        let result = engine.list_simulations(
-            Uuid::new_v4(), Some("bogus"),
-        ).await;
+        let result = engine.list_simulations(Uuid::new_v4(), Some("bogus")).await;
         assert!(result.is_err());
     }
 }

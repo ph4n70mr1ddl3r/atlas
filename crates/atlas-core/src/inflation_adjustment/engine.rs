@@ -9,12 +9,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > General Ledger > Inflation Adjustment
 
-use atlas_shared::{
-    InflationIndex, InflationIndexRate, InflationAdjustmentRun, InflationAdjustmentLine,
-    InflationDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::InflationAdjustmentRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, InflationAdjustmentLine, InflationAdjustmentRun,
+    InflationDashboardSummary, InflationIndex, InflationIndexRate,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -33,9 +32,7 @@ const VALID_INDEX_STATUSES: &[&str] = &["active", "inactive"];
 
 /// Valid run statuses
 #[allow(dead_code)]
-const VALID_RUN_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "completed", "reversed",
-];
+const VALID_RUN_STATUSES: &[&str] = &["draft", "submitted", "approved", "completed", "reversed"];
 
 /// Valid account types for inflation
 #[allow(dead_code)]
@@ -87,24 +84,45 @@ impl InflationAdjustmentEngine {
         }
         if !VALID_INDEX_TYPES.contains(&index_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid index_type '{}'. Must be one of: {}", index_type, VALID_INDEX_TYPES.join(", ")
+                "Invalid index_type '{}'. Must be one of: {}",
+                index_type,
+                VALID_INDEX_TYPES.join(", ")
             )));
         }
 
         // Check uniqueness
-        if self.repository.get_index_by_code(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(
-                format!("Index code '{code}' already exists")
-            ));
+        if self
+            .repository
+            .get_index_by_code(org_id, code)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Index code '{code}' already exists"
+            )));
         }
 
-        info!("Creating inflation index '{}' for country {}", code, country_code);
+        info!(
+            "Creating inflation index '{}' for country {}",
+            code, country_code
+        );
 
-        self.repository.create_index(
-            org_id, code, name, description, country_code, currency_code,
-            index_type, is_hyperinflationary, hyperinflationary_start_date,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_index(
+                org_id,
+                code,
+                name,
+                description,
+                country_code,
+                currency_code,
+                index_type,
+                is_hyperinflationary,
+                hyperinflationary_start_date,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get index by ID
@@ -113,16 +131,26 @@ impl InflationAdjustmentEngine {
     }
 
     /// Get index by code
-    pub async fn get_index_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<InflationIndex>> {
+    pub async fn get_index_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<InflationIndex>> {
         self.repository.get_index_by_code(org_id, code).await
     }
 
     /// List indices
-    pub async fn list_indices(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InflationIndex>> {
+    pub async fn list_indices(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<InflationIndex>> {
         if let Some(s) = status {
             if !VALID_INDEX_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_INDEX_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_INDEX_STATUSES.join(", ")
                 )));
             }
         }
@@ -146,30 +174,33 @@ impl InflationAdjustmentEngine {
         source: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<InflationIndexRate> {
-        let _index = self.repository.get_index(index_id).await?
+        let _index = self
+            .repository
+            .get_index(index_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Index {index_id} not found")))?;
 
-        let value: f64 = index_value.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Index value must be a valid number".to_string(),
-        ))?;
+        let value: f64 = index_value.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Index value must be a valid number".to_string())
+        })?;
         if value < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Index value must be non-negative".to_string(),
             ));
         }
 
-        let cum_factor: f64 = cumulative_factor.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Cumulative factor must be a valid number".to_string(),
-        ))?;
+        let cum_factor: f64 = cumulative_factor.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Cumulative factor must be a valid number".to_string())
+        })?;
         if cum_factor <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Cumulative factor must be positive".to_string(),
             ));
         }
 
-        let per_factor: f64 = period_factor.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Period factor must be a valid number".to_string(),
-        ))?;
+        let per_factor: f64 = period_factor.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Period factor must be a valid number".to_string())
+        })?;
         if per_factor <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Period factor must be positive".to_string(),
@@ -182,13 +213,24 @@ impl InflationAdjustmentEngine {
             ));
         }
 
-        info!("Adding index rate for period {} to {}", period_start, period_end);
+        info!(
+            "Adding index rate for period {} to {}",
+            period_start, period_end
+        );
 
-        self.repository.create_index_rate(
-            org_id, index_id, period_start, period_end,
-            index_value, cumulative_factor, period_factor,
-            source, created_by,
-        ).await
+        self.repository
+            .create_index_rate(
+                org_id,
+                index_id,
+                period_start,
+                period_end,
+                index_value,
+                cumulative_factor,
+                period_factor,
+                source,
+                created_by,
+            )
+            .await
     }
 
     /// List index rates
@@ -213,12 +255,17 @@ impl InflationAdjustmentEngine {
         adjustment_method: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<InflationAdjustmentRun> {
-        let _index = self.repository.get_index(index_id).await?
+        let _index = self
+            .repository
+            .get_index(index_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Index {index_id} not found")))?;
 
         if !VALID_ADJUSTMENT_METHODS.contains(&adjustment_method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid adjustment_method '{}'. Must be one of: {}", adjustment_method, VALID_ADJUSTMENT_METHODS.join(", ")
+                "Invalid adjustment_method '{}'. Must be one of: {}",
+                adjustment_method,
+                VALID_ADJUSTMENT_METHODS.join(", ")
             )));
         }
 
@@ -232,10 +279,20 @@ impl InflationAdjustmentEngine {
 
         info!("Creating inflation adjustment run {}", run_number);
 
-        self.repository.create_run(
-            org_id, &run_number, name, description, index_id,
-            ledger_id, from_period, to_period, adjustment_method, created_by,
-        ).await
+        self.repository
+            .create_run(
+                org_id,
+                &run_number,
+                name,
+                description,
+                index_id,
+                ledger_id,
+                from_period,
+                to_period,
+                adjustment_method,
+                created_by,
+            )
+            .await
     }
 
     /// Get run by ID
@@ -244,11 +301,17 @@ impl InflationAdjustmentEngine {
     }
 
     /// List runs
-    pub async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InflationAdjustmentRun>> {
+    pub async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<InflationAdjustmentRun>> {
         if let Some(s) = status {
             if !VALID_RUN_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_RUN_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_RUN_STATUSES.join(", ")
                 )));
             }
         }
@@ -270,33 +333,41 @@ impl InflationAdjustmentEngine {
         gain_loss_account: Option<&str>,
         currency_code: Option<&str>,
     ) -> AtlasResult<InflationAdjustmentLine> {
-        let run = self.repository.get_run(run_id).await?
+        let run = self
+            .repository
+            .get_run(run_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot add lines to run in '{}' status. Must be 'draft'.", run.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot add lines to run in '{}' status. Must be 'draft'.",
+                run.status
+            )));
         }
 
         if !VALID_ACCOUNT_TYPES.contains(&account_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid account_type '{}'. Must be one of: {}", account_type, VALID_ACCOUNT_TYPES.join(", ")
+                "Invalid account_type '{}'. Must be one of: {}",
+                account_type,
+                VALID_ACCOUNT_TYPES.join(", ")
             )));
         }
 
         if !VALID_BALANCE_TYPES.contains(&balance_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid balance_type '{}'. Must be one of: {}", balance_type, VALID_BALANCE_TYPES.join(", ")
+                "Invalid balance_type '{}'. Must be one of: {}",
+                balance_type,
+                VALID_BALANCE_TYPES.join(", ")
             )));
         }
 
-        let original: f64 = original_balance.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Original balance must be a valid number".to_string(),
-        ))?;
-        let factor: f64 = inflation_factor.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Inflation factor must be a valid number".to_string(),
-        ))?;
+        let original: f64 = original_balance.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Original balance must be a valid number".to_string())
+        })?;
+        let factor: f64 = inflation_factor.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Inflation factor must be a valid number".to_string())
+        })?;
 
         if factor <= 0.0 {
             return Err(AtlasError::ValidationFailed(
@@ -307,21 +378,39 @@ impl InflationAdjustmentEngine {
         let restated = original * factor;
         let adjustment = restated - original;
         // For monetary accounts, gain/loss is the adjustment; for non-monetary it's revalued
-        let gain_loss = if account_type == "monetary" { adjustment } else { 0.0 };
+        let gain_loss = if account_type == "monetary" {
+            adjustment
+        } else {
+            0.0
+        };
 
         let lines = self.repository.list_run_lines(run_id).await?;
         let line_number = (lines.len() as i32) + 1;
 
-        info!("Adding adjustment line for account {} (factor: {}, adj: {:.2})",
-            account_code, factor, adjustment);
+        info!(
+            "Adding adjustment line for account {} (factor: {}, adj: {:.2})",
+            account_code, factor, adjustment
+        );
 
-        self.repository.create_adjustment_line(
-            org_id, run_id, line_number, account_code, account_name,
-            account_type, balance_type, original_balance,
-            &format!("{restated:.2}"), &format!("{adjustment:.2}"),
-            inflation_factor, acquisition_date,
-            &format!("{gain_loss:.2}"), gain_loss_account, currency_code,
-        ).await
+        self.repository
+            .create_adjustment_line(
+                org_id,
+                run_id,
+                line_number,
+                account_code,
+                account_name,
+                account_type,
+                balance_type,
+                original_balance,
+                &format!("{restated:.2}"),
+                &format!("{adjustment:.2}"),
+                inflation_factor,
+                acquisition_date,
+                &format!("{gain_loss:.2}"),
+                gain_loss_account,
+                currency_code,
+            )
+            .await
     }
 
     /// List run lines
@@ -330,13 +419,13 @@ impl InflationAdjustmentEngine {
     }
 
     /// Calculate restated amount
-    #[must_use] 
+    #[must_use]
     pub fn calculate_restated_amount(original_balance: f64, inflation_factor: f64) -> f64 {
         original_balance * inflation_factor
     }
 
     /// Calculate monetary gain/loss (for IAS 29 monetary items)
-    #[must_use] 
+    #[must_use]
     pub fn calculate_monetary_gain_loss(original_balance: f64, inflation_factor: f64) -> f64 {
         // Gain/loss = restated - original (monetary items get purchasing power gain/loss)
         original_balance.mul_add(inflation_factor, -original_balance)
@@ -347,14 +436,22 @@ impl InflationAdjustmentEngine {
     // ========================================================================
 
     /// Submit a draft run for approval
-    pub async fn submit_run(&self, run_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<InflationAdjustmentRun> {
-        let run = self.repository.get_run(run_id).await?
+    pub async fn submit_run(
+        &self,
+        run_id: Uuid,
+        submitted_by: Option<Uuid>,
+    ) -> AtlasResult<InflationAdjustmentRun> {
+        let run = self
+            .repository
+            .get_run(run_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit run in '{}' status. Must be 'draft'.", run.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit run in '{}' status. Must be 'draft'.",
+                run.status
+            )));
         }
 
         let lines = self.repository.list_run_lines(run_id).await?;
@@ -365,61 +462,84 @@ impl InflationAdjustmentEngine {
         }
 
         // Calculate totals
-        let total_debit: f64 = lines.iter()
+        let total_debit: f64 = lines
+            .iter()
             .filter(|l| l.balance_type.as_deref() == Some("debit"))
             .map(|l| l.adjustment_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_credit: f64 = lines.iter()
+        let total_credit: f64 = lines
+            .iter()
             .filter(|l| l.balance_type.as_deref() == Some("credit"))
             .map(|l| l.adjustment_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_gain_loss: f64 = lines.iter()
+        let total_gain_loss: f64 = lines
+            .iter()
             .map(|l| l.gain_loss_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
-        self.repository.update_run_totals(
-            run_id,
-            &format!("{total_debit:.2}"),
-            &format!("{total_credit:.2}"),
-            &format!("{total_gain_loss:.2}"),
-            lines.len() as i32,
-        ).await?;
+        self.repository
+            .update_run_totals(
+                run_id,
+                &format!("{total_debit:.2}"),
+                &format!("{total_credit:.2}"),
+                &format!("{total_gain_loss:.2}"),
+                lines.len() as i32,
+            )
+            .await?;
 
         info!("Submitting inflation adjustment run {}", run.run_number);
 
-        self.repository.update_run_status(run_id, "submitted", submitted_by, None).await
+        self.repository
+            .update_run_status(run_id, "submitted", submitted_by, None)
+            .await
     }
 
     /// Approve a submitted run
-    pub async fn approve_run(&self, run_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<InflationAdjustmentRun> {
-        let run = self.repository.get_run(run_id).await?
+    pub async fn approve_run(
+        &self,
+        run_id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<InflationAdjustmentRun> {
+        let run = self
+            .repository
+            .get_run(run_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve run in '{}' status. Must be 'submitted'.", run.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve run in '{}' status. Must be 'submitted'.",
+                run.status
+            )));
         }
 
         info!("Approving inflation adjustment run {}", run.run_number);
 
-        self.repository.update_run_status(run_id, "approved", None, approved_by).await
+        self.repository
+            .update_run_status(run_id, "approved", None, approved_by)
+            .await
     }
 
     /// Complete an approved run
     pub async fn complete_run(&self, run_id: Uuid) -> AtlasResult<InflationAdjustmentRun> {
-        let run = self.repository.get_run(run_id).await?
+        let run = self
+            .repository
+            .get_run(run_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot complete run in '{}' status. Must be 'approved'.", run.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot complete run in '{}' status. Must be 'approved'.",
+                run.status
+            )));
         }
 
         info!("Completing inflation adjustment run {}", run.run_number);
 
-        self.repository.update_run_status(run_id, "completed", None, None).await
+        self.repository
+            .update_run_status(run_id, "completed", None, None)
+            .await
     }
 
     /// Get dashboard summary

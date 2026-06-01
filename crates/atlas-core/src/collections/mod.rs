@@ -8,8 +8,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Collections > Collections Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::CollectionsEngine;
 pub use repository::{CollectionsRepository, PostgresCollectionsRepository};

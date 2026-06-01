@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Treasury > Hedge Management
 
-pub mod repository;
 pub mod engine;
+pub mod repository;
 
 pub use engine::HedgeManagementEngine;
 pub use repository::{HedgeManagementRepository, PostgresHedgeManagementRepository};

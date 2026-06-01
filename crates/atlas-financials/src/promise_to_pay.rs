@@ -37,9 +37,9 @@ impl PromiseToPayService {
                 status: "REJECTED".to_string(),
             };
         }
-        
+
         let promise_date = format!("T+{} days", days_from_now);
-        
+
         PromiseToPayResult {
             ptp_id: format!("PTP-{}-{}", customer_id, invoice_id),
             customer_id: customer_id.to_string(),

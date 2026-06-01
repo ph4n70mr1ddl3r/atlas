@@ -8,18 +8,17 @@
 //! - List and get retirements with filtering
 //! - Dashboard summary statistics
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Create Retirement
@@ -54,36 +53,46 @@ pub async fn create_retirement(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.asset_retirement_engine.create(
-        org_id,
-        payload.asset_id,
-        payload.asset_number.as_deref(),
-        payload.asset_description.as_deref(),
-        &payload.retirement_type,
-        payload.retirement_date,
-        &payload.cost,
-        &payload.accumulated_depreciation,
-        &payload.proceeds,
-        &payload.removal_cost,
-        payload.gain_loss_account.as_deref(),
-        payload.asset_account.as_deref(),
-        payload.depreciation_account.as_deref(),
-        payload.proceeds_account.as_deref(),
-        payload.removal_cost_account.as_deref(),
-        payload.buyer_name.as_deref(),
-        payload.reason.as_deref(),
-        Some(user_id),
-    ).await {
-        Ok(ret) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ret)))),
+    match state
+        .financials
+        .asset_retirement_engine
+        .create(
+            org_id,
+            payload.asset_id,
+            payload.asset_number.as_deref(),
+            payload.asset_description.as_deref(),
+            &payload.retirement_type,
+            payload.retirement_date,
+            &payload.cost,
+            &payload.accumulated_depreciation,
+            &payload.proceeds,
+            &payload.removal_cost,
+            payload.gain_loss_account.as_deref(),
+            payload.asset_account.as_deref(),
+            payload.depreciation_account.as_deref(),
+            payload.proceeds_account.as_deref(),
+            payload.removal_cost_account.as_deref(),
+            payload.buyer_name.as_deref(),
+            payload.reason.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
+        Ok(ret) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(ret)),
+        )),
         Err(e) => {
             error!("Failed to create asset retirement: {}", e);
             match e {
-                atlas_shared::AtlasError::ValidationFailed(msg) => {
-                    Ok((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": msg}))))
-                }
-                atlas_shared::AtlasError::Conflict(msg) => {
-                    Ok((StatusCode::CONFLICT, Json(serde_json::json!({"error": msg}))))
-                }
+                atlas_shared::AtlasError::ValidationFailed(msg) => Ok((
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({"error": msg})),
+                )),
+                atlas_shared::AtlasError::Conflict(msg) => Ok((
+                    StatusCode::CONFLICT,
+                    Json(serde_json::json!({"error": msg})),
+                )),
                 _ => Err(StatusCode::INTERNAL_SERVER_ERROR),
             }
         }
@@ -123,11 +132,16 @@ pub async fn list_retirements(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.asset_retirement_engine.list(
-        org_id,
-        query.status.as_deref(),
-        query.retirement_type.as_deref(),
-    ).await {
+    match state
+        .financials
+        .asset_retirement_engine
+        .list(
+            org_id,
+            query.status.as_deref(),
+            query.retirement_type.as_deref(),
+        )
+        .await
+    {
         Ok(retirements) => Ok(Json(serde_json::json!({ "data": retirements }))),
         Err(e) => {
             error!("Failed to list asset retirements: {}", e);
@@ -152,15 +166,24 @@ pub async fn approve_retirement(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.asset_retirement_engine.approve(id, user_id).await {
-        Ok(ret) => Ok((StatusCode::OK, Json(crate::handlers::records::to_json_or_null(ret)))),
+    match state
+        .financials
+        .asset_retirement_engine
+        .approve(id, user_id)
+        .await
+    {
+        Ok(ret) => Ok((
+            StatusCode::OK,
+            Json(crate::handlers::records::to_json_or_null(ret)),
+        )),
         Err(e) => {
             error!("Failed to approve asset retirement: {}", e);
             match e {
                 atlas_shared::AtlasError::EntityNotFound(_) => Err(StatusCode::NOT_FOUND),
-                atlas_shared::AtlasError::WorkflowError(msg) => {
-                    Ok((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": msg}))))
-                }
+                atlas_shared::AtlasError::WorkflowError(msg) => Ok((
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({"error": msg})),
+                )),
                 _ => Err(StatusCode::INTERNAL_SERVER_ERROR),
             }
         }
@@ -179,15 +202,24 @@ pub async fn complete_retirement(
     Path(id): Path<Uuid>,
     Json(payload): Json<CompleteRetirementRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    match state.financials.asset_retirement_engine.complete(id, payload.gl_batch_id).await {
-        Ok(ret) => Ok((StatusCode::OK, Json(crate::handlers::records::to_json_or_null(ret)))),
+    match state
+        .financials
+        .asset_retirement_engine
+        .complete(id, payload.gl_batch_id)
+        .await
+    {
+        Ok(ret) => Ok((
+            StatusCode::OK,
+            Json(crate::handlers::records::to_json_or_null(ret)),
+        )),
         Err(e) => {
             error!("Failed to complete asset retirement: {}", e);
             match e {
                 atlas_shared::AtlasError::EntityNotFound(_) => Err(StatusCode::NOT_FOUND),
-                atlas_shared::AtlasError::WorkflowError(msg) => {
-                    Ok((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": msg}))))
-                }
+                atlas_shared::AtlasError::WorkflowError(msg) => Ok((
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({"error": msg})),
+                )),
                 _ => Err(StatusCode::INTERNAL_SERVER_ERROR),
             }
         }
@@ -200,14 +232,18 @@ pub async fn reverse_retirement(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     match state.financials.asset_retirement_engine.reverse(id).await {
-        Ok(ret) => Ok((StatusCode::OK, Json(crate::handlers::records::to_json_or_null(ret)))),
+        Ok(ret) => Ok((
+            StatusCode::OK,
+            Json(crate::handlers::records::to_json_or_null(ret)),
+        )),
         Err(e) => {
             error!("Failed to reverse asset retirement: {}", e);
             match e {
                 atlas_shared::AtlasError::EntityNotFound(_) => Err(StatusCode::NOT_FOUND),
-                atlas_shared::AtlasError::WorkflowError(msg) => {
-                    Ok((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": msg}))))
-                }
+                atlas_shared::AtlasError::WorkflowError(msg) => Ok((
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({"error": msg})),
+                )),
                 _ => Err(StatusCode::INTERNAL_SERVER_ERROR),
             }
         }
@@ -220,14 +256,18 @@ pub async fn cancel_retirement(
     Path(id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     match state.financials.asset_retirement_engine.cancel(id).await {
-        Ok(ret) => Ok((StatusCode::OK, Json(crate::handlers::records::to_json_or_null(ret)))),
+        Ok(ret) => Ok((
+            StatusCode::OK,
+            Json(crate::handlers::records::to_json_or_null(ret)),
+        )),
         Err(e) => {
             error!("Failed to cancel asset retirement: {}", e);
             match e {
                 atlas_shared::AtlasError::EntityNotFound(_) => Err(StatusCode::NOT_FOUND),
-                atlas_shared::AtlasError::WorkflowError(msg) => {
-                    Ok((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": msg}))))
-                }
+                atlas_shared::AtlasError::WorkflowError(msg) => Ok((
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({"error": msg})),
+                )),
                 _ => Err(StatusCode::INTERNAL_SERVER_ERROR),
             }
         }
@@ -243,7 +283,12 @@ pub async fn get_retirement_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.asset_retirement_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .asset_retirement_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
         Err(e) => {
             error!("Failed to get retirement dashboard: {}", e);

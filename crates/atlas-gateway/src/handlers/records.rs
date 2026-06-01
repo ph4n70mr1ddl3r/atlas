@@ -1,23 +1,21 @@
 //! Record handlers
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
+use atlas_core::EventBus;
+use atlas_shared::{CreateRequest, UpdateRequest, WorkflowActionRequest};
+use axum::Extension;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
-use atlas_shared::{
-    CreateRequest, UpdateRequest, WorkflowActionRequest,
-};
-use atlas_core::EventBus;
-use crate::AppState;
+use sqlx::{Column, Row};
 use std::sync::Arc;
-use uuid::Uuid;
-use tracing::{info, debug, error, warn};
-use sqlx::{Row, Column};
 use std::sync::OnceLock;
-use axum::Extension;
-use crate::handlers::auth::Claims;
+use tracing::{debug, error, info, warn};
+use uuid::Uuid;
 
 static IDENTIFIER_RE: OnceLock<regex::Regex> = OnceLock::new();
 
@@ -27,7 +25,7 @@ fn identifier_regex() -> &'static regex::Regex {
 
 /// Validates that an identifier is safe to use in SQL
 /// Only allows lowercase alphanumeric and underscores
-#[must_use] 
+#[must_use]
 pub fn is_valid_identifier(identifier: &str) -> bool {
     identifier_regex().is_match(identifier)
 }
@@ -52,21 +50,30 @@ pub fn row_to_json(row: &sqlx::postgres::PgRow) -> serde_json::Value {
     for i in 0..row.columns().len() {
         let name = row.columns()[i].name();
         // Try JSONB first (works for JSONB columns), then concrete PG types
-        let value = row.try_get::<serde_json::Value, _>(i)
+        let value = row
+            .try_get::<serde_json::Value, _>(i)
             .or_else(|_| row.try_get::<String, _>(i).map(serde_json::Value::String))
             .or_else(|_| row.try_get::<bool, _>(i).map(|b| serde_json::json!(b)))
             .or_else(|_| row.try_get::<i64, _>(i).map(|n| serde_json::json!(n)))
             .or_else(|_| row.try_get::<i32, _>(i).map(|n| serde_json::json!(n)))
             .or_else(|_| row.try_get::<f64, _>(i).map(|n| serde_json::json!(n)))
-            .or_else(|_| row.try_get::<chrono::DateTime<chrono::Utc>, _>(i).map(|d| serde_json::json!(d.to_rfc3339())))
-            .or_else(|_| row.try_get::<chrono::NaiveDate, _>(i).map(|d| serde_json::json!(d.to_string())))
-            .or_else(|_| row.try_get::<uuid::Uuid, _>(i).map(|u| serde_json::json!(u.to_string())))
+            .or_else(|_| {
+                row.try_get::<chrono::DateTime<chrono::Utc>, _>(i)
+                    .map(|d| serde_json::json!(d.to_rfc3339()))
+            })
+            .or_else(|_| {
+                row.try_get::<chrono::NaiveDate, _>(i)
+                    .map(|d| serde_json::json!(d.to_string()))
+            })
+            .or_else(|_| {
+                row.try_get::<uuid::Uuid, _>(i)
+                    .map(|u| serde_json::json!(u.to_string()))
+            })
             .unwrap_or(serde_json::Value::Null);
         obj.insert(name.to_string(), value);
     }
     serde_json::Value::Object(obj)
 }
-
 
 /// Serialize a value to `serde_json::Value`, mapping serialization errors
 /// to `StatusCode::INTERNAL_SERVER_ERROR`.
@@ -77,9 +84,7 @@ pub fn row_to_json(row: &sqlx::postgres::PgRow) -> serde_json::Value {
 /// Returns `Json(serde_json::Value)` on success, or `StatusCode` on failure.
 /// This type works with the `?` operator in handlers that return
 /// `Result<Json<Value>, StatusCode>`.
-pub fn to_json_value<T: serde::Serialize>(
-    val: T,
-) -> Result<serde_json::Value, StatusCode> {
+pub fn to_json_value<T: serde::Serialize>(val: T) -> Result<serde_json::Value, StatusCode> {
     serde_json::to_value(val).map_err(|e| {
         tracing::error!("Serialization error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
@@ -105,7 +110,7 @@ pub fn to_json_or_null<T: serde::Serialize>(val: T) -> serde_json::Value {
 
 /// Convert a JSON value into an `Option<String>` suitable for binding as
 /// `::text` in a parameterised `PostgreSQL` query.
-#[must_use] 
+#[must_use]
 pub fn json_to_text(value: &serde_json::Value) -> Option<String> {
     match value {
         serde_json::Value::Null => None,
@@ -135,33 +140,43 @@ pub async fn list_records(
     Query(params): Query<ListParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Listing records for entity: {}", entity);
-    
+
     let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
-    
+
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
-    
+
     // Sanitize table name to prevent SQL injection
     let table_name = sanitize_identifier(table_name)?;
-    
+
     let offset = params.offset.unwrap_or(0).max(0);
     let limit = params.limit.unwrap_or(20).clamp(1, 100);
-    
+
     // Build optional search clause using parameterized pattern.
     // In the main query ($1=limit, $2=offset, $3=org_id) the search placeholder is $4.
     // In the count query ($1=org_id) the search placeholder is $2.
     let (search_clause, search_clause_count, search_pattern) = match &params.search {
         Some(search) if !search.is_empty() => {
             // Escape ILIKE special characters in user input
-            let escaped = search.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+            let escaped = search
+                .replace('\\', "\\\\")
+                .replace('%', "\\%")
+                .replace('_', "\\_");
             let pattern = format!("%{escaped}%");
-            let fields: Vec<String> = entity_def.fields.iter()
-                .filter(|f| f.is_searchable && matches!(
-                    f.field_type,
-                    atlas_shared::FieldType::String { .. } | atlas_shared::FieldType::Email | atlas_shared::FieldType::Phone
-                ))
+            let fields: Vec<String> = entity_def
+                .fields
+                .iter()
+                .filter(|f| {
+                    f.is_searchable
+                        && matches!(
+                            f.field_type,
+                            atlas_shared::FieldType::String { .. }
+                                | atlas_shared::FieldType::Email
+                                | atlas_shared::FieldType::Phone
+                        )
+                })
                 .map(|f| format!("\"{}\"::text ILIKE ", f.name))
                 .collect();
             if fields.is_empty() {
@@ -169,8 +184,14 @@ pub async fn list_records(
             } else {
                 // $4 for the main query, $2 for the count query
                 (
-                    format!(" AND ({})", fields.join(" OR ").replace(" ILIKE ", " ILIKE $4")),
-                    format!(" AND ({})", fields.join(" OR ").replace(" ILIKE ", " ILIKE $2")),
+                    format!(
+                        " AND ({})",
+                        fields.join(" OR ").replace(" ILIKE ", " ILIKE $4")
+                    ),
+                    format!(
+                        " AND ({})",
+                        fields.join(" OR ").replace(" ILIKE ", " ILIKE $2")
+                    ),
                     pattern,
                 )
             }
@@ -187,7 +208,8 @@ pub async fn list_records(
         } else {
             "1=1"
         };
-        let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let org_id =
+            Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         (
             format!(" WHERE {soft_delete} AND organization_id = $3"),
             format!(" WHERE {soft_delete} AND organization_id = $1"),
@@ -197,11 +219,11 @@ pub async fn list_records(
 
     // Build ORDER BY from sort/order params (sanitized)
     let order_clause = build_order_clause(&params.sort, &params.order);
-    
+
     let sql = format!(
         "SELECT * FROM \"{table_name}\"{base_filter_main}{search_clause}{order_clause} LIMIT $1 OFFSET $2"
     );
-    
+
     let rows = if search_pattern.is_empty() {
         sqlx::query(&sql)
             .bind(limit)
@@ -222,17 +244,15 @@ pub async fn list_records(
         error!("Query error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    
+
     let records: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
-    
+
     // Get total count for pagination
     // Count query: $1=org_id, $2=search_pattern (or just $1=org_id if no search)
-    let count_sql = format!(
-        "SELECT COUNT(*) FROM \"{table_name}\"{base_filter_count}{search_clause_count}"
-    );
+    let count_sql =
+        format!("SELECT COUNT(*) FROM \"{table_name}\"{base_filter_count}{search_clause_count}");
     let total: i64 = if search_pattern.is_empty() {
-        sqlx::query_scalar(&count_sql)
-            .bind(org_id_param)
+        sqlx::query_scalar(&count_sql).bind(org_id_param)
     } else {
         sqlx::query_scalar(&count_sql)
             .bind(org_id_param)
@@ -244,7 +264,7 @@ pub async fn list_records(
         error!("Count query error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    
+
     Ok(Json(serde_json::json!({
         "data": records,
         "meta": {
@@ -264,7 +284,10 @@ fn build_order_clause(sort: &Option<String>, order: &Option<String>) -> String {
         Some(field) if !field.is_empty() => {
             if !is_valid_identifier(field) {
                 // Fall back to default if the field name looks suspicious
-                tracing::warn!("Invalid sort field '{}' received, falling back to created_at DESC", field);
+                tracing::warn!(
+                    "Invalid sort field '{}' received, falling back to created_at DESC",
+                    field
+                );
                 return "ORDER BY created_at DESC".to_string();
             }
             let dir = match order.as_deref() {
@@ -288,26 +311,30 @@ pub async fn get_record(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Getting record {} for entity: {}", id, entity);
-    
+
     let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
-    
+
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
-    
+
     // Sanitize table name to prevent SQL injection
     let table_name = sanitize_identifier(table_name)?;
 
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
     let row = sqlx::query(
         format!(
             "SELECT * FROM \"{}\" WHERE id = $1 AND organization_id = $2{}",
             table_name,
-            if entity_def.is_soft_delete { " AND deleted_at IS NULL" } else { "" }
-        ).as_str()
+            if entity_def.is_soft_delete {
+                " AND deleted_at IS NULL"
+            } else {
+                ""
+            }
+        )
+        .as_str(),
     )
     .bind(id)
     .bind(org_id)
@@ -317,7 +344,7 @@ pub async fn get_record(
         error!("Query error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    
+
     match row {
         Some(row) => Ok(Json(row_to_json(&row))),
         None => Err(StatusCode::NOT_FOUND),
@@ -332,29 +359,40 @@ pub async fn create_record(
     Json(payload): Json<CreateRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     info!("Creating record for entity: {}", entity);
-    
+
     let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
-    
+
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
     let table_name = sanitize_identifier(table_name)?;
-    
+
     // Validate data against entity schema (Oracle Fusion: mandatory validation)
-    let validation_result = state.core.validation_engine.validate(&entity_def, &payload.values, None);
+    let validation_result =
+        state
+            .core
+            .validation_engine
+            .validate(&entity_def, &payload.values, None);
     if !validation_result.valid {
-        return Ok((StatusCode::BAD_REQUEST, Json(serde_json::json!({
-            "error": "Validation failed",
-            "errors": validation_result.errors,
-        }))));
+        return Ok((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "Validation failed",
+                "errors": validation_result.errors,
+            })),
+        ));
     }
-    
+
     // Evaluate computed fields and merge into values (Oracle Fusion: formula-driven defaults)
     let mut values = payload.values.clone();
     let ctx = atlas_core::formula::EvaluationContext::new(values.clone());
     for field in &entity_def.fields {
-        if let atlas_shared::FieldType::Computed { formula, return_type: _ } = &field.field_type {
+        if let atlas_shared::FieldType::Computed {
+            formula,
+            return_type: _,
+        } = &field.field_type
+        {
             if let Ok(computed) = state.core.formula_engine.evaluate(formula, &ctx) {
                 let json_val: serde_json::Value = computed.into();
                 if let Some(obj) = values.as_object_mut() {
@@ -363,11 +401,10 @@ pub async fn create_record(
             }
         }
     }
-    
+
     // Inject organization_id from JWT claims for multi-tenancy
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
     // Validate and sanitize field names, filtering out null values
     // Uses the computed `values` which includes formula-evaluated fields
     let values_obj = values.as_object().ok_or(StatusCode::BAD_REQUEST)?;
@@ -376,24 +413,27 @@ pub async fn create_record(
         .filter(|(_, v)| !v.is_null())
         .map(|(k, v)| sanitize_identifier(k).map(|safe_k| (safe_k, v)))
         .collect::<Result<Vec<_>, _>>()?;
-    
+
     let fields: Vec<&str> = non_null_fields.iter().map(|(k, _)| k.as_str()).collect();
-    let computed_values: Vec<&serde_json::Value> = non_null_fields.iter().map(|(_, v)| *v).collect();
-    
+    let computed_values: Vec<&serde_json::Value> =
+        non_null_fields.iter().map(|(_, v)| *v).collect();
+
     // Placeholders: ($1::text, $2::text, ..., $N::text, $(N+1)::uuid)
     // We bind all user values as text (sqlx sends Option<String>),
     // then PostgreSQL auto-casts text to most column types.
     // organization_id is bound separately as UUID.
     let field_count = fields.len();
-    let placeholders: Vec<String> = (1..=field_count)
-        .map(|i| format!("${i}::text"))
-        .collect();
+    let placeholders: Vec<String> = (1..=field_count).map(|i| format!("${i}::text")).collect();
     let org_placeholder = format!("${}::uuid", field_count + 1);
-    
+
     let query = format!(
         "INSERT INTO \"{}\" ({}, \"organization_id\") VALUES ({}, {}) RETURNING *",
         table_name,
-        fields.iter().map(|f| format!("\"{f}\"")).collect::<Vec<_>>().join(", "),
+        fields
+            .iter()
+            .map(|f| format!("\"{f}\""))
+            .collect::<Vec<_>>()
+            .join(", "),
         placeholders.join(", "),
         org_placeholder
     );
@@ -402,30 +442,27 @@ pub async fn create_record(
         db_query = db_query.bind(json_to_text(value));
     }
     db_query = db_query.bind(org_id);
-    
-    let row = db_query
-        .fetch_one(&state.db_pool)
-        .await
-        .map_err(|e| {
-            error!("Create error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-    
+
+    let row = db_query.fetch_one(&state.db_pool).await.map_err(|e| {
+        error!("Create error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     let record = row_to_json(&row);
     let record_id = row.try_get::<Uuid, _>("id").ok();
-    
+
     // Log audit entry for create
     if let Some(id) = record_id {
-        if let Err(e) = state.core.audit_engine.log_create(
-            &entity,
-            id,
-            &record,
-            claims.0.sub.parse().ok(),
-        ).await {
+        if let Err(e) = state
+            .core
+            .audit_engine
+            .log_create(&entity, id, &record, claims.0.sub.parse().ok())
+            .await
+        {
             warn!("Failed to log audit for create: {}", e);
         }
     }
-    
+
     // Publish event
     if let Some(id) = record_id {
         let event = atlas_core::eventbus::EventFactory::record_created(
@@ -437,7 +474,7 @@ pub async fn create_record(
         );
         let _ = state.event_bus.publish(event).await;
     }
-    
+
     Ok((StatusCode::CREATED, Json(record)))
 }
 
@@ -449,18 +486,17 @@ pub async fn update_record(
     Json(payload): Json<UpdateRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     info!("Updating record {} for entity: {}", id, entity);
-    
+
     let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
-    
+
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
-    
+
     // Sanitize table name to prevent SQL injection
     let table_name = sanitize_identifier(table_name)?;
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Fetch the old record for audit (scoped to organization)
     let soft_delete_filter = if entity_def.is_soft_delete {
@@ -481,21 +517,22 @@ pub async fn update_record(
         error!("Query error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    
+
     let old_record = old_row.map(|r| row_to_json(&r));
-    
+
     // Validate and sanitize field names
     let values_obj = payload.values.as_object().ok_or(StatusCode::BAD_REQUEST)?;
     let fields_to_process: Vec<(String, &serde_json::Value)> = values_obj
         .iter()
         .map(|(k, v)| sanitize_identifier(k).map(|safe_k| (safe_k, v)))
         .collect::<Result<Vec<_>, _>>()?;
-    
-    let set_clauses: Vec<String> = fields_to_process.iter()
+
+    let set_clauses: Vec<String> = fields_to_process
+        .iter()
         .enumerate()
         .map(|(i, (k, _))| format!("\"{}\" = ${}::text", k, i + 1))
         .collect();
-    
+
     let soft_delete_update = if entity_def.is_soft_delete {
         " AND deleted_at IS NULL"
     } else {
@@ -509,39 +546,35 @@ pub async fn update_record(
         fields_to_process.len() + 2,
         soft_delete_update
     );
-    
+
     let mut db_query = sqlx::query(&query);
     for (_, value) in &fields_to_process {
         db_query = db_query.bind(json_to_text(value));
     }
     db_query = db_query.bind(id);
     db_query = db_query.bind(org_id);
-    
-    let row = db_query
-        .fetch_optional(&state.db_pool)
-        .await
-        .map_err(|e| {
-            error!("Update error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-    
+
+    let row = db_query.fetch_optional(&state.db_pool).await.map_err(|e| {
+        error!("Update error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     match row {
         Some(row) => {
             let new_record = row_to_json(&row);
-            
+
             // Log audit entry
             if let Some(ref old) = old_record {
-                if let Err(e) = state.core.audit_engine.log_update(
-                    &entity,
-                    id,
-                    old,
-                    &new_record,
-                    claims.0.sub.parse().ok(),
-                ).await {
+                if let Err(e) = state
+                    .core
+                    .audit_engine
+                    .log_update(&entity, id, old, &new_record, claims.0.sub.parse().ok())
+                    .await
+                {
                     warn!("Failed to log audit for update: {}", e);
                 }
             }
-            
+
             // Publish event
             let event = atlas_core::eventbus::EventFactory::record_updated(
                 "atlas-gateway",
@@ -551,7 +584,7 @@ pub async fn update_record(
                 claims.0.sub.parse().ok(),
             );
             let _ = state.event_bus.publish(event).await;
-            
+
             Ok(Json(new_record))
         }
         None => Err(StatusCode::NOT_FOUND),
@@ -565,19 +598,18 @@ pub async fn delete_record(
     claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
     info!("Deleting record {} for entity: {}", id, entity);
-    
+
     let entity_def = match state.core.schema_engine.get_entity(&entity) {
         Some(def) => def,
         None => return Err(StatusCode::NOT_FOUND),
     };
-    
+
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
-    
+
     // Sanitize table name to prevent SQL injection
     let table_name = sanitize_identifier(table_name)?;
-    
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Fetch the old record for audit (scoped to organization)
     let old_row = sqlx::query(
@@ -593,18 +625,18 @@ pub async fn delete_record(
         error!("Query error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    
+
     let old_record = match old_row {
         Some(r) => row_to_json(&r),
         None => return Err(StatusCode::NOT_FOUND),
     };
-    
+
     let query = if entity_def.is_soft_delete {
         format!("UPDATE \"{table_name}\" SET deleted_at = NOW() WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL")
     } else {
         format!("DELETE FROM \"{table_name}\" WHERE id = $1 AND organization_id = $2")
     };
-    
+
     let result = sqlx::query(&query)
         .bind(id)
         .bind(org_id)
@@ -614,21 +646,21 @@ pub async fn delete_record(
             error!("Delete error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    
+
     if result.rows_affected() == 0 {
         return Err(StatusCode::NOT_FOUND);
     }
-    
+
     // Log audit entry
-    if let Err(e) = state.core.audit_engine.log_delete(
-        &entity,
-        id,
-        &old_record,
-        claims.0.sub.parse().ok(),
-    ).await {
+    if let Err(e) = state
+        .core
+        .audit_engine
+        .log_delete(&entity, id, &old_record, claims.0.sub.parse().ok())
+        .await
+    {
         warn!("Failed to log audit for delete: {}", e);
     }
-    
+
     // Publish event
     let event = atlas_core::eventbus::EventFactory::record_deleted(
         "atlas-gateway",
@@ -637,7 +669,7 @@ pub async fn delete_record(
         claims.0.sub.parse().ok(),
     );
     let _ = state.event_bus.publish(event).await;
-    
+
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -651,7 +683,10 @@ pub async fn get_transitions(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     debug!("Getting transitions for record {} of entity {}", id, entity);
 
-    let entity_def = state.core.schema_engine.get_entity(&entity)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let workflow = match &entity_def.workflow {
@@ -662,8 +697,7 @@ pub async fn get_transitions(
     // Look up current workflow state from DB, scoped to organization
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
     let table_name = sanitize_identifier(table_name)?;
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let row = sqlx::query(
         format!(
@@ -680,12 +714,16 @@ pub async fn get_transitions(
     })?;
 
     let current_state = match row {
-        Some(r) => r.try_get::<String, _>(0).unwrap_or_else(|_| workflow.initial_state.clone()),
+        Some(r) => r
+            .try_get::<String, _>(0)
+            .unwrap_or_else(|_| workflow.initial_state.clone()),
         None => return Err(StatusCode::NOT_FOUND),
     };
 
     // Get available transitions from the workflow engine
-    let available = state.core.workflow_engine
+    let available = state
+        .core
+        .workflow_engine
         .get_available_transitions(&workflow.name, &current_state, None)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -707,20 +745,21 @@ pub async fn execute_action(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     info!("Executing action {} on {}:{}", action, entity, id);
 
-    let entity_def = state.core.schema_engine.get_entity(&entity)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    let workflow = entity_def.workflow.as_ref()
-        .ok_or_else(|| {
-            error!("No workflow defined for entity {}", entity);
-            StatusCode::BAD_REQUEST
-        })?;
+    let workflow = entity_def.workflow.as_ref().ok_or_else(|| {
+        error!("No workflow defined for entity {}", entity);
+        StatusCode::BAD_REQUEST
+    })?;
 
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
     let table_name = sanitize_identifier(table_name)?;
 
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Fetch the current record, scoped to organization
     let row = sqlx::query(
@@ -742,7 +781,8 @@ pub async fn execute_action(
         None => return Err(StatusCode::NOT_FOUND),
     };
 
-    let current_state = record.get("workflow_state")
+    let current_state = record
+        .get("workflow_state")
         .and_then(|v| v.as_str())
         .unwrap_or(&workflow.initial_state)
         .to_string();
@@ -755,7 +795,9 @@ pub async fn execute_action(
     };
 
     // Execute the transition via workflow engine
-    let result = state.core.workflow_engine
+    let result = state
+        .core
+        .workflow_engine
         .execute_transition(
             &workflow.name,
             id,
@@ -799,11 +841,13 @@ pub async fn execute_action(
         if let Some(obj) = values.as_object() {
             // Sanitize field names while preserving value lookup with original keys
             let original_keys: Vec<String> = obj.keys().cloned().collect();
-            let sanitized_fields: Vec<String> = original_keys.iter()
+            let sanitized_fields: Vec<String> = original_keys
+                .iter()
                 .map(|k| sanitize_identifier(k))
                 .collect::<Result<Vec<_>, _>>()?;
 
-            let set_clauses: Vec<String> = sanitized_fields.iter()
+            let set_clauses: Vec<String> = sanitized_fields
+                .iter()
                 .enumerate()
                 .map(|(i, k)| format!("\"{}\" = ${}::text", k, i + 1))
                 .collect();
@@ -884,14 +928,19 @@ pub async fn get_record_history(
     if let Some(entity_def) = state.core.schema_engine.get_entity(&entity) {
         let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
         if let Ok(safe_table) = sanitize_identifier(table_name) {
-            let org_id = Uuid::parse_str(&claims.org_id)
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let org_id =
+                Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             let row = sqlx::query(
                 format!(
                     "SELECT id FROM \"{}\" WHERE id = $1 AND organization_id = $2{}",
                     safe_table,
-                    if entity_def.is_soft_delete { " AND deleted_at IS NULL" } else { "" }
-                ).as_str()
+                    if entity_def.is_soft_delete {
+                        " AND deleted_at IS NULL"
+                    } else {
+                        ""
+                    }
+                )
+                .as_str(),
             )
             .bind(id)
             .bind(org_id)
@@ -908,7 +957,9 @@ pub async fn get_record_history(
         }
     }
 
-    let entries = state.core.audit_engine
+    let entries = state
+        .core
+        .audit_engine
         .get_entity_history(&entity, id)
         .await
         .map_err(|e| {

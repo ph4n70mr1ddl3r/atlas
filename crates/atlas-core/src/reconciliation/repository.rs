@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for bank accounts, statements, statement lines,
 //! system transactions, reconciliation matches, summaries, and matching rules.
 
-use atlas_shared::{
-    BankAccount, BankStatement, BankStatementLine, SystemTransaction,
-    ReconciliationMatch, ReconciliationSummary, ReconciliationMatchingRule,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, BankAccount, BankStatement, BankStatementLine, ReconciliationMatch,
+    ReconciliationMatchingRule, ReconciliationSummary, SystemTransaction,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -87,10 +86,8 @@ pub trait ReconciliationRepository: Send + Sync {
         counterparty_account: Option<&str>,
     ) -> AtlasResult<BankStatementLine>;
 
-    async fn list_statement_lines(
-        &self,
-        statement_id: Uuid,
-    ) -> AtlasResult<Vec<BankStatementLine>>;
+    async fn list_statement_lines(&self, statement_id: Uuid)
+        -> AtlasResult<Vec<BankStatementLine>>;
 
     // System Transactions
     async fn create_system_transaction(
@@ -160,7 +157,10 @@ pub trait ReconciliationRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReconciliationMatchingRule>;
 
-    async fn list_matching_rules(&self, org_id: Uuid) -> AtlasResult<Vec<ReconciliationMatchingRule>>;
+    async fn list_matching_rules(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<ReconciliationMatchingRule>>;
     async fn delete_matching_rule(&self, id: Uuid) -> AtlasResult<()>;
 }
 
@@ -170,7 +170,7 @@ pub struct PostgresReconciliationRepository {
 }
 
 impl PostgresReconciliationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -349,7 +349,8 @@ impl PostgresReconciliationRepository {
 }
 
 fn row_to_json_value(row: &sqlx::postgres::PgRow, col: &str) -> serde_json::Value {
-    row.try_get::<serde_json::Value, _>(col).unwrap_or(serde_json::json!(0))
+    row.try_get::<serde_json::Value, _>(col)
+        .unwrap_or(serde_json::json!(0))
 }
 
 #[async_trait]
@@ -401,13 +402,12 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
     }
 
     async fn get_bank_account(&self, id: Uuid) -> AtlasResult<Option<BankAccount>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.bank_accounts WHERE id = $1 AND is_active = true",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row =
+            sqlx::query("SELECT * FROM _atlas.bank_accounts WHERE id = $1 AND is_active = true")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| self.row_to_bank_account(&r)))
     }
@@ -476,13 +476,11 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
     }
 
     async fn get_bank_statement(&self, id: Uuid) -> AtlasResult<Option<BankStatement>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.bank_statements WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.bank_statements WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| self.row_to_bank_statement(&r)))
     }
@@ -676,13 +674,11 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
     }
 
     async fn get_system_transaction(&self, id: Uuid) -> AtlasResult<Option<SystemTransaction>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.system_transactions WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.system_transactions WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| self.row_to_system_transaction(&r)))
     }
@@ -701,7 +697,10 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_system_transaction(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_system_transaction(r))
+            .collect())
     }
 
     // ========================================================================
@@ -779,13 +778,11 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
     }
 
     async fn get_match(&self, id: Uuid) -> AtlasResult<Option<ReconciliationMatch>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.reconciliation_matches WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.reconciliation_matches WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| self.row_to_reconciliation_match(&r)))
     }
@@ -799,7 +796,10 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| self.row_to_reconciliation_match(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_reconciliation_match(r))
+            .collect())
     }
 
     async fn unmatch(
@@ -960,7 +960,10 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         Ok(self.row_to_matching_rule(&row))
     }
 
-    async fn list_matching_rules(&self, org_id: Uuid) -> AtlasResult<Vec<ReconciliationMatchingRule>> {
+    async fn list_matching_rules(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<ReconciliationMatchingRule>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.reconciliation_matching_rules WHERE organization_id = $1 AND is_active = true ORDER BY priority",
         )

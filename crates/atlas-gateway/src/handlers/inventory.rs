@@ -4,32 +4,53 @@
 //! API endpoints for inventory organizations, items, subinventories,
 //! locators, on-hand balances, transactions, cycle counts, and dashboard.
 
+use crate::handlers::auth::{parse_uuid, Claims};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::{Claims, parse_uuid};
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
-const fn default_true() -> bool { true }
-const fn default_false() -> bool { false }
-fn default_warehouse() -> String { "warehouse".to_string() }
-fn default_inventory() -> String { "inventory".to_string() }
-fn default_ea() -> String { "EA".to_string() }
-fn default_storage() -> String { "storage".to_string() }
-fn default_manual() -> String { "manual".to_string() }
-fn default_usd() -> String { "USD".to_string() }
+const fn default_true() -> bool {
+    true
+}
+const fn default_false() -> bool {
+    false
+}
+fn default_warehouse() -> String {
+    "warehouse".to_string()
+}
+fn default_inventory() -> String {
+    "inventory".to_string()
+}
+fn default_ea() -> String {
+    "EA".to_string()
+}
+fn default_storage() -> String {
+    "storage".to_string()
+}
+fn default_manual() -> String {
+    "manual".to_string()
+}
+fn default_usd() -> String {
+    "USD".to_string()
+}
 #[allow(dead_code)]
-fn default_full() -> String { "full".to_string() }
-fn default_zero() -> String { "0".to_string() }
+fn default_full() -> String {
+    "full".to_string()
+}
+fn default_zero() -> String {
+    "0".to_string()
+}
 #[allow(dead_code)]
-fn default_zero_tolerance() -> String { "0.0".to_string() }
+fn default_zero_tolerance() -> String {
+    "0.0".to_string()
+}
 
 // ============================================================================
 // Inventory Organizations
@@ -64,18 +85,41 @@ pub async fn create_inventory_org(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateInventoryOrgRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.create_inventory_org(
-        parse_uuid(&claims.org_id)?, &req.code, &req.name, req.description.as_deref(),
-        &req.org_type, req.location_code.as_deref(), req.address.clone(),
-        req.default_subinventory_code.as_deref(), &req.default_currency_code,
-        req.requires_approval_for_issues, req.requires_approval_for_transfers,
-        req.enable_lot_control, req.enable_serial_control, req.enable_revision_control,
-        None,
-    ).await {
-        Ok(org) => Ok((StatusCode::CREATED, Json(serde_json::to_value(org).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .inventory_engine
+        .create_inventory_org(
+            parse_uuid(&claims.org_id)?,
+            &req.code,
+            &req.name,
+            req.description.as_deref(),
+            &req.org_type,
+            req.location_code.as_deref(),
+            req.address.clone(),
+            req.default_subinventory_code.as_deref(),
+            &req.default_currency_code,
+            req.requires_approval_for_issues,
+            req.requires_approval_for_transfers,
+            req.enable_lot_control,
+            req.enable_serial_control,
+            req.enable_revision_control,
+            None,
+        )
+        .await
+    {
+        Ok(org) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(org).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create inventory org: {}", e);
-            Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -85,10 +129,24 @@ pub async fn get_inventory_org(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.get_inventory_org(parse_uuid(&claims.org_id)?, &code).await {
-        Ok(Some(org)) => Ok(Json(serde_json::to_value(org).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Not found"})))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
+    match state
+        .scm
+        .inventory_engine
+        .get_inventory_org(parse_uuid(&claims.org_id)?, &code)
+        .await
+    {
+        Ok(Some(org)) => Ok(Json(serde_json::to_value(org).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Not found"})),
+        )),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -96,9 +154,17 @@ pub async fn list_inventory_orgs(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.list_inventory_orgs(parse_uuid(&claims.org_id)?).await {
+    match state
+        .scm
+        .inventory_engine
+        .list_inventory_orgs(parse_uuid(&claims.org_id)?)
+        .await
+    {
         Ok(orgs) => Ok(Json(serde_json::json!({"data": orgs}))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -107,9 +173,17 @@ pub async fn delete_inventory_org(
     Extension(claims): Extension<Claims>,
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.delete_inventory_org(parse_uuid(&claims.org_id)?, &code).await {
+    match state
+        .scm
+        .inventory_engine
+        .delete_inventory_org(parse_uuid(&claims.org_id)?, &code)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -172,27 +246,60 @@ pub async fn create_item(
     Json(req): Json<CreateItemRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.scm.inventory_engine.create_item(
-        org_id, &req.item_code, &req.name, req.description.as_deref(),
-        req.long_description.as_deref(), req.category_id, req.category_code.as_deref(),
-        &req.item_type, &req.uom, req.secondary_uom.as_deref(),
-        req.weight.as_deref(), req.weight_uom.as_deref(),
-        req.volume.as_deref(), req.volume_uom.as_deref(),
-        &req.list_price, &req.standard_cost,
-        req.min_order_quantity.as_deref(), req.max_order_quantity.as_deref(),
-        req.lead_time_days, req.shelf_life_days,
-        req.is_lot_controlled, req.is_serial_controlled, req.is_revision_controlled,
-        req.is_perishable, req.is_hazardous,
-        req.is_purchasable, req.is_sellable, req.is_stockable,
-        req.inventory_asset_account_code.as_deref(), req.expense_account_code.as_deref(),
-        req.cost_of_goods_sold_account.as_deref(), req.revenue_account_code.as_deref(),
-        req.barcode.as_deref(),
-        None,
-    ).await {
-        Ok(item) => Ok((StatusCode::CREATED, Json(serde_json::to_value(item).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .inventory_engine
+        .create_item(
+            org_id,
+            &req.item_code,
+            &req.name,
+            req.description.as_deref(),
+            req.long_description.as_deref(),
+            req.category_id,
+            req.category_code.as_deref(),
+            &req.item_type,
+            &req.uom,
+            req.secondary_uom.as_deref(),
+            req.weight.as_deref(),
+            req.weight_uom.as_deref(),
+            req.volume.as_deref(),
+            req.volume_uom.as_deref(),
+            &req.list_price,
+            &req.standard_cost,
+            req.min_order_quantity.as_deref(),
+            req.max_order_quantity.as_deref(),
+            req.lead_time_days,
+            req.shelf_life_days,
+            req.is_lot_controlled,
+            req.is_serial_controlled,
+            req.is_revision_controlled,
+            req.is_perishable,
+            req.is_hazardous,
+            req.is_purchasable,
+            req.is_sellable,
+            req.is_stockable,
+            req.inventory_asset_account_code.as_deref(),
+            req.expense_account_code.as_deref(),
+            req.cost_of_goods_sold_account.as_deref(),
+            req.revenue_account_code.as_deref(),
+            req.barcode.as_deref(),
+            None,
+        )
+        .await
+    {
+        Ok(item) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(item).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create item: {}", e);
-            Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -202,9 +309,18 @@ pub async fn get_item(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.scm.inventory_engine.get_item(id).await {
-        Ok(Some(item)) => Ok(Json(serde_json::to_value(item).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Not found"})))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
+        Ok(Some(item)) => Ok(Json(serde_json::to_value(item).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Not found"})),
+        )),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -219,11 +335,21 @@ pub async fn list_items(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListItemQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.list_items(
-        parse_uuid(&claims.org_id)?, query.category_code.as_deref(), query.item_type.as_deref(),
-    ).await {
+    match state
+        .scm
+        .inventory_engine
+        .list_items(
+            parse_uuid(&claims.org_id)?,
+            query.category_code.as_deref(),
+            query.item_type.as_deref(),
+        )
+        .await
+    {
         Ok(items) => Ok(Json(serde_json::json!({"data": items}))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -242,11 +368,21 @@ pub async fn list_on_hand_balances(
     Extension(claims): Extension<Claims>,
     Query(query): Query<OnHandQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.list_on_hand_balances(
-        parse_uuid(&claims.org_id)?, query.item_id, query.inventory_org_id,
-    ).await {
+    match state
+        .scm
+        .inventory_engine
+        .list_on_hand_balances(
+            parse_uuid(&claims.org_id)?,
+            query.item_id,
+            query.inventory_org_id,
+        )
+        .await
+    {
         Ok(balances) => Ok(Json(serde_json::json!({"data": balances}))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -284,19 +420,46 @@ pub async fn receive_item(
     Extension(claims): Extension<Claims>,
     Json(req): Json<ReceiveItemRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.receive_item(
-        parse_uuid(&claims.org_id)?, req.item_id, req.item_code.as_deref(), req.item_description.as_deref(),
-        req.to_inventory_org_id, req.to_subinventory_id, req.to_locator_id,
-        &req.quantity, &req.uom, &req.unit_cost,
-        req.lot_number.as_deref(), req.serial_number.as_deref(), req.revision.as_deref(),
-        &req.source_type, req.source_id, req.source_number.as_deref(),
-        req.reason_id, req.reason_name.as_deref(), req.notes.as_deref(),
-        None,
-    ).await {
-        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .inventory_engine
+        .receive_item(
+            parse_uuid(&claims.org_id)?,
+            req.item_id,
+            req.item_code.as_deref(),
+            req.item_description.as_deref(),
+            req.to_inventory_org_id,
+            req.to_subinventory_id,
+            req.to_locator_id,
+            &req.quantity,
+            &req.uom,
+            &req.unit_cost,
+            req.lot_number.as_deref(),
+            req.serial_number.as_deref(),
+            req.revision.as_deref(),
+            &req.source_type,
+            req.source_id,
+            req.source_number.as_deref(),
+            req.reason_id,
+            req.reason_name.as_deref(),
+            req.notes.as_deref(),
+            None,
+        )
+        .await
+    {
+        Ok(txn) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(txn).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to receive item: {}", e);
-            Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -331,19 +494,46 @@ pub async fn issue_item(
     Extension(claims): Extension<Claims>,
     Json(req): Json<IssueItemRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.issue_item(
-        parse_uuid(&claims.org_id)?, req.item_id, req.item_code.as_deref(), req.item_description.as_deref(),
-        req.from_inventory_org_id, req.from_subinventory_id, req.from_locator_id,
-        &req.quantity, &req.uom, &req.unit_cost,
-        req.lot_number.as_deref(), req.serial_number.as_deref(), req.revision.as_deref(),
-        &req.source_type, req.source_id, req.source_number.as_deref(),
-        req.reason_id, req.reason_name.as_deref(), req.notes.as_deref(),
-        None,
-    ).await {
-        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .inventory_engine
+        .issue_item(
+            parse_uuid(&claims.org_id)?,
+            req.item_id,
+            req.item_code.as_deref(),
+            req.item_description.as_deref(),
+            req.from_inventory_org_id,
+            req.from_subinventory_id,
+            req.from_locator_id,
+            &req.quantity,
+            &req.uom,
+            &req.unit_cost,
+            req.lot_number.as_deref(),
+            req.serial_number.as_deref(),
+            req.revision.as_deref(),
+            &req.source_type,
+            req.source_id,
+            req.source_number.as_deref(),
+            req.reason_id,
+            req.reason_name.as_deref(),
+            req.notes.as_deref(),
+            None,
+        )
+        .await
+    {
+        Ok(txn) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(txn).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to issue item: {}", e);
-            Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -377,19 +567,46 @@ pub async fn transfer_item(
     Extension(claims): Extension<Claims>,
     Json(req): Json<TransferItemRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.transfer_item(
-        parse_uuid(&claims.org_id)?, req.item_id, req.item_code.as_deref(), req.item_description.as_deref(),
-        req.from_inventory_org_id, req.from_subinventory_id, req.from_locator_id,
-        req.to_inventory_org_id, req.to_subinventory_id, req.to_locator_id,
-        &req.quantity, &req.uom, &req.unit_cost,
-        req.lot_number.as_deref(), req.serial_number.as_deref(), req.revision.as_deref(),
-        req.reason_id, req.reason_name.as_deref(), req.notes.as_deref(),
-        None,
-    ).await {
-        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .inventory_engine
+        .transfer_item(
+            parse_uuid(&claims.org_id)?,
+            req.item_id,
+            req.item_code.as_deref(),
+            req.item_description.as_deref(),
+            req.from_inventory_org_id,
+            req.from_subinventory_id,
+            req.from_locator_id,
+            req.to_inventory_org_id,
+            req.to_subinventory_id,
+            req.to_locator_id,
+            &req.quantity,
+            &req.uom,
+            &req.unit_cost,
+            req.lot_number.as_deref(),
+            req.serial_number.as_deref(),
+            req.revision.as_deref(),
+            req.reason_id,
+            req.reason_name.as_deref(),
+            req.notes.as_deref(),
+            None,
+        )
+        .await
+    {
+        Ok(txn) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(txn).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to transfer item: {}", e);
-            Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -420,18 +637,43 @@ pub async fn adjust_item(
     Extension(claims): Extension<Claims>,
     Json(req): Json<AdjustItemRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.adjust_item(
-        parse_uuid(&claims.org_id)?, req.item_id, req.item_code.as_deref(), req.item_description.as_deref(),
-        req.inventory_org_id, req.subinventory_id, req.locator_id,
-        &req.quantity_delta, &req.uom, &req.unit_cost,
-        req.lot_number.as_deref(), req.serial_number.as_deref(), req.revision.as_deref(),
-        req.reason_id, req.reason_name.as_deref(), req.notes.as_deref(),
-        None,
-    ).await {
-        Ok(txn) => Ok((StatusCode::CREATED, Json(serde_json::to_value(txn).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .inventory_engine
+        .adjust_item(
+            parse_uuid(&claims.org_id)?,
+            req.item_id,
+            req.item_code.as_deref(),
+            req.item_description.as_deref(),
+            req.inventory_org_id,
+            req.subinventory_id,
+            req.locator_id,
+            &req.quantity_delta,
+            &req.uom,
+            &req.unit_cost,
+            req.lot_number.as_deref(),
+            req.serial_number.as_deref(),
+            req.revision.as_deref(),
+            req.reason_id,
+            req.reason_name.as_deref(),
+            req.notes.as_deref(),
+            None,
+        )
+        .await
+    {
+        Ok(txn) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(txn).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to adjust item: {}", e);
-            Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -448,11 +690,22 @@ pub async fn list_transactions(
     Extension(claims): Extension<Claims>,
     Query(query): Query<ListTransactionsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.list_transactions(
-        parse_uuid(&claims.org_id)?, query.item_id, query.transaction_action.as_deref(), query.status.as_deref(),
-    ).await {
+    match state
+        .scm
+        .inventory_engine
+        .list_transactions(
+            parse_uuid(&claims.org_id)?,
+            query.item_id,
+            query.transaction_action.as_deref(),
+            query.status.as_deref(),
+        )
+        .await
+    {
         Ok(txns) => Ok(Json(serde_json::json!({"data": txns}))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -480,14 +733,34 @@ pub async fn create_subinventory(
     Extension(claims): Extension<Claims>,
     Json(req): Json<CreateSubinventoryRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.create_subinventory(
-        parse_uuid(&claims.org_id)?, req.inventory_org_id, &req.code, &req.name,
-        req.description.as_deref(), &req.subinventory_type,
-        req.asset_subinventory, req.quantity_tracked,
-        req.location_code.as_deref(), None,
-    ).await {
-        Ok(sub) => Ok((StatusCode::CREATED, Json(serde_json::to_value(sub).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
-        Err(e) => Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": e.to_string()})))),
+    match state
+        .scm
+        .inventory_engine
+        .create_subinventory(
+            parse_uuid(&claims.org_id)?,
+            req.inventory_org_id,
+            &req.code,
+            &req.name,
+            req.description.as_deref(),
+            &req.subinventory_type,
+            req.asset_subinventory,
+            req.quantity_tracked,
+            req.location_code.as_deref(),
+            None,
+        )
+        .await
+    {
+        Ok(sub) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(sub).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
+        Err(e) => Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -495,9 +768,17 @@ pub async fn list_subinventories(
     State(state): State<Arc<AppState>>,
     Path(inventory_org_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.list_subinventories(inventory_org_id).await {
+    match state
+        .scm
+        .inventory_engine
+        .list_subinventories(inventory_org_id)
+        .await
+    {
         Ok(subs) => Ok(Json(serde_json::json!({"data": subs}))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -509,8 +790,19 @@ pub async fn get_inventory_dashboard(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    match state.scm.inventory_engine.get_dashboard_summary(parse_uuid(&claims.org_id)?).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))),
+    match state
+        .scm
+        .inventory_engine
+        .get_dashboard_summary(parse_uuid(&claims.org_id)?)
+        .await
+    {
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )),
     }
 }

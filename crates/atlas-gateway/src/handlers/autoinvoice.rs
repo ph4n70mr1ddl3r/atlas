@@ -6,18 +6,17 @@
 //! with configurable grouping rules, validation rules, batch processing,
 //! and invoice lifecycle management.
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Grouping Rule Handlers
@@ -42,21 +41,41 @@ pub async fn create_grouping_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.financials.autoinvoice_engine.create_grouping_rule(
-        org_id,
-        &payload.name,
-        payload.description.as_deref(),
-        payload.transaction_types.unwrap_or(serde_json::json!(["invoice", "credit_memo"])),
-        payload.group_by_fields.unwrap_or(serde_json::json!(["bill_to_customer_id", "currency_code", "transaction_type"])),
-        payload.line_order_by.unwrap_or(serde_json::json!(["line_number"])),
-        payload.is_default.unwrap_or(false),
-        payload.priority.unwrap_or(10),
-        user_id,
-    ).await {
-        Ok(rule) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(rule)))),
+    match state
+        .financials
+        .autoinvoice_engine
+        .create_grouping_rule(
+            org_id,
+            &payload.name,
+            payload.description.as_deref(),
+            payload
+                .transaction_types
+                .unwrap_or(serde_json::json!(["invoice", "credit_memo"])),
+            payload.group_by_fields.unwrap_or(serde_json::json!([
+                "bill_to_customer_id",
+                "currency_code",
+                "transaction_type"
+            ])),
+            payload
+                .line_order_by
+                .unwrap_or(serde_json::json!(["line_number"])),
+            payload.is_default.unwrap_or(false),
+            payload.priority.unwrap_or(10),
+            user_id,
+        )
+        .await
+    {
+        Ok(rule) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(rule)),
+        )),
         Err(e) => {
             error!("Failed to create grouping rule: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                409 => StatusCode::CONFLICT,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -66,9 +85,17 @@ pub async fn list_grouping_rules(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.autoinvoice_engine.list_grouping_rules(org_id).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .list_grouping_rules(org_id)
+        .await
+    {
         Ok(rules) => Ok(Json(serde_json::json!({"data": rules}))),
-        Err(e) => { error!("Error listing grouping rules: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error listing grouping rules: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -77,10 +104,18 @@ pub async fn get_grouping_rule(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.autoinvoice_engine.get_grouping_rule(id).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .get_grouping_rule(id)
+        .await
+    {
         Ok(Some(rule)) => Ok(Json(crate::handlers::records::to_json_or_null(rule))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -89,9 +124,17 @@ pub async fn delete_grouping_rule(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.financials.autoinvoice_engine.delete_grouping_rule(id).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .delete_grouping_rule(id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -122,25 +165,40 @@ pub async fn create_validation_rule(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.financials.autoinvoice_engine.create_validation_rule(
-        org_id,
-        &payload.name,
-        payload.description.as_deref(),
-        &payload.field_name,
-        &payload.validation_type,
-        payload.validation_expression.as_deref(),
-        &payload.error_message,
-        payload.is_fatal.unwrap_or(true),
-        payload.transaction_types.unwrap_or(serde_json::json!(["invoice", "credit_memo", "debit_memo"])),
-        payload.priority.unwrap_or(10),
-        payload.effective_from,
-        payload.effective_to,
-        user_id,
-    ).await {
-        Ok(rule) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(rule)))),
+    match state
+        .financials
+        .autoinvoice_engine
+        .create_validation_rule(
+            org_id,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.field_name,
+            &payload.validation_type,
+            payload.validation_expression.as_deref(),
+            &payload.error_message,
+            payload.is_fatal.unwrap_or(true),
+            payload.transaction_types.unwrap_or(serde_json::json!([
+                "invoice",
+                "credit_memo",
+                "debit_memo"
+            ])),
+            payload.priority.unwrap_or(10),
+            payload.effective_from,
+            payload.effective_to,
+            user_id,
+        )
+        .await
+    {
+        Ok(rule) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(rule)),
+        )),
         Err(e) => {
             error!("Failed to create validation rule: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -150,9 +208,17 @@ pub async fn list_validation_rules(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.autoinvoice_engine.list_validation_rules(org_id).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .list_validation_rules(org_id)
+        .await
+    {
         Ok(rules) => Ok(Json(serde_json::json!({"data": rules}))),
-        Err(e) => { error!("Error listing validation rules: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error listing validation rules: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -161,9 +227,17 @@ pub async fn delete_validation_rule(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.financials.autoinvoice_engine.delete_validation_rule(id).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .delete_validation_rule(id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -225,45 +299,60 @@ pub async fn import_batch(
         batch_source: payload.batch_source,
         description: payload.description,
         grouping_rule_id: payload.grouping_rule_id,
-        lines: payload.lines.into_iter().map(|l| atlas_shared::AutoInvoiceLineRequest {
-            source_line_id: l.source_line_id,
-            transaction_type: l.transaction_type,
-            customer_id: l.customer_id,
-            customer_number: l.customer_number,
-            customer_name: l.customer_name,
-            bill_to_customer_id: l.bill_to_customer_id,
-            bill_to_site_id: l.bill_to_site_id,
-            ship_to_customer_id: l.ship_to_customer_id,
-            ship_to_site_id: l.ship_to_site_id,
-            item_code: l.item_code,
-            item_description: l.item_description,
-            quantity: l.quantity,
-            unit_of_measure: l.unit_of_measure,
-            unit_price: l.unit_price,
-            line_amount: l.line_amount,
-            currency_code: l.currency_code,
-            exchange_rate: l.exchange_rate,
-            transaction_date: l.transaction_date,
-            gl_date: l.gl_date,
-            due_date: l.due_date,
-            revenue_account_code: l.revenue_account_code,
-            receivable_account_code: l.receivable_account_code,
-            tax_code: l.tax_code,
-            tax_amount: l.tax_amount,
-            sales_rep_id: l.sales_rep_id,
-            sales_rep_name: l.sales_rep_name,
-            memo_line: l.memo_line,
-            reference_number: l.reference_number,
-            sales_order_number: l.sales_order_number,
-            sales_order_line: l.sales_order_line,
-        }).collect(),
+        lines: payload
+            .lines
+            .into_iter()
+            .map(|l| atlas_shared::AutoInvoiceLineRequest {
+                source_line_id: l.source_line_id,
+                transaction_type: l.transaction_type,
+                customer_id: l.customer_id,
+                customer_number: l.customer_number,
+                customer_name: l.customer_name,
+                bill_to_customer_id: l.bill_to_customer_id,
+                bill_to_site_id: l.bill_to_site_id,
+                ship_to_customer_id: l.ship_to_customer_id,
+                ship_to_site_id: l.ship_to_site_id,
+                item_code: l.item_code,
+                item_description: l.item_description,
+                quantity: l.quantity,
+                unit_of_measure: l.unit_of_measure,
+                unit_price: l.unit_price,
+                line_amount: l.line_amount,
+                currency_code: l.currency_code,
+                exchange_rate: l.exchange_rate,
+                transaction_date: l.transaction_date,
+                gl_date: l.gl_date,
+                due_date: l.due_date,
+                revenue_account_code: l.revenue_account_code,
+                receivable_account_code: l.receivable_account_code,
+                tax_code: l.tax_code,
+                tax_amount: l.tax_amount,
+                sales_rep_id: l.sales_rep_id,
+                sales_rep_name: l.sales_rep_name,
+                memo_line: l.memo_line,
+                reference_number: l.reference_number,
+                sales_order_number: l.sales_order_number,
+                sales_order_line: l.sales_order_line,
+            })
+            .collect(),
     };
 
-    match state.financials.autoinvoice_engine.import_batch(org_id, &import_request, user_id).await {
-        Ok(batch) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(batch)))),
+    match state
+        .financials
+        .autoinvoice_engine
+        .import_batch(org_id, &import_request, user_id)
+        .await
+    {
+        Ok(batch) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(batch)),
+        )),
         Err(e) => {
             error!("Failed to import batch: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -274,9 +363,17 @@ pub async fn list_batches(
     Query(params): Query<ListBatchesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.autoinvoice_engine.list_batches(org_id, params.status.as_deref()).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .list_batches(org_id, params.status.as_deref())
+        .await
+    {
         Ok(batches) => Ok(Json(serde_json::json!({"data": batches}))),
-        Err(e) => { error!("Error listing batches: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error listing batches: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -293,7 +390,10 @@ pub async fn get_batch(
     match state.financials.autoinvoice_engine.get_batch(id).await {
         Ok(Some(batch)) => Ok(Json(crate::handlers::records::to_json_or_null(batch))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -306,7 +406,10 @@ pub async fn validate_batch(
         Ok(batch) => Ok(Json(crate::handlers::records::to_json_or_null(batch))),
         Err(e) => {
             error!("Failed to validate batch: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -320,7 +423,10 @@ pub async fn process_batch(
         Ok(batch) => Ok(Json(crate::handlers::records::to_json_or_null(batch))),
         Err(e) => {
             error!("Failed to process batch: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -337,45 +443,60 @@ pub async fn import_and_process(
         batch_source: payload.batch_source,
         description: payload.description,
         grouping_rule_id: payload.grouping_rule_id,
-        lines: payload.lines.into_iter().map(|l| atlas_shared::AutoInvoiceLineRequest {
-            source_line_id: l.source_line_id,
-            transaction_type: l.transaction_type,
-            customer_id: l.customer_id,
-            customer_number: l.customer_number,
-            customer_name: l.customer_name,
-            bill_to_customer_id: l.bill_to_customer_id,
-            bill_to_site_id: l.bill_to_site_id,
-            ship_to_customer_id: l.ship_to_customer_id,
-            ship_to_site_id: l.ship_to_site_id,
-            item_code: l.item_code,
-            item_description: l.item_description,
-            quantity: l.quantity,
-            unit_of_measure: l.unit_of_measure,
-            unit_price: l.unit_price,
-            line_amount: l.line_amount,
-            currency_code: l.currency_code,
-            exchange_rate: l.exchange_rate,
-            transaction_date: l.transaction_date,
-            gl_date: l.gl_date,
-            due_date: l.due_date,
-            revenue_account_code: l.revenue_account_code,
-            receivable_account_code: l.receivable_account_code,
-            tax_code: l.tax_code,
-            tax_amount: l.tax_amount,
-            sales_rep_id: l.sales_rep_id,
-            sales_rep_name: l.sales_rep_name,
-            memo_line: l.memo_line,
-            reference_number: l.reference_number,
-            sales_order_number: l.sales_order_number,
-            sales_order_line: l.sales_order_line,
-        }).collect(),
+        lines: payload
+            .lines
+            .into_iter()
+            .map(|l| atlas_shared::AutoInvoiceLineRequest {
+                source_line_id: l.source_line_id,
+                transaction_type: l.transaction_type,
+                customer_id: l.customer_id,
+                customer_number: l.customer_number,
+                customer_name: l.customer_name,
+                bill_to_customer_id: l.bill_to_customer_id,
+                bill_to_site_id: l.bill_to_site_id,
+                ship_to_customer_id: l.ship_to_customer_id,
+                ship_to_site_id: l.ship_to_site_id,
+                item_code: l.item_code,
+                item_description: l.item_description,
+                quantity: l.quantity,
+                unit_of_measure: l.unit_of_measure,
+                unit_price: l.unit_price,
+                line_amount: l.line_amount,
+                currency_code: l.currency_code,
+                exchange_rate: l.exchange_rate,
+                transaction_date: l.transaction_date,
+                gl_date: l.gl_date,
+                due_date: l.due_date,
+                revenue_account_code: l.revenue_account_code,
+                receivable_account_code: l.receivable_account_code,
+                tax_code: l.tax_code,
+                tax_amount: l.tax_amount,
+                sales_rep_id: l.sales_rep_id,
+                sales_rep_name: l.sales_rep_name,
+                memo_line: l.memo_line,
+                reference_number: l.reference_number,
+                sales_order_number: l.sales_order_number,
+                sales_order_line: l.sales_order_line,
+            })
+            .collect(),
     };
 
-    match state.financials.autoinvoice_engine.import_and_process(org_id, &import_request, user_id).await {
-        Ok(batch) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(batch)))),
+    match state
+        .financials
+        .autoinvoice_engine
+        .import_and_process(org_id, &import_request, user_id)
+        .await
+    {
+        Ok(batch) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(batch)),
+        )),
         Err(e) => {
             error!("Failed to import and process: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -389,9 +510,17 @@ pub async fn get_batch_lines(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.autoinvoice_engine.get_batch_lines(id).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .get_batch_lines(id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -400,9 +529,17 @@ pub async fn get_batch_results(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.autoinvoice_engine.get_batch_results(id).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .get_batch_results(id)
+        .await
+    {
         Ok(results) => Ok(Json(serde_json::json!({"data": results}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -411,9 +548,17 @@ pub async fn get_invoice(
     _claims: Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.autoinvoice_engine.get_invoice_lines(id).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .get_invoice_lines(id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({"data": lines}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -428,11 +573,20 @@ pub async fn update_invoice_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateInvoiceStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.autoinvoice_engine.update_invoice_status(id, &payload.status).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .update_invoice_status(id, &payload.status)
+        .await
+    {
         Ok(invoice) => Ok(Json(crate::handlers::records::to_json_or_null(invoice))),
         Err(e) => {
             error!("Failed to update invoice status: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -446,8 +600,16 @@ pub async fn get_autoinvoice_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.autoinvoice_engine.get_summary(org_id).await {
+    match state
+        .financials
+        .autoinvoice_engine
+        .get_summary(org_id)
+        .await
+    {
         Ok(summary) => Ok(Json(crate::handlers::records::to_json_or_null(summary))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

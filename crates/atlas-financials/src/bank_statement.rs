@@ -1,8 +1,8 @@
+use chrono::NaiveDate;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
-use rust_decimal::Decimal;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BankStatement {
@@ -23,7 +23,7 @@ pub struct BankStatementLine {
     pub transaction_date: NaiveDate,
     pub amount: Decimal,
     pub transaction_type: String, // credit, debit
-    pub match_status: String, // unmatched, matched, partially_matched, exception
+    pub match_status: String,     // unmatched, matched, partially_matched, exception
 }
 
 pub struct BankStatementService {
@@ -55,10 +55,10 @@ impl BankStatementService {
     ) -> Result<BankStatement, String> {
         let mut statements = self.statements.write().unwrap();
         if statements.iter().any(|s| {
-            s.organization_id == organization_id && 
-            s.bank_account_id == bank_account_id && 
-            s.statement_number == number && 
-            s.statement_date == date
+            s.organization_id == organization_id
+                && s.bank_account_id == bank_account_id
+                && s.statement_number == number
+                && s.statement_date == date
         }) {
             return Err("Statement already exists for this account and date".to_string());
         }
@@ -90,7 +90,11 @@ impl BankStatementService {
         }
 
         let mut lines = self.lines.write().unwrap();
-        let line_number = (lines.iter().filter(|l| l.statement_id == statement_id).count() as i32) + 1;
+        let line_number = (lines
+            .iter()
+            .filter(|l| l.statement_id == statement_id)
+            .count() as i32)
+            + 1;
 
         let line = BankStatementLine {
             id: Uuid::new_v4(),
@@ -106,14 +110,23 @@ impl BankStatementService {
         Ok(line)
     }
 
-    pub fn auto_match_simple(&self, statement_id: Uuid, system_transactions: &[(Uuid, Decimal, String)]) -> usize {
+    pub fn auto_match_simple(
+        &self,
+        statement_id: Uuid,
+        system_transactions: &[(Uuid, Decimal, String)],
+    ) -> usize {
         let mut lines = self.lines.write().unwrap();
         let mut matched_count = 0;
 
-        for line in lines.iter_mut().filter(|l| l.statement_id == statement_id && l.match_status == "unmatched") {
+        for line in lines
+            .iter_mut()
+            .filter(|l| l.statement_id == statement_id && l.match_status == "unmatched")
+        {
             // Very simple exact match logic for demo
-            if let Some((_sys_id, _, _)) = system_transactions.iter().find(|(_, amt, _)| *amt == line.amount) {
-
+            if let Some((_sys_id, _, _)) = system_transactions
+                .iter()
+                .find(|(_, amt, _)| *amt == line.amount)
+            {
                 line.match_status = "matched".to_string();
                 // In a real system, we'd record the matched_transaction_id
                 matched_count += 1;
@@ -135,16 +148,20 @@ mod tests {
         let org_id = Uuid::new_v4();
         let account_id = Uuid::new_v4();
         let date = NaiveDate::from_ymd_opt(2026, 5, 31).unwrap();
-        
-        let stmt = service.create_statement(org_id, "ST-001".to_string(), account_id, date, dec!(5000)).unwrap();
-        
-        service.add_line(stmt.id, dec!(100), date, "credit".to_string()).unwrap();
-        service.add_line(stmt.id, dec!(250), date, "debit".to_string()).unwrap();
+
+        let stmt = service
+            .create_statement(org_id, "ST-001".to_string(), account_id, date, dec!(5000))
+            .unwrap();
+
+        service
+            .add_line(stmt.id, dec!(100), date, "credit".to_string())
+            .unwrap();
+        service
+            .add_line(stmt.id, dec!(250), date, "debit".to_string())
+            .unwrap();
 
         // System transactions: (id, amount, type)
-        let sys_txs = vec![
-            (Uuid::new_v4(), dec!(100), "receipt".to_string()),
-        ];
+        let sys_txs = vec![(Uuid::new_v4(), dec!(100), "receipt".to_string())];
 
         let matched = service.auto_match_simple(stmt.id, &sys_txs);
         assert_eq!(matched, 1);

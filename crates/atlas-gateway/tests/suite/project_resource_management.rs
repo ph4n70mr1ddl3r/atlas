@@ -9,11 +9,11 @@
 //! - Validation edge cases and error handling
 //! - Full end-to-end lifecycle test
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 /// Helper to extract a numeric value from JSON, handling both f64 and i64 representations
 fn jf64(v: &serde_json::Value) -> f64 {
@@ -66,7 +66,9 @@ async fn create_test_profile(
         .await
         .unwrap();
     let status = resp.status();
-    let b = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
         panic!(
             "Expected CREATED for profile but got {}: {}",
@@ -112,7 +114,9 @@ async fn create_test_request(
         .await
         .unwrap();
     let status = resp.status();
-    let b = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
         panic!(
             "Expected CREATED for request but got {}: {}",
@@ -214,7 +218,9 @@ async fn test_get_profile() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fetched: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(fetched["resourceNumber"], "GET-RES");
     assert_eq!(fetched["resourceType"], "contractor");
@@ -239,7 +245,9 @@ async fn test_list_profiles() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 2);
 }
@@ -260,14 +268,17 @@ async fn test_update_availability() {
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
-                    serde_json::to_string(&json!({"availabilityStatus": "fully_allocated"})).unwrap(),
+                    serde_json::to_string(&json!({"availabilityStatus": "fully_allocated"}))
+                        .unwrap(),
                 ))
                 .unwrap(),
         )
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["availabilityStatus"], "fully_allocated");
 }
@@ -347,30 +358,42 @@ async fn test_request_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     // Submit
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/requests/id/{}/submit", id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/resource/requests/id/{}/submit", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated["status"], "submitted");
 
     // Fulfill
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/requests/id/{}/fulfill", id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/resource/requests/id/{}/fulfill", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fulfilled: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(fulfilled["status"], "fulfilled");
     assert!(fulfilled["fulfilledBy"].is_string());
@@ -383,16 +406,22 @@ async fn test_cancel_request() {
     let id = request["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/requests/id/{}/cancel", id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/resource/requests/id/{}/cancel", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cancelled: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
@@ -416,7 +445,9 @@ async fn test_list_requests() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 2);
 }
@@ -446,36 +477,48 @@ async fn test_delete_request() {
 // Assignment Tests
 // ============================================================================
 
-async fn setup_resource_with_assignment(app: &axum::Router) -> (serde_json::Value, serde_json::Value) {
+async fn setup_resource_with_assignment(
+    app: &axum::Router,
+) -> (serde_json::Value, serde_json::Value) {
     let profile = create_test_profile(app, "ASGN-RES", "Grace Lee", "employee").await;
     let resource_id = profile["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri("/api/v1/resource/assignments")
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "assignmentNumber": "ASGN-001",
-                    "resourceId": resource_id,
-                    "projectName": "Atlas Development",
-                    "projectNumber": "PRJ-001",
-                    "role": "Senior Developer",
-                    "startDate": "2024-02-01",
-                    "endDate": "2024-06-30",
-                    "plannedHours": 800
-                }))
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/resource/assignments")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assignmentNumber": "ASGN-001",
+                        "resourceId": resource_id,
+                        "projectName": "Atlas Development",
+                        "projectNumber": "PRJ-001",
+                        "role": "Senior Developer",
+                        "startDate": "2024-02-01",
+                        "endDate": "2024-06-30",
+                        "plannedHours": 800
+                    }))
+                    .unwrap(),
+                ))
                 .unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+        )
+        .await
+        .unwrap();
     let status = resp.status();
-    let b = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if status != StatusCode::CREATED {
-        panic!("Expected CREATED for assignment but got {}: {}", status, String::from_utf8_lossy(&b));
+        panic!(
+            "Expected CREATED for assignment but got {}: {}",
+            status,
+            String::from_utf8_lossy(&b)
+        );
     }
     let assignment: serde_json::Value = serde_json::from_slice(&b).unwrap();
     (profile, assignment)
@@ -501,30 +544,42 @@ async fn test_assignment_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     // Activate
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/assignments/id/{}/activate", id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/resource/assignments/id/{}/activate", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let active: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(active["status"], "active");
 
     // Complete
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/assignments/id/{}/complete", id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/resource/assignments/id/{}/complete", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let completed: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(completed["status"], "completed");
 }
@@ -536,16 +591,22 @@ async fn test_cancel_assignment() {
     let id = assignment["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/assignments/id/{}/cancel", id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/resource/assignments/id/{}/cancel", id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cancelled: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
@@ -568,7 +629,9 @@ async fn test_list_assignments() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(list["data"].as_array().unwrap().len() >= 1);
 }
@@ -585,27 +648,33 @@ async fn test_create_utilization_entry() {
     let assignment_id = assignment["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri("/api/v1/resource/utilization")
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "assignmentId": assignment_id,
-                    "resourceId": resource_id,
-                    "entryDate": "2024-02-15",
-                    "hoursWorked": 8.0,
-                    "description": "Feature development",
-                    "billable": true
-                }))
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/resource/utilization")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assignmentId": assignment_id,
+                        "resourceId": resource_id,
+                        "entryDate": "2024-02-15",
+                        "hoursWorked": 8.0,
+                        "description": "Feature development",
+                        "billable": true
+                    }))
+                    .unwrap(),
+                ))
                 .unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let entry: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!((jf64(&entry["hoursWorked"]) - 8.0).abs() < 0.01);
     assert_eq!(entry["status"], "submitted");
@@ -622,39 +691,54 @@ async fn test_utilization_approval_workflow() {
     let (k, v) = auth_header(&admin_claims());
 
     // Create entry
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri("/api/v1/resource/utilization")
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "assignmentId": assignment_id,
-                    "resourceId": resource_id,
-                    "entryDate": "2024-02-20",
-                    "hoursWorked": 7.5,
-                    "description": "Bug fixes"
-                }))
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/resource/utilization")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assignmentId": assignment_id,
+                        "resourceId": resource_id,
+                        "entryDate": "2024-02-20",
+                        "hoursWorked": 7.5,
+                        "description": "Bug fixes"
+                    }))
+                    .unwrap(),
+                ))
                 .unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        )
+        .await
+        .unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let entry: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let entry_id = entry["id"].as_str().unwrap();
 
     // Approve
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/utilization/id/{}/approve", entry_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/resource/utilization/id/{}/approve",
+                    entry_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let approved: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(approved["status"], "approved");
     assert!(approved["approvedBy"].is_string());
@@ -670,39 +754,54 @@ async fn test_utilization_rejection() {
     let (k, v) = auth_header(&admin_claims());
 
     // Create entry
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri("/api/v1/resource/utilization")
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "assignmentId": assignment_id,
-                    "resourceId": resource_id,
-                    "entryDate": "2024-02-25",
-                    "hoursWorked": 4.0,
-                    "description": "Questionable hours"
-                }))
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/resource/utilization")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assignmentId": assignment_id,
+                        "resourceId": resource_id,
+                        "entryDate": "2024-02-25",
+                        "hoursWorked": 4.0,
+                        "description": "Questionable hours"
+                    }))
+                    .unwrap(),
+                ))
                 .unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        )
+        .await
+        .unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let entry: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let entry_id = entry["id"].as_str().unwrap();
 
     // Reject
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/utilization/id/{}/reject", entry_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/resource/utilization/id/{}/reject",
+                    entry_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let rejected: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(rejected["status"], "rejected");
 }
@@ -717,34 +816,44 @@ async fn test_utilization_updates_assignment_hours() {
     let (k, v) = auth_header(&admin_claims());
 
     // Log 8 hours
-    let _ = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri("/api/v1/resource/utilization")
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "assignmentId": assignment_id,
-                    "resourceId": resource_id,
-                    "entryDate": "2024-02-10",
-                    "hoursWorked": 8.0,
-                    "description": "Sprint work"
-                }))
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/resource/utilization")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assignmentId": assignment_id,
+                        "resourceId": resource_id,
+                        "entryDate": "2024-02-10",
+                        "hoursWorked": 8.0,
+                        "description": "Sprint work"
+                    }))
+                    .unwrap(),
+                ))
                 .unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+        )
+        .await
+        .unwrap();
 
     // Check assignment has updated hours
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri(format!("/api/v1/resource/assignments/id/{}", assignment_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/resource/assignments/id/{}", assignment_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!((jf64(&updated["actualHours"]) - 8.0).abs() < 0.01);
     // planned was 800, actual is 8, utilization = 8/800*100 = 1.0
@@ -760,35 +869,48 @@ async fn test_list_utilization_entries() {
 
     let (k, v) = auth_header(&admin_claims());
     for day in 1..=3 {
-        let _ = app.clone().oneshot(
-            Request::builder()
-                .method("POST")
-                .uri("/api/v1/resource/utilization")
-                .header("Content-Type", "application/json")
-                .header(&k, &v)
-                .body(Body::from(
-                    serde_json::to_string(&json!({
-                        "assignmentId": assignment_id,
-                        "resourceId": resource_id,
-                        "entryDate": format!("2024-03-{:02}", day),
-                        "hoursWorked": 8.0,
-                        "description": format!("Day {} work", day)
-                    }))
+        let _ = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/resource/utilization")
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({
+                            "assignmentId": assignment_id,
+                            "resourceId": resource_id,
+                            "entryDate": format!("2024-03-{:02}", day),
+                            "hoursWorked": 8.0,
+                            "description": format!("Day {} work", day)
+                        }))
+                        .unwrap(),
+                    ))
                     .unwrap(),
-                ))
-                .unwrap(),
-        ).await.unwrap();
+            )
+            .await
+            .unwrap();
     }
 
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri(format!("/api/v1/resource/utilization?assignmentId={}", assignment_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!(
+                    "/api/v1/resource/utilization?assignmentId={}",
+                    assignment_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let list: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(list["data"].as_array().unwrap().len(), 3);
 }
@@ -816,7 +938,9 @@ async fn test_resource_dashboard() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(dashboard["totalResources"].as_i64().unwrap() >= 2);
 }
@@ -841,162 +965,235 @@ async fn test_resource_full_lifecycle() {
     assert_eq!(request["status"], "draft");
 
     // 3. Submit the request
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/requests/id/{}/submit", request_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/resource/requests/id/{}/submit",
+                    request_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 4. Create an assignment linking resource to the request
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri("/api/v1/resource/assignments")
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({
-                    "assignmentNumber": "LIFE-ASGN",
-                    "resourceId": resource_id,
-                    "projectName": "Atlas Development",
-                    "projectNumber": "PRJ-001",
-                    "requestId": request_id,
-                    "role": "Senior Developer",
-                    "startDate": "2024-02-01",
-                    "endDate": "2024-06-30",
-                    "plannedHours": 800
-                }))
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/resource/assignments")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assignmentNumber": "LIFE-ASGN",
+                        "resourceId": resource_id,
+                        "projectName": "Atlas Development",
+                        "projectNumber": "PRJ-001",
+                        "requestId": request_id,
+                        "role": "Senior Developer",
+                        "startDate": "2024-02-01",
+                        "endDate": "2024-06-30",
+                        "plannedHours": 800
+                    }))
+                    .unwrap(),
+                ))
                 .unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let assignment: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let assignment_id = assignment["id"].as_str().unwrap();
     assert_eq!(assignment["status"], "planned");
 
     // 5. Fulfill the request
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/requests/id/{}/fulfill", request_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/resource/requests/id/{}/fulfill",
+                    request_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 6. Activate the assignment
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/assignments/id/{}/activate", assignment_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/resource/assignments/id/{}/activate",
+                    assignment_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 7. Log utilization
     for day in 10..=14 {
-        let resp = app.clone().oneshot(
-            Request::builder()
-                .method("POST")
-                .uri("/api/v1/resource/utilization")
-                .header("Content-Type", "application/json")
-                .header(&k, &v)
-                .body(Body::from(
-                    serde_json::to_string(&json!({
-                        "assignmentId": assignment_id,
-                        "resourceId": resource_id,
-                        "entryDate": format!("2024-02-{}", day),
-                        "hoursWorked": 8.0,
-                        "description": format!("Week work day {}", day)
-                    }))
+        let resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/resource/utilization")
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({
+                            "assignmentId": assignment_id,
+                            "resourceId": resource_id,
+                            "entryDate": format!("2024-02-{}", day),
+                            "hoursWorked": 8.0,
+                            "description": format!("Week work day {}", day)
+                        }))
+                        .unwrap(),
+                    ))
                     .unwrap(),
-                ))
-                .unwrap(),
-        ).await.unwrap();
+            )
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::CREATED);
     }
 
     // 8. Approve utilization entries
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri(format!("/api/v1/resource/utilization?assignmentId={}&status=submitted", assignment_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
-    let entries: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    for entry in entries["data"].as_array().unwrap() {
-        let entry_id = entry["id"].as_str().unwrap();
-        let resp = app.clone().oneshot(
+    let resp = app
+        .clone()
+        .oneshot(
             Request::builder()
-                .method("POST")
-                .uri(format!("/api/v1/resource/utilization/id/{}/approve", entry_id))
+                .uri(format!(
+                    "/api/v1/resource/utilization?assignmentId={}&status=submitted",
+                    assignment_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let entries: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    for entry in entries["data"].as_array().unwrap() {
+        let entry_id = entry["id"].as_str().unwrap();
+        let resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!(
+                        "/api/v1/resource/utilization/id/{}/approve",
+                        entry_id
+                    ))
+                    .header(&k, &v)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
     }
 
     // 9. Verify assignment hours are updated (5 days * 8 hours = 40 hours)
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri(format!("/api/v1/resource/assignments/id/{}", assignment_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/v1/resource/assignments/id/{}", assignment_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated_assignment: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!((jf64(&updated_assignment["actualHours"]) - 40.0).abs() < 0.01);
     // 40/800*100 = 5.0%
     assert!((jf64(&updated_assignment["utilizationPercentage"]) - 5.0).abs() < 0.1);
 
     // 10. Complete the assignment
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/assignments/id/{}/complete", assignment_id))
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/resource/assignments/id/{}/complete",
+                    assignment_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 11. Mark resource as available again
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .method("POST")
-            .uri(format!("/api/v1/resource/profiles/id/{}/availability", resource_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(
-                serde_json::to_string(&json!({"availabilityStatus": "available"})).unwrap(),
-            ))
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!(
+                    "/api/v1/resource/profiles/id/{}/availability",
+                    resource_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"availabilityStatus": "available"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 12. Check dashboard
-    let resp = app.clone().oneshot(
-        Request::builder()
-            .uri("/api/v1/resource/dashboard")
-            .header(&k, &v)
-            .body(Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/resource/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert!(dashboard["totalResources"].as_i64().unwrap() >= 1);
 }

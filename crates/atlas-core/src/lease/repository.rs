@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for lease contracts, payment schedules,
 //! modifications, and terminations.
 
-use atlas_shared::{
-    LeaseContract, LeasePayment, LeaseModification, LeaseTermination,
-    LeaseDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, LeaseContract, LeaseDashboardSummary, LeaseModification, LeasePayment,
+    LeaseTermination,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -62,8 +61,17 @@ pub trait LeaseAccountingRepository: Send + Sync {
     ) -> AtlasResult<LeaseContract>;
 
     async fn get_lease(&self, id: Uuid) -> AtlasResult<Option<LeaseContract>>;
-    async fn get_lease_by_number(&self, org_id: Uuid, lease_number: &str) -> AtlasResult<Option<LeaseContract>>;
-    async fn list_leases(&self, org_id: Uuid, status: Option<&str>, classification: Option<&str>) -> AtlasResult<Vec<LeaseContract>>;
+    async fn get_lease_by_number(
+        &self,
+        org_id: Uuid,
+        lease_number: &str,
+    ) -> AtlasResult<Option<LeaseContract>>;
+    async fn list_leases(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        classification: Option<&str>,
+    ) -> AtlasResult<Vec<LeaseContract>>;
     async fn update_lease_status(
         &self,
         id: Uuid,
@@ -102,7 +110,11 @@ pub trait LeaseAccountingRepository: Send + Sync {
         status: &str,
     ) -> AtlasResult<LeasePayment>;
 
-    async fn get_payment_by_period(&self, lease_id: Uuid, period_number: i32) -> AtlasResult<Option<LeasePayment>>;
+    async fn get_payment_by_period(
+        &self,
+        lease_id: Uuid,
+        period_number: i32,
+    ) -> AtlasResult<Option<LeasePayment>>;
     async fn list_payments(&self, lease_id: Uuid) -> AtlasResult<Vec<LeasePayment>>;
     async fn update_payment_status(
         &self,
@@ -167,7 +179,7 @@ pub struct PostgresLeaseAccountingRepository {
 }
 
 impl PostgresLeaseAccountingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -391,20 +403,44 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(lease_number).bind(title).bind(description).bind(classification)
-        .bind(lessor_id).bind(lessor_name).bind(asset_description).bind(location)
-        .bind(department_id).bind(department_name)
-        .bind(commencement_date).bind(end_date).bind(lease_term_months)
-        .bind(purchase_option_exists).bind(purchase_option_likely)
-        .bind(renewal_option_exists).bind(renewal_option_months).bind(renewal_option_likely)
-        .bind(discount_rate).bind(currency_code).bind(payment_frequency)
-        .bind(annual_payment_amount).bind(escalation_rate).bind(escalation_frequency_months)
-        .bind(total_lease_payments).bind(initial_lease_liability).bind(initial_rou_asset_value)
+        .bind(org_id)
+        .bind(lease_number)
+        .bind(title)
+        .bind(description)
+        .bind(classification)
+        .bind(lessor_id)
+        .bind(lessor_name)
+        .bind(asset_description)
+        .bind(location)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(commencement_date)
+        .bind(end_date)
+        .bind(lease_term_months)
+        .bind(purchase_option_exists)
+        .bind(purchase_option_likely)
+        .bind(renewal_option_exists)
+        .bind(renewal_option_months)
+        .bind(renewal_option_likely)
+        .bind(discount_rate)
+        .bind(currency_code)
+        .bind(payment_frequency)
+        .bind(annual_payment_amount)
+        .bind(escalation_rate)
+        .bind(escalation_frequency_months)
+        .bind(total_lease_payments)
+        .bind(initial_lease_liability)
+        .bind(initial_rou_asset_value)
         .bind(residual_guarantee_amount)
-        .bind(current_lease_liability).bind(current_rou_asset_value)
-        .bind(accumulated_rou_depreciation).bind(total_payments_made).bind(periods_elapsed)
-        .bind(rou_asset_account_code).bind(rou_depreciation_account_code)
-        .bind(lease_liability_account_code).bind(lease_expense_account_code)
+        .bind(current_lease_liability)
+        .bind(current_rou_asset_value)
+        .bind(accumulated_rou_depreciation)
+        .bind(total_payments_made)
+        .bind(periods_elapsed)
+        .bind(rou_asset_account_code)
+        .bind(rou_depreciation_account_code)
+        .bind(lease_liability_account_code)
+        .bind(lease_expense_account_code)
         .bind(interest_expense_account_code)
         .bind(created_by)
         .fetch_one(&self.pool)
@@ -423,18 +459,28 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         Ok(row.map(|r| self.row_to_lease(&r)))
     }
 
-    async fn get_lease_by_number(&self, org_id: Uuid, lease_number: &str) -> AtlasResult<Option<LeaseContract>> {
+    async fn get_lease_by_number(
+        &self,
+        org_id: Uuid,
+        lease_number: &str,
+    ) -> AtlasResult<Option<LeaseContract>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.lease_contracts WHERE organization_id = $1 AND lease_number = $2"
+            "SELECT * FROM _atlas.lease_contracts WHERE organization_id = $1 AND lease_number = $2",
         )
-        .bind(org_id).bind(lease_number)
+        .bind(org_id)
+        .bind(lease_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_lease(&r)))
     }
 
-    async fn list_leases(&self, org_id: Uuid, status: Option<&str>, classification: Option<&str>) -> AtlasResult<Vec<LeaseContract>> {
+    async fn list_leases(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        classification: Option<&str>,
+    ) -> AtlasResult<Vec<LeaseContract>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.lease_contracts
@@ -444,7 +490,9 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
             ORDER BY lease_number
             ",
         )
-        .bind(org_id).bind(status).bind(classification)
+        .bind(org_id)
+        .bind(status)
+        .bind(classification)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -469,7 +517,10 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(impairment_amount).bind(impairment_date)
+        .bind(id)
+        .bind(status)
+        .bind(impairment_amount)
+        .bind(impairment_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -497,8 +548,12 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(current_liability).bind(current_rou)
-        .bind(accumulated_depreciation).bind(total_payments_made).bind(periods_elapsed)
+        .bind(id)
+        .bind(current_liability)
+        .bind(current_rou)
+        .bind(accumulated_depreciation)
+        .bind(total_payments_made)
+        .bind(periods_elapsed)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -541,12 +596,22 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(lease_id).bind(period_number).bind(payment_date)
-        .bind(payment_amount).bind(interest_amount).bind(principal_amount)
-        .bind(remaining_liability).bind(rou_asset_value)
-        .bind(rou_depreciation).bind(accumulated_depreciation)
-        .bind(lease_expense).bind(is_paid).bind(payment_reference)
-        .bind(journal_entry_id).bind(status)
+        .bind(org_id)
+        .bind(lease_id)
+        .bind(period_number)
+        .bind(payment_date)
+        .bind(payment_amount)
+        .bind(interest_amount)
+        .bind(principal_amount)
+        .bind(remaining_liability)
+        .bind(rou_asset_value)
+        .bind(rou_depreciation)
+        .bind(accumulated_depreciation)
+        .bind(lease_expense)
+        .bind(is_paid)
+        .bind(payment_reference)
+        .bind(journal_entry_id)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -554,11 +619,16 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         Ok(self.row_to_payment(&row))
     }
 
-    async fn get_payment_by_period(&self, lease_id: Uuid, period_number: i32) -> AtlasResult<Option<LeasePayment>> {
+    async fn get_payment_by_period(
+        &self,
+        lease_id: Uuid,
+        period_number: i32,
+    ) -> AtlasResult<Option<LeasePayment>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.lease_payments WHERE lease_id = $1 AND period_number = $2"
+            "SELECT * FROM _atlas.lease_payments WHERE lease_id = $1 AND period_number = $2",
         )
-        .bind(lease_id).bind(period_number)
+        .bind(lease_id)
+        .bind(period_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -567,7 +637,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
 
     async fn list_payments(&self, lease_id: Uuid) -> AtlasResult<Vec<LeasePayment>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.lease_payments WHERE lease_id = $1 ORDER BY period_number"
+            "SELECT * FROM _atlas.lease_payments WHERE lease_id = $1 ORDER BY period_number",
         )
         .bind(lease_id)
         .fetch_all(&self.pool)
@@ -595,7 +665,11 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(is_paid).bind(payment_reference).bind(journal_entry_id)
+        .bind(id)
+        .bind(status)
+        .bind(is_paid)
+        .bind(payment_reference)
+        .bind(journal_entry_id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -639,13 +713,22 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(lease_id).bind(modification_number).bind(modification_type)
-        .bind(description).bind(effective_date)
-        .bind(previous_term_months).bind(new_term_months)
-        .bind(previous_end_date).bind(new_end_date)
-        .bind(previous_discount_rate).bind(new_discount_rate)
-        .bind(liability_adjustment).bind(rou_asset_adjustment)
-        .bind(status).bind(created_by)
+        .bind(org_id)
+        .bind(lease_id)
+        .bind(modification_number)
+        .bind(modification_type)
+        .bind(description)
+        .bind(effective_date)
+        .bind(previous_term_months)
+        .bind(new_term_months)
+        .bind(previous_end_date)
+        .bind(new_end_date)
+        .bind(previous_discount_rate)
+        .bind(new_discount_rate)
+        .bind(liability_adjustment)
+        .bind(rou_asset_adjustment)
+        .bind(status)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -707,10 +790,19 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(lease_id).bind(termination_type).bind(termination_date)
-        .bind(reason).bind(remaining_liability).bind(remaining_rou_asset)
-        .bind(termination_penalty).bind(gain_loss_amount).bind(gain_loss_type)
-        .bind(journal_entry_id).bind(status).bind(created_by)
+        .bind(org_id)
+        .bind(lease_id)
+        .bind(termination_type)
+        .bind(termination_date)
+        .bind(reason)
+        .bind(remaining_liability)
+        .bind(remaining_rou_asset)
+        .bind(termination_penalty)
+        .bind(gain_loss_amount)
+        .bind(gain_loss_type)
+        .bind(journal_entry_id)
+        .bind(status)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -720,7 +812,7 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
 
     async fn list_terminations(&self, lease_id: Uuid) -> AtlasResult<Vec<LeaseTermination>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.lease_terminations WHERE lease_id = $1 ORDER BY created_at DESC"
+            "SELECT * FROM _atlas.lease_terminations WHERE lease_id = $1 ORDER BY created_at DESC",
         )
         .bind(lease_id)
         .fetch_all(&self.pool)
@@ -755,17 +847,26 @@ impl LeaseAccountingRepository for PostgresLeaseAccountingRepository {
         let finance: i64 = rows.try_get("finance_count").unwrap_or(0);
         let expiring: i64 = rows.try_get("expiring_90").unwrap_or(0);
 
-        let liability: serde_json::Value = rows.try_get("total_liability").unwrap_or(serde_json::json!(0));
+        let liability: serde_json::Value = rows
+            .try_get("total_liability")
+            .unwrap_or(serde_json::json!(0));
         let rou: serde_json::Value = rows.try_get("total_rou").unwrap_or(serde_json::json!(0));
-        let dep: serde_json::Value = rows.try_get("total_depreciation").unwrap_or(serde_json::json!(0));
-        let payments: serde_json::Value = rows.try_get("total_payments").unwrap_or(serde_json::json!(0));
+        let dep: serde_json::Value = rows
+            .try_get("total_depreciation")
+            .unwrap_or(serde_json::json!(0));
+        let payments: serde_json::Value = rows
+            .try_get("total_payments")
+            .unwrap_or(serde_json::json!(0));
 
         Ok(LeaseDashboardSummary {
             total_active_leases: active as i32,
             total_lease_liability: liability.to_string(),
             total_rou_assets: rou.to_string(),
             total_rou_depreciation: dep.to_string(),
-            total_net_rou_assets: format!("{:.2}", rou.as_f64().unwrap_or(0.0) - dep.as_f64().unwrap_or(0.0)),
+            total_net_rou_assets: format!(
+                "{:.2}",
+                rou.as_f64().unwrap_or(0.0) - dep.as_f64().unwrap_or(0.0)
+            ),
             total_payments_made: payments.to_string(),
             operating_lease_count: operating as i32,
             finance_lease_count: finance as i32,

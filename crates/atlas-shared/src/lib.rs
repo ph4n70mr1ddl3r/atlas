@@ -1,5 +1,5 @@
 //! Atlas Shared Types
-//! 
+//!
 //! Core types used across all Atlas services. These include:
 //! - Entity and field definitions
 //! - Workflow definitions
@@ -7,9 +7,9 @@
 //! - Event types
 
 pub mod errors;
-pub mod types;
 pub mod events;
+pub mod types;
 
 pub use errors::*;
-pub use types::*;
 pub use events::*;
+pub use types::*;

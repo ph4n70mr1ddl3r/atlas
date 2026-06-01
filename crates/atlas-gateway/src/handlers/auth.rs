@@ -1,20 +1,16 @@
 //! Authentication handlers
 
-use axum::{
-    extract::State,
-    Json,
-    http::StatusCode,
-};
-use serde::{Deserialize, Serialize};
-use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation};
-use chrono::{Utc, Duration};
 use crate::AppState;
-use std::sync::Arc;
-use tracing::{info, debug, warn, error};
-use uuid::Uuid;
-use sqlx::FromRow;
-use argon2::password_hash::{PasswordHash, PasswordVerifier, PasswordHasher};
+use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier};
 use argon2::Argon2;
+use axum::{extract::State, http::StatusCode, Json};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use std::sync::Arc;
+use tracing::{debug, error, info, warn};
+use uuid::Uuid;
 
 /// Error type used by handlers that return `(StatusCode, Json<Value>)` tuples.
 type HandlerError = (StatusCode, Json<serde_json::Value>);
@@ -25,7 +21,10 @@ type HandlerError = (StatusCode, Json<serde_json::Value>);
 /// UUID — which would be an auth-scoping bypass.
 pub fn parse_uuid(s: &str) -> Result<Uuid, HandlerError> {
     Uuid::parse_str(s).map_err(|_| {
-        (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Invalid auth token"})))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Invalid auth token"})),
+        )
     })
 }
 
@@ -65,14 +64,12 @@ impl Claims {
     /// Using this instead of `Uuid::parse_str(&claims.org_id).unwrap_or_default()`
     /// avoids silently falling back to the nil UUID on a malformed token.
     pub fn org_uuid(&self) -> Result<Uuid, StatusCode> {
-        Uuid::parse_str(&self.org_id)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        Uuid::parse_str(&self.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     /// Parse the `sub` claim into a `Uuid`, returning 500 on failure.
     pub fn user_uuid(&self) -> Result<Uuid, StatusCode> {
-        Uuid::parse_str(&self.sub)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        Uuid::parse_str(&self.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     /// Parse the `org_id` claim, returning a `(StatusCode, Json)` error.
@@ -134,9 +131,9 @@ pub async fn login(
         warn!("Invalid email format: {}", payload.email);
         StatusCode::BAD_REQUEST
     })?;
-    
+
     debug!("Login attempt for: {}", email);
-    
+
     // Fetch user from database using proper column names
     let user_row = sqlx::query_as::<_, UserRow>(
         r"
@@ -145,7 +142,7 @@ pub async fn login(
                organization_id 
         FROM _atlas.users 
         WHERE email = $1 AND is_active = true
-        "
+        ",
     )
     .bind(&email)
     .fetch_optional(&state.db_pool)
@@ -154,27 +151,25 @@ pub async fn login(
         error!("Database error during login: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    
-    let user = if let Some(row) = user_row { row } else {
+
+    let user = if let Some(row) = user_row {
+        row
+    } else {
         // Perform dummy verification to prevent timing attacks
         // Use a valid Argon2 hash format (will never match real passwords)
-        let _ = verify_password_internal(
-            &payload.password,
-            DUMMY_ARGON2_HASH
-        );
+        let _ = verify_password_internal(&payload.password, DUMMY_ARGON2_HASH);
         warn!("Login failed for unknown email: {}", email);
         return Err(StatusCode::UNAUTHORIZED);
     };
-    
+
     // Verify password using Argon2
-    verify_password_internal(&payload.password, &user.password_hash)
-        .map_err(|_| {
-            warn!("Invalid password for user: {}", email);
-            StatusCode::UNAUTHORIZED
-        })?;
-    
+    verify_password_internal(&payload.password, &user.password_hash).map_err(|_| {
+        warn!("Invalid password for user: {}", email);
+        StatusCode::UNAUTHORIZED
+    })?;
+
     info!("User {} logged in successfully", email);
-    
+
     let expires_at = Utc::now() + Duration::hours(TOKEN_EXPIRY_HOURS);
     let claims = Claims {
         sub: user.id.to_string(),
@@ -183,16 +178,17 @@ pub async fn login(
         org_id: user.organization_id.to_string(),
         exp: expires_at.timestamp(),
     };
-    
+
     let token = encode(
         &Header::default(),
         &claims,
         &EncodingKey::from_secret(state.jwt_secret.as_bytes()),
-    ).map_err(|e| {
+    )
+    .map_err(|e| {
         error!("JWT encoding error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    
+
     Ok(Json(LoginResponse {
         token,
         user: UserInfo {
@@ -233,9 +229,8 @@ fn parse_roles(raw: &str) -> Vec<String> {
 
 /// Internal password verification function
 fn verify_password_internal(password: &str, hash: &str) -> Result<(), &'static str> {
-    let parsed_hash = PasswordHash::new(hash)
-        .map_err(|_| "Invalid hash format")?;
-    
+    let parsed_hash = PasswordHash::new(hash).map_err(|_| "Invalid hash format")?;
+
     Argon2::default()
         .verify_password(password.as_bytes(), &parsed_hash)
         .map_err(|_| "Invalid password")
@@ -248,7 +243,8 @@ fn verify_password_internal(password: &str, hash: &str) -> Result<(), &'static s
 /// inconsistency where the env var could change between calls.
 pub fn verify_token(token: &str) -> Result<Claims, StatusCode> {
     // Use the canonical secret from AppState (set during startup)
-    let jwt_secret = crate::state::APP_STATE.get()
+    let jwt_secret = crate::state::APP_STATE
+        .get()
         .map(|s| s.jwt_secret.clone())
         .ok_or_else(|| {
             tracing::error!("APP_STATE not initialized – cannot verify tokens");
@@ -259,7 +255,8 @@ pub fn verify_token(token: &str) -> Result<Claims, StatusCode> {
         token,
         &DecodingKey::from_secret(jwt_secret.as_bytes()),
         &Validation::default(),
-    ).map_err(|e| {
+    )
+    .map_err(|e| {
         debug!("Token verification failed: {}", e);
         StatusCode::UNAUTHORIZED
     })?;
@@ -274,25 +271,25 @@ pub fn hash_password(password: &str) -> Result<String, StatusCode> {
     use argon2::password_hash::SaltString;
     use argon2::Argon2;
     use rand::RngCore;
-    
+
     // Generate a random salt
     let mut salt_bytes = [0u8; 16];
     rand::thread_rng().fill_bytes(&mut salt_bytes);
-    
+
     // Create salt string in PHC format
-    let salt = SaltString::encode_b64(&salt_bytes)
-        .map_err(|e| {
-            error!("Salt generation error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-    
+    let salt = SaltString::encode_b64(&salt_bytes).map_err(|e| {
+        error!("Salt generation error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     // Hash the password
     let argon2 = Argon2::default();
-    let hash = argon2.hash_password(password.as_bytes(), &salt)
+    let hash = argon2
+        .hash_password(password.as_bytes(), &salt)
         .map_err(|e| {
             error!("Password hashing error: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    
+
     Ok(hash.to_string())
 }

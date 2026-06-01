@@ -5,7 +5,7 @@ use atlas_core::schema::WorkflowBuilder;
 use atlas_shared::EntityDefinition;
 
 /// Supplier entity
-#[must_use] 
+#[must_use]
 pub fn supplier_definition() -> EntityDefinition {
     SchemaBuilder::new("suppliers", "Supplier")
         .plural_label("Suppliers")
@@ -17,13 +17,24 @@ pub fn supplier_definition() -> EntityDefinition {
         .string("contact_name", "Contact Person")
         .email("email", "Email")
         .phone("phone", "Phone")
-        .enumeration("category", "Category", vec![
-            "raw_materials", "finished_goods", "services", "equipment", "software", "other"
-        ])
+        .enumeration(
+            "category",
+            "Category",
+            vec![
+                "raw_materials",
+                "finished_goods",
+                "services",
+                "equipment",
+                "software",
+                "other",
+            ],
+        )
         .string("tax_id", "Tax ID")
-        .enumeration("payment_terms", "Default Payment Terms", vec![
-            "net_15", "net_30", "net_45", "net_60", "due_on_receipt"
-        ])
+        .enumeration(
+            "payment_terms",
+            "Default Payment Terms",
+            vec!["net_15", "net_30", "net_45", "net_60", "due_on_receipt"],
+        )
         .currency("credit_limit", "Credit Limit", "USD")
         .enumeration("rating", "Rating", vec!["a", "b", "c", "d", "f"])
         .address("address", "Address")
@@ -32,7 +43,7 @@ pub fn supplier_definition() -> EntityDefinition {
 }
 
 /// Purchase Order entity with approval workflow
-#[must_use] 
+#[must_use]
 pub fn purchase_order_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("po_approval_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -62,13 +73,19 @@ pub fn purchase_order_definition() -> EntityDefinition {
         .reference("supplier_id", "Supplier", "suppliers")
         .date("order_date", "Order Date")
         .date("expected_date", "Expected Delivery")
-        .enumeration("currency_code", "Currency", vec!["USD", "EUR", "GBP", "JPY", "CNY"])
+        .enumeration(
+            "currency_code",
+            "Currency",
+            vec!["USD", "EUR", "GBP", "JPY", "CNY"],
+        )
         .currency("subtotal", "Subtotal", "USD")
         .currency("tax_amount", "Tax", "USD")
         .currency("total_amount", "Total", "USD")
-        .enumeration("payment_terms", "Payment Terms", vec![
-            "net_15", "net_30", "net_45", "net_60", "due_on_receipt"
-        ])
+        .enumeration(
+            "payment_terms",
+            "Payment Terms",
+            vec!["net_15", "net_30", "net_45", "net_60", "due_on_receipt"],
+        )
         .address("shipping_address", "Shipping Address")
         .rich_text("notes", "Notes")
         .reference("approved_by", "Approved By", "employees")
@@ -77,7 +94,7 @@ pub fn purchase_order_definition() -> EntityDefinition {
 }
 
 /// Product entity
-#[must_use] 
+#[must_use]
 pub fn product_definition() -> EntityDefinition {
     SchemaBuilder::new("products", "Product")
         .plural_label("Products")
@@ -87,12 +104,16 @@ pub fn product_definition() -> EntityDefinition {
         .required_string("sku", "SKU")
         .required_string("name", "Product Name")
         .string("description", "Description")
-        .enumeration("product_type", "Type", vec![
-            "physical", "digital", "service", "raw_material"
-        ])
-        .enumeration("category", "Category", vec![
-            "raw_materials", "finished_goods", "consumables", "services"
-        ])
+        .enumeration(
+            "product_type",
+            "Type",
+            vec!["physical", "digital", "service", "raw_material"],
+        )
+        .enumeration(
+            "category",
+            "Category",
+            vec!["raw_materials", "finished_goods", "consumables", "services"],
+        )
         .reference("supplier_id", "Default Supplier", "suppliers")
         .decimal("unit_price", "Unit Price", 18, 2)
         .decimal("cost_price", "Cost Price", 18, 2)
@@ -105,7 +126,7 @@ pub fn product_definition() -> EntityDefinition {
 }
 
 /// Inventory Item entity
-#[must_use] 
+#[must_use]
 pub fn inventory_item_definition() -> EntityDefinition {
     SchemaBuilder::new("inventory_items", "Inventory Item")
         .plural_label("Inventory Items")
@@ -124,7 +145,7 @@ pub fn inventory_item_definition() -> EntityDefinition {
 }
 
 /// Warehouse entity
-#[must_use] 
+#[must_use]
 pub fn warehouse_definition() -> EntityDefinition {
     SchemaBuilder::new("warehouses", "Warehouse")
         .plural_label("Warehouses")
@@ -140,7 +161,7 @@ pub fn warehouse_definition() -> EntityDefinition {
 }
 
 /// Sales Order entity with workflow
-#[must_use] 
+#[must_use]
 pub fn sales_order_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("sales_order_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -168,9 +189,11 @@ pub fn sales_order_definition() -> EntityDefinition {
         .currency("subtotal", "Subtotal", "USD")
         .currency("tax", "Tax", "USD")
         .currency("total", "Total", "USD")
-        .enumeration("priority", "Priority", vec![
-            "low", "normal", "high", "urgent"
-        ])
+        .enumeration(
+            "priority",
+            "Priority",
+            vec!["low", "normal", "high", "urgent"],
+        )
         .reference("sales_rep_id", "Sales Rep", "employees")
         .workflow(workflow)
         .build()

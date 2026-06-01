@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Order Management > Pricing > Advanced Pricing
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::PricingEngine;
-pub use repository::{PricingRepository, PostgresPricingRepository};
+pub use repository::{PostgresPricingRepository, PricingRepository};

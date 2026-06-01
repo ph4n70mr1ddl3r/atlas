@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion equivalent: HCM > Goal Management
 
-use atlas_shared::{
-    GoalLibraryCategory, GoalLibraryTemplate, GoalPlan, Goal,
-    GoalAlignment, GoalNote, GoalManagementSummary,
-    AtlasError, AtlasResult,
-};
 use super::GoalManagementRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, Goal, GoalAlignment, GoalLibraryCategory, GoalLibraryTemplate,
+    GoalManagementSummary, GoalNote, GoalPlan,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -18,7 +17,12 @@ use uuid::Uuid;
 // Valid enum values
 const VALID_GOAL_TYPES: &[&str] = &["individual", "team", "organization"];
 const VALID_GOAL_STATUSES: &[&str] = &[
-    "not_started", "in_progress", "on_track", "at_risk", "completed", "cancelled",
+    "not_started",
+    "in_progress",
+    "on_track",
+    "at_risk",
+    "completed",
+    "cancelled",
 ];
 const VALID_PRIORITIES: &[&str] = &["low", "medium", "high", "critical"];
 const VALID_PLAN_TYPES: &[&str] = &["performance", "development", "stretch"];
@@ -63,15 +67,30 @@ impl GoalManagementEngine {
                 "Category name is required".to_string(),
             ));
         }
-        if self.repository.get_library_category_by_code(org_id, &code_upper).await?.is_some() {
+        if self
+            .repository
+            .get_library_category_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Library category '{code_upper}' already exists"
             )));
         }
-        info!("Creating goal library category '{}' for org {}", code_upper, org_id);
-        self.repository.create_library_category(
-            org_id, &code_upper, name, description, display_order, created_by,
-        ).await
+        info!(
+            "Creating goal library category '{}' for org {}",
+            code_upper, org_id
+        );
+        self.repository
+            .create_library_category(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                display_order,
+                created_by,
+            )
+            .await
     }
 
     /// Get a library category by ID
@@ -80,7 +99,10 @@ impl GoalManagementEngine {
     }
 
     /// List library categories for an organization
-    pub async fn list_library_categories(&self, org_id: Uuid) -> AtlasResult<Vec<GoalLibraryCategory>> {
+    pub async fn list_library_categories(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<GoalLibraryCategory>> {
         self.repository.list_library_categories(org_id).await
     }
 
@@ -125,7 +147,9 @@ impl GoalManagementEngine {
         }
         if !VALID_GOAL_TYPES.contains(&goal_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid goal_type '{}'. Must be one of: {}", goal_type, VALID_GOAL_TYPES.join(", ")
+                "Invalid goal_type '{}'. Must be one of: {}",
+                goal_type,
+                VALID_GOAL_TYPES.join(", ")
             )));
         }
         if let Some(w) = suggested_weight {
@@ -142,17 +166,37 @@ impl GoalManagementEngine {
                 ));
             }
         }
-        if self.repository.get_library_template_by_code(org_id, &code_upper).await?.is_some() {
+        if self
+            .repository
+            .get_library_template_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Library template '{code_upper}' already exists"
             )));
         }
-        info!("Creating goal library template '{}' for org {}", code_upper, org_id);
-        self.repository.create_library_template(
-            org_id, category_id, &code_upper, name, description, goal_type,
-            success_criteria, target_metric, target_value, uom,
-            suggested_weight, estimated_duration_days, created_by,
-        ).await
+        info!(
+            "Creating goal library template '{}' for org {}",
+            code_upper, org_id
+        );
+        self.repository
+            .create_library_template(
+                org_id,
+                category_id,
+                &code_upper,
+                name,
+                description,
+                goal_type,
+                success_criteria,
+                target_metric,
+                target_value,
+                uom,
+                suggested_weight,
+                estimated_duration_days,
+                created_by,
+            )
+            .await
     }
 
     /// Get a library template by ID
@@ -167,7 +211,9 @@ impl GoalManagementEngine {
         category_id: Option<Uuid>,
         goal_type: Option<&str>,
     ) -> AtlasResult<Vec<GoalLibraryTemplate>> {
-        self.repository.list_library_templates(org_id, category_id, goal_type).await
+        self.repository
+            .list_library_templates(org_id, category_id, goal_type)
+            .await
     }
 
     /// Delete a library template by code
@@ -210,7 +256,9 @@ impl GoalManagementEngine {
         }
         if !VALID_PLAN_TYPES.contains(&plan_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid plan_type '{}'. Must be one of: {}", plan_type, VALID_PLAN_TYPES.join(", ")
+                "Invalid plan_type '{}'. Must be one of: {}",
+                plan_type,
+                VALID_PLAN_TYPES.join(", ")
             )));
         }
         if review_period_end <= review_period_start {
@@ -225,17 +273,33 @@ impl GoalManagementEngine {
                 ));
             }
         }
-        if self.repository.get_goal_plan_by_code(org_id, &code_upper).await?.is_some() {
+        if self
+            .repository
+            .get_goal_plan_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Goal plan '{code_upper}' already exists"
             )));
         }
         info!("Creating goal plan '{}' for org {}", code_upper, org_id);
-        self.repository.create_goal_plan(
-            org_id, &code_upper, name, description, plan_type,
-            review_period_start, review_period_end, goal_creation_deadline,
-            allow_self_goals, allow_team_goals, max_weight_sum, created_by,
-        ).await
+        self.repository
+            .create_goal_plan(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                plan_type,
+                review_period_start,
+                review_period_end,
+                goal_creation_deadline,
+                allow_self_goals,
+                allow_team_goals,
+                max_weight_sum,
+                created_by,
+            )
+            .await
     }
 
     /// Get a goal plan by ID
@@ -252,7 +316,9 @@ impl GoalManagementEngine {
         if let Some(s) = status {
             if !VALID_PLAN_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid plan status '{}'. Must be one of: {}", s, VALID_PLAN_STATUSES.join(", ")
+                    "Invalid plan status '{}'. Must be one of: {}",
+                    s,
+                    VALID_PLAN_STATUSES.join(", ")
                 )));
             }
         }
@@ -260,24 +326,28 @@ impl GoalManagementEngine {
     }
 
     /// Update goal plan status
-    pub async fn update_goal_plan_status(
-        &self,
-        id: Uuid,
-        status: &str,
-    ) -> AtlasResult<GoalPlan> {
+    pub async fn update_goal_plan_status(&self, id: Uuid, status: &str) -> AtlasResult<GoalPlan> {
         if !VALID_PLAN_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid plan status '{}'. Must be one of: {}", status, VALID_PLAN_STATUSES.join(", ")
+                "Invalid plan status '{}'. Must be one of: {}",
+                status,
+                VALID_PLAN_STATUSES.join(", ")
             )));
         }
-        let plan = self.repository.get_goal_plan(id).await?
+        let plan = self
+            .repository
+            .get_goal_plan(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal plan {id} not found")))?;
         // Validate status transitions
         match (plan.status.as_str(), status) {
             ("draft", "active") | ("active", "closed") => {}
-            _ => return Err(AtlasError::ValidationFailed(format!(
-                "Cannot transition plan from '{}' to '{}'", plan.status, status
-            ))),
+            _ => {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Cannot transition plan from '{}' to '{}'",
+                    plan.status, status
+                )))
+            }
         }
         info!("Updating goal plan {} status to {}", id, status);
         self.repository.update_goal_plan_status(id, status).await
@@ -326,23 +396,29 @@ impl GoalManagementEngine {
         }
         if !VALID_GOAL_TYPES.contains(&goal_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid goal_type '{}'. Must be one of: {}", goal_type, VALID_GOAL_TYPES.join(", ")
+                "Invalid goal_type '{}'. Must be one of: {}",
+                goal_type,
+                VALID_GOAL_TYPES.join(", ")
             )));
         }
         if !VALID_PRIORITIES.contains(&priority) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid priority '{}'. Must be one of: {}", priority, VALID_PRIORITIES.join(", ")
+                "Invalid priority '{}'. Must be one of: {}",
+                priority,
+                VALID_PRIORITIES.join(", ")
             )));
         }
         if !VALID_OWNER_TYPES.contains(&owner_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid owner_type '{}'. Must be one of: {}", owner_type, VALID_OWNER_TYPES.join(", ")
+                "Invalid owner_type '{}'. Must be one of: {}",
+                owner_type,
+                VALID_OWNER_TYPES.join(", ")
             )));
         }
         if let Some(w) = weight {
-            let w_val: f64 = w.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Weight must be a valid number".to_string(),
-            ))?;
+            let w_val: f64 = w.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Weight must be a valid number".to_string())
+            })?;
             if !(0.0..=100.0).contains(&w_val) {
                 return Err(AtlasError::ValidationFailed(
                     "Weight must be between 0 and 100".to_string(),
@@ -358,17 +434,16 @@ impl GoalManagementEngine {
         }
         // Verify parent goal exists if provided
         if let Some(pid) = parent_goal_id {
-            let _parent = self.repository.get_goal(pid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Parent goal {pid} not found"
-                )))?;
+            let _parent = self.repository.get_goal(pid).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Parent goal {pid} not found"))
+            })?;
         }
         // Verify plan exists and is active if provided
         if let Some(plid) = plan_id {
-            let plan = self.repository.get_goal_plan(plid).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                    "Goal plan {plid} not found"
-                )))?;
+            let plan =
+                self.repository.get_goal_plan(plid).await?.ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Goal plan {plid} not found"))
+                })?;
             if plan.status != "active" {
                 return Err(AtlasError::ValidationFailed(
                     "Cannot add goals to a non-active plan".to_string(),
@@ -376,14 +451,35 @@ impl GoalManagementEngine {
             }
         }
 
-        info!("Creating goal '{}' for org {} (owner: {})", name, org_id, owner_id);
-        self.repository.create_goal(
-            org_id, plan_id, parent_goal_id, library_template_id,
-            code, name, description, goal_type, category,
-            owner_id, owner_type, assigned_by,
-            success_criteria, target_metric, target_value, uom,
-            weight, priority, start_date, target_date, created_by,
-        ).await
+        info!(
+            "Creating goal '{}' for org {} (owner: {})",
+            name, org_id, owner_id
+        );
+        self.repository
+            .create_goal(
+                org_id,
+                plan_id,
+                parent_goal_id,
+                library_template_id,
+                code,
+                name,
+                description,
+                goal_type,
+                category,
+                owner_id,
+                owner_type,
+                assigned_by,
+                success_criteria,
+                target_metric,
+                target_value,
+                uom,
+                weight,
+                priority,
+                start_date,
+                target_date,
+                created_by,
+            )
+            .await
     }
 
     /// Get a goal by ID
@@ -404,18 +500,24 @@ impl GoalManagementEngine {
         if let Some(gt) = goal_type {
             if !VALID_GOAL_TYPES.contains(&gt) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid goal_type '{}'. Must be one of: {}", gt, VALID_GOAL_TYPES.join(", ")
+                    "Invalid goal_type '{}'. Must be one of: {}",
+                    gt,
+                    VALID_GOAL_TYPES.join(", ")
                 )));
             }
         }
         if let Some(s) = status {
             if !VALID_GOAL_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_GOAL_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_GOAL_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_goals(org_id, plan_id, owner_id, goal_type, status, parent_goal_id).await
+        self.repository
+            .list_goals(org_id, plan_id, owner_id, goal_type, status, parent_goal_id)
+            .await
     }
 
     /// Update goal progress
@@ -426,20 +528,27 @@ impl GoalManagementEngine {
         progress_pct: Option<&str>,
         status: Option<&str>,
     ) -> AtlasResult<Goal> {
-        let goal = self.repository.get_goal(id).await?
+        let goal = self
+            .repository
+            .get_goal(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal {id} not found")))?;
 
         if let Some(s) = status {
             if !VALID_GOAL_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_GOAL_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_GOAL_STATUSES.join(", ")
                 )));
             }
         }
         if let Some(p) = progress_pct {
-            let p_val: f64 = p.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Progress percentage must be a valid number".to_string(),
-            ))?;
+            let p_val: f64 = p.parse().map_err(|_| {
+                AtlasError::ValidationFailed(
+                    "Progress percentage must be a valid number".to_string(),
+                )
+            })?;
             if !(0.0..=100.0).contains(&p_val) {
                 return Err(AtlasError::ValidationFailed(
                     "Progress must be between 0 and 100".to_string(),
@@ -461,7 +570,9 @@ impl GoalManagementEngine {
         };
 
         info!("Updating goal {} progress", id);
-        self.repository.update_goal_progress(id, actual_value, progress_pct, status, completed_date).await
+        self.repository
+            .update_goal_progress(id, actual_value, progress_pct, status, completed_date)
+            .await
     }
 
     /// Delete a goal
@@ -491,19 +602,39 @@ impl GoalManagementEngine {
         if !VALID_ALIGNMENT_TYPES.contains(&alignment_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid alignment_type '{}'. Must be one of: {}",
-                alignment_type, VALID_ALIGNMENT_TYPES.join(", ")
+                alignment_type,
+                VALID_ALIGNMENT_TYPES.join(", ")
             )));
         }
         // Verify both goals exist
-        let _source = self.repository.get_goal(source_goal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Source goal {source_goal_id} not found")))?;
-        let _target = self.repository.get_goal(aligned_to_goal_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Target goal {aligned_to_goal_id} not found")))?;
+        let _source = self
+            .repository
+            .get_goal(source_goal_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Source goal {source_goal_id} not found"))
+            })?;
+        let _target = self
+            .repository
+            .get_goal(aligned_to_goal_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Target goal {aligned_to_goal_id} not found"))
+            })?;
 
-        info!("Creating alignment: {} {} {}", source_goal_id, alignment_type, aligned_to_goal_id);
-        self.repository.create_goal_alignment(
-            org_id, source_goal_id, aligned_to_goal_id, alignment_type, description,
-        ).await
+        info!(
+            "Creating alignment: {} {} {}",
+            source_goal_id, alignment_type, aligned_to_goal_id
+        );
+        self.repository
+            .create_goal_alignment(
+                org_id,
+                source_goal_id,
+                aligned_to_goal_id,
+                alignment_type,
+                description,
+            )
+            .await
     }
 
     /// List alignments for a goal
@@ -537,22 +668,29 @@ impl GoalManagementEngine {
         }
         if !VALID_NOTE_TYPES.contains(&note_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid note_type '{}'. Must be one of: {}", note_type, VALID_NOTE_TYPES.join(", ")
+                "Invalid note_type '{}'. Must be one of: {}",
+                note_type,
+                VALID_NOTE_TYPES.join(", ")
             )));
         }
         if !VALID_VISIBILITIES.contains(&visibility) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid visibility '{}'. Must be one of: {}", visibility, VALID_VISIBILITIES.join(", ")
+                "Invalid visibility '{}'. Must be one of: {}",
+                visibility,
+                VALID_VISIBILITIES.join(", ")
             )));
         }
         // Verify goal exists
-        let _goal = self.repository.get_goal(goal_id).await?
+        let _goal = self
+            .repository
+            .get_goal(goal_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Goal {goal_id} not found")))?;
 
         info!("Adding {} note to goal {}", note_type, goal_id);
-        self.repository.create_goal_note(
-            org_id, goal_id, author_id, note_type, content, visibility,
-        ).await
+        self.repository
+            .create_goal_note(org_id, goal_id, author_id, note_type, content, visibility)
+            .await
     }
 
     /// List notes for a goal

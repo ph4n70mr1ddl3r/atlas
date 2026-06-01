@@ -1,5 +1,5 @@
 //! Security Engine
-//! 
+//!
 //! Row-level and field-level security enforcement.
 
 mod engine;

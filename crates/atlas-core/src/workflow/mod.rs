@@ -1,19 +1,21 @@
 //! Workflow Engine
-//! 
+//!
 //! State machine execution for declarative workflows.
 //! Handles transitions, guards, and actions.
 
-pub mod engine;
-pub mod state_machine;
-pub mod guards;
 pub mod actions;
+pub mod engine;
+pub mod guards;
 pub mod repository;
+pub mod state_machine;
 
-pub use engine::WorkflowEngine;
-pub use state_machine::StateMachine;
-pub use guards::{GuardEvaluator, GuardResult};
 pub use actions::{ActionExecutor, ActionResult};
-pub use repository::{WorkflowStateRepository, PostgresWorkflowStateRepository, InMemoryWorkflowStateRepository};
+pub use engine::WorkflowEngine;
+pub use guards::{GuardEvaluator, GuardResult};
+pub use repository::{
+    InMemoryWorkflowStateRepository, PostgresWorkflowStateRepository, WorkflowStateRepository,
+};
+pub use state_machine::StateMachine;
 
 use atlas_shared::StateType;
 use atlas_shared::{RecordId, UserId};
@@ -59,7 +61,7 @@ pub struct TransitionResult {
 }
 
 impl TransitionResult {
-    #[must_use] 
+    #[must_use]
     pub fn success(from: &str, to: &str, action: &str, actions: Vec<String>) -> Self {
         Self {
             success: true,
@@ -71,8 +73,8 @@ impl TransitionResult {
             error: None,
         }
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn failure(from: &str, to: &str, action: &str, error: String) -> Self {
         Self {
             success: false,

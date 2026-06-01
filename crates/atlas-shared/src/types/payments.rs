@@ -1,7 +1,7 @@
+use crate::types::*;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::types::*;
 // ============================================================================
 // Payment Management (Oracle Fusion Payables > Payments)
 // ============================================================================
@@ -61,7 +61,9 @@ pub struct PaymentTermRequest {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-pub const fn default_thirty() -> i32 { 30 }
+pub const fn default_thirty() -> i32 {
+    30
+}
 
 /// Payment batch (payment run)
 /// Oracle Fusion: Payables > Payments > Payment Batches
@@ -125,7 +127,9 @@ pub struct PaymentBatchRequest {
     pub selection_criteria: Option<serde_json::Value>,
 }
 
-pub fn default_check_method() -> String { "check".to_string() }
+pub fn default_check_method() -> String {
+    "check".to_string()
+}
 
 /// Individual payment
 /// Oracle Fusion: Payables > Payments > Payments
@@ -840,4 +844,3 @@ pub struct RemittanceBatchSummary {
     pub by_status: serde_json::Value,
     pub by_currency: serde_json::Value,
 }
-

@@ -12,8 +12,10 @@
 //!
 //! Oracle Fusion equivalent: Product Development > Engineering Change Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::EngineeringChangeEngine;
-pub use repository::{EngineeringChangeManagementRepository, PostgresEngineeringChangeManagementRepository};
+pub use repository::{
+    EngineeringChangeManagementRepository, PostgresEngineeringChangeManagementRepository,
+};

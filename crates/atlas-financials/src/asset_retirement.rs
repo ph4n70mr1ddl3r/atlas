@@ -12,8 +12,8 @@ pub struct AssetRetirementResult {
 
 impl AssetRetirementService {
     /// Processes the retirement of a fixed asset.
-    /// This is an Oracle Fusion Fixed Assets feature that records the removal 
-    /// of an asset and calculates the resulting gain or loss based on its 
+    /// This is an Oracle Fusion Fixed Assets feature that records the removal
+    /// of an asset and calculates the resulting gain or loss based on its
     /// Net Book Value (NBV), proceeds of sale, and cost of removal.
     #[must_use]
     pub fn process_retirement(

@@ -1,6 +1,6 @@
 //! Formula Engine Implementation
 
-use crate::formula::{FormulaValue, EvaluationContext};
+use crate::formula::{EvaluationContext, FormulaValue};
 use atlas_shared::{AtlasError, AtlasResult};
 use std::collections::HashMap;
 use tracing::warn;
@@ -21,32 +21,43 @@ pub struct FormulaEngine {
 }
 
 impl FormulaEngine {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
-        let mut engine = Self { functions: HashMap::new() };
+        let mut engine = Self {
+            functions: HashMap::new(),
+        };
         engine.register_builtin_functions();
         engine
     }
-    
+
     /// Register a custom function
-    pub fn register_function(&mut self, name: &str, min_args: usize, max_args: usize, handler: fn(&[FormulaValue]) -> FormulaValue) {
-        self.functions.insert(name.to_lowercase(), FormulaFunction {
-            name: name.to_string(),
-            min_args,
-            max_args,
-            handler,
-        });
+    pub fn register_function(
+        &mut self,
+        name: &str,
+        min_args: usize,
+        max_args: usize,
+        handler: fn(&[FormulaValue]) -> FormulaValue,
+    ) {
+        self.functions.insert(
+            name.to_lowercase(),
+            FormulaFunction {
+                name: name.to_string(),
+                min_args,
+                max_args,
+                handler,
+            },
+        );
     }
-    
+
     /// Evaluate a formula expression
     pub fn evaluate(&self, expression: &str, ctx: &EvaluationContext) -> AtlasResult<FormulaValue> {
         let expression = expression.trim();
-        
+
         // Handle simple field reference
         if !expression.contains('(') && !expression.contains(' ') {
             return self.get_field_value(expression, ctx);
         }
-        
+
         // Parse and evaluate
         match self.parse_and_evaluate(expression, ctx) {
             Ok(value) => Ok(value),
@@ -56,7 +67,7 @@ impl FormulaEngine {
             }
         }
     }
-    
+
     fn get_field_value(&self, field: &str, ctx: &EvaluationContext) -> AtlasResult<FormulaValue> {
         // Check if it's a related field (e.g., "lines.amount")
         if field.contains('.') {
@@ -64,50 +75,57 @@ impl FormulaEngine {
             if parts.len() == 2 {
                 let _entity = parts[0];
                 let _field_name = parts[1];
-                
+
                 if let Some(_records) = ctx.get_related(_entity) {
                     // Aggregate function needed
-                    return Err(AtlasError::NotImplemented(
-                        format!("Related field {field} requires aggregation")
-                    ));
+                    return Err(AtlasError::NotImplemented(format!(
+                        "Related field {field} requires aggregation"
+                    )));
                 }
             }
         }
-        
+
         // Get from record
         match ctx.get_field(field) {
             Some(value) => Ok(FormulaValue::from(value.clone())),
             None => Ok(FormulaValue::Null),
         }
     }
-    
-    fn parse_and_evaluate(&self, expression: &str, ctx: &EvaluationContext) -> Result<FormulaValue, String> {
+
+    fn parse_and_evaluate(
+        &self,
+        expression: &str,
+        ctx: &EvaluationContext,
+    ) -> Result<FormulaValue, String> {
         let expr = expression.trim();
         println!("Eval: '{}'", expr);
-        
+
         // Handle string literals
         if expr.starts_with('"') && expr.ends_with('"') {
-            return Ok(FormulaValue::String(expr[1..expr.len()-1].to_string()));
+            return Ok(FormulaValue::String(expr[1..expr.len() - 1].to_string()));
         }
-        
+
         // Handle function calls
         if let Some(paren_idx) = expr.find('(') {
             let func_name = expr[..paren_idx].trim().to_lowercase();
-            let args_str = &expr[paren_idx+1..expr.len()-1];
-            
+            let args_str = &expr[paren_idx + 1..expr.len() - 1];
+
             if let Some(func) = self.functions.get(&func_name) {
                 let args = self.parse_arguments(args_str, ctx)?;
-                
+
                 if args.len() < func.min_args || args.len() > func.max_args {
-                    return Err(format!("Function {} expects {} arguments", func_name, func.min_args));
+                    return Err(format!(
+                        "Function {} expects {} arguments",
+                        func_name, func.min_args
+                    ));
                 }
-                
+
                 return Ok((func.handler)(&args));
             }
-            
+
             return Err(format!("Unknown function: {func_name}"));
         }
-        
+
         // Handle logical operators (Lowest precedence, so checked first)
         if expr.contains("OR") {
             if let Some(result) = self.evaluate_logical(expr, "OR", ctx)? {
@@ -138,31 +156,31 @@ impl FormulaEngine {
                 return Ok(result);
             }
         }
-        
+
         if expr.contains('-') {
             if let Some(result) = self.evaluate_binary_op(expr, '-', ctx)? {
                 return Ok(result);
             }
         }
-        
+
         // Multiplication and division (highest binary precedence)
         if expr.contains('*') {
             if let Some(result) = self.evaluate_binary_op(expr, '*', ctx)? {
                 return Ok(result);
             }
         }
-        
+
         if expr.contains('/') {
             if let Some(result) = self.evaluate_binary_op(expr, '/', ctx)? {
                 return Ok(result);
             }
         }
-        
+
         // Try to parse as number
         if let Ok(num) = expr.parse::<f64>() {
             return Ok(FormulaValue::Number(num));
         }
-        
+
         // Try to parse as boolean
         if expr == "true" {
             return Ok(FormulaValue::Boolean(true));
@@ -170,16 +188,22 @@ impl FormulaEngine {
         if expr == "false" {
             return Ok(FormulaValue::Boolean(false));
         }
-        
+
         // Get field value
-        Ok(self.get_field_value(expr, ctx).unwrap_or(FormulaValue::Null))
+        Ok(self
+            .get_field_value(expr, ctx)
+            .unwrap_or(FormulaValue::Null))
     }
-    
-    fn parse_arguments(&self, args_str: &str, ctx: &EvaluationContext) -> Result<Vec<FormulaValue>, String> {
+
+    fn parse_arguments(
+        &self,
+        args_str: &str,
+        ctx: &EvaluationContext,
+    ) -> Result<Vec<FormulaValue>, String> {
         let mut args = vec![];
         let mut depth = 0;
         let mut current = String::new();
-        
+
         for ch in args_str.chars() {
             match ch {
                 '(' | '[' | '{' => {
@@ -201,17 +225,22 @@ impl FormulaEngine {
                 _ => current.push(ch),
             }
         }
-        
+
         let arg = current.trim();
         if !arg.is_empty() {
             let value = self.parse_and_evaluate(arg, ctx)?;
             args.push(value);
         }
-        
+
         Ok(args)
     }
-    
-    fn evaluate_binary_op(&self, expr: &str, op: char, ctx: &EvaluationContext) -> Result<Option<FormulaValue>, String> {
+
+    fn evaluate_binary_op(
+        &self,
+        expr: &str,
+        op: char,
+        ctx: &EvaluationContext,
+    ) -> Result<Option<FormulaValue>, String> {
         // For correct left-to-right associativity we need to find the
         // **last** occurrence of the operator at depth 0 (not inside
         // parentheses or strings).  This ensures `a - b - c` parses as
@@ -246,9 +275,7 @@ impl FormulaEngine {
                             // `prev` is a digit — still a binary minus
                             // (e.g. `price-3` or `10-2`).
                         }
-                        let byte_idx = expr.char_indices()
-                            .nth(i)
-                            .map_or(expr.len(), |(bi, _)| bi);
+                        let byte_idx = expr.char_indices().nth(i).map_or(expr.len(), |(bi, _)| bi);
                         last_op_byte_idx = Some(byte_idx);
                     }
                 }
@@ -259,10 +286,10 @@ impl FormulaEngine {
         if let Some(byte_idx) = last_op_byte_idx {
             let left = expr[..byte_idx].trim();
             let right = expr[byte_idx + op.len_utf8()..].trim(); // operators are ASCII
-            
+
             let left_val = self.parse_and_evaluate(left, ctx)?;
             let right_val = self.parse_and_evaluate(right, ctx)?;
-            
+
             let result = match op {
                 '+' => add_values(&left_val, &right_val),
                 '-' => subtract_values(&left_val, &right_val),
@@ -270,14 +297,19 @@ impl FormulaEngine {
                 '/' => divide_values(&left_val, &right_val)?,
                 _ => return Ok(None),
             };
-            
+
             return Ok(Some(result));
         }
-        
+
         Ok(None)
     }
-    
-    fn evaluate_compare(&self, expr: &str, op: &str, ctx: &EvaluationContext) -> Result<Option<FormulaValue>, String> {
+
+    fn evaluate_compare(
+        &self,
+        expr: &str,
+        op: &str,
+        ctx: &EvaluationContext,
+    ) -> Result<Option<FormulaValue>, String> {
         // Find the FIRST occurrence of the operator (not inside quotes or parens)
         let mut depth = 0;
         let mut in_string = false;
@@ -302,18 +334,20 @@ impl FormulaEngine {
                 _ => {}
             }
         }
-        
+
         if let Some(idx) = op_idx {
             // Convert char indices to byte indices using char_indices
             let mut ci = expr.char_indices();
             let byte_idx = ci.nth(idx).map_or(expr.len(), |(bi, _)| bi);
-            let byte_end = ci.nth(op_len - 1).map_or(expr.len(), |(bi, c)| bi + c.len_utf8());
+            let byte_end = ci
+                .nth(op_len - 1)
+                .map_or(expr.len(), |(bi, c)| bi + c.len_utf8());
             let left = expr[..byte_idx].trim();
             let right = expr[byte_end..].trim();
-            
+
             let left_val = self.parse_and_evaluate(left, ctx)?;
             let right_val = self.parse_and_evaluate(right, ctx)?;
-            
+
             let result = match op {
                 "==" => compare_values(&left_val, &right_val) == 0,
                 "!=" => compare_values(&left_val, &right_val) != 0,
@@ -323,14 +357,19 @@ impl FormulaEngine {
                 "<=" => compare_values(&left_val, &right_val) <= 0,
                 _ => false,
             };
-            
+
             return Ok(Some(FormulaValue::Boolean(result)));
         }
-        
+
         Ok(None)
     }
-    
-    fn evaluate_logical(&self, expr: &str, op: &str, ctx: &EvaluationContext) -> Result<Option<FormulaValue>, String> {
+
+    fn evaluate_logical(
+        &self,
+        expr: &str,
+        op: &str,
+        ctx: &EvaluationContext,
+    ) -> Result<Option<FormulaValue>, String> {
         let mut depth = 0;
         let mut in_string = false;
         let mut last_op_byte_idx: Option<usize> = None;
@@ -347,13 +386,14 @@ impl FormulaEngine {
                     let slice: String = chars[i..i + op_len].iter().collect();
                     if slice == op {
                         // Ensure it's a separate word (for AND/OR)
-                        let prev_ok = i == 0 || chars[i-1].is_whitespace() || chars[i-1] == ')';
-                        let next_ok = i + op_len == chars.len() || chars[i+op_len].is_whitespace() || chars[i+op_len] == '(';
-                        
+                        let prev_ok = i == 0 || chars[i - 1].is_whitespace() || chars[i - 1] == ')';
+                        let next_ok = i + op_len == chars.len()
+                            || chars[i + op_len].is_whitespace()
+                            || chars[i + op_len] == '(';
+
                         if prev_ok && next_ok {
-                            let byte_idx = expr.char_indices()
-                                .nth(i)
-                                .map_or(expr.len(), |(bi, _)| bi);
+                            let byte_idx =
+                                expr.char_indices().nth(i).map_or(expr.len(), |(bi, _)| bi);
                             last_op_byte_idx = Some(byte_idx);
                         }
                     }
@@ -365,30 +405,31 @@ impl FormulaEngine {
         if let Some(byte_idx) = last_op_byte_idx {
             let left = expr[..byte_idx].trim();
             let right = expr[byte_idx + op.len()..].trim();
-            
+
             let left_val = self.parse_and_evaluate(left, ctx)?;
             let right_val = self.parse_and_evaluate(right, ctx)?;
-            
+
             let left_bool = to_bool(&left_val);
             let right_bool = to_bool(&right_val);
-            
+
             let result = match op {
                 "AND" => left_bool && right_bool,
                 "OR" => left_bool || right_bool,
                 _ => false,
             };
-            
+
             return Ok(Some(FormulaValue::Boolean(result)));
         }
-        
+
         Ok(None)
     }
-    
+
     fn register_builtin_functions(&mut self) {
         // Math functions
         self.register_function("SUM", 1, 1, |args| {
             if let FormulaValue::Array(arr) = &args[0] {
-                let sum: f64 = arr.iter()
+                let sum: f64 = arr
+                    .iter()
                     .filter_map(|v| {
                         if let FormulaValue::Number(n) = v {
                             Some(*n)
@@ -402,10 +443,11 @@ impl FormulaEngine {
                 FormulaValue::Null
             }
         });
-        
+
         self.register_function("AVG", 1, 1, |args| {
             if let FormulaValue::Array(arr) = &args[0] {
-                let sum: f64 = arr.iter()
+                let sum: f64 = arr
+                    .iter()
                     .filter_map(|v| {
                         if let FormulaValue::Number(n) = v {
                             Some(*n)
@@ -414,7 +456,10 @@ impl FormulaEngine {
                         }
                     })
                     .sum();
-                let count = arr.iter().filter(|v| matches!(v, FormulaValue::Number(_))).count();
+                let count = arr
+                    .iter()
+                    .filter(|v| matches!(v, FormulaValue::Number(_)))
+                    .count();
                 if count > 0 {
                     FormulaValue::Number(sum / count as f64)
                 } else {
@@ -424,7 +469,7 @@ impl FormulaEngine {
                 FormulaValue::Null
             }
         });
-        
+
         self.register_function("COUNT", 1, 1, |args| {
             if let FormulaValue::Array(arr) = &args[0] {
                 FormulaValue::Number(arr.len() as f64)
@@ -432,9 +477,10 @@ impl FormulaEngine {
                 FormulaValue::Number(0.0)
             }
         });
-        
+
         self.register_function("MIN", 1, usize::MAX, |args| {
-            let nums: Vec<f64> = args.iter()
+            let nums: Vec<f64> = args
+                .iter()
                 .filter_map(|v| {
                     if let FormulaValue::Number(n) = v {
                         Some(*n)
@@ -443,11 +489,15 @@ impl FormulaEngine {
                     }
                 })
                 .collect();
-            nums.iter().copied().reduce(f64::min).map_or(FormulaValue::Null, FormulaValue::Number)
+            nums.iter()
+                .copied()
+                .reduce(f64::min)
+                .map_or(FormulaValue::Null, FormulaValue::Number)
         });
-        
+
         self.register_function("MAX", 1, usize::MAX, |args| {
-            let nums: Vec<f64> = args.iter()
+            let nums: Vec<f64> = args
+                .iter()
                 .filter_map(|v| {
                     if let FormulaValue::Number(n) = v {
                         Some(*n)
@@ -456,17 +506,18 @@ impl FormulaEngine {
                     }
                 })
                 .collect();
-            nums.iter().copied().reduce(f64::max).map_or(FormulaValue::Null, FormulaValue::Number)
+            nums.iter()
+                .copied()
+                .reduce(f64::max)
+                .map_or(FormulaValue::Null, FormulaValue::Number)
         });
-        
+
         // String functions
         self.register_function("CONCAT", 1, usize::MAX, |args| {
-            let s: String = args.iter()
-                .map(value_to_string)
-                .collect();
+            let s: String = args.iter().map(value_to_string).collect();
             FormulaValue::String(s)
         });
-        
+
         self.register_function("UPPER", 1, 1, |args| {
             if let FormulaValue::String(s) = &args[0] {
                 FormulaValue::String(s.to_uppercase())
@@ -474,7 +525,7 @@ impl FormulaEngine {
                 FormulaValue::Null
             }
         });
-        
+
         self.register_function("LOWER", 1, 1, |args| {
             if let FormulaValue::String(s) = &args[0] {
                 FormulaValue::String(s.to_lowercase())
@@ -482,7 +533,7 @@ impl FormulaEngine {
                 FormulaValue::Null
             }
         });
-        
+
         self.register_function("TRIM", 1, 1, |args| {
             if let FormulaValue::String(s) = &args[0] {
                 FormulaValue::String(s.trim().to_string())
@@ -490,13 +541,17 @@ impl FormulaEngine {
                 FormulaValue::Null
             }
         });
-        
+
         // Logic functions
         self.register_function("IF", 3, 3, |args| {
             let condition = to_bool(&args[0]);
-            if condition { args[1].clone() } else { args[2].clone() }
+            if condition {
+                args[1].clone()
+            } else {
+                args[2].clone()
+            }
         });
-        
+
         self.register_function("COALESCE", 1, usize::MAX, |args| {
             for arg in args {
                 if !matches!(arg, FormulaValue::Null) {
@@ -505,19 +560,21 @@ impl FormulaEngine {
             }
             FormulaValue::Null
         });
-        
+
         // Date functions
         self.register_function("NOW", 0, 0, |_args| {
             FormulaValue::String(chrono::Utc::now().to_rfc3339())
         });
-        
+
         self.register_function("TODAY", 0, 0, |_args| {
             FormulaValue::String(chrono::Utc::now().format("%Y-%m-%d").to_string())
         });
-        
+
         // Aggregation for related records
         self.register_function("SUM_CHILDREN", 2, 2, |args| {
-            if let (FormulaValue::String(_entity), FormulaValue::String(_field)) = (&args[0], &args[1]) {
+            if let (FormulaValue::String(_entity), FormulaValue::String(_field)) =
+                (&args[0], &args[1])
+            {
                 // This would need context to resolve - placeholder
                 FormulaValue::Null
             } else {
@@ -530,7 +587,9 @@ impl FormulaEngine {
 fn add_values(a: &FormulaValue, b: &FormulaValue) -> FormulaValue {
     match (a, b) {
         (FormulaValue::Number(n1), FormulaValue::Number(n2)) => FormulaValue::Number(n1 + n2),
-        (FormulaValue::String(s1), FormulaValue::String(s2)) => FormulaValue::String(format!("{s1}{s2}")),
+        (FormulaValue::String(s1), FormulaValue::String(s2)) => {
+            FormulaValue::String(format!("{s1}{s2}"))
+        }
         _ => FormulaValue::Null,
     }
 }
@@ -568,11 +627,21 @@ fn compare_values(a: &FormulaValue, b: &FormulaValue) -> i32 {
         (FormulaValue::Null, _) => -1,
         (_, FormulaValue::Null) => 1,
         (FormulaValue::Number(n1), FormulaValue::Number(n2)) => {
-            if n1 < n2 { -1 } else { i32::from(n1 > n2) }
+            if n1 < n2 {
+                -1
+            } else {
+                i32::from(n1 > n2)
+            }
         }
         (FormulaValue::String(s1), FormulaValue::String(s2)) => s1.cmp(s2) as i32,
         (FormulaValue::Boolean(b1), FormulaValue::Boolean(b2)) => {
-            if b1 == b2 { 0 } else if *b1 { 1 } else { -1 }
+            if b1 == b2 {
+                0
+            } else if *b1 {
+                1
+            } else {
+                -1
+            }
         }
         _ => 0,
     }
@@ -594,7 +663,13 @@ fn value_to_string(v: &FormulaValue) -> String {
         FormulaValue::Number(n) => n.to_string(),
         FormulaValue::Boolean(b) => b.to_string(),
         FormulaValue::Null => String::new(),
-        FormulaValue::Array(arr) => format!("[{}]", arr.iter().map(value_to_string).collect::<Vec<_>>().join(", ")),
+        FormulaValue::Array(arr) => format!(
+            "[{}]",
+            arr.iter()
+                .map(value_to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
         FormulaValue::Object(obj) => format!("object with {} fields", obj.len()),
     }
 }
@@ -608,7 +683,7 @@ impl Default for FormulaEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     fn create_context() -> EvaluationContext {
         EvaluationContext::new(serde_json::json!({
             "name": "Test",
@@ -618,21 +693,21 @@ mod tests {
             "active": true
         }))
     }
-    
+
     #[test]
     fn test_simple_field() {
         let engine = FormulaEngine::new();
         let ctx = create_context();
-        
+
         let result = engine.evaluate("name", &ctx).unwrap();
         assert!(matches!(result, FormulaValue::String(s) if s == "Test"));
     }
-    
+
     #[test]
     fn test_arithmetic() {
         let engine = FormulaEngine::new();
         let ctx = create_context();
-        
+
         let result = engine.evaluate("quantity * price", &ctx).unwrap();
         if let FormulaValue::Number(n) = result {
             assert!((n - 255.0).abs() < 0.01);
@@ -640,14 +715,14 @@ mod tests {
             panic!("Expected number");
         }
     }
-    
+
     #[test]
     fn test_function() {
         let engine = FormulaEngine::new();
         let ctx = EvaluationContext::new(serde_json::json!({
             "values": [10, 20, 30]
         }));
-        
+
         let result = engine.evaluate("SUM(values)", &ctx).unwrap();
         if let FormulaValue::Number(n) = result {
             assert!((n - 60.0).abs() < 0.01);
@@ -655,30 +730,32 @@ mod tests {
             panic!("Expected number");
         }
     }
-    
+
     #[test]
     fn test_string_concat() {
         let engine = FormulaEngine::new();
         let ctx = create_context();
-        
+
         let result = engine.evaluate("CONCAT(name, \" World\")", &ctx).unwrap();
         assert!(matches!(result, FormulaValue::String(s) if s == "Test World"));
     }
-    
+
     #[test]
     fn test_if_function() {
         let engine = FormulaEngine::new();
         let ctx = create_context();
-        
-        let result = engine.evaluate("IF(active, \"Active\", \"Inactive\")", &ctx).unwrap();
+
+        let result = engine
+            .evaluate("IF(active, \"Active\", \"Inactive\")", &ctx)
+            .unwrap();
         assert!(matches!(result, FormulaValue::String(s) if s == "Active"));
     }
-    
+
     #[test]
     fn test_comparison() {
         let engine = FormulaEngine::new();
         let ctx = create_context();
-        
+
         let result = engine.evaluate("quantity > 5", &ctx).unwrap();
         assert!(matches!(result, FormulaValue::Boolean(true)));
     }
@@ -687,20 +764,26 @@ mod tests {
     fn test_complex_logical() {
         let engine = FormulaEngine::new();
         let ctx = create_context();
-        
+
         // true AND true AND true = true
-        let result = engine.evaluate("active AND quantity > 5 AND price > 20", &ctx).unwrap();
+        let result = engine
+            .evaluate("active AND quantity > 5 AND price > 20", &ctx)
+            .unwrap();
         assert!(matches!(result, FormulaValue::Boolean(true)));
-        
+
         // true AND true AND false = false
-        let result2 = engine.evaluate("active AND quantity > 5 AND price < 20", &ctx).unwrap();
+        let result2 = engine
+            .evaluate("active AND quantity > 5 AND price < 20", &ctx)
+            .unwrap();
         assert!(matches!(result2, FormulaValue::Boolean(false)));
 
         // false OR false OR true = true
-        let result3 = engine.evaluate("quantity < 5 OR price < 20 OR active", &ctx).unwrap();
+        let result3 = engine
+            .evaluate("quantity < 5 OR price < 20 OR active", &ctx)
+            .unwrap();
         assert!(matches!(result3, FormulaValue::Boolean(true)));
     }
-    
+
     #[test]
     fn test_field_subtraction() {
         // This was previously broken: `price - discount` would fail because
@@ -729,7 +812,9 @@ mod tests {
         }
 
         // quantity(10) * price(25.50) - discount(0.1) ≈ 254.9
-        let result3 = engine.evaluate("quantity * price - discount", &ctx).unwrap();
+        let result3 = engine
+            .evaluate("quantity * price - discount", &ctx)
+            .unwrap();
         if let FormulaValue::Number(n) = result3 {
             assert!((n - 254.9).abs() < 0.01, "Expected 254.9, got {}", n);
         } else {
@@ -741,7 +826,7 @@ mod tests {
     fn test_left_to_right_associativity() {
         let engine = FormulaEngine::new();
         let ctx = create_context();
-        
+
         // (10 - 3) - 2 = 5, not 10 - (3 - 2) = 9
         let result = engine.evaluate("quantity - 3 - 2", &ctx).unwrap();
         if let FormulaValue::Number(n) = result {
@@ -749,7 +834,7 @@ mod tests {
         } else {
             panic!("Expected number");
         }
-        
+
         // 10 + 5 + 3 = 18
         let result2 = engine.evaluate("quantity + 5 + 3", &ctx).unwrap();
         if let FormulaValue::Number(n) = result2 {

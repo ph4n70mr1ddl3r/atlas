@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: HCM > Time and Labor > Time Cards, Schedules, Entries
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::TimeAndLaborEngine;
-pub use repository::{TimeAndLaborRepository, PostgresTimeAndLaborRepository};
+pub use repository::{PostgresTimeAndLaborRepository, TimeAndLaborRepository};

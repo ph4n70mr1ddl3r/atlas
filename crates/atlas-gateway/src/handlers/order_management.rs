@@ -6,18 +6,18 @@
 //! order holds, shipments, and the order management dashboard.
 
 use axum::{
-    extract::{Path, Query, State, Extension},
-    Json,
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::auth::Claims;
-use atlas_shared::{CreateSalesOrderRequest, AddOrderLineRequest};
+use crate::AppState;
+use atlas_shared::{AddOrderLineRequest, CreateSalesOrderRequest};
 
 // ============================================================================
 // Query Parameters
@@ -46,8 +46,19 @@ pub async fn create_order(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.scm.order_management_engine.create_order(org_id, payload).await {
-        Ok(order) => Ok((StatusCode::CREATED, Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .order_management_engine
+        .create_order(org_id, payload)
+        .await
+    {
+        Ok(order) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(order).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create sales order: {}", e);
             Err(match e.status_code() {
@@ -65,8 +76,16 @@ pub async fn get_order(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.scm.order_management_engine.get_order(org_id, &order_number).await {
-        Ok(Some(order)) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .get_order(org_id, &order_number)
+        .await
+    {
+        Ok(Some(order)) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get order {}: {}", order_number, e);
@@ -83,8 +102,16 @@ pub async fn get_order_by_id(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.get_order_by_id_scoped(org_id, id).await {
-        Ok(Some(order)) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .get_order_by_id_scoped(org_id, id)
+        .await
+    {
+        Ok(Some(order)) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get order {}: {}", id, e);
@@ -100,12 +127,20 @@ pub async fn list_orders(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.scm.order_management_engine.list_orders(
-        org_id,
-        params.status.as_deref(),
-        params.fulfillment_status.as_deref(),
-    ).await {
-        Ok(orders) => Ok(Json(serde_json::to_value(orders).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .list_orders(
+            org_id,
+            params.status.as_deref(),
+            params.fulfillment_status.as_deref(),
+        )
+        .await
+    {
+        Ok(orders) => Ok(Json(serde_json::to_value(orders).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to list orders: {}", e);
             Err(match e.status_code() {
@@ -124,8 +159,16 @@ pub async fn submit_order(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.submit_order(org_id, id).await {
-        Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .submit_order(org_id, id)
+        .await
+    {
+        Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to submit order {}: {}", id, e);
             Err(match e.status_code() {
@@ -146,8 +189,16 @@ pub async fn confirm_order(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.confirm_order(org_id, id).await {
-        Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .confirm_order(org_id, id)
+        .await
+    {
+        Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to confirm order {}: {}", id, e);
             Err(match e.status_code() {
@@ -168,8 +219,16 @@ pub async fn close_order(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.close_order(org_id, id).await {
-        Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .close_order(org_id, id)
+        .await
+    {
+        Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to close order {}: {}", id, e);
             Err(match e.status_code() {
@@ -196,8 +255,16 @@ pub async fn cancel_order(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.cancel_order(org_id, id, payload.reason.as_deref()).await {
-        Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .cancel_order(org_id, id, payload.reason.as_deref())
+        .await
+    {
+        Ok(order) => Ok(Json(serde_json::to_value(order).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to cancel order {}: {}", id, e);
             Err(match e.status_code() {
@@ -222,8 +289,19 @@ pub async fn add_order_line(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     payload.org_id = org_id;
 
-    match state.scm.order_management_engine.add_order_line(payload).await {
-        Ok(line) => Ok((StatusCode::CREATED, Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .order_management_engine
+        .add_order_line(payload)
+        .await
+    {
+        Ok(line) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(line).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to add order line: {}", e);
             Err(match e.status_code() {
@@ -244,8 +322,16 @@ pub async fn get_order_line(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.get_order_line_scoped(org_id, id).await {
-        Ok(Some(line)) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .get_order_line_scoped(org_id, id)
+        .await
+    {
+        Ok(Some(line)) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get order line {}: {}", id, e);
@@ -262,8 +348,16 @@ pub async fn list_order_lines(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let order_id = Uuid::parse_str(&order_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.list_order_lines_scoped(org_id, order_id).await {
-        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .list_order_lines_scoped(org_id, order_id)
+        .await
+    {
+        Ok(lines) => Ok(Json(serde_json::to_value(lines).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to list order lines for order {}: {}", order_id, e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -285,8 +379,16 @@ pub async fn ship_order_line(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.ship_order_line(org_id, id, &payload.quantity_shipped).await {
-        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .ship_order_line(org_id, id, &payload.quantity_shipped)
+        .await
+    {
+        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to ship order line {}: {}", id, e);
             Err(match e.status_code() {
@@ -313,8 +415,16 @@ pub async fn cancel_order_line(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.cancel_order_line(org_id, id, payload.reason.as_deref()).await {
-        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .cancel_order_line(org_id, id, payload.reason.as_deref())
+        .await
+    {
+        Ok(line) => Ok(Json(serde_json::to_value(line).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to cancel order line {}: {}", id, e);
             Err(match e.status_code() {
@@ -348,15 +458,34 @@ pub async fn apply_hold(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
     let order_id = Uuid::parse_str(&payload.order_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let order_line_id = payload.order_line_id.as_deref()
-        .map(Uuid::parse_str).transpose().map_err(|_| StatusCode::BAD_REQUEST)?;
+    let order_line_id = payload
+        .order_line_id
+        .as_deref()
+        .map(Uuid::parse_str)
+        .transpose()
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.apply_hold(
-        org_id, order_id, order_line_id,
-        &payload.hold_type, &payload.hold_reason,
-        user_id, payload.applied_by_name.as_deref(),
-    ).await {
-        Ok(hold) => Ok((StatusCode::CREATED, Json(serde_json::to_value(hold).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .order_management_engine
+        .apply_hold(
+            org_id,
+            order_id,
+            order_line_id,
+            &payload.hold_type,
+            &payload.hold_reason,
+            user_id,
+            payload.applied_by_name.as_deref(),
+        )
+        .await
+    {
+        Ok(hold) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(hold).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to apply hold: {}", e);
             Err(match e.status_code() {
@@ -377,7 +506,10 @@ pub async fn get_hold(
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     match state.scm.order_management_engine.get_hold(org_id, id).await {
-        Ok(Some(hold)) => Ok(Json(serde_json::to_value(hold).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(Some(hold)) => Ok(Json(serde_json::to_value(hold).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get hold {}: {}", id, e);
@@ -401,8 +533,16 @@ pub async fn list_holds(
     let order_id = Uuid::parse_str(&order_id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let active_only = params.active_only.unwrap_or(true);
 
-    match state.scm.order_management_engine.list_holds_scoped(org_id, order_id, active_only).await {
-        Ok(holds) => Ok(Json(serde_json::to_value(holds).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .list_holds_scoped(org_id, order_id, active_only)
+        .await
+    {
+        Ok(holds) => Ok(Json(serde_json::to_value(holds).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to list holds for order {}: {}", order_id, e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -425,8 +565,16 @@ pub async fn release_hold(
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
 
-    match state.scm.order_management_engine.release_hold(org_id, id, user_id, payload.released_by_name.as_deref()).await {
-        Ok(hold) => Ok(Json(serde_json::to_value(hold).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .release_hold(org_id, id, user_id, payload.released_by_name.as_deref())
+        .await
+    {
+        Ok(hold) => Ok(Json(serde_json::to_value(hold).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to release hold {}: {}", id, e);
             Err(match e.status_code() {
@@ -462,20 +610,36 @@ pub async fn create_shipment(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
     let order_id = Uuid::parse_str(&payload.order_id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let order_line_ids: Result<Vec<Uuid>, _> = payload.order_line_ids.iter()
-        .map(|s| Uuid::parse_str(s)).collect();
+    let order_line_ids: Result<Vec<Uuid>, _> = payload
+        .order_line_ids
+        .iter()
+        .map(|s| Uuid::parse_str(s))
+        .collect();
     let order_line_ids = order_line_ids.map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.create_shipment(
-        org_id, order_id, order_line_ids,
-        payload.warehouse.as_deref(),
-        payload.carrier.as_deref(),
-        payload.shipping_method.as_deref(),
-        payload.estimated_delivery_date,
-        user_id,
-        payload.shipped_by_name.as_deref(),
-    ).await {
-        Ok(shipment) => Ok((StatusCode::CREATED, Json(serde_json::to_value(shipment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .scm
+        .order_management_engine
+        .create_shipment(
+            org_id,
+            order_id,
+            order_line_ids,
+            payload.warehouse.as_deref(),
+            payload.carrier.as_deref(),
+            payload.shipping_method.as_deref(),
+            payload.estimated_delivery_date,
+            user_id,
+            payload.shipped_by_name.as_deref(),
+        )
+        .await
+    {
+        Ok(shipment) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(shipment).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create shipment: {}", e);
             Err(match e.status_code() {
@@ -496,8 +660,16 @@ pub async fn get_shipment(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.get_shipment(org_id, id).await {
-        Ok(Some(shipment)) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .get_shipment(org_id, id)
+        .await
+    {
+        Ok(Some(shipment)) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get shipment {}: {}", id, e);
@@ -512,13 +684,23 @@ pub async fn list_shipments(
     Query(params): Query<ListShipmentsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let order_id = params.order_id.as_deref()
-        .map(Uuid::parse_str).transpose().map_err(|_| StatusCode::BAD_REQUEST)?;
+    let order_id = params
+        .order_id
+        .as_deref()
+        .map(Uuid::parse_str)
+        .transpose()
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.list_shipments(
-        org_id, params.status.as_deref(), order_id,
-    ).await {
-        Ok(shipments) => Ok(Json(serde_json::to_value(shipments).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .list_shipments(org_id, params.status.as_deref(), order_id)
+        .await
+    {
+        Ok(shipments) => Ok(Json(serde_json::to_value(shipments).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to list shipments: {}", e);
             Err(match e.status_code() {
@@ -543,8 +725,16 @@ pub async fn confirm_shipment(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.confirm_shipment(org_id, id, payload.ship_date).await {
-        Ok(shipment) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .confirm_shipment(org_id, id, payload.ship_date)
+        .await
+    {
+        Ok(shipment) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to confirm shipment {}: {}", id, e);
             Err(match e.status_code() {
@@ -572,10 +762,21 @@ pub async fn update_tracking(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.update_tracking(
-        org_id, id, payload.tracking_number.as_deref(), payload.estimated_delivery,
-    ).await {
-        Ok(shipment) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .update_tracking(
+            org_id,
+            id,
+            payload.tracking_number.as_deref(),
+            payload.estimated_delivery,
+        )
+        .await
+    {
+        Ok(shipment) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to update tracking for shipment {}: {}", id, e);
             Err(match e.status_code() {
@@ -602,10 +803,21 @@ pub async fn confirm_delivery(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.scm.order_management_engine.confirm_delivery(
-        org_id, id, payload.delivery_date, payload.delivery_confirmation.as_deref(),
-    ).await {
-        Ok(shipment) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .confirm_delivery(
+            org_id,
+            id,
+            payload.delivery_date,
+            payload.delivery_confirmation.as_deref(),
+        )
+        .await
+    {
+        Ok(shipment) => Ok(Json(serde_json::to_value(shipment).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to confirm delivery for shipment {}: {}", id, e);
             Err(match e.status_code() {
@@ -628,8 +840,16 @@ pub async fn get_order_management_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.scm.order_management_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .scm
+        .order_management_engine
+        .get_dashboard(org_id)
+        .await
+    {
+        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to get order management dashboard: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

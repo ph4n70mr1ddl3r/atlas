@@ -13,30 +13,28 @@
 //! - Validation edge cases
 //! - Indirect cost calculation verification
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 use uuid::Uuid;
 
 async fn setup_grant_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
-    sqlx::query(include_str!("../../../../migrations/036_grant_management.sql"))
-        .execute(&state.db_pool)
-        .await
-        .ok();
+    sqlx::query(include_str!(
+        "../../../../migrations/036_grant_management.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .ok();
     let app = build_router(state.clone());
     (state, app)
 }
 
-async fn create_test_sponsor(
-    app: &axum::Router,
-    code: &str,
-    name: &str,
-) -> serde_json::Value {
+async fn create_test_sponsor(app: &axum::Router, code: &str, name: &str) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({
         "sponsor_code": code,
@@ -47,15 +45,23 @@ async fn create_test_sponsor(
         "billing_frequency": "monthly",
         "currency_code": "USD",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/grants/sponsors")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/grants/sponsors")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to create sponsor");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -81,15 +87,23 @@ async fn create_test_award(
         "billing_basis": "cost",
         "principal_investigator_name": "Dr. Jane Doe",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/grants/awards")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/grants/awards")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to create award");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -110,31 +124,58 @@ async fn test_sponsor_crud() {
 
     // Get
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/grants/sponsors/NIH")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/grants/sponsors/NIH")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let got: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let got: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(got["sponsor_code"], "NIH");
 
     // List
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/grants/sponsors")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/grants/sponsors")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert!(list["data"].as_array().unwrap().len() >= 1);
 
     // Delete
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/grants/sponsors/NIH")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/grants/sponsors/NIH")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -159,26 +200,46 @@ async fn test_indirect_cost_rate_crud() {
         "effective_to": "2025-12-31",
         "negotiated_by": "DHHS"
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/grants/indirect-cost-rates")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/grants/indirect-cost-rates")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let rate: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let rate: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(rate["rate_name"], "FY2025 Negotiated Rate");
     assert_eq!(rate["rate_type"], "negotiated");
 
     // List
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/grants/indirect-cost-rates")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/grants/indirect-cost-rates")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert!(list["data"].as_array().unwrap().len() >= 1);
 }
 
@@ -205,33 +266,66 @@ async fn test_award_lifecycle() {
     let award_id = award["id"].as_str().unwrap();
 
     // Activate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let activated: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let activated: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(activated["status"], "active");
 
     // Suspend
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/suspend", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/suspend", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let suspended: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let suspended: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(suspended["status"], "suspended");
 
     // Terminate (from suspended)
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/terminate", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/terminate", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let terminated: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let terminated: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(terminated["status"], "terminated");
 }
 
@@ -242,23 +336,42 @@ async fn test_award_activate_only_from_draft() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "DOD", "Dept of Defense").await;
-    let award = create_test_award(&app, "AWD-ERR-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(
+        &app,
+        "AWD-ERR-001",
+        Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap(),
+    )
+    .await;
     let award_id = award["id"].as_str().unwrap();
 
     // Activate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Try to activate again (should fail)
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -273,16 +386,32 @@ async fn test_budget_lines() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "HHMI", "Howard Hughes Medical Institute").await;
-    let award = create_test_award(&app, "AWD-BUD-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(
+        &app,
+        "AWD-BUD-001",
+        Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap(),
+    )
+    .await;
 
     // Activate award first
     let award_id = award["id"].as_str().unwrap().to_string();
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let _award: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let _award: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
 
     // Create budget lines
     let categories = vec![
@@ -300,24 +429,45 @@ async fn test_budget_lines() {
             "description": format!("{} costs", cat),
             "budget_amount": amount,
         });
-        let r = app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/grants/awards/{}/budget-lines", award_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&payload).unwrap()))
-            .unwrap()
-        ).await.unwrap();
-        assert_eq!(r.status(), StatusCode::CREATED, "Failed to create budget line for {}", cat);
+        let r = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/v1/grants/awards/{}/budget-lines", award_id))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            r.status(),
+            StatusCode::CREATED,
+            "Failed to create budget line for {}",
+            cat
+        );
     }
 
     // List budget lines
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/grants/awards/{}/budget-lines", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/grants/awards/{}/budget-lines", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(list["data"].as_array().unwrap().len(), 6);
 }
 
@@ -332,16 +482,32 @@ async fn test_expenditure_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "DOE", "Dept of Energy").await;
-    let award = create_test_award(&app, "AWD-EXP-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(
+        &app,
+        "AWD-EXP-001",
+        Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap(),
+    )
+    .await;
     let award_id = award["id"].as_str().unwrap().to_string();
 
     // Activate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let _award: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let _award: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
 
     // Create expenditure
     let payload = json!({
@@ -352,43 +518,86 @@ async fn test_expenditure_lifecycle() {
         "amount": "5000",
         "vendor_name": "Fisher Scientific",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/expenditures", award_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/expenditures", award_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let exp: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let exp: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(exp["status"], "pending");
     assert_eq!(exp["amount"], "5000");
     // Verify indirect cost calculation: 5000 * 50% = 2500, total = 7500
-    let indirect: f64 = exp["indirect_cost_amount"].as_str().unwrap().parse().unwrap();
+    let indirect: f64 = exp["indirect_cost_amount"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
     let total: f64 = exp["total_amount"].as_str().unwrap().parse().unwrap();
-    assert!((indirect - 2500.0).abs() < 1.0, "Expected indirect cost ~2500, got {}", indirect);
-    assert!((total - 7500.0).abs() < 1.0, "Expected total ~7500, got {}", total);
+    assert!(
+        (indirect - 2500.0).abs() < 1.0,
+        "Expected indirect cost ~2500, got {}",
+        indirect
+    );
+    assert!(
+        (total - 7500.0).abs() < 1.0,
+        "Expected total ~7500, got {}",
+        total
+    );
 
     let exp_id = exp["id"].as_str().unwrap();
 
     // Approve expenditure
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/expenditures/{}/approve", exp_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/expenditures/{}/approve", exp_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let approved: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let approved: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(approved["status"], "approved");
 
     // List expenditures
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/grants/awards/{}/expenditures", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/grants/awards/{}/expenditures", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(list["data"].as_array().unwrap().len(), 1);
 }
 
@@ -398,16 +607,32 @@ async fn test_expenditure_reversal() {
     let (_state, app) = setup_grant_test().await;
     let (k, v) = auth_header(&admin_claims());
 
-    let sponsor = create_test_sponsor(&app, "NASA", "National Aeronautics and Space Administration").await;
-    let award = create_test_award(&app, "AWD-REV-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let sponsor = create_test_sponsor(
+        &app,
+        "NASA",
+        "National Aeronautics and Space Administration",
+    )
+    .await;
+    let award = create_test_award(
+        &app,
+        "AWD-REV-001",
+        Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap(),
+    )
+    .await;
     let award_id = award["id"].as_str().unwrap();
 
     // Activate
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Create expenditure
     let payload = json!({
@@ -417,31 +642,58 @@ async fn test_expenditure_reversal() {
         "budget_category": "equipment",
         "amount": "10000",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/expenditures", award_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/expenditures", award_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let exp: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
         .unwrap()
-    ).await.unwrap();
-    let exp: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+        .to_vec()
+        .into();
     let exp_id = exp["id"].as_str().unwrap();
 
     // Approve
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/expenditures/{}/approve", exp_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/expenditures/{}/approve", exp_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Reverse
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/expenditures/{}/reverse", exp_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/expenditures/{}/reverse", exp_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let reversed: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let reversed: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(reversed["status"], "reversed");
 }
 
@@ -456,15 +708,26 @@ async fn test_billing_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "EPA", "Environmental Protection Agency").await;
-    let award = create_test_award(&app, "AWD-BIL-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(
+        &app,
+        "AWD-BIL-001",
+        Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap(),
+    )
+    .await;
     let award_id = award["id"].as_str().unwrap();
 
     // Activate
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Create and approve expenditure
     let payload = json!({
@@ -474,21 +737,37 @@ async fn test_billing_lifecycle() {
         "budget_category": "supplies",
         "amount": "8000",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/expenditures", award_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/expenditures", award_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let exp: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
         .unwrap()
-    ).await.unwrap();
-    let exp: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+        .to_vec()
+        .into();
     let exp_id = exp["id"].as_str().unwrap();
 
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/expenditures/{}/approve", exp_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/expenditures/{}/approve", exp_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Create billing
     let payload = json!({
@@ -496,46 +775,89 @@ async fn test_billing_lifecycle() {
         "period_end": "2025-02-28",
         "notes": "February billing"
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/billings", award_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/billings", award_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let billing: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let billing: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(billing["status"], "draft");
     let billing_id = billing["id"].as_str().unwrap();
 
     // Submit
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/billings/{}/submit", billing_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/billings/{}/submit", billing_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let submitted: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let submitted: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(submitted["status"], "submitted");
 
     // Approve
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/billings/{}/approve", billing_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/billings/{}/approve", billing_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let approved: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let approved: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(approved["status"], "approved");
 
     // Pay
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/billings/{}/pay", billing_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/billings/{}/pay", billing_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let paid: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let paid: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(paid["status"], "paid");
 }
 
@@ -550,15 +872,26 @@ async fn test_compliance_report_lifecycle() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "CDC", "Centers for Disease Control").await;
-    let award = create_test_award(&app, "AWD-RPT-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(
+        &app,
+        "AWD-RPT-001",
+        Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap(),
+    )
+    .await;
     let award_id = award["id"].as_str().unwrap();
 
     // Activate
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Create compliance report
     let payload = json!({
@@ -568,35 +901,63 @@ async fn test_compliance_report_lifecycle() {
         "reporting_period_end": "2025-03-31",
         "due_date": "2025-04-30",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/reports", award_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/reports", award_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let report: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let report: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(report["status"], "draft");
     assert_eq!(report["report_type"], "federal_financial_report_sf425");
     let report_id = report["id"].as_str().unwrap();
 
     // Submit
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/reports/{}/submit", report_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/reports/{}/submit", report_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Approve
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/reports/{}/approve", report_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/reports/{}/approve", report_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let approved: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let approved: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert_eq!(approved["status"], "approved");
 }
 
@@ -612,24 +973,45 @@ async fn test_grant_dashboard() {
 
     // Create sponsor and active award
     let sponsor = create_test_sponsor(&app, "NIH-DASH", "NIH for Dashboard Test").await;
-    let award = create_test_award(&app, "AWD-DASH-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(
+        &app,
+        "AWD-DASH-001",
+        Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap(),
+    )
+    .await;
     let award_id = award["id"].as_str().unwrap();
 
     // Activate
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/activate", award_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Get dashboard
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/grants/dashboard")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/grants/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let dashboard: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let dashboard: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert!(dashboard["total_active_awards"].as_i64().unwrap() >= 1);
     assert!(dashboard["total_sponsors"].as_i64().unwrap() >= 1);
 }
@@ -645,7 +1027,12 @@ async fn test_expenditure_on_inactive_award_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     let sponsor = create_test_sponsor(&app, "VA", "Veterans Affairs").await;
-    let award = create_test_award(&app, "AWD-VAL-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    let award = create_test_award(
+        &app,
+        "AWD-VAL-001",
+        Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap(),
+    )
+    .await;
     let award_id = award["id"].as_str().unwrap();
     // Award is in 'draft' status - expenditures should fail
 
@@ -654,13 +1041,19 @@ async fn test_expenditure_on_inactive_award_fails() {
         "expenditure_date": "2025-03-15",
         "amount": "1000",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/grants/awards/{}/expenditures", award_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/grants/awards/{}/expenditures", award_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -673,24 +1066,50 @@ async fn test_list_awards_filtering() {
     let sponsor = create_test_sponsor(&app, "NEH", "National Endowment for Humanities").await;
 
     // Create two awards
-    create_test_award(&app, "AWD-FLT-001", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
-    create_test_award(&app, "AWD-FLT-002", Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap()).await;
+    create_test_award(
+        &app,
+        "AWD-FLT-001",
+        Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap(),
+    )
+    .await;
+    create_test_award(
+        &app,
+        "AWD-FLT-002",
+        Uuid::parse_str(sponsor["id"].as_str().unwrap()).unwrap(),
+    )
+    .await;
 
     // Filter by status=draft
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/grants/awards?status=draft")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/grants/awards?status=draft")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap().to_vec().into();
+    let list: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .to_vec()
+        .into();
     assert!(list["data"].as_array().unwrap().len() >= 2);
 
     // Filter by non-existent status
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/grants/awards?status=nonexistent")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/grants/awards?status=nonexistent")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }

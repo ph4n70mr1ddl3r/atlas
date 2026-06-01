@@ -3,14 +3,11 @@
 use std::sync::Arc;
 
 use axum::Router;
-use tower_http::cors::{CorsLayer, Any};
-
-
-
+use tower_http::cors::{Any, CorsLayer};
 
 use atlas_shared::{
-    EntityDefinition, FieldDefinition, FieldType, WorkflowDefinition,
-    StateDefinition, StateType, TransitionDefinition,
+    EntityDefinition, FieldDefinition, FieldType, StateDefinition, StateType, TransitionDefinition,
+    WorkflowDefinition,
 };
 use uuid::Uuid;
 
@@ -68,13 +65,25 @@ pub async fn build_test_app() -> Router {
 }
 
 pub fn build_router(state: Arc<atlas_gateway::AppState>) -> Router {
-    let cors = CorsLayer::new().allow_methods(Any).allow_headers(Any).allow_origin(Any);
+    let cors = CorsLayer::new()
+        .allow_methods(Any)
+        .allow_headers(Any)
+        .allow_origin(Any);
     Router::new()
         .nest("/api/v1", atlas_gateway::handlers::api_routes())
         .nest("/api/admin", atlas_gateway::handlers::admin_routes())
-        .route("/health", axum::routing::get(atlas_gateway::handlers::health_check))
-        .route("/metrics", axum::routing::get(atlas_gateway::handlers::metrics))
-        .route("/api/v1/auth/login", axum::routing::post(atlas_gateway::handlers::login))
+        .route(
+            "/health",
+            axum::routing::get(atlas_gateway::handlers::health_check),
+        )
+        .route(
+            "/metrics",
+            axum::routing::get(atlas_gateway::handlers::metrics),
+        )
+        .route(
+            "/api/v1/auth/login",
+            axum::routing::post(atlas_gateway::handlers::login),
+        )
         .layer(cors)
         .with_state(state)
 }
@@ -94,8 +103,10 @@ pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
     let mut state = atlas_gateway::state::AppState::new_with_pool(db_pool.clone())
         .await
         .expect("Failed to build test state");
-    
-    state.event_bus = std::sync::Arc::new(atlas_core::eventbus::NatsEventBus::noop("atlas-gateway-test"));
+
+    state.event_bus = std::sync::Arc::new(atlas_core::eventbus::NatsEventBus::noop(
+        "atlas-gateway-test",
+    ));
     state.jwt_secret = TEST_JWT_SECRET.to_string();
 
     let state_arc = std::sync::Arc::new(state);
@@ -112,13 +123,49 @@ pub fn test_entity_definition() -> EntityDefinition {
         table_name: Some("test_items".to_string()),
         description: Some("A test entity for E2E tests".to_string()),
         fields: vec![
-            FieldDefinition::new("name", "Name", FieldType::String { max_length: Some(200), pattern: None }),
-            FieldDefinition::new("description", "Description", FieldType::String { max_length: None, pattern: None }),
-            FieldDefinition::new("quantity", "Quantity", FieldType::Integer { min: Some(0), max: None }),
-            FieldDefinition::new("price", "Price", FieldType::Decimal { precision: 12, scale: 2 }),
-            FieldDefinition::new("status", "Status", FieldType::Enum {
-                values: vec!["draft".to_string(), "active".to_string(), "closed".to_string()],
-            }),
+            FieldDefinition::new(
+                "name",
+                "Name",
+                FieldType::String {
+                    max_length: Some(200),
+                    pattern: None,
+                },
+            ),
+            FieldDefinition::new(
+                "description",
+                "Description",
+                FieldType::String {
+                    max_length: None,
+                    pattern: None,
+                },
+            ),
+            FieldDefinition::new(
+                "quantity",
+                "Quantity",
+                FieldType::Integer {
+                    min: Some(0),
+                    max: None,
+                },
+            ),
+            FieldDefinition::new(
+                "price",
+                "Price",
+                FieldType::Decimal {
+                    precision: 12,
+                    scale: 2,
+                },
+            ),
+            FieldDefinition::new(
+                "status",
+                "Status",
+                FieldType::Enum {
+                    values: vec![
+                        "draft".to_string(),
+                        "active".to_string(),
+                        "closed".to_string(),
+                    ],
+                },
+            ),
         ],
         indexes: vec![],
         workflow: Some(test_workflow_definition()),
@@ -137,32 +184,81 @@ pub fn test_workflow_definition() -> WorkflowDefinition {
         name: "test_item_workflow".to_string(),
         initial_state: "draft".to_string(),
         states: vec![
-            StateDefinition { name: "draft".into(), label: "Draft".into(), state_type: StateType::Initial,
-                entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "submitted".into(), label: "Submitted".into(), state_type: StateType::Working,
-                entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "approved".into(), label: "Approved".into(), state_type: StateType::Final,
-                entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
-            StateDefinition { name: "rejected".into(), label: "Rejected".into(), state_type: StateType::Final,
-                entry_actions: vec![], exit_actions: vec![], metadata: serde_json::Value::Null },
+            StateDefinition {
+                name: "draft".into(),
+                label: "Draft".into(),
+                state_type: StateType::Initial,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "submitted".into(),
+                label: "Submitted".into(),
+                state_type: StateType::Working,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "approved".into(),
+                label: "Approved".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            StateDefinition {
+                name: "rejected".into(),
+                label: "Rejected".into(),
+                state_type: StateType::Final,
+                entry_actions: vec![],
+                exit_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         transitions: vec![
-            TransitionDefinition { name: "submit".into(), from_state: "draft".into(), to_state: "submitted".into(),
-                action: "submit".into(), action_label: Some("Submit".into()), guards: vec![],
-                required_roles: vec![], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "approve".into(), from_state: "submitted".into(), to_state: "approved".into(),
-                action: "approve".into(), action_label: Some("Approve".into()), guards: vec![],
-                required_roles: vec!["manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
-            TransitionDefinition { name: "reject".into(), from_state: "submitted".into(), to_state: "rejected".into(),
-                action: "reject".into(), action_label: Some("Reject".into()), guards: vec![],
-                required_roles: vec!["manager".into(), "admin".into()], entry_actions: vec![], metadata: serde_json::Value::Null },
+            TransitionDefinition {
+                name: "submit".into(),
+                from_state: "draft".into(),
+                to_state: "submitted".into(),
+                action: "submit".into(),
+                action_label: Some("Submit".into()),
+                guards: vec![],
+                required_roles: vec![],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "approve".into(),
+                from_state: "submitted".into(),
+                to_state: "approved".into(),
+                action: "approve".into(),
+                action_label: Some("Approve".into()),
+                guards: vec![],
+                required_roles: vec!["manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
+            TransitionDefinition {
+                name: "reject".into(),
+                from_state: "submitted".into(),
+                to_state: "rejected".into(),
+                action: "reject".into(),
+                action_label: Some("Reject".into()),
+                guards: vec![],
+                required_roles: vec!["manager".into(), "admin".into()],
+                entry_actions: vec![],
+                metadata: serde_json::Value::Null,
+            },
         ],
         is_active: true,
     }
 }
 
 pub async fn setup_test_db(pool: &sqlx::PgPool) {
-    sqlx::query(r#"
+    sqlx::query(
+        r#"
         CREATE TABLE IF NOT EXISTS test_items (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             organization_id UUID,
@@ -172,537 +268,1818 @@ pub async fn setup_test_db(pool: &sqlx::PgPool) {
             workflow_state VARCHAR(100) DEFAULT 'draft',
             name TEXT, description TEXT, quantity BIGINT,
             price NUMERIC(12,2), status VARCHAR(100)
-        )"#)
-        .execute(pool).await.ok();
-    sqlx::query("DELETE FROM test_items").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.audit_log WHERE entity_type = 'test_items'").execute(pool).await.ok();
+        )"#,
+    )
+    .execute(pool)
+    .await
+    .ok();
+    sqlx::query("DELETE FROM test_items")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.audit_log WHERE entity_type = 'test_items'")
+        .execute(pool)
+        .await
+        .ok();
 }
 
 pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
-    sqlx::query("DELETE FROM test_items").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.workflow_states WHERE entity_type = 'test_items'").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.audit_log WHERE entity_type = 'test_items'").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.entities WHERE name = 'test_items'").execute(pool).await.ok();
+    sqlx::query("DELETE FROM test_items")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.workflow_states WHERE entity_type = 'test_items'")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.audit_log WHERE entity_type = 'test_items'")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.entities WHERE name = 'test_items'")
+        .execute(pool)
+        .await
+        .ok();
     // Clean currency test data
-    sqlx::query("DELETE FROM _atlas.currency_conversions WHERE entity_type = 'test_items'").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.exchange_rates").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.currencies").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.currency_conversions WHERE entity_type = 'test_items'")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.exchange_rates")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.currencies")
+        .execute(pool)
+        .await
+        .ok();
     // Clean tax test data
-    sqlx::query("DELETE FROM _atlas.tax_reports").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.tax_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.tax_determination_rules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.tax_rates").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.tax_jurisdictions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.tax_regimes").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.tax_reports")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.tax_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.tax_determination_rules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.tax_rates")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.tax_jurisdictions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.tax_regimes")
+        .execute(pool)
+        .await
+        .ok();
     // Clean reconciliation test data
-    sqlx::query("DELETE FROM _atlas.reconciliation_matches").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.reconciliation_matching_rules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.reconciliation_summaries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.bank_statement_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.bank_statements").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.system_transactions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.bank_accounts").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.reconciliation_matches")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.reconciliation_matching_rules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.reconciliation_summaries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.bank_statement_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.bank_statements")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.system_transactions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.bank_accounts")
+        .execute(pool)
+        .await
+        .ok();
     // Clean expense test data
-    sqlx::query("DELETE FROM _atlas.expense_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.expense_reports").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.expense_policies").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.expense_categories").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.expense_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.expense_reports")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.expense_policies")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.expense_categories")
+        .execute(pool)
+        .await
+        .ok();
     // Clean budget test data
-    sqlx::query("DELETE FROM _atlas.budget_transfers").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.budget_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.budget_versions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.budget_definitions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.budget_transfers")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.budget_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.budget_versions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.budget_definitions")
+        .execute(pool)
+        .await
+        .ok();
     // Clean fixed asset test data
-    sqlx::query("DELETE FROM _atlas.asset_depreciation_history").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.asset_retirements").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.asset_transfers").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.fixed_assets").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.asset_categories").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.asset_books").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.asset_depreciation_history")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.asset_retirements")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.asset_transfers")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.fixed_assets")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.asset_categories")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.asset_books")
+        .execute(pool)
+        .await
+        .ok();
     // Clean encumbrance test data
-    sqlx::query("DELETE FROM _atlas.encumbrance_liquidations").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.encumbrance_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.encumbrance_entries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.encumbrance_carry_forwards").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.encumbrance_types").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.encumbrance_liquidations")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.encumbrance_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.encumbrance_entries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.encumbrance_carry_forwards")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.encumbrance_types")
+        .execute(pool)
+        .await
+        .ok();
     // Clean cash management test data
-    sqlx::query("DELETE FROM _atlas.cash_forecast_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.cash_forecasts").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.cash_forecast_sources").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.cash_forecast_templates").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.cash_positions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.cash_forecast_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.cash_forecasts")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.cash_forecast_sources")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.cash_forecast_templates")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.cash_positions")
+        .execute(pool)
+        .await
+        .ok();
     // Clean sourcing test data
-    sqlx::query("DELETE FROM _atlas.sourcing_award_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.sourcing_awards").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.response_scores").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.scoring_criteria").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.supplier_response_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.supplier_responses").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.sourcing_invites").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.sourcing_event_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.sourcing_events").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.sourcing_templates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_award_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_awards")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.response_scores")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.scoring_criteria")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.supplier_response_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.supplier_responses")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_invites")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_event_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_events")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.sourcing_templates")
+        .execute(pool)
+        .await
+        .ok();
     // Clean financial reporting test data
-    sqlx::query("DELETE FROM _atlas.financial_report_results").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.financial_report_runs").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.financial_report_favourites").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.financial_report_columns").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.financial_report_rows").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.financial_report_templates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_results")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_runs")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_favourites")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_columns")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_rows")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.financial_report_templates")
+        .execute(pool)
+        .await
+        .ok();
     // Clean multi-book accounting test data
-    sqlx::query("DELETE FROM _atlas.propagation_logs").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.book_journal_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.book_journal_entries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.account_mappings").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.accounting_books").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.propagation_logs")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.book_journal_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.book_journal_entries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.account_mappings")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.accounting_books")
+        .execute(pool)
+        .await
+        .ok();
     // Clean procurement contracts test data
-    sqlx::query("DELETE FROM _atlas.procurement_contract_spend").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.procurement_contract_renewals").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.procurement_contract_milestones").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.procurement_contract_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.procurement_contracts").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.procurement_contract_types").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contract_spend")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contract_renewals")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contract_milestones")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contract_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contracts")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.procurement_contract_types")
+        .execute(pool)
+        .await
+        .ok();
     // Clean customer returns test data
-    sqlx::query("DELETE FROM _atlas.credit_memos").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.return_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.return_authorizations").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.return_reasons").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.credit_memos")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.return_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.return_authorizations")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.return_reasons")
+        .execute(pool)
+        .await
+        .ok();
     // Clean sales commission test data
-    sqlx::query("DELETE FROM _atlas.commission_payout_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.commission_transactions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.commission_payouts").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.sales_quotas").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.plan_assignments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.commission_rate_tiers").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.commission_plans").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.sales_reps").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.commission_payout_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.commission_transactions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.commission_payouts")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.sales_quotas")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.plan_assignments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.commission_rate_tiers")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.commission_plans")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.sales_reps")
+        .execute(pool)
+        .await
+        .ok();
     // Clean treasury test data
-    sqlx::query("DELETE FROM _atlas.treasury_settlements").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.treasury_deals").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.treasury_counterparties").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.treasury_settlements")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.treasury_deals")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.treasury_counterparties")
+        .execute(pool)
+        .await
+        .ok();
     // Clean supplier qualification test data
-    sqlx::query("DELETE FROM _atlas.supplier_qualification_responses").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.supplier_qualification_invitations").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.supplier_qualification_initiatives").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.supplier_certifications").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.qualification_questions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.qualification_areas").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.supplier_qualification_responses")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.supplier_qualification_invitations")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.supplier_qualification_initiatives")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.supplier_certifications")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.qualification_questions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.qualification_areas")
+        .execute(pool)
+        .await
+        .ok();
     // Clean recurring journal test data
-    sqlx::query("DELETE FROM _atlas.recurring_journal_generation_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.recurring_journal_generations").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.recurring_journal_schedule_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.recurring_journal_schedules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.recurring_journal_generation_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.recurring_journal_generations")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.recurring_journal_schedule_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.recurring_journal_schedules")
+        .execute(pool)
+        .await
+        .ok();
     // Clean manual journal test data
-    sqlx::query("DELETE FROM _atlas.journal_entry_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.journal_entries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.journal_batches").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.journal_entry_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.journal_entries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.journal_batches")
+        .execute(pool)
+        .await
+        .ok();
     // Clean descriptive flexfield test data
-    sqlx::query("DELETE FROM _atlas.dff_data").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.dff_segments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.dff_contexts").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.dff_flexfields").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.dff_value_set_entries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.dff_value_sets").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.dff_data")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.dff_segments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.dff_contexts")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.dff_flexfields")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.dff_value_set_entries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.dff_value_sets")
+        .execute(pool)
+        .await
+        .ok();
     // Clean cross-validation test data
-    sqlx::query("DELETE FROM _atlas.cross_validation_rule_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.cross_validation_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.cross_validation_rule_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.cross_validation_rules")
+        .execute(pool)
+        .await
+        .ok();
     // Clean scheduled process test data
-    sqlx::query("DELETE FROM _atlas.scheduled_process_logs").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.scheduled_process_recurrences").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.scheduled_processes").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.scheduled_process_templates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.scheduled_process_logs")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.scheduled_process_recurrences")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.scheduled_processes")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.scheduled_process_templates")
+        .execute(pool)
+        .await
+        .ok();
     // Clean allocation test data
-    sqlx::query("DELETE FROM _atlas.gl_allocation_run_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.gl_allocation_runs").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.gl_allocation_target_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.gl_allocation_rules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.gl_allocation_basis_details").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.gl_allocation_bases").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.gl_allocation_pools").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_run_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_runs")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_target_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_rules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_basis_details")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_bases")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.gl_allocation_pools")
+        .execute(pool)
+        .await
+        .ok();
     // Clean currency revaluation test data
-    sqlx::query("DELETE FROM _atlas.currency_revaluation_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.currency_revaluation_runs").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.currency_revaluation_accounts").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.currency_revaluation_definitions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.currency_revaluation_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.currency_revaluation_runs")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.currency_revaluation_accounts")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.currency_revaluation_definitions")
+        .execute(pool)
+        .await
+        .ok();
     // Clean purchase requisition test data
-    sqlx::query("DELETE FROM _atlas.autocreate_links").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.requisition_approvals").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.requisition_distributions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.requisition_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.purchase_requisitions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.autocreate_links")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.requisition_approvals")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.requisition_distributions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.requisition_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.purchase_requisitions")
+        .execute(pool)
+        .await
+        .ok();
     // Clean corporate card test data
-    sqlx::query("DELETE FROM _atlas.corporate_card_limit_overrides").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.corporate_card_transactions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.corporate_card_statements").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.corporate_cards").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.corporate_card_programs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.corporate_card_limit_overrides")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.corporate_card_transactions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.corporate_card_statements")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.corporate_cards")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.corporate_card_programs")
+        .execute(pool)
+        .await
+        .ok();
     // Clean benefits test data
-    sqlx::query("DELETE FROM _atlas.benefits_deductions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.benefits_enrollments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.benefits_plans").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.benefits_deductions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.benefits_enrollments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.benefits_plans")
+        .execute(pool)
+        .await
+        .ok();
     // Clean performance test data
-    sqlx::query("DELETE FROM _atlas.performance_feedback").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.performance_competency_assessments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.performance_goals").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.performance_documents").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.performance_competencies").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.performance_review_cycles").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.performance_rating_models").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.performance_dashboard").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.performance_feedback")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.performance_competency_assessments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.performance_goals")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.performance_documents")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.performance_competencies")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.performance_review_cycles")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.performance_rating_models")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.performance_dashboard")
+        .execute(pool)
+        .await
+        .ok();
     // Clean credit management test data
-    sqlx::query("DELETE FROM _atlas.credit_holds").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.credit_reviews").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.credit_exposure").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.credit_limits").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.credit_profiles").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.credit_check_rules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.credit_scoring_models").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.credit_holds")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.credit_reviews")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.credit_exposure")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.credit_limits")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.credit_profiles")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.credit_check_rules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.credit_scoring_models")
+        .execute(pool)
+        .await
+        .ok();
     // Clean transfer pricing test data
-    sqlx::query("DELETE FROM _atlas.transfer_pricing_comparables").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.transfer_pricing_documentation").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.transfer_pricing_transactions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.transfer_pricing_benchmarks").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.transfer_pricing_policies").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.transfer_pricing_comparables")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.transfer_pricing_documentation")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.transfer_pricing_transactions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.transfer_pricing_benchmarks")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.transfer_pricing_policies")
+        .execute(pool)
+        .await
+        .ok();
     // Clean financial consolidation test data
-    sqlx::query("DELETE FROM _atlas.consolidation_adjustments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.consolidation_trial_balance").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.consolidation_scenarios").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.consolidation_translation_rates").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.consolidation_entities").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.consolidation_elimination_rules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.consolidation_ledgers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_adjustments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_trial_balance")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_scenarios")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_translation_rates")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_entities")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_elimination_rules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.consolidation_ledgers")
+        .execute(pool)
+        .await
+        .ok();
     // Clean joint venture test data
-    sqlx::query("DELETE FROM _atlas.joint_venture_billing_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.joint_venture_billings").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.joint_venture_revenue_distribution_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.joint_venture_revenue_distributions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.joint_venture_cost_distribution_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.joint_venture_cost_distributions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.joint_venture_afes").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.joint_venture_partners").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.joint_ventures").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_billing_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_billings")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_revenue_distribution_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_revenue_distributions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_cost_distribution_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_cost_distributions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_afes")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.joint_venture_partners")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.joint_ventures")
+        .execute(pool)
+        .await
+        .ok();
     // Clean deferred revenue test data
-    sqlx::query("DELETE FROM _atlas.deferral_schedule_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.deferral_schedules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.deferral_templates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.deferral_schedule_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.deferral_schedules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.deferral_templates")
+        .execute(pool)
+        .await
+        .ok();
     // Clean approval delegation test data
-    sqlx::query("DELETE FROM _atlas.approval_delegation_history").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.approval_delegation_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.approval_delegation_history")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.approval_delegation_rules")
+        .execute(pool)
+        .await
+        .ok();
     // Clean warehouse management test data
-    sqlx::query("DELETE FROM _atlas.warehouse_tasks").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.pick_waves").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.put_away_rules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.warehouse_zones").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.warehouses").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.warehouse_tasks")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.pick_waves")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.put_away_rules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.warehouse_zones")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.warehouses")
+        .execute(pool)
+        .await
+        .ok();
     // Clean absence management test data
-    sqlx::query("DELETE FROM _atlas.absence_entry_history").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.absence_balances").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.absence_entries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.absence_plans").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.absence_types").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.absence_entry_history")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.absence_balances")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.absence_entries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.absence_plans")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.absence_types")
+        .execute(pool)
+        .await
+        .ok();
     // Clean approval authority limits test data
-    sqlx::query("DELETE FROM _atlas.approval_authority_check_audit").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.approval_authority_limits").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.approval_authority_check_audit")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.approval_authority_limits")
+        .execute(pool)
+        .await
+        .ok();
     // Clean data archiving test data
-    sqlx::query("DELETE FROM _atlas.archive_audit").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.archived_records").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.archive_batches").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.legal_hold_items").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.legal_holds").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.retention_policies").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.archive_audit")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.archived_records")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.archive_batches")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.legal_hold_items")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.legal_holds")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.retention_policies")
+        .execute(pool)
+        .await
+        .ok();
     // Clean compensation management test data
-    sqlx::query("DELETE FROM _atlas.compensation_worksheet_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.compensation_worksheets").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.compensation_budget_pools").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.compensation_statements").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.compensation_cycles").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.compensation_components").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.compensation_plans").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.compensation_worksheet_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.compensation_worksheets")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.compensation_budget_pools")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.compensation_statements")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.compensation_cycles")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.compensation_components")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.compensation_plans")
+        .execute(pool)
+        .await
+        .ok();
     // Clean service request test data
-    sqlx::query("DELETE FROM _atlas.service_request_updates").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.service_request_assignments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.service_requests").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.service_categories").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.service_request_updates")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.service_request_assignments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.service_requests")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.service_categories")
+        .execute(pool)
+        .await
+        .ok();
     // Clean autoinvoice test data
-    sqlx::query("DELETE FROM _atlas.autoinvoice_result_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.autoinvoice_results").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.autoinvoice_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.autoinvoice_batches").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.autoinvoice_validation_rules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.autoinvoice_grouping_rules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_result_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_results")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_batches")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_validation_rules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.autoinvoice_grouping_rules")
+        .execute(pool)
+        .await
+        .ok();
     // Clean shipping test data
-    sqlx::query("DELETE FROM _atlas.packing_slip_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.packing_slips").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.shipment_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.shipments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.shipping_methods").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.shipping_carriers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.packing_slip_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.packing_slips")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.shipment_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.shipments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.shipping_methods")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.shipping_carriers")
+        .execute(pool)
+        .await
+        .ok();
     // Clean recruiting test data
-    sqlx::query("DELETE FROM _atlas.job_offers").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.interviews").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.job_applications").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.candidates").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.job_requisitions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.job_offers")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.interviews")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.job_applications")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.candidates")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.job_requisitions")
+        .execute(pool)
+        .await
+        .ok();
     // Clean receiving test data
-    sqlx::query("DELETE FROM _atlas.inspection_details").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.receipt_inspections").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.receipt_deliveries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.receipt_returns").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.receipt_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.receipt_headers").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.receiving_locations").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.inspection_details")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.receipt_inspections")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.receipt_deliveries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.receipt_returns")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.receipt_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.receipt_headers")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.receiving_locations")
+        .execute(pool)
+        .await
+        .ok();
     // Clean subledger accounting test data
-    sqlx::query("DELETE FROM _atlas.subledger_distributions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.sla_events").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.subledger_journal_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.subledger_journal_entries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.gl_transfer_log").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.accounting_derivation_rules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.accounting_methods").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.subledger_distributions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.sla_events")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.subledger_journal_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.subledger_journal_entries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.gl_transfer_log")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.accounting_derivation_rules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.accounting_methods")
+        .execute(pool)
+        .await
+        .ok();
     // Clean supplier scorecard test data
-    sqlx::query("DELETE FROM _atlas.review_action_items").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.supplier_performance_reviews").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.scorecard_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.supplier_scorecards").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.scorecard_categories").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.scorecard_templates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.review_action_items")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.supplier_performance_reviews")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.scorecard_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.supplier_scorecards")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.scorecard_categories")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.scorecard_templates")
+        .execute(pool)
+        .await
+        .ok();
     // Clean KPI analytics test data
-    sqlx::query("DELETE FROM _atlas.kpi_dashboard_widgets").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.kpi_data_points").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.kpi_dashboards").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.kpi_definitions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.kpi_dashboard_widgets")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.kpi_data_points")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.kpi_dashboards")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.kpi_definitions")
+        .execute(pool)
+        .await
+        .ok();
     // Clean account monitor test data
-    sqlx::query("DELETE FROM _atlas.saved_balance_inquiries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.balance_snapshots").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.account_group_members").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.account_groups").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.saved_balance_inquiries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.balance_snapshots")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.account_group_members")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.account_groups")
+        .execute(pool)
+        .await
+        .ok();
     // Clean goal management test data
-    sqlx::query("DELETE FROM _atlas.goal_notes").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.goal_alignments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.goals").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.goal_plans").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.goal_library_templates").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.goal_library_categories").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.goal_notes")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.goal_alignments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.goals")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.goal_plans")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.goal_library_templates")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.goal_library_categories")
+        .execute(pool)
+        .await
+        .ok();
     // Clean risk management test data
-    sqlx::query("DELETE FROM _atlas.risk_issues").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.control_tests").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.risk_control_mappings").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.control_registry").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.risk_register").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.risk_categories").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.risk_issues")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.control_tests")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.risk_control_mappings")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.control_registry")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.risk_register")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.risk_categories")
+        .execute(pool)
+        .await
+        .ok();
     // Clean enterprise asset management test data
-    sqlx::query("DELETE FROM _atlas.preventive_maintenance_schedules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.maintenance_work_orders").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.work_orders").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.asset_definitions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.asset_locations").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.preventive_maintenance_schedules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.maintenance_work_orders")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.work_orders")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.asset_definitions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.asset_locations")
+        .execute(pool)
+        .await
+        .ok();
     // Clean product configurator test data
-    sqlx::query("DELETE FROM _atlas.config_instances").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.config_rules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.config_options").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.config_features").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.config_models").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.config_instances")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.config_rules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.config_options")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.config_features")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.config_models")
+        .execute(pool)
+        .await
+        .ok();
     // Clean transportation management test data
-    sqlx::query("DELETE FROM _atlas.shipment_tracking_events").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.transport_shipment_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.shipment_stops").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.transport_shipments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.freight_rates").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.transport_lanes").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.carrier_services").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.shipment_tracking_events")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.transport_shipment_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.shipment_stops")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.transport_shipments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.freight_rates")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.transport_lanes")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.carrier_services")
+        .execute(pool)
+        .await
+        .ok();
     // Clean territory management test data
-    sqlx::query("DELETE FROM _atlas.territory_quotas").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.territory_rules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.territory_members").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.territories").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.carriers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.territory_quotas")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.territory_rules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.territory_members")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.territories")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.carriers")
+        .execute(pool)
+        .await
+        .ok();
     // Clean sustainability test data
-    sqlx::query("DELETE FROM _atlas.esg_metric_readings").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.esg_metrics").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.sustainability_goals").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.carbon_offsets").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.environmental_activities").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.emission_factors").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.sustainability_facilities").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.esg_metric_readings")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.esg_metrics")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.sustainability_goals")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.carbon_offsets")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.environmental_activities")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.emission_factors")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.sustainability_facilities")
+        .execute(pool)
+        .await
+        .ok();
     // Clean promotions management test data
-    sqlx::query("DELETE FROM _atlas.promotion_claims").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.marketing_promotion_funds").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.promotion_offers").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.promotions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.promotion_claims")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.marketing_promotion_funds")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.promotion_offers")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.promotions")
+        .execute(pool)
+        .await
+        .ok();
     // Clean project billing test data
-    sqlx::query("DELETE FROM _atlas.project_invoice_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.project_invoice_headers").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.billing_events").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.project_billing_configs").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.bill_rate_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.bill_rate_schedules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.project_invoice_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.project_invoice_headers")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.billing_events")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.project_billing_configs")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.bill_rate_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.bill_rate_schedules")
+        .execute(pool)
+        .await
+        .ok();
     // Clean quality management test data
-    sqlx::query("DELETE FROM _atlas.quality_inspection_results").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.quality_inspections").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.quality_plan_criteria").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.quality_inspection_plans").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.quality_corrective_actions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.quality_non_conformance_reports").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.quality_holds").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.quality_inspection_results")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.quality_inspections")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.quality_plan_criteria")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.quality_inspection_plans")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.quality_corrective_actions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.quality_non_conformance_reports")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.quality_holds")
+        .execute(pool)
+        .await
+        .ok();
     // Clean accounts payable test data
-    sqlx::query("DELETE FROM _atlas.ap_invoice_holds").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ap_invoice_distributions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ap_invoice_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ap_payments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ap_invoices").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoice_holds")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoice_distributions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoice_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ap_payments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoices")
+        .execute(pool)
+        .await
+        .ok();
     // Clean supply chain planning test data
-    sqlx::query("DELETE FROM _atlas.planning_exceptions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.planned_orders").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.supply_demand_entries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.planning_scenarios").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.planning_parameters").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.planning_exceptions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.planned_orders")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.supply_demand_entries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.planning_scenarios")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.planning_parameters")
+        .execute(pool)
+        .await
+        .ok();
     // Clean health & safety test data
-    sqlx::query("DELETE FROM _atlas.corrective_actions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.safety_inspections").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.safety_hazards").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.safety_incidents").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.corrective_actions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.safety_inspections")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.safety_hazards")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.safety_incidents")
+        .execute(pool)
+        .await
+        .ok();
     // Clean rebate management test data
-    sqlx::query("DELETE FROM _atlas.rebate_settlement_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.rebate_settlements").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.rebate_accruals").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.rebate_transactions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.rebate_tiers").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.rebate_agreements").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.rebate_settlement_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.rebate_settlements")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.rebate_accruals")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.rebate_transactions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.rebate_tiers")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.rebate_agreements")
+        .execute(pool)
+        .await
+        .ok();
 
     // Project Resource Management
-    sqlx::query("DELETE FROM _atlas.utilization_entries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.resource_assignments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.resource_requests").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.resource_profiles").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.utilization_entries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.resource_assignments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.resource_requests")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.resource_profiles")
+        .execute(pool)
+        .await
+        .ok();
 
     // Loyalty Management
-    sqlx::query("DELETE FROM _atlas.loyalty_redemptions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.loyalty_point_transactions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.loyalty_rewards").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.loyalty_members").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.loyalty_tiers").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.loyalty_programs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_redemptions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_point_transactions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_rewards")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_members")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_tiers")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.loyalty_programs")
+        .execute(pool)
+        .await
+        .ok();
     // General Ledger
-    sqlx::query("DELETE FROM _atlas.gl_journal_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.gl_journal_entries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.gl_accounts").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.gl_journal_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.gl_journal_entries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.gl_accounts")
+        .execute(pool)
+        .await
+        .ok();
     // Accounts Receivable
-    sqlx::query("DELETE FROM _atlas.ar_transaction_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ar_transactions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ar_receipts").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ar_credit_memos").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ar_adjustments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ar_transaction_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ar_transactions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ar_receipts")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ar_credit_memos")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ar_adjustments")
+        .execute(pool)
+        .await
+        .ok();
     // Payment
-    sqlx::query("DELETE FROM _atlas.payment_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.payments").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.payment_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.payments")
+        .execute(pool)
+        .await
+        .ok();
     // Netting
-    sqlx::query("DELETE FROM _atlas.netting_transaction_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.netting_batches").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.netting_agreements").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.netting_transaction_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.netting_batches")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.netting_agreements")
+        .execute(pool)
+        .await
+        .ok();
     // Financial Statements
-    sqlx::query("DELETE FROM _atlas.financial_statement_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.financial_statements").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.fs_report_definitions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.financial_statement_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.financial_statements")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.fs_report_definitions")
+        .execute(pool)
+        .await
+        .ok();
     // Journal Import
-    sqlx::query("DELETE FROM _atlas.journal_import_rows").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.journal_import_batches").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.journal_import_column_mappings").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.journal_import_formats").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.journal_import_rows")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.journal_import_batches")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.journal_import_column_mappings")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.journal_import_formats")
+        .execute(pool)
+        .await
+        .ok();
     // Mass Additions
-    sqlx::query("DELETE FROM _atlas.fin_mass_additions").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.fin_mass_additions")
+        .execute(pool)
+        .await
+        .ok();
     // Asset Reclassification
-    sqlx::query("DELETE FROM _atlas.fin_asset_reclassifications").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.fin_asset_reclassifications")
+        .execute(pool)
+        .await
+        .ok();
     // GL Budget Transfer
-    sqlx::query("DELETE FROM _atlas.fin_gl_budget_transfers").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.fin_gl_budget_transfers")
+        .execute(pool)
+        .await
+        .ok();
     // Payment Format
-    sqlx::query("DELETE FROM _atlas.fin_payment_formats").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.fin_payment_formats")
+        .execute(pool)
+        .await
+        .ok();
     // Financial Dimension Set
-    sqlx::query("DELETE FROM _atlas.fin_financial_dimension_set_members").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.fin_financial_dimension_sets").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.fin_financial_dimension_set_members")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.fin_financial_dimension_sets")
+        .execute(pool)
+        .await
+        .ok();
     // Receipt Write-Off
-    sqlx::query("DELETE FROM _atlas.fin_receipt_write_offs").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.fin_receipt_write_offs")
+        .execute(pool)
+        .await
+        .ok();
     // Prepayment Application
-    sqlx::query("DELETE FROM _atlas.fin_prepayment_applications").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.fin_prepayment_applications")
+        .execute(pool)
+        .await
+        .ok();
     // Interest Invoice Management
-    sqlx::query("DELETE FROM _atlas.interest_invoice_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.interest_invoices").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.interest_calculation_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.interest_calculation_runs").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.overdue_invoices").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.interest_rate_schedules").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.interest_invoice_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.interest_invoices")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.interest_calculation_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.interest_calculation_runs")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.overdue_invoices")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.interest_rate_schedules")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean letter of credit test data
-    sqlx::query("DELETE FROM _atlas.lc_presentation_documents").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.lc_presentations").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.lc_shipments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.lc_required_documents").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.lc_amendments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.letters_of_credit").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.lc_dashboard_cache").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.lc_presentation_documents")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.lc_presentations")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.lc_shipments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.lc_required_documents")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.lc_amendments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.letters_of_credit")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.lc_dashboard_cache")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean profitability analysis test data
-    sqlx::query("DELETE FROM _atlas.profitability_run_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.profitability_runs").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.profitability_segments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.profitability_templates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.profitability_run_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.profitability_runs")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.profitability_segments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.profitability_templates")
+        .execute(pool)
+        .await
+        .ok();
     // Clean recurring invoice test data
-    sqlx::query("DELETE FROM _atlas.recurring_invoice_generation_log").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.recurring_invoice_generations").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.recurring_invoice_template_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.recurring_invoice_templates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.recurring_invoice_generation_log")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.recurring_invoice_generations")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.recurring_invoice_template_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.recurring_invoice_templates")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean AP invoice batch test data
-    sqlx::query("DELETE FROM _atlas.ap_invoice_batch_activities").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.ap_invoice_batches").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoice_batch_activities")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.ap_invoice_batches")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean withholding tax test data
-    sqlx::query("DELETE FROM _atlas.withholding_tax_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.withholding_certificates").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.supplier_withholding_assignments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.withholding_tax_group_members").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.withholding_tax_groups").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.withholding_tax_codes").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.withholding_tax_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.withholding_certificates")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.supplier_withholding_assignments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.withholding_tax_group_members")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.withholding_tax_groups")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.withholding_tax_codes")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean tax registration test data
-    sqlx::query("DELETE FROM _atlas.tax_registration_activities").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.tax_registrations").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.tax_registration_activities")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.tax_registrations")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean statistical accounting test data
-    sqlx::query("DELETE FROM financials.statistical_entry_audit").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.statistical_balances").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.statistical_entries").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.statistical_units").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.statistical_entry_audit")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.statistical_balances")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.statistical_entries")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.statistical_units")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean document sequencing test data
-    sqlx::query("DELETE FROM _atlas.document_sequence_audit").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.document_sequence_assignments").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.document_sequences").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.document_sequence_audit")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.document_sequence_assignments")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.document_sequences")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean transaction calendar test data
-    sqlx::query("DELETE FROM _atlas.calendar_date_calculations").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.calendar_exceptions").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.transaction_calendars").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.calendar_date_calculations")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.calendar_exceptions")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.transaction_calendars")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean finance charge management test data
-    sqlx::query("DELETE FROM _atlas.finance_charge_activities").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.finance_charge_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.finance_charge_invoices").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.finance_charge_runs").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.finance_charge_tiers").execute(pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.finance_charge_terms").execute(pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_activities")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_invoices")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_runs")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_tiers")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.finance_charge_terms")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean Multi-Period Accounting test data
-    sqlx::query("DELETE FROM financials.mpa_audit").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.mpa_schedule_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.mpa_schedules").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.mpa_template_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.mpa_templates").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.mpa_audit")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.mpa_schedule_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.mpa_schedules")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.mpa_template_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.mpa_templates")
+        .execute(pool)
+        .await
+        .ok();
 
     // Clean dunning letter management test data
-    sqlx::query("DELETE FROM financials.dunning_letter_audit").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.dunning_letter_run_results").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.dunning_letter_runs").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.dunning_letter_set_lines").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.dunning_letter_sets").execute(pool).await.ok();
-    sqlx::query("DELETE FROM financials.dunning_profiles").execute(pool).await.ok();
+    sqlx::query("DELETE FROM financials.dunning_letter_audit")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.dunning_letter_run_results")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.dunning_letter_runs")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.dunning_letter_set_lines")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.dunning_letter_sets")
+        .execute(pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM financials.dunning_profiles")
+        .execute(pool)
+        .await
+        .ok();
 }

@@ -2,13 +2,11 @@
 //!
 //! Storage interface for journal import data.
 
-use atlas_shared::{
-    JournalImportFormat, JournalImportColumnMapping,
-    JournalImportBatch, JournalImportRow,
-    JournalImportDashboardSummary,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, JournalImportBatch, JournalImportColumnMapping, JournalImportDashboardSummary,
+    JournalImportFormat, JournalImportRow,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -39,8 +37,16 @@ pub trait JournalImportRepository: Send + Sync {
     ) -> AtlasResult<JournalImportFormat>;
 
     async fn get_format(&self, id: Uuid) -> AtlasResult<Option<JournalImportFormat>>;
-    async fn get_format_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<JournalImportFormat>>;
-    async fn list_formats(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalImportFormat>>;
+    async fn get_format_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<JournalImportFormat>>;
+    async fn list_formats(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JournalImportFormat>>;
     async fn delete_format(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Column Mappings
@@ -58,7 +64,10 @@ pub trait JournalImportRepository: Send + Sync {
         validation_rule: Option<&str>,
     ) -> AtlasResult<JournalImportColumnMapping>;
 
-    async fn list_column_mappings(&self, format_id: Uuid) -> AtlasResult<Vec<JournalImportColumnMapping>>;
+    async fn list_column_mappings(
+        &self,
+        format_id: Uuid,
+    ) -> AtlasResult<Vec<JournalImportColumnMapping>>;
 
     // Batch Management
     async fn create_batch(
@@ -76,8 +85,17 @@ pub trait JournalImportRepository: Send + Sync {
     ) -> AtlasResult<JournalImportBatch>;
 
     async fn get_batch(&self, id: Uuid) -> AtlasResult<Option<JournalImportBatch>>;
-    async fn get_batch_by_number(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<JournalImportBatch>>;
-    async fn list_batches(&self, org_id: Uuid, format_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<JournalImportBatch>>;
+    async fn get_batch_by_number(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<JournalImportBatch>>;
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        format_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JournalImportBatch>>;
     async fn update_batch_status(
         &self,
         id: Uuid,
@@ -141,7 +159,10 @@ pub trait JournalImportRepository: Send + Sync {
     ) -> AtlasResult<JournalImportRow>;
 
     // Dashboard
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<JournalImportDashboardSummary>;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<JournalImportDashboardSummary>;
 }
 
 /// `PostgreSQL` implementation
@@ -150,7 +171,7 @@ pub struct PostgresJournalImportRepository {
 }
 
 impl PostgresJournalImportRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -178,7 +199,9 @@ fn row_to_format(row: &sqlx::postgres::PgRow) -> JournalImportFormat {
         validation_enabled: row.get("validation_enabled"),
         auto_post: row.get("auto_post"),
         max_errors_allowed: row.try_get("max_errors_allowed").unwrap_or(100),
-        column_mappings: row.try_get("column_mappings").unwrap_or(serde_json::json!([])),
+        column_mappings: row
+            .try_get("column_mappings")
+            .unwrap_or(serde_json::json!([])),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.get("created_by"),
         created_at: row.get("created_at"),
@@ -267,13 +290,23 @@ use atlas_shared::AtlasError;
 impl JournalImportRepository for PostgresJournalImportRepository {
     async fn create_format(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        source_type: &str, file_format: &str, delimiter: Option<&str>,
-        header_row: bool, ledger_id: Option<Uuid>, currency_code: &str,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        source_type: &str,
+        file_format: &str,
+        delimiter: Option<&str>,
+        header_row: bool,
+        ledger_id: Option<Uuid>,
+        currency_code: &str,
         default_date: Option<chrono::NaiveDate>,
-        default_journal_type: Option<&str>, balancing_segment: Option<&str>,
-        validation_enabled: bool, auto_post: bool,
-        max_errors_allowed: i32, column_mappings: serde_json::Value,
+        default_journal_type: Option<&str>,
+        balancing_segment: Option<&str>,
+        validation_enabled: bool,
+        auto_post: bool,
+        max_errors_allowed: i32,
+        column_mappings: serde_json::Value,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalImportFormat> {
         let row = sqlx::query(
@@ -290,12 +323,24 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(source_type).bind(file_format).bind(delimiter).bind(header_row)
-        .bind(ledger_id).bind(currency_code).bind(default_date)
-        .bind(default_journal_type).bind(balancing_segment)
-        .bind(validation_enabled).bind(auto_post)
-        .bind(max_errors_allowed).bind(column_mappings).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(source_type)
+        .bind(file_format)
+        .bind(delimiter)
+        .bind(header_row)
+        .bind(ledger_id)
+        .bind(currency_code)
+        .bind(default_date)
+        .bind(default_journal_type)
+        .bind(balancing_segment)
+        .bind(validation_enabled)
+        .bind(auto_post)
+        .bind(max_errors_allowed)
+        .bind(column_mappings)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -312,18 +357,27 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         Ok(row.map(|r| row_to_format(&r)))
     }
 
-    async fn get_format_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<JournalImportFormat>> {
+    async fn get_format_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<JournalImportFormat>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.journal_import_formats WHERE organization_id = $1 AND code = $2"
+            "SELECT * FROM _atlas.journal_import_formats WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
+        .bind(org_id)
+        .bind(code)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_format(&r)))
     }
 
-    async fn list_formats(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalImportFormat>> {
+    async fn list_formats(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JournalImportFormat>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.journal_import_formats
@@ -331,7 +385,8 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             ORDER BY name
             ",
         )
-        .bind(org_id).bind(status)
+        .bind(org_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -351,10 +406,16 @@ impl JournalImportRepository for PostgresJournalImportRepository {
 
     async fn create_column_mapping(
         &self,
-        org_id: Uuid, format_id: Uuid, column_position: i32,
-        source_column: &str, target_field: &str, data_type: &str,
-        is_required: bool, default_value: Option<&str>,
-        transformation: Option<&str>, validation_rule: Option<&str>,
+        org_id: Uuid,
+        format_id: Uuid,
+        column_position: i32,
+        source_column: &str,
+        target_field: &str,
+        data_type: &str,
+        is_required: bool,
+        default_value: Option<&str>,
+        transformation: Option<&str>,
+        validation_rule: Option<&str>,
     ) -> AtlasResult<JournalImportColumnMapping> {
         let row = sqlx::query(
             r"
@@ -366,9 +427,16 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(format_id).bind(column_position)
-        .bind(source_column).bind(target_field).bind(data_type)
-        .bind(is_required).bind(default_value).bind(transformation).bind(validation_rule)
+        .bind(org_id)
+        .bind(format_id)
+        .bind(column_position)
+        .bind(source_column)
+        .bind(target_field)
+        .bind(data_type)
+        .bind(is_required)
+        .bind(default_value)
+        .bind(transformation)
+        .bind(validation_rule)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -376,7 +444,10 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         Ok(row_to_column_mapping(&row))
     }
 
-    async fn list_column_mappings(&self, format_id: Uuid) -> AtlasResult<Vec<JournalImportColumnMapping>> {
+    async fn list_column_mappings(
+        &self,
+        format_id: Uuid,
+    ) -> AtlasResult<Vec<JournalImportColumnMapping>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.journal_import_column_mappings WHERE format_id = $1 ORDER BY column_position"
         )
@@ -389,10 +460,15 @@ impl JournalImportRepository for PostgresJournalImportRepository {
 
     async fn create_batch(
         &self,
-        org_id: Uuid, format_id: Uuid, batch_number: &str,
-        name: Option<&str>, description: Option<&str>,
-        source: &str, source_file_name: Option<&str>,
-        ledger_id: Option<Uuid>, currency_code: &str,
+        org_id: Uuid,
+        format_id: Uuid,
+        batch_number: &str,
+        name: Option<&str>,
+        description: Option<&str>,
+        source: &str,
+        source_file_name: Option<&str>,
+        ledger_id: Option<Uuid>,
+        currency_code: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalImportBatch> {
         let row = sqlx::query(
@@ -409,9 +485,16 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(format_id).bind(batch_number).bind(name).bind(description)
-        .bind(source).bind(source_file_name)
-        .bind(ledger_id).bind(currency_code).bind(created_by)
+        .bind(org_id)
+        .bind(format_id)
+        .bind(batch_number)
+        .bind(name)
+        .bind(description)
+        .bind(source)
+        .bind(source_file_name)
+        .bind(ledger_id)
+        .bind(currency_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -428,7 +511,11 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         Ok(row.map(|r| row_to_batch(&r)))
     }
 
-    async fn get_batch_by_number(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<JournalImportBatch>> {
+    async fn get_batch_by_number(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<JournalImportBatch>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.journal_import_batches WHERE organization_id = $1 AND batch_number = $2"
         )
@@ -439,7 +526,12 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         Ok(row.map(|r| row_to_batch(&r)))
     }
 
-    async fn list_batches(&self, org_id: Uuid, format_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<JournalImportBatch>> {
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        format_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JournalImportBatch>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.journal_import_batches
@@ -449,7 +541,9 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(format_id).bind(status)
+        .bind(org_id)
+        .bind(format_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -457,7 +551,9 @@ impl JournalImportRepository for PostgresJournalImportRepository {
     }
 
     async fn update_batch_status(
-        &self, id: Uuid, status: &str,
+        &self,
+        id: Uuid,
+        status: &str,
         started_at: Option<chrono::DateTime<chrono::Utc>>,
         completed_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<JournalImportBatch> {
@@ -472,7 +568,10 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(started_at).bind(completed_at)
+        .bind(id)
+        .bind(status)
+        .bind(started_at)
+        .bind(completed_at)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -480,10 +579,16 @@ impl JournalImportRepository for PostgresJournalImportRepository {
     }
 
     async fn update_batch_totals(
-        &self, id: Uuid,
-        total_rows: i32, valid_rows: i32, error_rows: i32, imported_rows: i32,
-        total_debit: &str, total_credit: &str,
-        is_balanced: bool, errors: serde_json::Value,
+        &self,
+        id: Uuid,
+        total_rows: i32,
+        valid_rows: i32,
+        error_rows: i32,
+        imported_rows: i32,
+        total_debit: &str,
+        total_credit: &str,
+        is_balanced: bool,
+        errors: serde_json::Value,
     ) -> AtlasResult<()> {
         sqlx::query(
             r"
@@ -495,8 +600,14 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             ",
         )
         .bind(id)
-        .bind(total_rows).bind(valid_rows).bind(error_rows).bind(imported_rows)
-        .bind(total_debit).bind(total_credit).bind(is_balanced).bind(errors)
+        .bind(total_rows)
+        .bind(valid_rows)
+        .bind(error_rows)
+        .bind(imported_rows)
+        .bind(total_debit)
+        .bind(total_credit)
+        .bind(is_balanced)
+        .bind(errors)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -523,16 +634,26 @@ impl JournalImportRepository for PostgresJournalImportRepository {
 
     async fn create_row(
         &self,
-        org_id: Uuid, batch_id: Uuid, row_number: i32,
+        org_id: Uuid,
+        batch_id: Uuid,
+        row_number: i32,
         raw_data: serde_json::Value,
-        account_code: Option<&str>, account_name: Option<&str>,
+        account_code: Option<&str>,
+        account_name: Option<&str>,
         description: Option<&str>,
-        entered_dr: &str, entered_cr: &str,
-        currency_code: Option<&str>, exchange_rate: Option<&str>,
-        gl_date: Option<chrono::NaiveDate>, reference: Option<&str>,
-        line_type: Option<&str>, cost_center: Option<&str>,
-        department: Option<&str>, project_code: Option<&str>,
-        status: &str, error_message: Option<&str>, error_field: Option<&str>,
+        entered_dr: &str,
+        entered_cr: &str,
+        currency_code: Option<&str>,
+        exchange_rate: Option<&str>,
+        gl_date: Option<chrono::NaiveDate>,
+        reference: Option<&str>,
+        line_type: Option<&str>,
+        cost_center: Option<&str>,
+        department: Option<&str>,
+        project_code: Option<&str>,
+        status: &str,
+        error_message: Option<&str>,
+        error_field: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalImportRow> {
         let row = sqlx::query(
@@ -549,12 +670,27 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(batch_id).bind(row_number).bind(raw_data)
-        .bind(account_code).bind(account_name).bind(description)
-        .bind(entered_dr).bind(entered_cr).bind(currency_code).bind(exchange_rate)
-        .bind(gl_date).bind(reference).bind(line_type)
-        .bind(cost_center).bind(department).bind(project_code)
-        .bind(status).bind(error_message).bind(error_field).bind(created_by)
+        .bind(org_id)
+        .bind(batch_id)
+        .bind(row_number)
+        .bind(raw_data)
+        .bind(account_code)
+        .bind(account_name)
+        .bind(description)
+        .bind(entered_dr)
+        .bind(entered_cr)
+        .bind(currency_code)
+        .bind(exchange_rate)
+        .bind(gl_date)
+        .bind(reference)
+        .bind(line_type)
+        .bind(cost_center)
+        .bind(department)
+        .bind(project_code)
+        .bind(status)
+        .bind(error_message)
+        .bind(error_field)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -573,7 +709,7 @@ impl JournalImportRepository for PostgresJournalImportRepository {
 
     async fn list_batch_rows(&self, batch_id: Uuid) -> AtlasResult<Vec<JournalImportRow>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.journal_import_rows WHERE batch_id = $1 ORDER BY row_number"
+            "SELECT * FROM _atlas.journal_import_rows WHERE batch_id = $1 ORDER BY row_number",
         )
         .bind(batch_id)
         .fetch_all(&self.pool)
@@ -583,10 +719,15 @@ impl JournalImportRepository for PostgresJournalImportRepository {
     }
 
     async fn update_row(
-        &self, id: Uuid,
-        account_code: Option<&str>, description: Option<&str>,
-        entered_dr: Option<&str>, entered_cr: Option<&str>,
-        status: &str, error_message: Option<&str>, error_field: Option<&str>,
+        &self,
+        id: Uuid,
+        account_code: Option<&str>,
+        description: Option<&str>,
+        entered_dr: Option<&str>,
+        entered_cr: Option<&str>,
+        status: &str,
+        error_message: Option<&str>,
+        error_field: Option<&str>,
     ) -> AtlasResult<JournalImportRow> {
         let row = sqlx::query(
             r"
@@ -604,9 +745,13 @@ impl JournalImportRepository for PostgresJournalImportRepository {
             ",
         )
         .bind(id)
-        .bind(account_code).bind(description)
-        .bind(entered_dr).bind(entered_cr)
-        .bind(status).bind(error_message).bind(error_field)
+        .bind(account_code)
+        .bind(description)
+        .bind(entered_dr)
+        .bind(entered_cr)
+        .bind(status)
+        .bind(error_message)
+        .bind(error_field)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -614,7 +759,10 @@ impl JournalImportRepository for PostgresJournalImportRepository {
         Ok(row_to_import_row(&row))
     }
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<JournalImportDashboardSummary> {
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<JournalImportDashboardSummary> {
         let format_row = sqlx::query(
             r"
             SELECT

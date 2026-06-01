@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > General Ledger > Allocations
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::CostAllocationEngine;
 pub use repository::{CostAllocationRepository, PostgresCostAllocationRepository};

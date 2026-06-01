@@ -2,15 +2,15 @@
 //!
 //! Oracle Fusion BPM Worklist > Rules > Configure Delegation
 
-use atlas_shared::{
-    ApprovalDelegationRule, CreateDelegationRuleRequest, DelegationHistoryEntry,
-    DelegationDashboard, AtlasError, AtlasResult,
-};
 use super::ApprovalDelegationRepository;
-use std::sync::Arc;
-use uuid::Uuid;
+use atlas_shared::{
+    ApprovalDelegationRule, AtlasError, AtlasResult, CreateDelegationRuleRequest,
+    DelegationDashboard, DelegationHistoryEntry,
+};
 use chrono::Utc;
+use std::sync::Arc;
 use tracing::info;
+use uuid::Uuid;
 
 /// Helper: returns true if the Option<Value> is None or contains an empty JSON array.
 fn array_is_empty(val: &Option<serde_json::Value>) -> bool {
@@ -36,7 +36,10 @@ impl ApprovalDelegationEngine {
         delegator_id: Uuid,
         request: CreateDelegationRuleRequest,
     ) -> AtlasResult<ApprovalDelegationRule> {
-        info!("Creating delegation rule '{}' for user {}", request.rule_name, delegator_id);
+        info!(
+            "Creating delegation rule '{}' for user {}",
+            request.rule_name, delegator_id
+        );
 
         // Validate delegate user ID
         let delegate_to_id = Uuid::parse_str(&request.delegate_to_id)
@@ -66,31 +69,32 @@ impl ApprovalDelegationEngine {
         // Validate delegation_type
         let valid_types = ["all", "by_category", "by_role", "by_entity"];
         if !valid_types.contains(&request.delegation_type.as_str()) {
-            return Err(AtlasError::ValidationFailed(
-                format!("Invalid delegation_type '{}'. Must be one of: {}", request.delegation_type, valid_types.join(", "))
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Invalid delegation_type '{}'. Must be one of: {}",
+                request.delegation_type,
+                valid_types.join(", ")
+            )));
         }
 
         // Validate that type-specific fields are populated
         match request.delegation_type.as_str() {
-            "by_category"
-                if array_is_empty(&request.categories) => {
-                    return Err(AtlasError::ValidationFailed(
-                        "categories must be a non-empty array for delegation_type 'by_category'".to_string(),
-                    ));
-                }
-            "by_role"
-                if array_is_empty(&request.roles) => {
-                    return Err(AtlasError::ValidationFailed(
-                        "roles must be a non-empty array for delegation_type 'by_role'".to_string(),
-                    ));
-                }
-            "by_entity"
-                if array_is_empty(&request.entity_types) => {
-                    return Err(AtlasError::ValidationFailed(
-                        "entity_types must be a non-empty array for delegation_type 'by_entity'".to_string(),
-                    ));
-                }
+            "by_category" if array_is_empty(&request.categories) => {
+                return Err(AtlasError::ValidationFailed(
+                    "categories must be a non-empty array for delegation_type 'by_category'"
+                        .to_string(),
+                ));
+            }
+            "by_role" if array_is_empty(&request.roles) => {
+                return Err(AtlasError::ValidationFailed(
+                    "roles must be a non-empty array for delegation_type 'by_role'".to_string(),
+                ));
+            }
+            "by_entity" if array_is_empty(&request.entity_types) => {
+                return Err(AtlasError::ValidationFailed(
+                    "entity_types must be a non-empty array for delegation_type 'by_entity'"
+                        .to_string(),
+                ));
+            }
             _ => {}
         }
 
@@ -104,25 +108,38 @@ impl ApprovalDelegationEngine {
             "scheduled"
         };
 
-        let rule = self.repository.create_rule(
-            org_id,
-            delegator_id,
-            delegate_to_id,
-            &request.rule_name,
-            request.description.as_deref(),
-            &request.delegation_type,
-            request.categories.clone().unwrap_or(serde_json::json!([])),
-            request.roles.clone().unwrap_or(serde_json::json!([])),
-            request.entity_types.clone().unwrap_or(serde_json::json!([])),
-            request.start_date,
-            request.end_date,
-            auto_activate,
-            auto_expire,
-            status,
-            if status == "active" { Some(Utc::now()) } else { None },
-        ).await?;
+        let rule = self
+            .repository
+            .create_rule(
+                org_id,
+                delegator_id,
+                delegate_to_id,
+                &request.rule_name,
+                request.description.as_deref(),
+                &request.delegation_type,
+                request.categories.clone().unwrap_or(serde_json::json!([])),
+                request.roles.clone().unwrap_or(serde_json::json!([])),
+                request
+                    .entity_types
+                    .clone()
+                    .unwrap_or(serde_json::json!([])),
+                request.start_date,
+                request.end_date,
+                auto_activate,
+                auto_expire,
+                status,
+                if status == "active" {
+                    Some(Utc::now())
+                } else {
+                    None
+                },
+            )
+            .await?;
 
-        info!("Created delegation rule {} with status {}", rule.id, rule.status);
+        info!(
+            "Created delegation rule {} with status {}",
+            rule.id, rule.status
+        );
         Ok(rule)
     }
 
@@ -138,7 +155,9 @@ impl ApprovalDelegationEngine {
         delegator_id: Uuid,
         status: Option<&str>,
     ) -> AtlasResult<Vec<ApprovalDelegationRule>> {
-        self.repository.list_rules_for_delegator(org_id, delegator_id, status).await
+        self.repository
+            .list_rules_for_delegator(org_id, delegator_id, status)
+            .await
     }
 
     /// List all delegation rules for an organization
@@ -159,19 +178,30 @@ impl ApprovalDelegationEngine {
     ) -> AtlasResult<ApprovalDelegationRule> {
         info!("Cancelling delegation rule {}", id);
 
-        let rule = self.repository.get_rule(id).await?
+        let rule = self
+            .repository
+            .get_rule(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {id}")))?;
 
         if rule.status == "cancelled" {
-            return Err(AtlasError::WorkflowError("Rule is already cancelled".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Rule is already cancelled".to_string(),
+            ));
         }
         if rule.status == "expired" {
-            return Err(AtlasError::WorkflowError("Cannot cancel an expired rule".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Cannot cancel an expired rule".to_string(),
+            ));
         }
 
-        self.repository.cancel_rule(id, cancelled_by, reason).await?;
+        self.repository
+            .cancel_rule(id, cancelled_by, reason)
+            .await?;
 
-        self.repository.get_rule(id).await?
+        self.repository
+            .get_rule(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {id}")))
     }
 
@@ -179,18 +209,24 @@ impl ApprovalDelegationEngine {
     pub async fn activate_rule(&self, id: Uuid) -> AtlasResult<ApprovalDelegationRule> {
         info!("Activating delegation rule {}", id);
 
-        let rule = self.repository.get_rule(id).await?
+        let rule = self
+            .repository
+            .get_rule(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {id}")))?;
 
         if rule.status != "scheduled" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot activate rule in status '{}'. Must be 'scheduled'.", rule.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot activate rule in status '{}'. Must be 'scheduled'.",
+                rule.status
+            )));
         }
 
         self.repository.activate_rule(id).await?;
 
-        self.repository.get_rule(id).await?
+        self.repository
+            .get_rule(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Delegation rule {id}")))
     }
 
@@ -202,7 +238,11 @@ impl ApprovalDelegationEngine {
         let activated = self.repository.activate_due_rules().await?;
         let expired = self.repository.expire_due_rules().await?;
 
-        info!("Activated {} rules, expired {} rules", activated.len(), expired.len());
+        info!(
+            "Activated {} rules, expired {} rules",
+            activated.len(),
+            expired.len()
+        );
         Ok((activated, expired))
     }
 
@@ -216,7 +256,9 @@ impl ApprovalDelegationEngine {
         entity_type: Option<&str>,
         approver_role: Option<&str>,
     ) -> AtlasResult<Option<Uuid>> {
-        self.repository.find_active_delegate(org_id, approver_id, entity_type, approver_role).await
+        self.repository
+            .find_active_delegate(org_id, approver_id, entity_type, approver_role)
+            .await
     }
 
     /// Record a delegation event in history
@@ -231,13 +273,23 @@ impl ApprovalDelegationEngine {
         entity_type: Option<&str>,
         entity_id: Option<Uuid>,
     ) -> AtlasResult<DelegationHistoryEntry> {
-        info!("Recording delegation from {} to {} for rule {}",
-            original_approver_id, delegated_to_id, rule_id);
+        info!(
+            "Recording delegation from {} to {} for rule {}",
+            original_approver_id, delegated_to_id, rule_id
+        );
 
-        self.repository.record_delegation(
-            org_id, rule_id, original_approver_id, delegated_to_id,
-            approval_step_id, approval_request_id, entity_type, entity_id,
-        ).await
+        self.repository
+            .record_delegation(
+                org_id,
+                rule_id,
+                original_approver_id,
+                delegated_to_id,
+                approval_step_id,
+                approval_request_id,
+                entity_type,
+                entity_id,
+            )
+            .await
     }
 
     /// List delegation history for a user (either as delegator or delegate)
@@ -248,7 +300,9 @@ impl ApprovalDelegationEngine {
         limit: Option<i64>,
     ) -> AtlasResult<Vec<DelegationHistoryEntry>> {
         let limit = limit.unwrap_or(50);
-        self.repository.list_delegation_history(org_id, user_id, limit).await
+        self.repository
+            .list_delegation_history(org_id, user_id, limit)
+            .await
     }
 
     /// Get delegation dashboard summary

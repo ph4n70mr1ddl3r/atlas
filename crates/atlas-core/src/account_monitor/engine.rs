@@ -5,25 +5,25 @@
 //!
 //! Oracle Fusion equivalent: General Ledger > Journals > Account Monitor
 
-use atlas_shared::{
-    AccountGroup, AccountGroupMember, BalanceSnapshot, SavedBalanceInquiry,
-    AccountMonitorSummary,
-    AtlasError, AtlasResult,
-};
 use super::AccountMonitorRepository;
+use atlas_shared::{
+    AccountGroup, AccountGroupMember, AccountMonitorSummary, AtlasError, AtlasResult,
+    BalanceSnapshot, SavedBalanceInquiry,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid comparison types
-const VALID_COMPARISON_TYPES: &[&str] = &[
-    "prior_period", "prior_year", "budget",
-];
+const VALID_COMPARISON_TYPES: &[&str] = &["prior_period", "prior_year", "budget"];
 
 /// Valid amount types for saved inquiries
 const VALID_AMOUNT_TYPES: &[&str] = &[
-    "beginning_balance", "ending_balance", "net_activity",
-    "debits", "credits",
+    "beginning_balance",
+    "ending_balance",
+    "net_activity",
+    "debits",
+    "credits",
 ];
 
 /// Account Monitor Engine
@@ -89,18 +89,36 @@ impl AccountMonitorEngine {
         }
 
         // Check for duplicate code
-        if self.repository.get_account_group_by_code(org_id, &code_upper).await?.is_some() {
+        if self
+            .repository
+            .get_account_group_by_code(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Account group with code '{code_upper}' already exists"
             )));
         }
 
-        info!("Creating account group '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating account group '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_account_group(
-            org_id, &code_upper, name, description, owner_id, is_shared,
-            threshold_warning_pct, threshold_critical_pct, comparison_type, created_by,
-        ).await
+        self.repository
+            .create_account_group(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                owner_id,
+                is_shared,
+                threshold_warning_pct,
+                threshold_critical_pct,
+                comparison_type,
+                created_by,
+            )
+            .await
     }
 
     /// Get an account group by ID
@@ -109,8 +127,14 @@ impl AccountMonitorEngine {
     }
 
     /// Get an account group by code
-    pub async fn get_account_group_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AccountGroup>> {
-        self.repository.get_account_group_by_code(org_id, code).await
+    pub async fn get_account_group_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<AccountGroup>> {
+        self.repository
+            .get_account_group_by_code(org_id, code)
+            .await
     }
 
     /// List account groups for an organization
@@ -149,16 +173,28 @@ impl AccountMonitorEngine {
         }
 
         // Verify group exists
-        let _group = self.repository.get_account_group(group_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Account group {group_id} not found"
-            )))?;
+        let _group = self
+            .repository
+            .get_account_group(group_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Account group {group_id} not found"))
+            })?;
 
-        info!("Adding member '{}' to account group {}", account_segment, group_id);
+        info!(
+            "Adding member '{}' to account group {}",
+            account_segment, group_id
+        );
 
-        self.repository.add_group_member(
-            group_id, account_segment, account_label, display_order, include_children,
-        ).await
+        self.repository
+            .add_group_member(
+                group_id,
+                account_segment,
+                account_label,
+                display_order,
+                include_children,
+            )
+            .await
     }
 
     /// Remove a member from an account group
@@ -186,10 +222,13 @@ impl AccountMonitorEngine {
         fiscal_year: i32,
         period_number: i32,
     ) -> AtlasResult<Vec<BalanceSnapshot>> {
-        let group = self.repository.get_account_group(group_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Account group {group_id} not found"
-            )))?;
+        let group = self
+            .repository
+            .get_account_group(group_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Account group {group_id} not found"))
+            })?;
 
         if group.status != "active" {
             return Err(AtlasError::ValidationFailed(
@@ -206,60 +245,86 @@ impl AccountMonitorEngine {
 
         info!(
             "Capturing balance snapshot for group '{}' ({} members) in period {}",
-            group.code, members.len(), period_name
+            group.code,
+            members.len(),
+            period_name
         );
 
         let mut snapshots = Vec::new();
-        let warning_pct = group.threshold_warning_pct.as_deref()
+        let warning_pct = group
+            .threshold_warning_pct
+            .as_deref()
             .and_then(|v| v.parse::<f64>().ok());
-        let critical_pct = group.threshold_critical_pct.as_deref()
+        let critical_pct = group
+            .threshold_critical_pct
+            .as_deref()
             .and_then(|v| v.parse::<f64>().ok());
 
         for member in &members {
             // Generate a deterministic balance based on account segment hash
             // In production, this would query actual GL balances
-            let (beginning, debits, credits, je_count) = compute_mock_balance(
-                &member.account_segment, fiscal_year, period_number,
-            );
+            let (beginning, debits, credits, je_count) =
+                compute_mock_balance(&member.account_segment, fiscal_year, period_number);
             let net = debits - credits;
             let ending = beginning + net;
 
             // Determine comparison balance based on comparison type
             let (comp_balance, comp_period) = match group.comparison_type.as_str() {
                 "prior_period" => {
-                    let prev = if period_number > 1 { period_number - 1 } else { 12 };
-                    let (b, d, c, _) = compute_mock_balance(&member.account_segment, fiscal_year, prev);
+                    let prev = if period_number > 1 {
+                        period_number - 1
+                    } else {
+                        12
+                    };
+                    let (b, d, c, _) =
+                        compute_mock_balance(&member.account_segment, fiscal_year, prev);
                     let comp_end = b + (d - c);
                     (Some(comp_end), Some(format!("P{prev}")))
                 }
                 "prior_year" => {
-                    let (b, d, c, _) = compute_mock_balance(&member.account_segment, fiscal_year - 1, period_number);
+                    let (b, d, c, _) = compute_mock_balance(
+                        &member.account_segment,
+                        fiscal_year - 1,
+                        period_number,
+                    );
                     let comp_end = b + (d - c);
-                    (Some(comp_end), Some(format!("FY{}-P{}", fiscal_year - 1, period_number)))
+                    (
+                        Some(comp_end),
+                        Some(format!("FY{}-P{}", fiscal_year - 1, period_number)),
+                    )
                 }
                 _ => (None, None),
             };
 
             // Compute variance
-            let (variance_amt, variance_pct, alert) = compute_variance(
-                ending, comp_balance, warning_pct, critical_pct,
-            );
+            let (variance_amt, variance_pct, alert) =
+                compute_variance(ending, comp_balance, warning_pct, critical_pct);
 
-            let snapshot = self.repository.create_balance_snapshot(
-                org_id, group_id, Some(member.id), &member.account_segment,
-                period_name, period_start, period_end, fiscal_year, period_number,
-                &format!("{beginning:.4}"),
-                &format!("{debits:.4}"),
-                &format!("{credits:.4}"),
-                &format!("{net:.4}"),
-                &format!("{ending:.4}"),
-                je_count,
-                comp_balance.map(|v| format!("{v:.4}")).as_deref(),
-                comp_period.as_deref(),
-                variance_amt.map(|v| format!("{v:.4}")).as_deref(),
-                variance_pct.map(|v| format!("{v:.4}")).as_deref(),
-                &alert,
-            ).await?;
+            let snapshot = self
+                .repository
+                .create_balance_snapshot(
+                    org_id,
+                    group_id,
+                    Some(member.id),
+                    &member.account_segment,
+                    period_name,
+                    period_start,
+                    period_end,
+                    fiscal_year,
+                    period_number,
+                    &format!("{beginning:.4}"),
+                    &format!("{debits:.4}"),
+                    &format!("{credits:.4}"),
+                    &format!("{net:.4}"),
+                    &format!("{ending:.4}"),
+                    je_count,
+                    comp_balance.map(|v| format!("{v:.4}")).as_deref(),
+                    comp_period.as_deref(),
+                    variance_amt.map(|v| format!("{v:.4}")).as_deref(),
+                    variance_pct.map(|v| format!("{v:.4}")).as_deref(),
+                    &alert,
+                )
+                .await?;
             snapshots.push(snapshot);
         }
 
@@ -276,14 +341,13 @@ impl AccountMonitorEngine {
     ) -> AtlasResult<Vec<BalanceSnapshot>> {
         let limit = limit.clamp(1, 200);
         let offset = offset.max(0);
-        self.repository.get_group_snapshots(group_id, snapshot_date, limit, offset).await
+        self.repository
+            .get_group_snapshots(group_id, snapshot_date, limit, offset)
+            .await
     }
 
     /// Get balance snapshots that have alerts
-    pub async fn get_alert_snapshots(
-        &self,
-        org_id: Uuid,
-    ) -> AtlasResult<Vec<BalanceSnapshot>> {
+    pub async fn get_alert_snapshots(&self, org_id: Uuid) -> AtlasResult<Vec<BalanceSnapshot>> {
         self.repository.get_alert_snapshots(org_id).await
     }
 
@@ -348,14 +412,30 @@ impl AccountMonitorEngine {
             }
         }
 
-        info!("Creating saved balance inquiry '{}' for org {}", name, org_id);
+        info!(
+            "Creating saved balance inquiry '{}' for org {}",
+            name, org_id
+        );
 
-        self.repository.create_saved_inquiry(
-            org_id, user_id, name, description, account_segments,
-            period_from, period_to, currency_code, amount_type,
-            include_zero_balances, comparison_enabled, comparison_type,
-            sort_by, sort_direction, is_shared,
-        ).await
+        self.repository
+            .create_saved_inquiry(
+                org_id,
+                user_id,
+                name,
+                description,
+                account_segments,
+                period_from,
+                period_to,
+                currency_code,
+                amount_type,
+                include_zero_balances,
+                comparison_enabled,
+                comparison_type,
+                sort_by,
+                sort_direction,
+                is_shared,
+            )
+            .await
     }
 
     /// Get a saved balance inquiry
@@ -389,9 +469,15 @@ impl AccountMonitorEngine {
 
 /// Compute mock GL balance based on account segment and period.
 /// In production this would query the actual GL trial balance.
-fn compute_mock_balance(account_segment: &str, fiscal_year: i32, period_number: i32) -> (f64, f64, f64, i32) {
+fn compute_mock_balance(
+    account_segment: &str,
+    fiscal_year: i32,
+    period_number: i32,
+) -> (f64, f64, f64, i32) {
     // Deterministic pseudo-balance based on account segment hash
-    let hash: u64 = account_segment.bytes().fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(u64::from(b)));
+    let hash: u64 = account_segment.bytes().fold(0u64, |acc, b| {
+        acc.wrapping_mul(31).wrapping_add(u64::from(b))
+    });
     let base = ((hash % 1_000_000) as f64) / 100.0;
     let period_factor = 1.0 + (f64::from(period_number) / 12.0);
     let year_factor = 1.0 + (f64::from((fiscal_year - 2020).max(0)) * 0.05);

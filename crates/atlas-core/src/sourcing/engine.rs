@@ -5,65 +5,69 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Procurement > Sourcing > Negotiations
 
-use atlas_shared::{
-    SourcingEvent, SourcingEventLine, SourcingInvite,
-    SupplierResponse, SupplierResponseLine,
-    ScoringCriterion, ResponseScore,
-    SourcingAward, SourcingAwardLine,
-    SourcingTemplate, SourcingSummary,
-    AtlasError, AtlasResult,
-};
 use super::SourcingRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ResponseScore, ScoringCriterion, SourcingAward, SourcingAwardLine,
+    SourcingEvent, SourcingEventLine, SourcingInvite, SourcingSummary, SourcingTemplate,
+    SupplierResponse, SupplierResponseLine,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid event types
 #[allow(dead_code)]
-const VALID_EVENT_TYPES: &[&str] = &[
-    "rfq", "rfp", "rfi", "auction",
-];
+const VALID_EVENT_TYPES: &[&str] = &["rfq", "rfp", "rfi", "auction"];
 
 /// Valid event statuses
 #[allow(dead_code)]
 const VALID_EVENT_STATUSES: &[&str] = &[
-    "draft", "published", "response_open", "evaluation", "awarded", "cancelled", "closed",
+    "draft",
+    "published",
+    "response_open",
+    "evaluation",
+    "awarded",
+    "cancelled",
+    "closed",
 ];
 
 /// Valid event styles
 #[allow(dead_code)]
-const VALID_EVENT_STYLES: &[&str] = &[
-    "sealed", "open", "reverse_auction",
-];
+const VALID_EVENT_STYLES: &[&str] = &["sealed", "open", "reverse_auction"];
 
 /// Valid scoring methods
 #[allow(dead_code)]
-const VALID_SCORING_METHODS: &[&str] = &[
-    "weighted", "pass_fail", "manual", "lowest_price",
-];
+const VALID_SCORING_METHODS: &[&str] = &["weighted", "pass_fail", "manual", "lowest_price"];
 
 /// Valid response statuses
 #[allow(dead_code)]
 const VALID_RESPONSE_STATUSES: &[&str] = &[
-    "draft", "submitted", "under_review", "shortlisted", "rejected", "awarded", "disqualified",
+    "draft",
+    "submitted",
+    "under_review",
+    "shortlisted",
+    "rejected",
+    "awarded",
+    "disqualified",
 ];
 
 /// Valid award statuses
 #[allow(dead_code)]
-const VALID_AWARD_STATUSES: &[&str] = &[
-    "pending", "approved", "rejected", "cancelled",
-];
+const VALID_AWARD_STATUSES: &[&str] = &["pending", "approved", "rejected", "cancelled"];
 
 /// Valid award methods
 #[allow(dead_code)]
-const VALID_AWARD_METHODS: &[&str] = &[
-    "single", "split", "best_value", "lowest_price",
-];
+const VALID_AWARD_METHODS: &[&str] = &["single", "split", "best_value", "lowest_price"];
 
 /// Valid criterion types
 #[allow(dead_code)]
 const VALID_CRITERION_TYPES: &[&str] = &[
-    "price", "quality", "delivery", "technical", "compliance", "custom",
+    "price",
+    "quality",
+    "delivery",
+    "technical",
+    "compliance",
+    "custom",
 ];
 
 /// Procurement Sourcing Engine
@@ -109,19 +113,22 @@ impl SourcingEngine {
         if !VALID_EVENT_TYPES.contains(&event_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid event type '{}'. Must be one of: {}",
-                event_type, VALID_EVENT_TYPES.join(", ")
+                event_type,
+                VALID_EVENT_TYPES.join(", ")
             )));
         }
         if !VALID_EVENT_STYLES.contains(&style) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid style '{}'. Must be one of: {}",
-                style, VALID_EVENT_STYLES.join(", ")
+                style,
+                VALID_EVENT_STYLES.join(", ")
             )));
         }
         if !VALID_SCORING_METHODS.contains(&scoring_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid scoring method '{}'. Must be one of: {}",
-                scoring_method, VALID_SCORING_METHODS.join(", ")
+                scoring_method,
+                VALID_SCORING_METHODS.join(", ")
             )));
         }
         if currency_code.is_empty() {
@@ -134,14 +141,28 @@ impl SourcingEngine {
 
         info!("Creating sourcing event {} ({})", event_number, title);
 
-        self.repository.create_event(
-            org_id, &event_number, title, description, event_type, style,
-            response_deadline, currency_code, scoring_method, template_id,
-            evaluation_lead_id, evaluation_lead_name,
-            contact_person_id, contact_person_name,
-            are_bids_visible, allow_supplier_rank_visibility,
-            terms_and_conditions, created_by,
-        ).await
+        self.repository
+            .create_event(
+                org_id,
+                &event_number,
+                title,
+                description,
+                event_type,
+                style,
+                response_deadline,
+                currency_code,
+                scoring_method,
+                template_id,
+                evaluation_lead_id,
+                evaluation_lead_name,
+                contact_person_id,
+                contact_person_name,
+                are_bids_visible,
+                allow_supplier_rank_visibility,
+                terms_and_conditions,
+                created_by,
+            )
+            .await
     }
 
     /// Get a sourcing event by ID
@@ -150,8 +171,14 @@ impl SourcingEngine {
     }
 
     /// Get a sourcing event by event number
-    pub async fn get_event_by_number(&self, org_id: Uuid, event_number: &str) -> AtlasResult<Option<SourcingEvent>> {
-        self.repository.get_event_by_number(org_id, event_number).await
+    pub async fn get_event_by_number(
+        &self,
+        org_id: Uuid,
+        event_number: &str,
+    ) -> AtlasResult<Option<SourcingEvent>> {
+        self.repository
+            .get_event_by_number(org_id, event_number)
+            .await
     }
 
     /// List sourcing events with optional filters
@@ -165,7 +192,8 @@ impl SourcingEngine {
             if !VALID_EVENT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_EVENT_STATUSES.join(", ")
+                    s,
+                    VALID_EVENT_STATUSES.join(", ")
                 )));
             }
         }
@@ -173,19 +201,25 @@ impl SourcingEngine {
             if !VALID_EVENT_TYPES.contains(&t) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid event type '{}'. Must be one of: {}",
-                    t, VALID_EVENT_TYPES.join(", ")
+                    t,
+                    VALID_EVENT_TYPES.join(", ")
                 )));
             }
         }
-        self.repository.list_events(org_id, status, event_type).await
+        self.repository
+            .list_events(org_id, status, event_type)
+            .await
     }
 
     /// Publish a sourcing event (moves from draft to published)
-    pub async fn publish_event(&self, event_id: Uuid, published_by: Option<Uuid>) -> AtlasResult<SourcingEvent> {
-        let event = self.repository.get_event(event_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Sourcing event {event_id} not found")
-            ))?;
+    pub async fn publish_event(
+        &self,
+        event_id: Uuid,
+        published_by: Option<Uuid>,
+    ) -> AtlasResult<SourcingEvent> {
+        let event = self.repository.get_event(event_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Sourcing event {event_id} not found"))
+        })?;
 
         if event.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -203,15 +237,20 @@ impl SourcingEngine {
         }
 
         info!("Publishing sourcing event {}", event.event_number);
-        self.repository.update_event_status(event_id, "published", published_by, None, None).await
+        self.repository
+            .update_event_status(event_id, "published", published_by, None, None)
+            .await
     }
 
     /// Close a sourcing event for responses
-    pub async fn close_event(&self, event_id: Uuid, closed_by: Option<Uuid>) -> AtlasResult<SourcingEvent> {
-        let event = self.repository.get_event(event_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Sourcing event {event_id} not found")
-            ))?;
+    pub async fn close_event(
+        &self,
+        event_id: Uuid,
+        closed_by: Option<Uuid>,
+    ) -> AtlasResult<SourcingEvent> {
+        let event = self.repository.get_event(event_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Sourcing event {event_id} not found"))
+        })?;
 
         if event.status != "published" && event.status != "response_open" {
             return Err(AtlasError::WorkflowError(format!(
@@ -221,7 +260,9 @@ impl SourcingEngine {
         }
 
         info!("Closing sourcing event {}", event.event_number);
-        self.repository.update_event_status(event_id, "evaluation", None, closed_by, None).await
+        self.repository
+            .update_event_status(event_id, "evaluation", None, closed_by, None)
+            .await
     }
 
     /// Cancel a sourcing event
@@ -231,10 +272,9 @@ impl SourcingEngine {
         cancelled_by: Option<Uuid>,
         _reason: Option<&str>,
     ) -> AtlasResult<SourcingEvent> {
-        let event = self.repository.get_event(event_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Sourcing event {event_id} not found")
-            ))?;
+        let event = self.repository.get_event(event_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Sourcing event {event_id} not found"))
+        })?;
 
         if event.status == "awarded" || event.status == "cancelled" {
             return Err(AtlasError::WorkflowError(format!(
@@ -244,7 +284,9 @@ impl SourcingEngine {
         }
 
         info!("Cancelling sourcing event {}", event.event_number);
-        self.repository.update_event_status(event_id, "cancelled", None, None, cancelled_by).await
+        self.repository
+            .update_event_status(event_id, "cancelled", None, None, cancelled_by)
+            .await
     }
 
     // ========================================================================
@@ -269,10 +311,9 @@ impl SourcingEngine {
         allow_partial_quantity: bool,
         min_award_quantity: Option<&str>,
     ) -> AtlasResult<SourcingEventLine> {
-        let event = self.repository.get_event(event_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Sourcing event {event_id} not found")
-            ))?;
+        let event = self.repository.get_event(event_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Sourcing event {event_id} not found"))
+        })?;
 
         if event.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -286,27 +327,44 @@ impl SourcingEngine {
             ));
         }
 
-        let _qty: f64 = quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Quantity must be a valid number".to_string(),
-        ))?;
+        let _qty: f64 = quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Quantity must be a valid number".to_string())
+        })?;
 
         if let Some(tp) = target_price {
-            let _: f64 = tp.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Target price must be a valid number".to_string(),
-            ))?;
+            let _: f64 = tp.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Target price must be a valid number".to_string())
+            })?;
         }
 
         // Get next line number
         let existing_lines = self.repository.list_event_lines(event_id).await?;
         let line_number = (existing_lines.len() + 1) as i32;
 
-        info!("Adding line {} to sourcing event {}", line_number, event.event_number);
+        info!(
+            "Adding line {} to sourcing event {}",
+            line_number, event.event_number
+        );
 
-        self.repository.create_event_line(
-            org_id, event_id, line_number, description, item_number, category,
-            quantity, uom, target_price, target_total, need_by_date, ship_to,
-            specifications, allow_partial_quantity, min_award_quantity,
-        ).await
+        self.repository
+            .create_event_line(
+                org_id,
+                event_id,
+                line_number,
+                description,
+                item_number,
+                category,
+                quantity,
+                uom,
+                target_price,
+                target_total,
+                need_by_date,
+                ship_to,
+                specifications,
+                allow_partial_quantity,
+                min_award_quantity,
+            )
+            .await
     }
 
     /// List lines for a sourcing event
@@ -327,10 +385,9 @@ impl SourcingEngine {
         supplier_name: Option<&str>,
         supplier_email: Option<&str>,
     ) -> AtlasResult<SourcingInvite> {
-        let event = self.repository.get_event(event_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Sourcing event {event_id} not found")
-            ))?;
+        let event = self.repository.get_event(event_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Sourcing event {event_id} not found"))
+        })?;
 
         if event.status == "draft" {
             return Err(AtlasError::WorkflowError(
@@ -341,20 +398,26 @@ impl SourcingEngine {
         // Check for duplicate invite
         let existing = self.repository.get_invite(event_id, supplier_id).await?;
         if existing.is_some() {
-            return Err(AtlasError::Conflict(
-                format!("Supplier {supplier_id} already invited to this event")
-            ));
+            return Err(AtlasError::Conflict(format!(
+                "Supplier {supplier_id} already invited to this event"
+            )));
         }
 
-        info!("Inviting supplier {} to event {}", supplier_id, event.event_number);
+        info!(
+            "Inviting supplier {} to event {}",
+            supplier_id, event.event_number
+        );
 
-        let invite = self.repository.create_invite(
-            org_id, event_id, supplier_id, supplier_name, supplier_email,
-        ).await?;
+        let invite = self
+            .repository
+            .create_invite(org_id, event_id, supplier_id, supplier_name, supplier_email)
+            .await?;
 
         // Update invitee count
         let invites = self.repository.list_invites(event_id).await?;
-        self.repository.update_event_invite_count(event_id, invites.len() as i32).await?;
+        self.repository
+            .update_event_invite_count(event_id, invites.len() as i32)
+            .await?;
 
         Ok(invite)
     }
@@ -382,10 +445,9 @@ impl SourcingEngine {
         warranty_months: Option<i32>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<SupplierResponse> {
-        let event = self.repository.get_event(event_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Sourcing event {event_id} not found")
-            ))?;
+        let event = self.repository.get_event(event_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Sourcing event {event_id} not found"))
+        })?;
 
         if event.status != "published" && event.status != "response_open" {
             return Err(AtlasError::WorkflowError(format!(
@@ -395,10 +457,15 @@ impl SourcingEngine {
         }
 
         // Verify supplier is invited
-        let invite = self.repository.get_invite(event_id, supplier_id).await?
-            .ok_or_else(|| AtlasError::ValidationFailed(
-                format!("Supplier {supplier_id} is not invited to this event")
-            ))?;
+        let invite = self
+            .repository
+            .get_invite(event_id, supplier_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::ValidationFailed(format!(
+                    "Supplier {supplier_id} is not invited to this event"
+                ))
+            })?;
 
         if invite.status == "disqualified" {
             return Err(AtlasError::ValidationFailed(
@@ -408,20 +475,38 @@ impl SourcingEngine {
 
         let response_number = format!("SR-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Supplier {} submitting response {} to event {}", supplier_id, response_number, event.event_number);
+        info!(
+            "Supplier {} submitting response {} to event {}",
+            supplier_id, response_number, event.event_number
+        );
 
-        let response = self.repository.create_response(
-            org_id, event_id, &response_number, supplier_id, supplier_name,
-            cover_letter, valid_until, payment_terms,
-            lead_time_days, warranty_months, created_by,
-        ).await?;
+        let response = self
+            .repository
+            .create_response(
+                org_id,
+                event_id,
+                &response_number,
+                supplier_id,
+                supplier_name,
+                cover_letter,
+                valid_until,
+                payment_terms,
+                lead_time_days,
+                warranty_months,
+                created_by,
+            )
+            .await?;
 
         // Update invite status
-        self.repository.update_invite_status(invite.id, "responded", None).await?;
+        self.repository
+            .update_invite_status(invite.id, "responded", None)
+            .await?;
 
         // Update event response count
         let responses = self.repository.list_responses(event_id, None).await?;
-        self.repository.update_event_response_count(event_id, responses.len() as i32).await?;
+        self.repository
+            .update_event_response_count(event_id, responses.len() as i32)
+            .await?;
 
         Ok(response)
     }
@@ -441,7 +526,8 @@ impl SourcingEngine {
             if !VALID_RESPONSE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid response status '{}'. Must be one of: {}",
-                    s, VALID_RESPONSE_STATUSES.join(", ")
+                    s,
+                    VALID_RESPONSE_STATUSES.join(", ")
                 )));
             }
         }
@@ -461,30 +547,34 @@ impl SourcingEngine {
         lead_time_days: Option<i32>,
         supplier_notes: Option<&str>,
     ) -> AtlasResult<SupplierResponseLine> {
-        let response = self.repository.get_response(response_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Supplier response {response_id} not found")
-            ))?;
+        let response = self
+            .repository
+            .get_response(response_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Supplier response {response_id} not found"))
+            })?;
 
         if response.status != "draft" && response.status != "submitted" {
             return Err(AtlasError::WorkflowError(
-                "Cannot add lines to a response that is not in draft or submitted status".to_string(),
+                "Cannot add lines to a response that is not in draft or submitted status"
+                    .to_string(),
             ));
         }
 
-        let price: f64 = unit_price.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Unit price must be a valid number".to_string(),
-        ))?;
-        let qty: f64 = quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Quantity must be a valid number".to_string(),
-        ))?;
+        let price: f64 = unit_price.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Unit price must be a valid number".to_string())
+        })?;
+        let qty: f64 = quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Quantity must be a valid number".to_string())
+        })?;
 
         let line_amount = price * qty;
 
         let effective_price = if let Some(dp) = discount_percent {
-            let dp_val: f64 = dp.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Discount percent must be a valid number".to_string(),
-            ))?;
+            let dp_val: f64 = dp.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Discount percent must be a valid number".to_string())
+            })?;
             Some(format!("{:.2}", price * (1.0 - dp_val / 100.0)))
         } else {
             None
@@ -494,25 +584,42 @@ impl SourcingEngine {
         let existing_lines = self.repository.list_response_lines(response_id).await?;
         let line_number = (existing_lines.len() + 1) as i32;
 
-        let line = self.repository.create_response_line(
-            org_id, response_id, event_line_id, line_number,
-            unit_price, quantity, &format!("{line_amount:.2}"),
-            discount_percent, effective_price.as_deref(),
-            promised_delivery_date, lead_time_days, supplier_notes,
-        ).await?;
+        let line = self
+            .repository
+            .create_response_line(
+                org_id,
+                response_id,
+                event_line_id,
+                line_number,
+                unit_price,
+                quantity,
+                &format!("{line_amount:.2}"),
+                discount_percent,
+                effective_price.as_deref(),
+                promised_delivery_date,
+                lead_time_days,
+                supplier_notes,
+            )
+            .await?;
 
         // Update response total
         let all_lines = self.repository.list_response_lines(response_id).await?;
-        let total: f64 = all_lines.iter()
+        let total: f64 = all_lines
+            .iter()
             .map(|l| l.line_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        self.repository.update_response_total(response_id, &format!("{total:.2}")).await?;
+        self.repository
+            .update_response_total(response_id, &format!("{total:.2}"))
+            .await?;
 
         Ok(line)
     }
 
     /// List response lines for a supplier response
-    pub async fn list_response_lines(&self, response_id: Uuid) -> AtlasResult<Vec<SupplierResponseLine>> {
+    pub async fn list_response_lines(
+        &self,
+        response_id: Uuid,
+    ) -> AtlasResult<Vec<SupplierResponseLine>> {
         self.repository.list_response_lines(response_id).await
     }
 
@@ -534,10 +641,9 @@ impl SourcingEngine {
         is_mandatory: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ScoringCriterion> {
-        let event = self.repository.get_event(event_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Sourcing event {event_id} not found")
-            ))?;
+        let event = self.repository.get_event(event_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Sourcing event {event_id} not found"))
+        })?;
 
         if event.status == "awarded" || event.status == "cancelled" {
             return Err(AtlasError::WorkflowError(
@@ -551,36 +657,53 @@ impl SourcingEngine {
             ));
         }
 
-        let weight_val: f64 = weight.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Weight must be a valid number".to_string(),
-        ))?;
+        let weight_val: f64 = weight.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Weight must be a valid number".to_string())
+        })?;
         if weight_val <= 0.0 || weight_val > 100.0 {
             return Err(AtlasError::ValidationFailed(
                 "Weight must be between 0 and 100".to_string(),
             ));
         }
 
-        let _max: f64 = max_score.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Max score must be a valid number".to_string(),
-        ))?;
+        let _max: f64 = max_score.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Max score must be a valid number".to_string())
+        })?;
 
         if !VALID_CRITERION_TYPES.contains(&criterion_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid criterion type '{}'. Must be one of: {}",
-                criterion_type, VALID_CRITERION_TYPES.join(", ")
+                criterion_type,
+                VALID_CRITERION_TYPES.join(", ")
             )));
         }
 
-        info!("Adding scoring criterion '{}' to event {}", name, event.event_number);
+        info!(
+            "Adding scoring criterion '{}' to event {}",
+            name, event.event_number
+        );
 
-        self.repository.create_scoring_criterion(
-            org_id, event_id, name, description, weight, max_score,
-            criterion_type, display_order, is_mandatory, created_by,
-        ).await
+        self.repository
+            .create_scoring_criterion(
+                org_id,
+                event_id,
+                name,
+                description,
+                weight,
+                max_score,
+                criterion_type,
+                display_order,
+                is_mandatory,
+                created_by,
+            )
+            .await
     }
 
     /// List scoring criteria for an event
-    pub async fn list_scoring_criteria(&self, event_id: Uuid) -> AtlasResult<Vec<ScoringCriterion>> {
+    pub async fn list_scoring_criteria(
+        &self,
+        event_id: Uuid,
+    ) -> AtlasResult<Vec<ScoringCriterion>> {
         self.repository.list_scoring_criteria(event_id).await
     }
 
@@ -594,10 +717,13 @@ impl SourcingEngine {
         notes: Option<&str>,
         scored_by: Option<Uuid>,
     ) -> AtlasResult<ResponseScore> {
-        let response = self.repository.get_response(response_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Response {response_id} not found")
-            ))?;
+        let response = self
+            .repository
+            .get_response(response_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Response {response_id} not found"))
+            })?;
 
         if response.status != "submitted" && response.status != "under_review" {
             return Err(AtlasError::WorkflowError(
@@ -605,14 +731,17 @@ impl SourcingEngine {
             ));
         }
 
-        let criterion = self.repository.get_scoring_criterion(criterion_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Scoring criterion {criterion_id} not found")
-            ))?;
+        let criterion = self
+            .repository
+            .get_scoring_criterion(criterion_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Scoring criterion {criterion_id} not found"))
+            })?;
 
-        let score_val: f64 = score.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Score must be a valid number".to_string(),
-        ))?;
+        let score_val: f64 = score.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Score must be a valid number".to_string())
+        })?;
 
         let max_score: f64 = criterion.max_score.parse().unwrap_or(100.0);
         if score_val < 0.0 || score_val > max_score {
@@ -624,18 +753,29 @@ impl SourcingEngine {
         let weight: f64 = criterion.weight.parse().unwrap_or(0.0);
         let weighted_score = score_val * weight / 100.0;
 
-        info!("Scoring response {} criterion {} with {} (weighted: {:.2})",
-            response_id, criterion_id, score_val, weighted_score);
+        info!(
+            "Scoring response {} criterion {} with {} (weighted: {:.2})",
+            response_id, criterion_id, score_val, weighted_score
+        );
 
         // Move response to under_review if it's still submitted
         if response.status == "submitted" {
-            self.repository.update_response_status(response_id, "under_review").await?;
+            self.repository
+                .update_response_status(response_id, "under_review")
+                .await?;
         }
 
-        self.repository.upsert_response_score(
-            org_id, response_id, criterion_id, score,
-            &format!("{weighted_score:.2}"), notes, scored_by,
-        ).await
+        self.repository
+            .upsert_response_score(
+                org_id,
+                response_id,
+                criterion_id,
+                score,
+                &format!("{weighted_score:.2}"),
+                notes,
+                scored_by,
+            )
+            .await
     }
 
     /// List scores for a response
@@ -644,11 +784,14 @@ impl SourcingEngine {
     }
 
     /// Evaluate all responses for an event (calculate total scores and ranks)
-    pub async fn evaluate_responses(&self, event_id: Uuid, evaluated_by: Option<Uuid>) -> AtlasResult<Vec<SupplierResponse>> {
-        let event = self.repository.get_event(event_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Sourcing event {event_id} not found")
-            ))?;
+    pub async fn evaluate_responses(
+        &self,
+        event_id: Uuid,
+        evaluated_by: Option<Uuid>,
+    ) -> AtlasResult<Vec<SupplierResponse>> {
+        let event = self.repository.get_event(event_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Sourcing event {event_id} not found"))
+        })?;
 
         if event.status != "evaluation" {
             return Err(AtlasError::WorkflowError(format!(
@@ -674,15 +817,18 @@ impl SourcingEngine {
             }
 
             let scores = self.repository.list_response_scores(response.id).await?;
-            let total_weighted_score: f64 = scores.iter()
+            let total_weighted_score: f64 = scores
+                .iter()
                 .map(|s| s.weighted_score.parse::<f64>().unwrap_or(0.0))
                 .sum();
 
-            self.repository.update_response_score_total(
-                response.id,
-                &format!("{total_weighted_score:.2}"),
-                evaluated_by,
-            ).await?;
+            self.repository
+                .update_response_score_total(
+                    response.id,
+                    &format!("{total_weighted_score:.2}"),
+                    evaluated_by,
+                )
+                .await?;
 
             scored_responses.push((response.id, total_weighted_score));
         }
@@ -691,10 +837,16 @@ impl SourcingEngine {
         scored_responses.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         for (rank, (response_id, _score)) in scored_responses.iter().enumerate() {
-            self.repository.update_response_rank(*response_id, (rank + 1) as i32).await?;
+            self.repository
+                .update_response_rank(*response_id, (rank + 1) as i32)
+                .await?;
         }
 
-        info!("Evaluated {} responses for event {}", responses.len(), event.event_number);
+        info!(
+            "Evaluated {} responses for event {}",
+            responses.len(),
+            event.event_number
+        );
 
         // Return updated responses
         self.repository.list_responses(event_id, None).await
@@ -714,10 +866,9 @@ impl SourcingEngine {
         award_rationale: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<SourcingAward> {
-        let event = self.repository.get_event(event_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Sourcing event {event_id} not found")
-            ))?;
+        let event = self.repository.get_event(event_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Sourcing event {event_id} not found"))
+        })?;
 
         if event.status != "evaluation" {
             return Err(AtlasError::WorkflowError(format!(
@@ -729,7 +880,8 @@ impl SourcingEngine {
         if !VALID_AWARD_METHODS.contains(&award_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid award method '{}'. Must be one of: {}",
-                award_method, VALID_AWARD_METHODS.join(", ")
+                award_method,
+                VALID_AWARD_METHODS.join(", ")
             )));
         }
 
@@ -742,39 +894,64 @@ impl SourcingEngine {
         let award_number = format!("AW-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
         // Calculate total awarded amount
-        let total: f64 = award_lines.iter()
+        let total: f64 = award_lines
+            .iter()
             .map(|l| l.awarded_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
-        info!("Creating award {} for event {} (method: {})", award_number, event.event_number, award_method);
+        info!(
+            "Creating award {} for event {} (method: {})",
+            award_number, event.event_number, award_method
+        );
 
-        let award = self.repository.create_award(
-            org_id, event_id, &award_number, award_method,
-            &format!("{total:.2}"), award_rationale, created_by,
-        ).await?;
+        let award = self
+            .repository
+            .create_award(
+                org_id,
+                event_id,
+                &award_number,
+                award_method,
+                &format!("{total:.2}"),
+                award_rationale,
+                created_by,
+            )
+            .await?;
 
         // Create award lines
         for line in award_lines {
-            self.repository.create_award_line(
-                org_id, award.id, line.event_line_id, line.response_id,
-                line.supplier_id, line.supplier_name.as_deref(),
-                &line.awarded_quantity, &line.awarded_unit_price, &line.awarded_amount,
-            ).await?;
+            self.repository
+                .create_award_line(
+                    org_id,
+                    award.id,
+                    line.event_line_id,
+                    line.response_id,
+                    line.supplier_id,
+                    line.supplier_name.as_deref(),
+                    &line.awarded_quantity,
+                    &line.awarded_unit_price,
+                    &line.awarded_amount,
+                )
+                .await?;
         }
 
         // Update award with lines JSON
         let award_lines_data = self.repository.list_award_lines(award.id).await?;
-        let total_awarded: f64 = award_lines_data.iter()
+        let total_awarded: f64 = award_lines_data
+            .iter()
             .map(|l| l.awarded_amount.parse::<f64>().unwrap_or(0.0))
             .sum();
 
         // Update event line awards
         for al in &award_lines_data {
-            self.repository.update_event_line_award(
-                al.event_line_id, al.supplier_id,
-                al.supplier_name.as_deref(),
-                &al.awarded_unit_price, &al.awarded_quantity,
-            ).await?;
+            self.repository
+                .update_event_line_award(
+                    al.event_line_id,
+                    al.supplier_id,
+                    al.supplier_name.as_deref(),
+                    &al.awarded_unit_price,
+                    &al.awarded_quantity,
+                )
+                .await?;
         }
 
         // Build award summary for the event
@@ -786,7 +963,9 @@ impl SourcingEngine {
             "line_count": award_lines_data.len(),
         });
 
-        self.repository.update_event_award_summary(event_id, summary).await?;
+        self.repository
+            .update_event_award_summary(event_id, summary)
+            .await?;
 
         let mut award = award;
         award.total_awarded_amount = format!("{total_awarded:.2}");
@@ -811,10 +990,11 @@ impl SourcingEngine {
         award_id: Uuid,
         approved_by: Option<Uuid>,
     ) -> AtlasResult<SourcingAward> {
-        let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Award {award_id} not found")
-            ))?;
+        let award = self
+            .repository
+            .get_award(award_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         if award.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
@@ -825,17 +1005,22 @@ impl SourcingEngine {
 
         info!("Approving award {}", award.award_number);
 
-        let updated = self.repository.update_award_status(
-            award_id, "approved", approved_by, None,
-        ).await?;
+        let updated = self
+            .repository
+            .update_award_status(award_id, "approved", approved_by, None)
+            .await?;
 
         // Update event status to awarded
-        self.repository.update_event_status(award.event_id, "awarded", None, None, None).await?;
+        self.repository
+            .update_event_status(award.event_id, "awarded", None, None, None)
+            .await?;
 
         // Update winning response statuses
         let award_lines = self.repository.list_award_lines(award_id).await?;
         for al in &award_lines {
-            self.repository.update_response_status(al.response_id, "awarded").await?;
+            self.repository
+                .update_response_status(al.response_id, "awarded")
+                .await?;
         }
 
         Ok(updated)
@@ -847,19 +1032,23 @@ impl SourcingEngine {
         award_id: Uuid,
         rejected_reason: Option<&str>,
     ) -> AtlasResult<SourcingAward> {
-        let award = self.repository.get_award(award_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Award {award_id} not found")
-            ))?;
+        let award = self
+            .repository
+            .get_award(award_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Award {award_id} not found")))?;
 
         if award.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot reject award in '{}' status.", award.status
+                "Cannot reject award in '{}' status.",
+                award.status
             )));
         }
 
         info!("Rejecting award {}", award.award_number);
-        self.repository.update_award_status(award_id, "rejected", None, rejected_reason).await
+        self.repository
+            .update_award_status(award_id, "rejected", None, rejected_reason)
+            .await
     }
 
     /// List award lines for an award
@@ -897,22 +1086,39 @@ impl SourcingEngine {
         if !VALID_EVENT_TYPES.contains(&default_event_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid default event type '{}'. Must be one of: {}",
-                default_event_type, VALID_EVENT_TYPES.join(", ")
+                default_event_type,
+                VALID_EVENT_TYPES.join(", ")
             )));
         }
 
         info!("Creating sourcing template '{}' for org {}", code, org_id);
 
-        self.repository.create_template(
-            org_id, code, name, description, default_event_type, default_style,
-            default_scoring_method, default_response_deadline_days,
-            currency_code, default_bids_visible, default_terms,
-            default_scoring_criteria, default_lines, created_by,
-        ).await
+        self.repository
+            .create_template(
+                org_id,
+                code,
+                name,
+                description,
+                default_event_type,
+                default_style,
+                default_scoring_method,
+                default_response_deadline_days,
+                currency_code,
+                default_bids_visible,
+                default_terms,
+                default_scoring_criteria,
+                default_lines,
+                created_by,
+            )
+            .await
     }
 
     /// Get a template by code
-    pub async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<SourcingTemplate>> {
+    pub async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<SourcingTemplate>> {
         self.repository.get_template(org_id, code).await
     }
 
@@ -923,10 +1129,10 @@ impl SourcingEngine {
 
     /// Delete (soft-delete) a template
     pub async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        self.repository.get_template(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Template '{code}' not found")
-            ))?;
+        self.repository
+            .get_template(org_id, code)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Template '{code}' not found")))?;
 
         self.repository.delete_template(org_id, code).await
     }
@@ -939,33 +1145,39 @@ impl SourcingEngine {
     pub async fn get_summary(&self, org_id: Uuid) -> AtlasResult<SourcingSummary> {
         let all_events = self.repository.list_events(org_id, None, None).await?;
 
-        let active_count = all_events.iter()
-            .filter(|e| e.status == "published" || e.status == "response_open" || e.status == "evaluation")
+        let active_count = all_events
+            .iter()
+            .filter(|e| {
+                e.status == "published" || e.status == "response_open" || e.status == "evaluation"
+            })
             .count() as i32;
-        let draft_count = all_events.iter()
-            .filter(|e| e.status == "draft")
-            .count() as i32;
-        let pending_eval = all_events.iter()
+        let draft_count = all_events.iter().filter(|e| e.status == "draft").count() as i32;
+        let pending_eval = all_events
+            .iter()
             .filter(|e| e.status == "evaluation")
             .count() as i32;
-        let awarded_count = all_events.iter()
-            .filter(|e| e.status == "awarded")
-            .count() as i32;
+        let awarded_count = all_events.iter().filter(|e| e.status == "awarded").count() as i32;
 
-        let total_awarded_value: f64 = all_events.iter()
+        let total_awarded_value: f64 = all_events
+            .iter()
             .filter(|e| e.status == "awarded")
-            .map(|e| e.award_summary.get("total_awarded")
-                .and_then(|v| v.as_str())
-                .and_then(|s| s.parse::<f64>().ok())
-                .unwrap_or(0.0))
+            .map(|e| {
+                e.award_summary
+                    .get("total_awarded")
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| s.parse::<f64>().ok())
+                    .unwrap_or(0.0)
+            })
             .sum();
 
         // Events by status
-        let mut status_map: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+        let mut status_map: std::collections::HashMap<String, i32> =
+            std::collections::HashMap::new();
         for e in &all_events {
             *status_map.entry(e.status.clone()).or_insert(0) += 1;
         }
-        let events_by_status: serde_json::Value = status_map.into_iter()
+        let events_by_status: serde_json::Value = status_map
+            .into_iter()
             .map(|(k, v)| serde_json::json!({"status": k, "count": v}))
             .collect();
 
@@ -974,22 +1186,26 @@ impl SourcingEngine {
         for e in &all_events {
             *type_map.entry(e.event_type.clone()).or_insert(0) += 1;
         }
-        let events_by_type: serde_json::Value = type_map.into_iter()
+        let events_by_type: serde_json::Value = type_map
+            .into_iter()
             .map(|(k, v)| serde_json::json!({"type": k, "count": v}))
             .collect();
 
         // Upcoming deadlines
         let today = chrono::Utc::now().date_naive();
-        let upcoming: Vec<serde_json::Value> = all_events.iter()
+        let upcoming: Vec<serde_json::Value> = all_events
+            .iter()
             .filter(|e| e.status == "published" || e.status == "response_open")
             .filter(|e| e.response_deadline >= today)
             .take(5)
-            .map(|e| serde_json::json!({
-                "event_number": e.event_number,
-                "title": e.title,
-                "deadline": e.response_deadline,
-                "response_count": e.response_count,
-            }))
+            .map(|e| {
+                serde_json::json!({
+                    "event_number": e.event_number,
+                    "title": e.title,
+                    "deadline": e.response_deadline,
+                    "response_count": e.response_count,
+                })
+            })
             .collect();
 
         Ok(SourcingSummary {

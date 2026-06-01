@@ -691,8 +691,12 @@ pub struct CreateRetentionPolicyRequest {
     pub condition_expression: Option<String>,
 }
 
-pub const fn default_365() -> i32 { 365 }
-pub fn default_action_type() -> String { "archive_then_purge".to_string() }
+pub const fn default_365() -> i32 {
+    365
+}
+pub fn default_action_type() -> String {
+    "archive_then_purge".to_string()
+}
 
 /// Legal hold - prevents archival or purging of specific records.
 ///
@@ -1718,16 +1722,16 @@ pub struct SuccessionPlan {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    pub plan_type: String,              // position, role, key_person
+    pub plan_type: String, // position, role, key_person
     pub position_id: Option<Uuid>,
     pub position_title: Option<String>,
     pub job_id: Option<Uuid>,
     pub department_id: Option<Uuid>,
     pub current_incumbent_id: Option<Uuid>,
     pub current_incumbent_name: Option<String>,
-    pub risk_level: String,             // low, medium, high, critical
-    pub urgency: String,                // immediate, short_term, medium_term, long_term
-    pub status: String,                 // draft, active, completed, cancelled
+    pub risk_level: String, // low, medium, high, critical
+    pub urgency: String,    // immediate, short_term, medium_term, long_term
+    pub status: String,     // draft, active, completed, cancelled
     pub effective_date: Option<chrono::NaiveDate>,
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
@@ -1747,14 +1751,14 @@ pub struct SuccessionCandidate {
     pub person_id: Uuid,
     pub person_name: Option<String>,
     pub employee_number: Option<String>,
-    pub readiness: String,              // ready_now, ready_1_2_years, ready_3_5_years, not_ready
+    pub readiness: String, // ready_now, ready_1_2_years, ready_3_5_years, not_ready
     pub ranking: Option<i32>,
-    pub performance_rating: Option<String>,  // 1-5 scale or labels
-    pub potential_rating: Option<String>,    // 1-5 scale or labels
-    pub flight_risk: Option<String>,         // low, medium, high
+    pub performance_rating: Option<String>, // 1-5 scale or labels
+    pub potential_rating: Option<String>,   // 1-5 scale or labels
+    pub flight_risk: Option<String>,        // low, medium, high
     pub development_notes: Option<String>,
     pub recommended_actions: Option<String>,
-    pub status: String,                 // proposed, approved, rejected, development
+    pub status: String, // proposed, approved, rejected, development
     pub metadata: serde_json::Value,
     pub added_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -1772,10 +1776,10 @@ pub struct TalentPool {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    pub pool_type: String,              // leadership, technical, high_potential, diversity, custom
+    pub pool_type: String, // leadership, technical, high_potential, diversity, custom
     pub owner_id: Option<Uuid>,
     pub max_members: Option<i32>,
-    pub status: String,                 // draft, active, archived
+    pub status: String, // draft, active, archived
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -1795,12 +1799,12 @@ pub struct TalentPoolMember {
     pub person_name: Option<String>,
     pub performance_rating: Option<String>,
     pub potential_rating: Option<String>,
-    pub readiness: String,              // ready_now, ready_1_2_years, ready_3_5_years, not_ready
+    pub readiness: String, // ready_now, ready_1_2_years, ready_3_5_years, not_ready
     pub development_plan: Option<String>,
     pub notes: Option<String>,
     pub added_date: Option<chrono::NaiveDate>,
     pub review_date: Option<chrono::NaiveDate>,
-    pub status: String,                 // active, on_hold, removed, graduated
+    pub status: String, // active, on_hold, removed, graduated
     pub metadata: serde_json::Value,
     pub added_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -1818,11 +1822,11 @@ pub struct TalentReview {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    pub review_type: String,            // calibration, performance_potential, nine_box, leadership
+    pub review_type: String, // calibration, performance_potential, nine_box, leadership
     pub facilitator_id: Option<Uuid>,
     pub department_id: Option<Uuid>,
     pub review_date: Option<chrono::NaiveDate>,
-    pub status: String,                 // scheduled, in_progress, completed, cancelled
+    pub status: String, // scheduled, in_progress, completed, cancelled
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -1842,7 +1846,7 @@ pub struct TalentReviewAssessment {
     pub person_name: Option<String>,
     pub performance_rating: Option<String>,
     pub potential_rating: Option<String>,
-    pub nine_box_position: Option<String>,  // star, workhorse, puzzle, solid_citizen, etc.
+    pub nine_box_position: Option<String>, // star, workhorse, puzzle, solid_citizen, etc.
     pub strengths: Option<String>,
     pub weaknesses: Option<String>,
     pub career_aspiration: Option<String>,
@@ -1866,7 +1870,7 @@ pub struct CareerPath {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    pub path_type: String,              // linear, branching, lattice, dual_track
+    pub path_type: String, // linear, branching, lattice, dual_track
     pub from_job_id: Option<Uuid>,
     pub from_job_title: Option<String>,
     pub to_job_id: Option<Uuid>,
@@ -1875,7 +1879,7 @@ pub struct CareerPath {
     pub required_competencies: Option<String>,
     pub required_certifications: Option<String>,
     pub development_activities: Option<String>,
-    pub status: String,                 // draft, active, archived
+    pub status: String, // draft, active, archived
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -1917,19 +1921,19 @@ pub struct LearningItem {
     pub code: String,
     pub title: String,
     pub description: Option<String>,
-    pub item_type: String,            // course, certification, specialization, video, assessment, blended
-    pub format: String,               // online, classroom, virtual_classroom, self_paced, blended
+    pub item_type: String, // course, certification, specialization, video, assessment, blended
+    pub format: String,    // online, classroom, virtual_classroom, self_paced, blended
     pub category: Option<String>,
     pub provider: Option<String>,
     pub duration_hours: Option<f64>,
     pub currency_code: Option<String>,
     pub cost: Option<String>,
     pub credits: Option<String>,
-    pub credit_type: Option<String>,  // ceu, cpe, pdu, college_credit, custom
+    pub credit_type: Option<String>, // ceu, cpe, pdu, college_credit, custom
     pub validity_months: Option<i32>, // how long the certification remains valid
     pub recertification_required: bool,
     pub max_enrollments: Option<i32>,
-    pub status: String,               // draft, active, inactive, archived
+    pub status: String, // draft, active, inactive, archived
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -1949,7 +1953,7 @@ pub struct LearningCategory {
     pub description: Option<String>,
     pub parent_category_id: Option<Uuid>,
     pub display_order: i32,
-    pub status: String,               // active, inactive
+    pub status: String, // active, inactive
     pub metadata: serde_json::Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -1966,9 +1970,9 @@ pub struct LearningEnrollment {
     pub learning_item_id: Uuid,
     pub person_id: Uuid,
     pub person_name: Option<String>,
-    pub enrollment_type: String,       // self, manager, mandatory, auto_assigned
+    pub enrollment_type: String, // self, manager, mandatory, auto_assigned
     pub enrolled_by: Option<Uuid>,
-    pub status: String,               // enrolled, in_progress, completed, failed, withdrawn, expired
+    pub status: String, // enrolled, in_progress, completed, failed, withdrawn, expired
     pub progress_pct: Option<String>,
     pub score: Option<String>,
     pub enrollment_date: Option<chrono::NaiveDate>,
@@ -1991,12 +1995,12 @@ pub struct LearningPath {
     pub code: String,
     pub name: String,
     pub description: Option<String>,
-    pub path_type: String,            // sequential, elective, milestone, tiered
+    pub path_type: String, // sequential, elective, milestone, tiered
     pub target_role: Option<String>,
     pub target_job_id: Option<Uuid>,
     pub estimated_duration_hours: Option<f64>,
     pub total_items: i32,
-    pub status: String,               // draft, active, inactive, archived
+    pub status: String, // draft, active, inactive, archived
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -2033,12 +2037,12 @@ pub struct LearningAssignment {
     pub learning_path_id: Option<Uuid>,
     pub title: String,
     pub description: Option<String>,
-    pub assignment_type: String,       // individual, organization, department, job, position
+    pub assignment_type: String, // individual, organization, department, job, position
     pub target_id: Option<Uuid>,
     pub assigned_by: Option<Uuid>,
-    pub priority: String,             // low, medium, high, critical
+    pub priority: String, // low, medium, high, critical
     pub due_date: Option<chrono::NaiveDate>,
-    pub status: String,               // active, completed, cancelled
+    pub status: String, // active, completed, cancelled
     pub metadata: serde_json::Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -2060,5 +2064,3 @@ pub struct LearningDashboard {
     pub overdue_enrollments: i32,
     pub avg_score: Option<String>,
 }
-
-

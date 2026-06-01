@@ -18,11 +18,11 @@ mod engine;
 
 pub use engine::DunningLetterManagementEngine;
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
+use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 
 /// Dunning letter set (collection of escalating severity letters)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,59 +149,159 @@ pub struct DunningLetterRunResult {
 #[async_trait]
 pub trait DunningLetterManagementRepository: Send + Sync {
     // Letter Sets
-    async fn create_letter_set(&self, org_id: Uuid, set_name: &str, description: Option<&str>,
-        number_of_levels: i32, minimum_overdue_days: i32, currency_code: &str,
-        include_finance_charges: bool, include_unapplied_receipts: bool, aging_basis: &str,
-        created_by: Option<Uuid>) -> AtlasResult<DunningLetterSet>;
+    async fn create_letter_set(
+        &self,
+        org_id: Uuid,
+        set_name: &str,
+        description: Option<&str>,
+        number_of_levels: i32,
+        minimum_overdue_days: i32,
+        currency_code: &str,
+        include_finance_charges: bool,
+        include_unapplied_receipts: bool,
+        aging_basis: &str,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<DunningLetterSet>;
     async fn get_letter_set(&self, id: Uuid) -> AtlasResult<Option<DunningLetterSet>>;
-    async fn get_letter_set_by_name(&self, org_id: Uuid, name: &str) -> AtlasResult<Option<DunningLetterSet>>;
-    async fn list_letter_sets(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DunningLetterSet>>;
-    async fn update_letter_set_status(&self, id: Uuid, status: &str) -> AtlasResult<DunningLetterSet>;
+    async fn get_letter_set_by_name(
+        &self,
+        org_id: Uuid,
+        name: &str,
+    ) -> AtlasResult<Option<DunningLetterSet>>;
+    async fn list_letter_sets(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DunningLetterSet>>;
+    async fn update_letter_set_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<DunningLetterSet>;
 
     // Letter Set Lines
-    async fn add_letter_set_line(&self, set_id: Uuid, level_number: i32, level_name: &str,
-        min_days_overdue: i32, max_days_overdue: Option<i32>, minimum_amount: &str,
-        letter_template: Option<&str>, delivery_method: &str, apply_credit_hold: bool,
-        assess_finance_charges: bool, letter_text: Option<&str>,
-        escalation_days: Option<i32>) -> AtlasResult<DunningLetterSetLine>;
+    async fn add_letter_set_line(
+        &self,
+        set_id: Uuid,
+        level_number: i32,
+        level_name: &str,
+        min_days_overdue: i32,
+        max_days_overdue: Option<i32>,
+        minimum_amount: &str,
+        letter_template: Option<&str>,
+        delivery_method: &str,
+        apply_credit_hold: bool,
+        assess_finance_charges: bool,
+        letter_text: Option<&str>,
+        escalation_days: Option<i32>,
+    ) -> AtlasResult<DunningLetterSetLine>;
     async fn list_letter_set_lines(&self, set_id: Uuid) -> AtlasResult<Vec<DunningLetterSetLine>>;
 
     // Dunning Profiles
-    async fn create_profile(&self, org_id: Uuid, customer_id: Uuid, customer_name: Option<&str>,
-        letter_set_id: Option<Uuid>, minimum_overdue_amount: &str, contact_name: Option<&str>,
-        contact_email: Option<&str>, preferred_delivery_method: Option<&str>,
-        notes: Option<&str>, created_by: Option<Uuid>) -> AtlasResult<DunningProfile>;
+    async fn create_profile(
+        &self,
+        org_id: Uuid,
+        customer_id: Uuid,
+        customer_name: Option<&str>,
+        letter_set_id: Option<Uuid>,
+        minimum_overdue_amount: &str,
+        contact_name: Option<&str>,
+        contact_email: Option<&str>,
+        preferred_delivery_method: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<DunningProfile>;
     async fn get_profile(&self, id: Uuid) -> AtlasResult<Option<DunningProfile>>;
-    async fn get_profile_by_customer(&self, org_id: Uuid, customer_id: Uuid) -> AtlasResult<Option<DunningProfile>>;
-    async fn list_profiles(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DunningProfile>>;
-    async fn update_profile_status(&self, id: Uuid, status: &str, reason: Option<&str>) -> AtlasResult<DunningProfile>;
-    async fn update_profile_dunning_sent(&self, id: Uuid, level: i32, sent_date: chrono::NaiveDate) -> AtlasResult<DunningProfile>;
+    async fn get_profile_by_customer(
+        &self,
+        org_id: Uuid,
+        customer_id: Uuid,
+    ) -> AtlasResult<Option<DunningProfile>>;
+    async fn list_profiles(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DunningProfile>>;
+    async fn update_profile_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        reason: Option<&str>,
+    ) -> AtlasResult<DunningProfile>;
+    async fn update_profile_dunning_sent(
+        &self,
+        id: Uuid,
+        level: i32,
+        sent_date: chrono::NaiveDate,
+    ) -> AtlasResult<DunningProfile>;
 
     // Dunning Runs
-    async fn create_run(&self, org_id: Uuid, run_number: &str, description: Option<&str>,
-        letter_set_id: Option<Uuid>, run_date: chrono::NaiveDate, aging_as_of_date: chrono::NaiveDate,
-        currency_code: &str, minimum_amount_filter: Option<&str>, specific_level: Option<i32>,
-        customer_id_filter: Option<Uuid>, notes: Option<&str>,
-        created_by: Option<Uuid>) -> AtlasResult<DunningLetterRun>;
+    async fn create_run(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+        description: Option<&str>,
+        letter_set_id: Option<Uuid>,
+        run_date: chrono::NaiveDate,
+        aging_as_of_date: chrono::NaiveDate,
+        currency_code: &str,
+        minimum_amount_filter: Option<&str>,
+        specific_level: Option<i32>,
+        customer_id_filter: Option<Uuid>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<DunningLetterRun>;
     async fn get_run(&self, id: Uuid) -> AtlasResult<Option<DunningLetterRun>>;
-    async fn get_run_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<DunningLetterRun>>;
-    async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DunningLetterRun>>;
+    async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<DunningLetterRun>>;
+    async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DunningLetterRun>>;
     async fn update_run_status(&self, id: Uuid, status: &str) -> AtlasResult<DunningLetterRun>;
-    async fn update_run_stats(&self, id: Uuid, total_customers: i32, total_letters_generated: i32,
-        total_overdue_amount: &str) -> AtlasResult<DunningLetterRun>;
+    async fn update_run_stats(
+        &self,
+        id: Uuid,
+        total_customers: i32,
+        total_letters_generated: i32,
+        total_overdue_amount: &str,
+    ) -> AtlasResult<DunningLetterRun>;
 
     // Run Results
-    async fn create_run_result(&self, org_id: Uuid, run_id: Uuid, customer_id: Uuid,
-        customer_name: Option<&str>, customer_number: Option<&str>, profile_id: Option<Uuid>,
-        dunning_level: i32, level_name: Option<&str>, number_of_overdue_items: i32,
-        total_overdue_amount: &str, oldest_overdue_date: Option<chrono::NaiveDate>,
-        days_overdue: i32, finance_charge_amount: &str, letter_template: Option<&str>,
-        delivery_method: Option<&str>, status: &str, reason: Option<&str>) -> AtlasResult<DunningLetterRunResult>;
+    async fn create_run_result(
+        &self,
+        org_id: Uuid,
+        run_id: Uuid,
+        customer_id: Uuid,
+        customer_name: Option<&str>,
+        customer_number: Option<&str>,
+        profile_id: Option<Uuid>,
+        dunning_level: i32,
+        level_name: Option<&str>,
+        number_of_overdue_items: i32,
+        total_overdue_amount: &str,
+        oldest_overdue_date: Option<chrono::NaiveDate>,
+        days_overdue: i32,
+        finance_charge_amount: &str,
+        letter_template: Option<&str>,
+        delivery_method: Option<&str>,
+        status: &str,
+        reason: Option<&str>,
+    ) -> AtlasResult<DunningLetterRunResult>;
     async fn list_run_results(&self, run_id: Uuid) -> AtlasResult<Vec<DunningLetterRunResult>>;
     async fn get_run_result(&self, id: Uuid) -> AtlasResult<Option<DunningLetterRunResult>>;
-    async fn update_run_result_status(&self, id: Uuid, status: &str,
-        sent_date: Option<chrono::NaiveDate>, delivery_confirmation: Option<&str>,
-        reason: Option<&str>) -> AtlasResult<DunningLetterRunResult>;
+    async fn update_run_result_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        sent_date: Option<chrono::NaiveDate>,
+        delivery_confirmation: Option<&str>,
+        reason: Option<&str>,
+    ) -> AtlasResult<DunningLetterRunResult>;
 }
 
 // ============================================================================
@@ -339,8 +439,10 @@ pub struct PostgresDunningLetterManagementRepository {
 }
 
 impl PostgresDunningLetterManagementRepository {
-    #[must_use] 
-    pub const fn new(pool: PgPool) -> Self { Self { pool } }
+    #[must_use]
+    pub const fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
@@ -349,10 +451,19 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
     // Letter Sets
     // ========================================================================
 
-    async fn create_letter_set(&self, org_id: Uuid, set_name: &str, description: Option<&str>,
-        number_of_levels: i32, minimum_overdue_days: i32, currency_code: &str,
-        include_finance_charges: bool, include_unapplied_receipts: bool, aging_basis: &str,
-        created_by: Option<Uuid>) -> AtlasResult<DunningLetterSet> {
+    async fn create_letter_set(
+        &self,
+        org_id: Uuid,
+        set_name: &str,
+        description: Option<&str>,
+        number_of_levels: i32,
+        minimum_overdue_days: i32,
+        currency_code: &str,
+        include_finance_charges: bool,
+        include_unapplied_receipts: bool,
+        aging_basis: &str,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<DunningLetterSet> {
         let row = sqlx::query(
             "INSERT INTO financials.dunning_letter_sets
                 (organization_id, set_name, description, number_of_levels, minimum_overdue_days,
@@ -371,12 +482,17 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
     async fn get_letter_set(&self, id: Uuid) -> AtlasResult<Option<DunningLetterSet>> {
         let row = sqlx::query("SELECT * FROM financials.dunning_letter_sets WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_letter_set(&r)))
     }
 
-    async fn get_letter_set_by_name(&self, org_id: Uuid, name: &str) -> AtlasResult<Option<DunningLetterSet>> {
+    async fn get_letter_set_by_name(
+        &self,
+        org_id: Uuid,
+        name: &str,
+    ) -> AtlasResult<Option<DunningLetterSet>> {
         let row = sqlx::query("SELECT * FROM financials.dunning_letter_sets WHERE organization_id = $1 AND set_name = $2")
             .bind(org_id).bind(name)
             .fetch_optional(&self.pool).await
@@ -384,7 +500,11 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
         Ok(row.map(|r| row_to_letter_set(&r)))
     }
 
-    async fn list_letter_sets(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DunningLetterSet>> {
+    async fn list_letter_sets(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DunningLetterSet>> {
         let rows = if let Some(s) = status {
             sqlx::query("SELECT * FROM financials.dunning_letter_sets WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC")
                 .bind(org_id).bind(s)
@@ -397,7 +517,11 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
         Ok(rows.iter().map(row_to_letter_set).collect())
     }
 
-    async fn update_letter_set_status(&self, id: Uuid, status: &str) -> AtlasResult<DunningLetterSet> {
+    async fn update_letter_set_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<DunningLetterSet> {
         let row = sqlx::query(
             "UPDATE financials.dunning_letter_sets SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status)
@@ -410,24 +534,43 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
     // Letter Set Lines
     // ========================================================================
 
-    async fn add_letter_set_line(&self, set_id: Uuid, level_number: i32, level_name: &str,
-        min_days_overdue: i32, max_days_overdue: Option<i32>, minimum_amount: &str,
-        letter_template: Option<&str>, delivery_method: &str, apply_credit_hold: bool,
-        assess_finance_charges: bool, letter_text: Option<&str>,
-        escalation_days: Option<i32>) -> AtlasResult<DunningLetterSetLine> {
+    async fn add_letter_set_line(
+        &self,
+        set_id: Uuid,
+        level_number: i32,
+        level_name: &str,
+        min_days_overdue: i32,
+        max_days_overdue: Option<i32>,
+        minimum_amount: &str,
+        letter_template: Option<&str>,
+        delivery_method: &str,
+        apply_credit_hold: bool,
+        assess_finance_charges: bool,
+        letter_text: Option<&str>,
+        escalation_days: Option<i32>,
+    ) -> AtlasResult<DunningLetterSetLine> {
         let row = sqlx::query(
             "INSERT INTO financials.dunning_letter_set_lines
                 (set_id, level_number, level_name, min_days_overdue, max_days_overdue,
                  minimum_amount, letter_template, delivery_method, apply_credit_hold,
                  assess_finance_charges, letter_text, escalation_days, display_order)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $2)
-             RETURNING *"
+             RETURNING *",
         )
-        .bind(set_id).bind(level_number).bind(level_name).bind(min_days_overdue)
-        .bind(max_days_overdue).bind(minimum_amount).bind(letter_template)
-        .bind(delivery_method).bind(apply_credit_hold).bind(assess_finance_charges)
-        .bind(letter_text).bind(escalation_days)
-        .fetch_one(&self.pool).await
+        .bind(set_id)
+        .bind(level_number)
+        .bind(level_name)
+        .bind(min_days_overdue)
+        .bind(max_days_overdue)
+        .bind(minimum_amount)
+        .bind(letter_template)
+        .bind(delivery_method)
+        .bind(apply_credit_hold)
+        .bind(assess_finance_charges)
+        .bind(letter_text)
+        .bind(escalation_days)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_letter_set_line(&row))
     }
@@ -445,22 +588,39 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
     // Dunning Profiles
     // ========================================================================
 
-    async fn create_profile(&self, org_id: Uuid, customer_id: Uuid, customer_name: Option<&str>,
-        letter_set_id: Option<Uuid>, minimum_overdue_amount: &str, contact_name: Option<&str>,
-        contact_email: Option<&str>, preferred_delivery_method: Option<&str>,
-        notes: Option<&str>, created_by: Option<Uuid>) -> AtlasResult<DunningProfile> {
+    async fn create_profile(
+        &self,
+        org_id: Uuid,
+        customer_id: Uuid,
+        customer_name: Option<&str>,
+        letter_set_id: Option<Uuid>,
+        minimum_overdue_amount: &str,
+        contact_name: Option<&str>,
+        contact_email: Option<&str>,
+        preferred_delivery_method: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<DunningProfile> {
         let row = sqlx::query(
             "INSERT INTO financials.dunning_profiles
                 (organization_id, customer_id, customer_name, letter_set_id,
                  minimum_overdue_amount, contact_name, contact_email,
                  preferred_delivery_method, notes, created_by)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-             RETURNING *"
+             RETURNING *",
         )
-        .bind(org_id).bind(customer_id).bind(customer_name).bind(letter_set_id)
-        .bind(minimum_overdue_amount).bind(contact_name).bind(contact_email)
-        .bind(preferred_delivery_method).bind(notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(customer_id)
+        .bind(customer_name)
+        .bind(letter_set_id)
+        .bind(minimum_overdue_amount)
+        .bind(contact_name)
+        .bind(contact_email)
+        .bind(preferred_delivery_method)
+        .bind(notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_profile(&row))
     }
@@ -468,12 +628,17 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
     async fn get_profile(&self, id: Uuid) -> AtlasResult<Option<DunningProfile>> {
         let row = sqlx::query("SELECT * FROM financials.dunning_profiles WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_profile(&r)))
     }
 
-    async fn get_profile_by_customer(&self, org_id: Uuid, customer_id: Uuid) -> AtlasResult<Option<DunningProfile>> {
+    async fn get_profile_by_customer(
+        &self,
+        org_id: Uuid,
+        customer_id: Uuid,
+    ) -> AtlasResult<Option<DunningProfile>> {
         let row = sqlx::query("SELECT * FROM financials.dunning_profiles WHERE organization_id = $1 AND customer_id = $2")
             .bind(org_id).bind(customer_id)
             .fetch_optional(&self.pool).await
@@ -481,7 +646,11 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
         Ok(row.map(|r| row_to_profile(&r)))
     }
 
-    async fn list_profiles(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DunningProfile>> {
+    async fn list_profiles(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DunningProfile>> {
         let rows = if let Some(s) = status {
             sqlx::query("SELECT * FROM financials.dunning_profiles WHERE organization_id = $1 AND dunning_status = $2 ORDER BY created_at DESC")
                 .bind(org_id).bind(s)
@@ -494,7 +663,12 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
         Ok(rows.iter().map(row_to_profile).collect())
     }
 
-    async fn update_profile_status(&self, id: Uuid, status: &str, reason: Option<&str>) -> AtlasResult<DunningProfile> {
+    async fn update_profile_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        reason: Option<&str>,
+    ) -> AtlasResult<DunningProfile> {
         let row = sqlx::query(
             "UPDATE financials.dunning_profiles SET dunning_status = $2, hold_reason = $3, updated_at = now() WHERE id = $1 RETURNING *"
         ).bind(id).bind(status).bind(reason)
@@ -503,14 +677,23 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
         Ok(row_to_profile(&row))
     }
 
-    async fn update_profile_dunning_sent(&self, id: Uuid, level: i32, sent_date: chrono::NaiveDate) -> AtlasResult<DunningProfile> {
+    async fn update_profile_dunning_sent(
+        &self,
+        id: Uuid,
+        level: i32,
+        sent_date: chrono::NaiveDate,
+    ) -> AtlasResult<DunningProfile> {
         let row = sqlx::query(
             "UPDATE financials.dunning_profiles
              SET last_dunning_level = $2, last_dunning_date = $3,
                  dunning_letter_count = dunning_letter_count + 1, updated_at = now()
-             WHERE id = $1 RETURNING *"
-        ).bind(id).bind(level).bind(sent_date)
-        .fetch_one(&self.pool).await
+             WHERE id = $1 RETURNING *",
+        )
+        .bind(id)
+        .bind(level)
+        .bind(sent_date)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_profile(&row))
     }
@@ -519,24 +702,43 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
     // Dunning Runs
     // ========================================================================
 
-    async fn create_run(&self, org_id: Uuid, run_number: &str, description: Option<&str>,
-        letter_set_id: Option<Uuid>, run_date: chrono::NaiveDate, aging_as_of_date: chrono::NaiveDate,
-        currency_code: &str, minimum_amount_filter: Option<&str>, specific_level: Option<i32>,
-        customer_id_filter: Option<Uuid>, notes: Option<&str>,
-        created_by: Option<Uuid>) -> AtlasResult<DunningLetterRun> {
+    async fn create_run(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+        description: Option<&str>,
+        letter_set_id: Option<Uuid>,
+        run_date: chrono::NaiveDate,
+        aging_as_of_date: chrono::NaiveDate,
+        currency_code: &str,
+        minimum_amount_filter: Option<&str>,
+        specific_level: Option<i32>,
+        customer_id_filter: Option<Uuid>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<DunningLetterRun> {
         let row = sqlx::query(
             "INSERT INTO financials.dunning_letter_runs
                 (organization_id, run_number, description, letter_set_id, run_date,
                  aging_as_of_date, currency_code, minimum_amount_filter, specific_level,
                  customer_id_filter, notes, created_by)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-             RETURNING *"
+             RETURNING *",
         )
-        .bind(org_id).bind(run_number).bind(description).bind(letter_set_id)
-        .bind(run_date).bind(aging_as_of_date).bind(currency_code)
-        .bind(minimum_amount_filter).bind(specific_level).bind(customer_id_filter)
-        .bind(notes).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(run_number)
+        .bind(description)
+        .bind(letter_set_id)
+        .bind(run_date)
+        .bind(aging_as_of_date)
+        .bind(currency_code)
+        .bind(minimum_amount_filter)
+        .bind(specific_level)
+        .bind(customer_id_filter)
+        .bind(notes)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_run(&row))
     }
@@ -544,12 +746,17 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
     async fn get_run(&self, id: Uuid) -> AtlasResult<Option<DunningLetterRun>> {
         let row = sqlx::query("SELECT * FROM financials.dunning_letter_runs WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_run(&r)))
     }
 
-    async fn get_run_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<DunningLetterRun>> {
+    async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<DunningLetterRun>> {
         let row = sqlx::query("SELECT * FROM financials.dunning_letter_runs WHERE organization_id = $1 AND run_number = $2")
             .bind(org_id).bind(number)
             .fetch_optional(&self.pool).await
@@ -557,7 +764,11 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
         Ok(row.map(|r| row_to_run(&r)))
     }
 
-    async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DunningLetterRun>> {
+    async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DunningLetterRun>> {
         let rows = if let Some(s) = status {
             sqlx::query("SELECT * FROM financials.dunning_letter_runs WHERE organization_id = $1 AND status = $2 ORDER BY run_date DESC")
                 .bind(org_id).bind(s)
@@ -579,15 +790,25 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
         Ok(row_to_run(&row))
     }
 
-    async fn update_run_stats(&self, id: Uuid, total_customers: i32, total_letters_generated: i32,
-        total_overdue_amount: &str) -> AtlasResult<DunningLetterRun> {
+    async fn update_run_stats(
+        &self,
+        id: Uuid,
+        total_customers: i32,
+        total_letters_generated: i32,
+        total_overdue_amount: &str,
+    ) -> AtlasResult<DunningLetterRun> {
         let row = sqlx::query(
             "UPDATE financials.dunning_letter_runs
              SET total_customers = $2, total_letters_generated = $3,
                  total_overdue_amount = $4, updated_at = now()
-             WHERE id = $1 RETURNING *"
-        ).bind(id).bind(total_customers).bind(total_letters_generated).bind(total_overdue_amount)
-        .fetch_one(&self.pool).await
+             WHERE id = $1 RETURNING *",
+        )
+        .bind(id)
+        .bind(total_customers)
+        .bind(total_letters_generated)
+        .bind(total_overdue_amount)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_run(&row))
     }
@@ -596,12 +817,26 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
     // Run Results
     // ========================================================================
 
-    async fn create_run_result(&self, org_id: Uuid, run_id: Uuid, customer_id: Uuid,
-        customer_name: Option<&str>, customer_number: Option<&str>, profile_id: Option<Uuid>,
-        dunning_level: i32, level_name: Option<&str>, number_of_overdue_items: i32,
-        total_overdue_amount: &str, oldest_overdue_date: Option<chrono::NaiveDate>,
-        days_overdue: i32, finance_charge_amount: &str, letter_template: Option<&str>,
-        delivery_method: Option<&str>, status: &str, reason: Option<&str>) -> AtlasResult<DunningLetterRunResult> {
+    async fn create_run_result(
+        &self,
+        org_id: Uuid,
+        run_id: Uuid,
+        customer_id: Uuid,
+        customer_name: Option<&str>,
+        customer_number: Option<&str>,
+        profile_id: Option<Uuid>,
+        dunning_level: i32,
+        level_name: Option<&str>,
+        number_of_overdue_items: i32,
+        total_overdue_amount: &str,
+        oldest_overdue_date: Option<chrono::NaiveDate>,
+        days_overdue: i32,
+        finance_charge_amount: &str,
+        letter_template: Option<&str>,
+        delivery_method: Option<&str>,
+        status: &str,
+        reason: Option<&str>,
+    ) -> AtlasResult<DunningLetterRunResult> {
         let row = sqlx::query(
             "INSERT INTO financials.dunning_letter_run_results
                 (organization_id, run_id, customer_id, customer_name, customer_number,
@@ -609,14 +844,27 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
                  total_overdue_amount, oldest_overdue_date, days_overdue, finance_charge_amount,
                  letter_template, delivery_method, status, reason)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-             RETURNING *"
+             RETURNING *",
         )
-        .bind(org_id).bind(run_id).bind(customer_id).bind(customer_name)
-        .bind(customer_number).bind(profile_id).bind(dunning_level)
-        .bind(level_name).bind(number_of_overdue_items).bind(total_overdue_amount)
-        .bind(oldest_overdue_date).bind(days_overdue).bind(finance_charge_amount)
-        .bind(letter_template).bind(delivery_method).bind(status).bind(reason)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(run_id)
+        .bind(customer_id)
+        .bind(customer_name)
+        .bind(customer_number)
+        .bind(profile_id)
+        .bind(dunning_level)
+        .bind(level_name)
+        .bind(number_of_overdue_items)
+        .bind(total_overdue_amount)
+        .bind(oldest_overdue_date)
+        .bind(days_overdue)
+        .bind(finance_charge_amount)
+        .bind(letter_template)
+        .bind(delivery_method)
+        .bind(status)
+        .bind(reason)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_run_result(&row))
     }
@@ -633,14 +881,20 @@ impl DunningLetterManagementRepository for PostgresDunningLetterManagementReposi
     async fn get_run_result(&self, id: Uuid) -> AtlasResult<Option<DunningLetterRunResult>> {
         let row = sqlx::query("SELECT * FROM financials.dunning_letter_run_results WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_run_result(&r)))
     }
 
-    async fn update_run_result_status(&self, id: Uuid, status: &str,
-        sent_date: Option<chrono::NaiveDate>, delivery_confirmation: Option<&str>,
-        reason: Option<&str>) -> AtlasResult<DunningLetterRunResult> {
+    async fn update_run_result_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        sent_date: Option<chrono::NaiveDate>,
+        delivery_confirmation: Option<&str>,
+        reason: Option<&str>,
+    ) -> AtlasResult<DunningLetterRunResult> {
         let row = sqlx::query(
             "UPDATE financials.dunning_letter_run_results
              SET status = $2, sent_date = $3, delivery_confirmation = $4, reason = $5, updated_at = now()

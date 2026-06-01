@@ -16,8 +16,8 @@ pub struct PositivePayTransmissionResult {
 
 impl PositivePayService {
     /// Generates a Positive Pay file for a specific bank account.
-    /// Positive Pay is an automated fraud detection tool in Oracle Fusion Cash Management 
-    /// that matches the account number, check number, and dollar amount of each check presented for payment 
+    /// Positive Pay is an automated fraud detection tool in Oracle Fusion Cash Management
+    /// that matches the account number, check number, and dollar amount of each check presented for payment
     /// against a list of checks previously authorized and issued.
     #[must_use]
     pub fn generate_file(
@@ -44,7 +44,10 @@ impl PositivePayService {
             };
         }
 
-        if payment_records.iter().any(|(chk, amt)| chk.is_empty() || *amt <= 0.0) {
+        if payment_records
+            .iter()
+            .any(|(chk, amt)| chk.is_empty() || *amt <= 0.0)
+        {
             return PositivePayFileResult {
                 file_id: "".to_string(),
                 bank_account_id: bank_account_id.to_string(),
@@ -55,8 +58,11 @@ impl PositivePayService {
         }
 
         let total_records = payment_records.len() as u32;
-        let total_amount: f64 = payment_records.iter().map(|(_, amt)| if *amt > 0.0 { *amt } else { 0.0 }).sum();
-        
+        let total_amount: f64 = payment_records
+            .iter()
+            .map(|(_, amt)| if *amt > 0.0 { *amt } else { 0.0 })
+            .sum();
+
         PositivePayFileResult {
             file_id: format!("PPF-{}-{}", bank_account_id, total_records),
             bank_account_id: bank_account_id.to_string(),
@@ -149,9 +155,7 @@ mod tests {
 
     #[test]
     fn test_generate_file_empty_check_number() {
-        let records = vec![
-            ("".to_string(), 1500.0),
-        ];
+        let records = vec![("".to_string(), 1500.0)];
         let result = PositivePayService::generate_file("BANK-001", &records);
         assert_eq!(result.status, "REJECTED_INVALID_RECORD");
         assert_eq!(result.total_records, 0);

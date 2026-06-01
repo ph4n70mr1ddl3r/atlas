@@ -2,19 +2,18 @@
 //!
 //! Oracle Fusion: General Ledger > Suspense Accounts
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ── Definitions ──────────────────────────────────────────────
 
@@ -34,10 +33,20 @@ pub async fn create_definition(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.suspense_account_engine.create_definition(
-        org_id, &payload.code, &payload.name, payload.description.as_deref(),
-        &payload.balancing_segment, &payload.suspense_account, Some(user_id),
-    ).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .create_definition(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.balancing_segment,
+            &payload.suspense_account,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(d) => Ok(created_json(d)),
         Err(e) => {
             error!("Failed to create suspense definition: {}", e);
@@ -54,10 +63,18 @@ pub async fn get_definition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.get_definition(id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .get_definition(id)
+        .await
+    {
         Ok(Some(d)) => Ok(to_json(d)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get definition: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get definition: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -66,9 +83,17 @@ pub async fn list_definitions(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.suspense_account_engine.list_definitions(org_id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .list_definitions(org_id)
+        .await
+    {
         Ok(defs) => Ok(Json(serde_json::json!({ "data": defs }))),
-        Err(e) => { error!("Failed to list definitions: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list definitions: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -76,7 +101,12 @@ pub async fn activate_definition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.activate_definition(id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .activate_definition(id)
+        .await
+    {
         Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to activate definition: {}", e);
@@ -93,7 +123,12 @@ pub async fn deactivate_definition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.deactivate_definition(id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .deactivate_definition(id)
+        .await
+    {
         Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to deactivate definition: {}", e);
@@ -110,7 +145,12 @@ pub async fn delete_definition(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.financials.suspense_account_engine.delete_definition(id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .delete_definition(id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete definition: {}", e);
@@ -145,12 +185,24 @@ pub async fn create_entry(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.suspense_account_engine.create_entry(
-        org_id, payload.definition_id, payload.journal_entry_id, payload.journal_batch_id,
-        &payload.balancing_segment_value, &payload.suspense_amount,
-        payload.original_amount.as_deref(), &payload.entry_type, payload.entry_date,
-        &payload.currency_code, Some(user_id),
-    ).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .create_entry(
+            org_id,
+            payload.definition_id,
+            payload.journal_entry_id,
+            payload.journal_batch_id,
+            &payload.balancing_segment_value,
+            &payload.suspense_amount,
+            payload.original_amount.as_deref(),
+            &payload.entry_type,
+            payload.entry_date,
+            &payload.currency_code,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(e) => Ok(created_json(e)),
         Err(e) => {
             error!("Failed to create suspense entry: {}", e);
@@ -171,12 +223,17 @@ pub async fn get_entry(
     match state.financials.suspense_account_engine.get_entry(id).await {
         Ok(Some(e)) => Ok(to_json(e)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get entry: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get entry: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ListEntriesQuery { pub status: Option<String> }
+pub struct ListEntriesQuery {
+    pub status: Option<String>,
+}
 
 pub async fn list_entries(
     State(state): State<Arc<AppState>>,
@@ -184,7 +241,12 @@ pub async fn list_entries(
     Query(query): Query<ListEntriesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.suspense_account_engine.list_entries(org_id, query.status.as_deref()).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .list_entries(org_id, query.status.as_deref())
+        .await
+    {
         Ok(entries) => Ok(Json(serde_json::json!({ "data": entries }))),
         Err(e) => {
             error!("Failed to list entries: {}", e);
@@ -201,7 +263,12 @@ pub async fn list_entries_by_definition(
     Path(def_id): Path<Uuid>,
     Query(query): Query<ListEntriesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.list_entries_by_definition(def_id, query.status.as_deref()).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .list_entries_by_definition(def_id, query.status.as_deref())
+        .await
+    {
         Ok(entries) => Ok(Json(serde_json::json!({ "data": entries }))),
         Err(e) => {
             error!("Failed to list entries by definition: {}", e);
@@ -214,14 +281,21 @@ pub async fn list_entries_by_definition(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ReverseEntryRequest { pub resolution_notes: Option<String> }
+pub struct ReverseEntryRequest {
+    pub resolution_notes: Option<String>,
+}
 
 pub async fn reverse_entry(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(payload): Json<ReverseEntryRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.reverse_entry(id, payload.resolution_notes.as_deref()).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .reverse_entry(id, payload.resolution_notes.as_deref())
+        .await
+    {
         Ok(e) => Ok(to_json(e)),
         Err(e) => {
             error!("Failed to reverse entry: {}", e);
@@ -235,14 +309,21 @@ pub async fn reverse_entry(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct WriteOffEntryRequest { pub resolution_notes: Option<String> }
+pub struct WriteOffEntryRequest {
+    pub resolution_notes: Option<String>,
+}
 
 pub async fn write_off_entry(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(payload): Json<WriteOffEntryRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.write_off_entry(id, payload.resolution_notes.as_deref()).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .write_off_entry(id, payload.resolution_notes.as_deref())
+        .await
+    {
         Ok(e) => Ok(to_json(e)),
         Err(e) => {
             error!("Failed to write off entry: {}", e);
@@ -272,10 +353,18 @@ pub async fn create_clearing_batch(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.suspense_account_engine.create_clearing_batch(
-        org_id, &payload.batch_number, payload.description.as_deref(),
-        payload.clearing_date, Some(user_id),
-    ).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .create_clearing_batch(
+            org_id,
+            &payload.batch_number,
+            payload.description.as_deref(),
+            payload.clearing_date,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(b) => Ok(created_json(b)),
         Err(e) => {
             error!("Failed to create clearing batch: {}", e);
@@ -292,15 +381,25 @@ pub async fn get_clearing_batch(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.get_clearing_batch(id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .get_clearing_batch(id)
+        .await
+    {
         Ok(Some(b)) => Ok(to_json(b)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get clearing batch: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get clearing batch: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ListClearingBatchesQuery { pub status: Option<String> }
+pub struct ListClearingBatchesQuery {
+    pub status: Option<String>,
+}
 
 pub async fn list_clearing_batches(
     State(state): State<Arc<AppState>>,
@@ -308,7 +407,12 @@ pub async fn list_clearing_batches(
     Query(query): Query<ListClearingBatchesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.suspense_account_engine.list_clearing_batches(org_id, query.status.as_deref()).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .list_clearing_batches(org_id, query.status.as_deref())
+        .await
+    {
         Ok(batches) => Ok(Json(serde_json::json!({ "data": batches }))),
         Err(e) => {
             error!("Failed to list clearing batches: {}", e);
@@ -335,10 +439,19 @@ pub async fn add_clearing_line(
     Json(payload): Json<AddClearingLineRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.suspense_account_engine.add_clearing_line(
-        org_id, batch_id, payload.entry_id, &payload.clearing_account,
-        &payload.cleared_amount, payload.resolution_notes.as_deref(),
-    ).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .add_clearing_line(
+            org_id,
+            batch_id,
+            payload.entry_id,
+            &payload.clearing_account,
+            &payload.cleared_amount,
+            payload.resolution_notes.as_deref(),
+        )
+        .await
+    {
         Ok(l) => Ok(created_json(l)),
         Err(e) => {
             error!("Failed to add clearing line: {}", e);
@@ -356,9 +469,17 @@ pub async fn list_clearing_lines(
     State(state): State<Arc<AppState>>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.list_clearing_lines(batch_id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .list_clearing_lines(batch_id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
-        Err(e) => { error!("Failed to list clearing lines: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list clearing lines: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -366,7 +487,12 @@ pub async fn submit_clearing_batch(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.submit_clearing_batch(id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .submit_clearing_batch(id)
+        .await
+    {
         Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to submit clearing batch: {}", e);
@@ -384,7 +510,12 @@ pub async fn approve_clearing_batch(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.approve_clearing_batch(id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .approve_clearing_batch(id)
+        .await
+    {
         Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to approve clearing batch: {}", e);
@@ -401,7 +532,12 @@ pub async fn post_clearing_batch(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.suspense_account_engine.post_clearing_batch(id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .post_clearing_batch(id)
+        .await
+    {
         Ok(b) => Ok(to_json(b)),
         Err(e) => {
             error!("Failed to post clearing batch: {}", e);
@@ -417,7 +553,9 @@ pub async fn post_clearing_batch(
 // ── Aging & Dashboard ────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
-pub struct CreateAgingSnapshotRequest { pub snapshot_date: chrono::NaiveDate }
+pub struct CreateAgingSnapshotRequest {
+    pub snapshot_date: chrono::NaiveDate,
+}
 
 pub async fn create_aging_snapshot(
     State(state): State<Arc<AppState>>,
@@ -425,9 +563,17 @@ pub async fn create_aging_snapshot(
     Json(payload): Json<CreateAgingSnapshotRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.suspense_account_engine.create_aging_snapshot(org_id, payload.snapshot_date).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .create_aging_snapshot(org_id, payload.snapshot_date)
+        .await
+    {
         Ok(s) => Ok(created_json(s)),
-        Err(e) => { error!("Failed to create aging snapshot: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to create aging snapshot: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -436,8 +582,16 @@ pub async fn get_suspense_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.suspense_account_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .suspense_account_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(d) => Ok(to_json(d)),
-        Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

@@ -10,8 +10,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Revenue Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::RevenueEngine;
-pub use repository::{RevenueRepository, PostgresRevenueRepository};
+pub use repository::{PostgresRevenueRepository, RevenueRepository};

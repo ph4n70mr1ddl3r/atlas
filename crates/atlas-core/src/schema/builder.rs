@@ -1,12 +1,11 @@
 //! Schema Builder
-//! 
+//!
 //! Fluent API for building entity definitions programmatically.
 
-use atlas_shared::{EntityDefinition, FieldDefinition, FieldType, IndexDefinition};
-use atlas_shared::{WorkflowDefinition, StateDefinition, StateType, TransitionDefinition};
 use atlas_shared::SecurityPolicy;
+use atlas_shared::{EntityDefinition, FieldDefinition, FieldType, IndexDefinition};
+use atlas_shared::{StateDefinition, StateType, TransitionDefinition, WorkflowDefinition};
 use uuid::Uuid;
-
 
 /// Fluent builder for `EntityDefinition`
 pub struct SchemaBuilder {
@@ -26,12 +25,23 @@ pub struct SchemaBuilder {
 }
 
 impl SchemaBuilder {
-    #[must_use] 
+    #[must_use]
     pub fn new(name: &str, label: &str) -> Self {
-        let plural_label = if label.ends_with('s') || label.ends_with("sh") || label.ends_with("ch") || label.ends_with('x') || label.ends_with('z') {
+        let plural_label = if label.ends_with('s')
+            || label.ends_with("sh")
+            || label.ends_with("ch")
+            || label.ends_with('x')
+            || label.ends_with('z')
+        {
             format!("{label}es")
-        } else if label.ends_with('y') && !label.ends_with("ay") && !label.ends_with("ey") && !label.ends_with("iy") && !label.ends_with("oy") && !label.ends_with("uy") {
-            format!("{}ies", &label[..label.len()-1])
+        } else if label.ends_with('y')
+            && !label.ends_with("ay")
+            && !label.ends_with("ey")
+            && !label.ends_with("iy")
+            && !label.ends_with("oy")
+            && !label.ends_with("uy")
+        {
+            format!("{}ies", &label[..label.len() - 1])
         } else if let Some(stripped) = label.strip_suffix("fe") {
             format!("{stripped}ves")
         } else if let Some(stripped) = label.strip_suffix('f') {
@@ -39,7 +49,7 @@ impl SchemaBuilder {
         } else {
             format!("{label}s")
         };
-        
+
         Self {
             name: name.to_string(),
             label: label.to_string(),
@@ -56,238 +66,281 @@ impl SchemaBuilder {
             color: None,
         }
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn plural_label(mut self, plural: &str) -> Self {
         self.plural_label = plural.to_string();
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn table_name(mut self, name: &str) -> Self {
         self.table_name = Some(name.to_string());
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn description(mut self, desc: &str) -> Self {
         self.description = Some(desc.to_string());
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn icon(mut self, icon: &str) -> Self {
         self.icon = Some(icon.to_string());
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn color(mut self, color: &str) -> Self {
         self.color = Some(color.to_string());
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub const fn audit_disabled(mut self) -> Self {
         self.is_audit_enabled = false;
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub const fn hard_delete(mut self) -> Self {
         self.is_soft_delete = false;
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn add_field(mut self, field: FieldDefinition) -> Self {
         self.fields.push(field);
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn add_index(mut self, index: IndexDefinition) -> Self {
         self.indexes.push(index);
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn workflow(mut self, workflow: WorkflowDefinition) -> Self {
         self.workflow = Some(workflow);
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn security(mut self, policy: SecurityPolicy) -> Self {
         self.security = Some(policy);
         self
     }
-    
+
     /// Add a string field
-    #[must_use] 
+    #[must_use]
     pub fn string(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::String {
-            max_length: None,
-            pattern: None,
-        }));
+        self.fields.push(FieldDefinition::new(
+            name,
+            label,
+            FieldType::String {
+                max_length: None,
+                pattern: None,
+            },
+        ));
         self
     }
-    
+
     /// Add a required string field
-    #[must_use] 
+    #[must_use]
     pub fn required_string(mut self, name: &str, label: &str) -> Self {
-        let mut field = FieldDefinition::new(name, label, FieldType::String {
-            max_length: None,
-            pattern: None,
-        });
+        let mut field = FieldDefinition::new(
+            name,
+            label,
+            FieldType::String {
+                max_length: None,
+                pattern: None,
+            },
+        );
         field.is_required = true;
         self.fields.push(field);
         self
     }
-    
+
     /// Add an integer field
-    #[must_use] 
+    #[must_use]
     pub fn integer(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Integer {
-            min: None,
-            max: None,
-        }));
+        self.fields.push(FieldDefinition::new(
+            name,
+            label,
+            FieldType::Integer {
+                min: None,
+                max: None,
+            },
+        ));
         self
     }
-    
+
     /// Add a required integer field
-    #[must_use] 
+    #[must_use]
     pub fn required_integer(mut self, name: &str, label: &str) -> Self {
-        let mut field = FieldDefinition::new(name, label, FieldType::Integer {
-            min: None,
-            max: None,
-        });
+        let mut field = FieldDefinition::new(
+            name,
+            label,
+            FieldType::Integer {
+                min: None,
+                max: None,
+            },
+        );
         field.is_required = true;
         self.fields.push(field);
         self
     }
-    
+
     /// Add a decimal field
-    #[must_use] 
+    #[must_use]
     pub fn decimal(mut self, name: &str, label: &str, precision: u8, scale: u8) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Decimal {
-            precision,
-            scale,
-        }));
+        self.fields.push(FieldDefinition::new(
+            name,
+            label,
+            FieldType::Decimal { precision, scale },
+        ));
         self
     }
-    
+
     /// Add a boolean field
-    #[must_use] 
+    #[must_use]
     pub fn boolean(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Boolean));
+        self.fields
+            .push(FieldDefinition::new(name, label, FieldType::Boolean));
         self
     }
-    
+
     /// Add a date field
-    #[must_use] 
+    #[must_use]
     pub fn date(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Date));
+        self.fields
+            .push(FieldDefinition::new(name, label, FieldType::Date));
         self
     }
-    
+
     /// Add a datetime field
-    #[must_use] 
+    #[must_use]
     pub fn datetime(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::DateTime));
+        self.fields
+            .push(FieldDefinition::new(name, label, FieldType::DateTime));
         self
     }
-    
+
     /// Add an enum field
-    #[must_use] 
+    #[must_use]
     pub fn enumeration(mut self, name: &str, label: &str, values: Vec<&str>) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Enum {
-            values: values.into_iter().map(std::string::ToString::to_string).collect(),
-        }));
+        self.fields.push(FieldDefinition::new(
+            name,
+            label,
+            FieldType::Enum {
+                values: values
+                    .into_iter()
+                    .map(std::string::ToString::to_string)
+                    .collect(),
+            },
+        ));
         self
     }
-    
+
     /// Add a reference field
-    #[must_use] 
+    #[must_use]
     pub fn reference(mut self, name: &str, label: &str, entity: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Reference {
-            entity: entity.to_string(),
-            field: None,
-        }));
+        self.fields.push(FieldDefinition::new(
+            name,
+            label,
+            FieldType::Reference {
+                entity: entity.to_string(),
+                field: None,
+            },
+        ));
         self
     }
-    
+
     /// Add a currency field
-    #[must_use] 
+    #[must_use]
     pub fn currency(mut self, name: &str, label: &str, code: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Currency {
-            code: code.to_string(),
-        }));
+        self.fields.push(FieldDefinition::new(
+            name,
+            label,
+            FieldType::Currency {
+                code: code.to_string(),
+            },
+        ));
         self
     }
-    
+
     /// Add an email field
-    #[must_use] 
+    #[must_use]
     pub fn email(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Email));
+        self.fields
+            .push(FieldDefinition::new(name, label, FieldType::Email));
         self
     }
-    
+
     /// Add a phone field
-    #[must_use] 
+    #[must_use]
     pub fn phone(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Phone));
+        self.fields
+            .push(FieldDefinition::new(name, label, FieldType::Phone));
         self
     }
-    
+
     /// Add a rich text field
-    #[must_use] 
+    #[must_use]
     pub fn rich_text(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::RichText));
+        self.fields
+            .push(FieldDefinition::new(name, label, FieldType::RichText));
         self
     }
-    
+
     /// Add an address field
-    #[must_use] 
+    #[must_use]
     pub fn address(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Address));
+        self.fields
+            .push(FieldDefinition::new(name, label, FieldType::Address));
         self
     }
-    
+
     /// Add a URL field
-    #[must_use] 
+    #[must_use]
     pub fn url(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Url));
+        self.fields
+            .push(FieldDefinition::new(name, label, FieldType::Url));
         self
     }
-    
+
     /// Add a JSON field
-    #[must_use] 
+    #[must_use]
     pub fn json(mut self, name: &str, label: &str) -> Self {
-        self.fields.push(FieldDefinition::new(name, label, FieldType::Json));
+        self.fields
+            .push(FieldDefinition::new(name, label, FieldType::Json));
         self
     }
-    
+
     /// Add a boolean field with a default value
-    #[must_use] 
+    #[must_use]
     pub fn boolean_default(mut self, name: &str, label: &str, default: bool) -> Self {
         let mut field = FieldDefinition::new(name, label, FieldType::Boolean);
         field.default_value = Some(serde_json::json!(default));
         self.fields.push(field);
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn build(self) -> EntityDefinition {
         // Auto-generate display_order for fields
-        let fields: Vec<_> = self.fields.into_iter()
+        let fields: Vec<_> = self
+            .fields
+            .into_iter()
             .enumerate()
             .map(|(i, mut f)| {
                 f.display_order = i as i32;
                 f
             })
             .collect();
-        
+
         EntityDefinition {
             id: Some(Uuid::new_v4()),
             name: self.name,
@@ -317,7 +370,7 @@ pub struct WorkflowBuilder {
 }
 
 impl WorkflowBuilder {
-    #[must_use] 
+    #[must_use]
     pub fn new(name: &str, initial_state: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -326,8 +379,8 @@ impl WorkflowBuilder {
             transitions: vec![],
         }
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn add_state(mut self, name: &str, label: &str, state_type: StateType) -> Self {
         self.states.push(StateDefinition {
             name: name.to_string(),
@@ -339,8 +392,8 @@ impl WorkflowBuilder {
         });
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn initial_state(mut self, name: &str, label: &str) -> Self {
         self.states.push(StateDefinition {
             name: name.to_string(),
@@ -353,8 +406,8 @@ impl WorkflowBuilder {
         self.initial_state = name.to_string();
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn working_state(mut self, name: &str, label: &str) -> Self {
         self.states.push(StateDefinition {
             name: name.to_string(),
@@ -366,8 +419,8 @@ impl WorkflowBuilder {
         });
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn final_state(mut self, name: &str, label: &str) -> Self {
         self.states.push(StateDefinition {
             name: name.to_string(),
@@ -379,8 +432,8 @@ impl WorkflowBuilder {
         });
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn transition(mut self, from: &str, to: &str, action: &str) -> Self {
         self.transitions.push(TransitionDefinition {
             name: format!("{from}:{to}"),
@@ -395,8 +448,8 @@ impl WorkflowBuilder {
         });
         self
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn build(self) -> WorkflowDefinition {
         WorkflowDefinition {
             id: Some(Uuid::new_v4()),
@@ -412,7 +465,7 @@ impl WorkflowBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_entity_builder() {
         let entity = SchemaBuilder::new("employees", "Employee")
@@ -429,7 +482,7 @@ mod tests {
             .enumeration("status", "Status", vec!["active", "inactive", "terminated"])
             .reference("department_id", "Department", "departments")
             .build();
-        
+
         assert_eq!(entity.name, "employees");
         assert_eq!(entity.label, "Employee");
         assert_eq!(entity.plural_label, "People");
@@ -437,7 +490,7 @@ mod tests {
         assert!(entity.fields[0].is_required); // employee_number
         assert!(entity.fields[1].is_required); // first_name
     }
-    
+
     #[test]
     fn test_workflow_builder() {
         let workflow = WorkflowBuilder::new("purchase_order_approval", "draft")
@@ -449,7 +502,7 @@ mod tests {
             .transition("submitted", "approved", "approve")
             .transition("submitted", "rejected", "reject")
             .build();
-        
+
         assert_eq!(workflow.initial_state, "draft");
         assert_eq!(workflow.states.len(), 4);
         assert_eq!(workflow.transitions.len(), 3);

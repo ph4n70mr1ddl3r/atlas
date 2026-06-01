@@ -2,11 +2,8 @@
 //!
 //! `PostgreSQL` storage for GL accounts, journal entries, journal lines.
 
-use atlas_shared::{
-    GlAccount, GlJournalEntry, GlJournalLine,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult, GlAccount, GlJournalEntry, GlJournalLine};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -28,8 +25,13 @@ pub trait GeneralLedgerRepository: Send + Sync {
     ) -> AtlasResult<GlAccount>;
 
     async fn get_account(&self, id: Uuid) -> AtlasResult<Option<GlAccount>>;
-    async fn get_account_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GlAccount>>;
-    async fn list_accounts(&self, org_id: Uuid, account_type: Option<&str>) -> AtlasResult<Vec<GlAccount>>;
+    async fn get_account_by_code(&self, org_id: Uuid, code: &str)
+        -> AtlasResult<Option<GlAccount>>;
+    async fn list_accounts(
+        &self,
+        org_id: Uuid,
+        account_type: Option<&str>,
+    ) -> AtlasResult<Vec<GlAccount>>;
 
     // Journal Entries
     async fn create_journal_entry(
@@ -47,10 +49,31 @@ pub trait GeneralLedgerRepository: Send + Sync {
     ) -> AtlasResult<GlJournalEntry>;
 
     async fn get_journal_entry(&self, id: Uuid) -> AtlasResult<Option<GlJournalEntry>>;
-    async fn get_journal_entry_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<GlJournalEntry>>;
-    async fn list_journal_entries(&self, org_id: Uuid, status: Option<&str>, entry_type: Option<&str>) -> AtlasResult<Vec<GlJournalEntry>>;
-    async fn update_journal_status(&self, id: Uuid, status: &str, posted_by: Option<Uuid>, reversal_entry_id: Option<Uuid>) -> AtlasResult<GlJournalEntry>;
-    async fn update_journal_totals(&self, id: Uuid, total_debit: &str, total_credit: &str, is_balanced: bool) -> AtlasResult<()>;
+    async fn get_journal_entry_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<GlJournalEntry>>;
+    async fn list_journal_entries(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        entry_type: Option<&str>,
+    ) -> AtlasResult<Vec<GlJournalEntry>>;
+    async fn update_journal_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        posted_by: Option<Uuid>,
+        reversal_entry_id: Option<Uuid>,
+    ) -> AtlasResult<GlJournalEntry>;
+    async fn update_journal_totals(
+        &self,
+        id: Uuid,
+        total_debit: &str,
+        total_credit: &str,
+        is_balanced: bool,
+    ) -> AtlasResult<()>;
 
     // Journal Lines
     async fn create_journal_line(
@@ -76,8 +99,18 @@ pub trait GeneralLedgerRepository: Send + Sync {
     async fn list_journal_lines(&self, journal_entry_id: Uuid) -> AtlasResult<Vec<GlJournalLine>>;
 
     // Trial Balance helpers
-    async fn get_account_period_activity(&self, org_id: Uuid, account_code: &str, as_of_date: chrono::NaiveDate) -> AtlasResult<(f64, f64)>;
-    async fn get_account_balance(&self, org_id: Uuid, account_code: &str, as_of_date: chrono::NaiveDate) -> AtlasResult<f64>;
+    async fn get_account_period_activity(
+        &self,
+        org_id: Uuid,
+        account_code: &str,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<(f64, f64)>;
+    async fn get_account_balance(
+        &self,
+        org_id: Uuid,
+        account_code: &str,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<f64>;
 }
 
 /// `PostgreSQL` implementation
@@ -86,7 +119,7 @@ pub struct PostgresGeneralLedgerRepository {
 }
 
 impl PostgresGeneralLedgerRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -195,9 +228,15 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(account_code).bind(account_name).bind(description)
-        .bind(account_type).bind(subtype).bind(parent_account_id)
-        .bind(natural_balance).bind(created_by)
+        .bind(org_id)
+        .bind(account_code)
+        .bind(account_name)
+        .bind(description)
+        .bind(account_type)
+        .bind(subtype)
+        .bind(parent_account_id)
+        .bind(natural_balance)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -214,7 +253,11 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
         Ok(row.map(|r| row_to_account(&r)))
     }
 
-    async fn get_account_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GlAccount>> {
+    async fn get_account_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<GlAccount>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.gl_accounts WHERE organization_id = $1 AND account_code = $2 AND is_active = true"
         )
@@ -225,7 +268,11 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
         Ok(row.map(|r| row_to_account(&r)))
     }
 
-    async fn list_accounts(&self, org_id: Uuid, account_type: Option<&str>) -> AtlasResult<Vec<GlAccount>> {
+    async fn list_accounts(
+        &self,
+        org_id: Uuid,
+        account_type: Option<&str>,
+    ) -> AtlasResult<Vec<GlAccount>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.gl_accounts
@@ -234,7 +281,8 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
             ORDER BY account_code
             ",
         )
-        .bind(org_id).bind(account_type)
+        .bind(org_id)
+        .bind(account_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -265,8 +313,16 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(entry_number).bind(entry_date).bind(gl_date).bind(entry_type)
-        .bind(description).bind(currency_code).bind(source_type).bind(source_id).bind(created_by)
+        .bind(org_id)
+        .bind(entry_number)
+        .bind(entry_date)
+        .bind(gl_date)
+        .bind(entry_type)
+        .bind(description)
+        .bind(currency_code)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -283,7 +339,11 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
         Ok(row.map(|r| row_to_journal_entry(&r)))
     }
 
-    async fn get_journal_entry_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<GlJournalEntry>> {
+    async fn get_journal_entry_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<GlJournalEntry>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.gl_journal_entries WHERE organization_id = $1 AND entry_number = $2"
         )
@@ -294,7 +354,12 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
         Ok(row.map(|r| row_to_journal_entry(&r)))
     }
 
-    async fn list_journal_entries(&self, org_id: Uuid, status: Option<&str>, entry_type: Option<&str>) -> AtlasResult<Vec<GlJournalEntry>> {
+    async fn list_journal_entries(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        entry_type: Option<&str>,
+    ) -> AtlasResult<Vec<GlJournalEntry>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.gl_journal_entries
@@ -304,14 +369,22 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
             ORDER BY gl_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(entry_type)
+        .bind(org_id)
+        .bind(status)
+        .bind(entry_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_journal_entry).collect())
     }
 
-    async fn update_journal_status(&self, id: Uuid, status: &str, posted_by: Option<Uuid>, reversal_entry_id: Option<Uuid>) -> AtlasResult<GlJournalEntry> {
+    async fn update_journal_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        posted_by: Option<Uuid>,
+        reversal_entry_id: Option<Uuid>,
+    ) -> AtlasResult<GlJournalEntry> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.gl_journal_entries
@@ -324,14 +397,23 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(posted_by).bind(reversal_entry_id)
+        .bind(id)
+        .bind(status)
+        .bind(posted_by)
+        .bind(reversal_entry_id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_journal_entry(&row))
     }
 
-    async fn update_journal_totals(&self, id: Uuid, total_debit: &str, total_credit: &str, is_balanced: bool) -> AtlasResult<()> {
+    async fn update_journal_totals(
+        &self,
+        id: Uuid,
+        total_debit: &str,
+        total_credit: &str,
+        is_balanced: bool,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"
             UPDATE _atlas.gl_journal_entries
@@ -342,7 +424,10 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(total_debit).bind(total_credit).bind(is_balanced)
+        .bind(id)
+        .bind(total_debit)
+        .bind(total_credit)
+        .bind(is_balanced)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -382,10 +467,22 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(journal_entry_id).bind(line_number).bind(line_type)
-        .bind(account_code).bind(account_name).bind(description)
-        .bind(entered_dr).bind(entered_cr).bind(accounted_dr).bind(accounted_cr)
-        .bind(currency_code).bind(exchange_rate).bind(reference).bind(tax_code).bind(created_by)
+        .bind(org_id)
+        .bind(journal_entry_id)
+        .bind(line_number)
+        .bind(line_type)
+        .bind(account_code)
+        .bind(account_name)
+        .bind(description)
+        .bind(entered_dr)
+        .bind(entered_cr)
+        .bind(accounted_dr)
+        .bind(accounted_cr)
+        .bind(currency_code)
+        .bind(exchange_rate)
+        .bind(reference)
+        .bind(tax_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -404,7 +501,12 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
         Ok(rows.iter().map(row_to_journal_line).collect())
     }
 
-    async fn get_account_period_activity(&self, org_id: Uuid, account_code: &str, as_of_date: chrono::NaiveDate) -> AtlasResult<(f64, f64)> {
+    async fn get_account_period_activity(
+        &self,
+        org_id: Uuid,
+        account_code: &str,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<(f64, f64)> {
         let row = sqlx::query(
             r"
             SELECT
@@ -418,7 +520,9 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
               AND je.gl_date <= $3
             ",
         )
-        .bind(org_id).bind(account_code).bind(as_of_date)
+        .bind(org_id)
+        .bind(account_code)
+        .bind(as_of_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -429,7 +533,12 @@ impl GeneralLedgerRepository for PostgresGeneralLedgerRepository {
         ))
     }
 
-    async fn get_account_balance(&self, _org_id: Uuid, _account_code: &str, _as_of_date: chrono::NaiveDate) -> AtlasResult<f64> {
+    async fn get_account_balance(
+        &self,
+        _org_id: Uuid,
+        _account_code: &str,
+        _as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<f64> {
         // For now, beginning balance is 0 (would need opening balances table)
         Ok(0.0)
     }

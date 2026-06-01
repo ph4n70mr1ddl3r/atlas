@@ -2,19 +2,18 @@
 //!
 //! Oracle Fusion: Receivables > Receipt Write-Off
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateReasonRequest {
@@ -34,13 +33,21 @@ pub async fn create_reason(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.receipt_write_off_engine.create_reason(
-        org_id, &payload.code, &payload.name,
-        payload.description.as_deref(),
-        payload.gl_account_code.as_deref(),
-        payload.requires_approval.unwrap_or(true),
-        payload.max_auto_approve_amount.as_deref(), Some(user_id),
-    ).await {
+    match state
+        .financials
+        .receipt_write_off_engine
+        .create_reason(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            payload.gl_account_code.as_deref(),
+            payload.requires_approval.unwrap_or(true),
+            payload.max_auto_approve_amount.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(r) => Ok(created_json(r)),
         Err(e) => {
             error!("Failed to create write-off reason: {}", e);
@@ -58,9 +65,17 @@ pub async fn list_reasons(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.receipt_write_off_engine.list_reasons(org_id).await {
+    match state
+        .financials
+        .receipt_write_off_engine
+        .list_reasons(org_id)
+        .await
+    {
         Ok(items) => Ok(Json(serde_json::json!({ "data": items }))),
-        Err(e) => { error!("Failed to list write-off reasons: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list write-off reasons: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -83,12 +98,23 @@ pub async fn create_write_off_request(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.receipt_write_off_engine.create_request(
-        org_id, payload.receipt_id, &payload.receipt_number,
-        payload.customer_id, payload.customer_number.as_deref(),
-        &payload.write_off_amount, &payload.currency_code,
-        payload.reason_id, payload.comments.as_deref(), Some(user_id),
-    ).await {
+    match state
+        .financials
+        .receipt_write_off_engine
+        .create_request(
+            org_id,
+            payload.receipt_id,
+            &payload.receipt_number,
+            payload.customer_id,
+            payload.customer_number.as_deref(),
+            &payload.write_off_amount,
+            &payload.currency_code,
+            payload.reason_id,
+            payload.comments.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(r) => Ok(created_json(r)),
         Err(e) => {
             error!("Failed to create write-off request: {}", e);
@@ -112,9 +138,17 @@ pub async fn list_write_off_requests(
     Query(query): Query<ListWriteOffRequestsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.receipt_write_off_engine.list_requests(org_id, query.status.as_deref(), None).await {
+    match state
+        .financials
+        .receipt_write_off_engine
+        .list_requests(org_id, query.status.as_deref(), None)
+        .await
+    {
         Ok(items) => Ok(Json(serde_json::json!({ "data": items }))),
-        Err(e) => { error!("Failed to list write-off requests: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list write-off requests: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -124,12 +158,18 @@ pub async fn approve_write_off_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.receipt_write_off_engine.approve_request(id, user_id).await {
+    match state
+        .financials
+        .receipt_write_off_engine
+        .approve_request(id, user_id)
+        .await
+    {
         Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to approve write-off request: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -143,12 +183,18 @@ pub async fn post_write_off_request(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.receipt_write_off_engine.post_request(id, user_id, None).await {
+    match state
+        .financials
+        .receipt_write_off_engine
+        .post_request(id, user_id, None)
+        .await
+    {
         Ok(r) => Ok(to_json(r)),
         Err(e) => {
             error!("Failed to post write-off request: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -161,8 +207,16 @@ pub async fn get_write_off_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.receipt_write_off_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .receipt_write_off_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dash) => Ok(to_json(dash)),
-        Err(e) => { error!("Failed to get write-off dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get write-off dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

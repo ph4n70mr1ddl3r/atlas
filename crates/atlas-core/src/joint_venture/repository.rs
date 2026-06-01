@@ -3,14 +3,12 @@
 //! `PostgreSQL` storage for joint ventures, partners, AFEs,
 //! cost/revenue distributions, and billings.
 
-use atlas_shared::{
-    JointVenture, JointVenturePartner, JointVentureAfe,
-    JvCostDistribution, JvCostDistributionLine,
-    JvRevenueDistribution, JvRevenueDistributionLine,
-    JvBilling, JvBillingLine, JvDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, JointVenture, JointVentureAfe, JointVenturePartner, JvBilling,
+    JvBillingLine, JvCostDistribution, JvCostDistributionLine, JvDashboard, JvRevenueDistribution,
+    JvRevenueDistributionLine,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -21,131 +19,266 @@ pub trait JointVentureRepository: Send + Sync {
     // Joint Ventures
     async fn create_venture(
         &self,
-        org_id: Uuid, venture_number: &str, name: &str, description: Option<&str>,
-        operator_id: Option<Uuid>, operator_name: Option<&str>,
-        currency_code: &str, start_date: Option<chrono::NaiveDate>,
-        end_date: Option<chrono::NaiveDate>, accounting_method: &str,
-        billing_cycle: &str, cost_cap_amount: Option<&str>,
+        org_id: Uuid,
+        venture_number: &str,
+        name: &str,
+        description: Option<&str>,
+        operator_id: Option<Uuid>,
+        operator_name: Option<&str>,
+        currency_code: &str,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
+        accounting_method: &str,
+        billing_cycle: &str,
+        cost_cap_amount: Option<&str>,
         cost_cap_currency: Option<&str>,
-        gl_revenue_account: Option<&str>, gl_cost_account: Option<&str>,
-        gl_billing_account: Option<&str>, created_by: Option<Uuid>,
+        gl_revenue_account: Option<&str>,
+        gl_cost_account: Option<&str>,
+        gl_billing_account: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<JointVenture>;
 
     async fn get_venture(&self, id: Uuid) -> AtlasResult<Option<JointVenture>>;
-    async fn get_venture_by_number(&self, org_id: Uuid, venture_number: &str) -> AtlasResult<Option<JointVenture>>;
-    async fn list_ventures(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JointVenture>>;
+    async fn get_venture_by_number(
+        &self,
+        org_id: Uuid,
+        venture_number: &str,
+    ) -> AtlasResult<Option<JointVenture>>;
+    async fn list_ventures(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JointVenture>>;
     async fn update_venture_status(&self, id: Uuid, status: &str) -> AtlasResult<JointVenture>;
 
     // Venture Partners
     async fn create_partner(
         &self,
-        org_id: Uuid, venture_id: Uuid, partner_id: Uuid, partner_name: &str,
-        partner_type: &str, ownership_percentage: &str,
-        revenue_interest_pct: Option<&str>, cost_bearing_pct: Option<&str>,
-        role: &str, billing_contact: Option<&str>,
-        billing_email: Option<&str>, billing_address: Option<&str>,
-        effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        venture_id: Uuid,
+        partner_id: Uuid,
+        partner_name: &str,
+        partner_type: &str,
+        ownership_percentage: &str,
+        revenue_interest_pct: Option<&str>,
+        cost_bearing_pct: Option<&str>,
+        role: &str,
+        billing_contact: Option<&str>,
+        billing_email: Option<&str>,
+        billing_address: Option<&str>,
+        effective_from: chrono::NaiveDate,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JointVenturePartner>;
 
     async fn get_partner(&self, id: Uuid) -> AtlasResult<Option<JointVenturePartner>>;
-    async fn list_partners_by_venture(&self, venture_id: Uuid) -> AtlasResult<Vec<JointVenturePartner>>;
-    async fn list_active_partners(&self, venture_id: Uuid, on_date: chrono::NaiveDate) -> AtlasResult<Vec<JointVenturePartner>>;
-    async fn update_partner_status(&self, id: Uuid, status: &str) -> AtlasResult<JointVenturePartner>;
+    async fn list_partners_by_venture(
+        &self,
+        venture_id: Uuid,
+    ) -> AtlasResult<Vec<JointVenturePartner>>;
+    async fn list_active_partners(
+        &self,
+        venture_id: Uuid,
+        on_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<JointVenturePartner>>;
+    async fn update_partner_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<JointVenturePartner>;
     async fn delete_partner(&self, id: Uuid) -> AtlasResult<()>;
 
     // AFEs
     async fn create_afe(
         &self,
-        org_id: Uuid, venture_id: Uuid, afe_number: &str, title: &str,
-        description: Option<&str>, estimated_cost: &str, currency_code: &str,
-        cost_center: Option<&str>, work_area: Option<&str>, well_name: Option<&str>,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        venture_id: Uuid,
+        afe_number: &str,
+        title: &str,
+        description: Option<&str>,
+        estimated_cost: &str,
+        currency_code: &str,
+        cost_center: Option<&str>,
+        work_area: Option<&str>,
+        well_name: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JointVentureAfe>;
 
     async fn get_afe(&self, id: Uuid) -> AtlasResult<Option<JointVentureAfe>>;
-    async fn get_afe_by_number(&self, org_id: Uuid, afe_number: &str) -> AtlasResult<Option<JointVentureAfe>>;
-    async fn list_afes_by_venture(&self, venture_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JointVentureAfe>>;
+    async fn get_afe_by_number(
+        &self,
+        org_id: Uuid,
+        afe_number: &str,
+    ) -> AtlasResult<Option<JointVentureAfe>>;
+    async fn list_afes_by_venture(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JointVentureAfe>>;
     async fn update_afe_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
         rejected_reason: Option<&str>,
     ) -> AtlasResult<JointVentureAfe>;
     async fn update_afe_costs(
-        &self, id: Uuid, actual_cost: &str, committed_cost: &str, remaining_budget: &str,
+        &self,
+        id: Uuid,
+        actual_cost: &str,
+        committed_cost: &str,
+        remaining_budget: &str,
     ) -> AtlasResult<()>;
 
     // Cost Distributions
     async fn create_cost_distribution(
         &self,
-        org_id: Uuid, venture_id: Uuid, distribution_number: &str,
-        afe_id: Option<Uuid>, description: Option<&str>,
-        total_amount: &str, currency_code: &str, cost_type: &str,
+        org_id: Uuid,
+        venture_id: Uuid,
+        distribution_number: &str,
+        afe_id: Option<Uuid>,
+        description: Option<&str>,
+        total_amount: &str,
+        currency_code: &str,
+        cost_type: &str,
         distribution_date: chrono::NaiveDate,
-        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JvCostDistribution>;
 
     async fn get_cost_distribution(&self, id: Uuid) -> AtlasResult<Option<JvCostDistribution>>;
-    async fn list_cost_distributions(&self, venture_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JvCostDistribution>>;
-    async fn update_cost_distribution_status(&self, id: Uuid, status: &str) -> AtlasResult<JvCostDistribution>;
+    async fn list_cost_distributions(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JvCostDistribution>>;
+    async fn update_cost_distribution_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<JvCostDistribution>;
 
     async fn create_cost_distribution_line(
         &self,
-        org_id: Uuid, distribution_id: Uuid, partner_id: Uuid, partner_name: Option<&str>,
-        ownership_pct: &str, cost_bearing_pct: &str, distributed_amount: &str,
-        gl_account_code: Option<&str>, line_description: Option<&str>,
+        org_id: Uuid,
+        distribution_id: Uuid,
+        partner_id: Uuid,
+        partner_name: Option<&str>,
+        ownership_pct: &str,
+        cost_bearing_pct: &str,
+        distributed_amount: &str,
+        gl_account_code: Option<&str>,
+        line_description: Option<&str>,
     ) -> AtlasResult<JvCostDistributionLine>;
 
-    async fn list_cost_distribution_lines(&self, distribution_id: Uuid) -> AtlasResult<Vec<JvCostDistributionLine>>;
+    async fn list_cost_distribution_lines(
+        &self,
+        distribution_id: Uuid,
+    ) -> AtlasResult<Vec<JvCostDistributionLine>>;
 
     // Revenue Distributions
     async fn create_revenue_distribution(
         &self,
-        org_id: Uuid, venture_id: Uuid, distribution_number: &str,
-        description: Option<&str>, total_amount: &str, currency_code: &str,
-        revenue_type: &str, distribution_date: chrono::NaiveDate,
-        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        org_id: Uuid,
+        venture_id: Uuid,
+        distribution_number: &str,
+        description: Option<&str>,
+        total_amount: &str,
+        currency_code: &str,
+        revenue_type: &str,
+        distribution_date: chrono::NaiveDate,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JvRevenueDistribution>;
 
-    async fn get_revenue_distribution(&self, id: Uuid) -> AtlasResult<Option<JvRevenueDistribution>>;
-    async fn list_revenue_distributions(&self, venture_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JvRevenueDistribution>>;
-    async fn update_revenue_distribution_status(&self, id: Uuid, status: &str) -> AtlasResult<JvRevenueDistribution>;
+    async fn get_revenue_distribution(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<JvRevenueDistribution>>;
+    async fn list_revenue_distributions(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JvRevenueDistribution>>;
+    async fn update_revenue_distribution_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<JvRevenueDistribution>;
 
     async fn create_revenue_distribution_line(
         &self,
-        org_id: Uuid, distribution_id: Uuid, partner_id: Uuid, partner_name: Option<&str>,
-        revenue_interest_pct: &str, distributed_amount: &str,
-        gl_account_code: Option<&str>, line_description: Option<&str>,
+        org_id: Uuid,
+        distribution_id: Uuid,
+        partner_id: Uuid,
+        partner_name: Option<&str>,
+        revenue_interest_pct: &str,
+        distributed_amount: &str,
+        gl_account_code: Option<&str>,
+        line_description: Option<&str>,
     ) -> AtlasResult<JvRevenueDistributionLine>;
 
-    async fn list_revenue_distribution_lines(&self, distribution_id: Uuid) -> AtlasResult<Vec<JvRevenueDistributionLine>>;
+    async fn list_revenue_distribution_lines(
+        &self,
+        distribution_id: Uuid,
+    ) -> AtlasResult<Vec<JvRevenueDistributionLine>>;
 
     // Billings
     async fn create_billing(
         &self,
-        org_id: Uuid, venture_id: Uuid, billing_number: &str,
-        partner_id: Uuid, partner_name: Option<&str>, billing_type: &str,
-        total_amount: &str, tax_amount: &str, total_with_tax: &str,
+        org_id: Uuid,
+        venture_id: Uuid,
+        billing_number: &str,
+        partner_id: Uuid,
+        partner_name: Option<&str>,
+        billing_type: &str,
+        total_amount: &str,
+        tax_amount: &str,
+        total_with_tax: &str,
         currency_code: &str,
-        billing_period_start: chrono::NaiveDate, billing_period_end: chrono::NaiveDate,
-        due_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+        billing_period_start: chrono::NaiveDate,
+        billing_period_end: chrono::NaiveDate,
+        due_date: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<JvBilling>;
 
     async fn get_billing(&self, id: Uuid) -> AtlasResult<Option<JvBilling>>;
-    async fn get_billing_by_number(&self, org_id: Uuid, billing_number: &str) -> AtlasResult<Option<JvBilling>>;
-    async fn list_billings(&self, venture_id: Uuid, status: Option<&str>, billing_type: Option<&str>) -> AtlasResult<Vec<JvBilling>>;
+    async fn get_billing_by_number(
+        &self,
+        org_id: Uuid,
+        billing_number: &str,
+    ) -> AtlasResult<Option<JvBilling>>;
+    async fn list_billings(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+        billing_type: Option<&str>,
+    ) -> AtlasResult<Vec<JvBilling>>;
     async fn update_billing_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
-        payment_reference: Option<&str>, dispute_reason: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        payment_reference: Option<&str>,
+        dispute_reason: Option<&str>,
     ) -> AtlasResult<JvBilling>;
 
     async fn create_billing_line(
         &self,
-        org_id: Uuid, billing_id: Uuid, line_number: i32,
-        cost_distribution_id: Option<Uuid>, revenue_distribution_id: Option<Uuid>,
-        description: Option<&str>, cost_type: Option<&str>, amount: &str,
+        org_id: Uuid,
+        billing_id: Uuid,
+        line_number: i32,
+        cost_distribution_id: Option<Uuid>,
+        revenue_distribution_id: Option<Uuid>,
+        description: Option<&str>,
+        cost_type: Option<&str>,
+        amount: &str,
         ownership_pct: Option<&str>,
     ) -> AtlasResult<JvBillingLine>;
 
@@ -164,7 +297,7 @@ pub struct PostgresJointVentureRepository {
 }
 
 impl PostgresJointVentureRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -184,7 +317,11 @@ impl PostgresJointVentureRepository {
             end_date: row.get("end_date"),
             accounting_method: row.get("accounting_method"),
             billing_cycle: row.get("billing_cycle"),
-            cost_cap_amount: row.try_get("cost_cap_amount").ok().flatten().map(|v: serde_json::Value| v.to_string()),
+            cost_cap_amount: row
+                .try_get("cost_cap_amount")
+                .ok()
+                .flatten()
+                .map(|v: serde_json::Value| v.to_string()),
             cost_cap_currency: row.get("cost_cap_currency"),
             gl_revenue_account: row.get("gl_revenue_account"),
             gl_cost_account: row.get("gl_cost_account"),
@@ -197,7 +334,8 @@ impl PostgresJointVentureRepository {
     }
 
     fn row_to_partner(&self, row: &sqlx::postgres::PgRow) -> JointVenturePartner {
-        let ownership: Option<serde_json::Value> = row.try_get("ownership_percentage").ok().flatten();
+        let ownership: Option<serde_json::Value> =
+            row.try_get("ownership_percentage").ok().flatten();
         let rev_pct: Option<serde_json::Value> = row.try_get("revenue_interest_pct").ok().flatten();
         let cost_pct: Option<serde_json::Value> = row.try_get("cost_bearing_pct").ok().flatten();
         JointVenturePartner {
@@ -411,14 +549,23 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn create_venture(
         &self,
-        org_id: Uuid, venture_number: &str, name: &str, description: Option<&str>,
-        operator_id: Option<Uuid>, operator_name: Option<&str>,
-        currency_code: &str, start_date: Option<chrono::NaiveDate>,
-        end_date: Option<chrono::NaiveDate>, accounting_method: &str,
-        billing_cycle: &str, cost_cap_amount: Option<&str>,
+        org_id: Uuid,
+        venture_number: &str,
+        name: &str,
+        description: Option<&str>,
+        operator_id: Option<Uuid>,
+        operator_name: Option<&str>,
+        currency_code: &str,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
+        accounting_method: &str,
+        billing_cycle: &str,
+        cost_cap_amount: Option<&str>,
         cost_cap_currency: Option<&str>,
-        gl_revenue_account: Option<&str>, gl_cost_account: Option<&str>,
-        gl_billing_account: Option<&str>, created_by: Option<Uuid>,
+        gl_revenue_account: Option<&str>,
+        gl_cost_account: Option<&str>,
+        gl_billing_account: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<JointVenture> {
         let row = sqlx::query(
             r"
@@ -434,11 +581,22 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(venture_number).bind(name).bind(description)
-        .bind(operator_id).bind(operator_name).bind(currency_code)
-        .bind(start_date).bind(end_date).bind(accounting_method).bind(billing_cycle)
-        .bind(cost_cap_amount).bind(cost_cap_currency)
-        .bind(gl_revenue_account).bind(gl_cost_account).bind(gl_billing_account)
+        .bind(org_id)
+        .bind(venture_number)
+        .bind(name)
+        .bind(description)
+        .bind(operator_id)
+        .bind(operator_name)
+        .bind(currency_code)
+        .bind(start_date)
+        .bind(end_date)
+        .bind(accounting_method)
+        .bind(billing_cycle)
+        .bind(cost_cap_amount)
+        .bind(cost_cap_currency)
+        .bind(gl_revenue_account)
+        .bind(gl_cost_account)
+        .bind(gl_billing_account)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -456,7 +614,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(row.map(|r| self.row_to_venture(&r)))
     }
 
-    async fn get_venture_by_number(&self, org_id: Uuid, venture_number: &str) -> AtlasResult<Option<JointVenture>> {
+    async fn get_venture_by_number(
+        &self,
+        org_id: Uuid,
+        venture_number: &str,
+    ) -> AtlasResult<Option<JointVenture>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.joint_ventures WHERE organization_id = $1 AND venture_number = $2"
         )
@@ -467,7 +629,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(row.map(|r| self.row_to_venture(&r)))
     }
 
-    async fn list_ventures(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JointVenture>> {
+    async fn list_ventures(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JointVenture>> {
         let rows = match status {
             Some(s) => sqlx::query(
                 "SELECT * FROM _atlas.joint_ventures WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC"
@@ -501,12 +667,20 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn create_partner(
         &self,
-        org_id: Uuid, venture_id: Uuid, partner_id: Uuid, partner_name: &str,
-        partner_type: &str, ownership_percentage: &str,
-        revenue_interest_pct: Option<&str>, cost_bearing_pct: Option<&str>,
-        role: &str, billing_contact: Option<&str>,
-        billing_email: Option<&str>, billing_address: Option<&str>,
-        effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        venture_id: Uuid,
+        partner_id: Uuid,
+        partner_name: &str,
+        partner_type: &str,
+        ownership_percentage: &str,
+        revenue_interest_pct: Option<&str>,
+        cost_bearing_pct: Option<&str>,
+        role: &str,
+        billing_contact: Option<&str>,
+        billing_email: Option<&str>,
+        billing_address: Option<&str>,
+        effective_from: chrono::NaiveDate,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JointVenturePartner> {
         let row = sqlx::query(
@@ -522,11 +696,21 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(venture_id).bind(partner_id).bind(partner_name)
-        .bind(partner_type).bind(ownership_percentage)
-        .bind(revenue_interest_pct).bind(cost_bearing_pct)
-        .bind(role).bind(billing_contact).bind(billing_email).bind(billing_address)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(venture_id)
+        .bind(partner_id)
+        .bind(partner_name)
+        .bind(partner_type)
+        .bind(ownership_percentage)
+        .bind(revenue_interest_pct)
+        .bind(cost_bearing_pct)
+        .bind(role)
+        .bind(billing_contact)
+        .bind(billing_email)
+        .bind(billing_address)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -543,7 +727,10 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(row.map(|r| self.row_to_partner(&r)))
     }
 
-    async fn list_partners_by_venture(&self, venture_id: Uuid) -> AtlasResult<Vec<JointVenturePartner>> {
+    async fn list_partners_by_venture(
+        &self,
+        venture_id: Uuid,
+    ) -> AtlasResult<Vec<JointVenturePartner>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.joint_venture_partners WHERE venture_id = $1 ORDER BY partner_name"
         )
@@ -554,7 +741,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(rows.iter().map(|r| self.row_to_partner(r)).collect())
     }
 
-    async fn list_active_partners(&self, venture_id: Uuid, on_date: chrono::NaiveDate) -> AtlasResult<Vec<JointVenturePartner>> {
+    async fn list_active_partners(
+        &self,
+        venture_id: Uuid,
+        on_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<JointVenturePartner>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.joint_venture_partners
@@ -564,14 +755,19 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             ORDER BY partner_name
             ",
         )
-        .bind(venture_id).bind(on_date)
+        .bind(venture_id)
+        .bind(on_date)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| self.row_to_partner(r)).collect())
     }
 
-    async fn update_partner_status(&self, id: Uuid, status: &str) -> AtlasResult<JointVenturePartner> {
+    async fn update_partner_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<JointVenturePartner> {
         let row = sqlx::query(
             "UPDATE _atlas.joint_venture_partners SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         )
@@ -597,10 +793,18 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn create_afe(
         &self,
-        org_id: Uuid, venture_id: Uuid, afe_number: &str, title: &str,
-        description: Option<&str>, estimated_cost: &str, currency_code: &str,
-        cost_center: Option<&str>, work_area: Option<&str>, well_name: Option<&str>,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        venture_id: Uuid,
+        afe_number: &str,
+        title: &str,
+        description: Option<&str>,
+        estimated_cost: &str,
+        currency_code: &str,
+        cost_center: Option<&str>,
+        work_area: Option<&str>,
+        well_name: Option<&str>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JointVentureAfe> {
         let row = sqlx::query(
@@ -616,10 +820,19 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(venture_id).bind(afe_number).bind(title).bind(description)
-        .bind(estimated_cost).bind(currency_code)
-        .bind(cost_center).bind(work_area).bind(well_name)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(venture_id)
+        .bind(afe_number)
+        .bind(title)
+        .bind(description)
+        .bind(estimated_cost)
+        .bind(currency_code)
+        .bind(cost_center)
+        .bind(work_area)
+        .bind(well_name)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -636,7 +849,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(row.map(|r| self.row_to_afe(&r)))
     }
 
-    async fn get_afe_by_number(&self, org_id: Uuid, afe_number: &str) -> AtlasResult<Option<JointVentureAfe>> {
+    async fn get_afe_by_number(
+        &self,
+        org_id: Uuid,
+        afe_number: &str,
+    ) -> AtlasResult<Option<JointVentureAfe>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.joint_venture_afes WHERE organization_id = $1 AND afe_number = $2"
         )
@@ -647,7 +864,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(row.map(|r| self.row_to_afe(&r)))
     }
 
-    async fn list_afes_by_venture(&self, venture_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JointVentureAfe>> {
+    async fn list_afes_by_venture(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JointVentureAfe>> {
         let rows = match status {
             Some(s) => sqlx::query(
                 "SELECT * FROM _atlas.joint_venture_afes WHERE venture_id = $1 AND status = $2 ORDER BY created_at DESC"
@@ -665,7 +886,10 @@ impl JointVentureRepository for PostgresJointVentureRepository {
     }
 
     async fn update_afe_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
         rejected_reason: Option<&str>,
     ) -> AtlasResult<JointVentureAfe> {
         let row = sqlx::query(
@@ -687,7 +911,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
     }
 
     async fn update_afe_costs(
-        &self, id: Uuid, actual_cost: &str, committed_cost: &str, remaining_budget: &str,
+        &self,
+        id: Uuid,
+        actual_cost: &str,
+        committed_cost: &str,
+        remaining_budget: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
             r"
@@ -697,7 +925,10 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(actual_cost).bind(committed_cost).bind(remaining_budget)
+        .bind(id)
+        .bind(actual_cost)
+        .bind(committed_cost)
+        .bind(remaining_budget)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -710,11 +941,18 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn create_cost_distribution(
         &self,
-        org_id: Uuid, venture_id: Uuid, distribution_number: &str,
-        afe_id: Option<Uuid>, description: Option<&str>,
-        total_amount: &str, currency_code: &str, cost_type: &str,
+        org_id: Uuid,
+        venture_id: Uuid,
+        distribution_number: &str,
+        afe_id: Option<Uuid>,
+        description: Option<&str>,
+        total_amount: &str,
+        currency_code: &str,
+        cost_type: &str,
         distribution_date: chrono::NaiveDate,
-        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JvCostDistribution> {
         let row = sqlx::query(
@@ -727,9 +965,19 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(venture_id).bind(distribution_number)
-        .bind(afe_id).bind(description).bind(total_amount).bind(currency_code).bind(cost_type)
-        .bind(distribution_date).bind(source_type).bind(source_id).bind(source_number).bind(created_by)
+        .bind(org_id)
+        .bind(venture_id)
+        .bind(distribution_number)
+        .bind(afe_id)
+        .bind(description)
+        .bind(total_amount)
+        .bind(currency_code)
+        .bind(cost_type)
+        .bind(distribution_date)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -738,17 +986,20 @@ impl JointVentureRepository for PostgresJointVentureRepository {
     }
 
     async fn get_cost_distribution(&self, id: Uuid) -> AtlasResult<Option<JvCostDistribution>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.joint_venture_cost_distributions WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row =
+            sqlx::query("SELECT * FROM _atlas.joint_venture_cost_distributions WHERE id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_cost_dist(&r)))
     }
 
-    async fn list_cost_distributions(&self, venture_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JvCostDistribution>> {
+    async fn list_cost_distributions(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JvCostDistribution>> {
         let rows = match status {
             Some(s) => sqlx::query(
                 "SELECT * FROM _atlas.joint_venture_cost_distributions WHERE venture_id = $1 AND status = $2 ORDER BY distribution_date DESC"
@@ -765,7 +1016,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(rows.iter().map(|r| self.row_to_cost_dist(r)).collect())
     }
 
-    async fn update_cost_distribution_status(&self, id: Uuid, status: &str) -> AtlasResult<JvCostDistribution> {
+    async fn update_cost_distribution_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<JvCostDistribution> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.joint_venture_cost_distributions
@@ -776,7 +1031,8 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status)
+        .bind(id)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -785,9 +1041,15 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn create_cost_distribution_line(
         &self,
-        org_id: Uuid, distribution_id: Uuid, partner_id: Uuid, partner_name: Option<&str>,
-        ownership_pct: &str, cost_bearing_pct: &str, distributed_amount: &str,
-        gl_account_code: Option<&str>, line_description: Option<&str>,
+        org_id: Uuid,
+        distribution_id: Uuid,
+        partner_id: Uuid,
+        partner_name: Option<&str>,
+        ownership_pct: &str,
+        cost_bearing_pct: &str,
+        distributed_amount: &str,
+        gl_account_code: Option<&str>,
+        line_description: Option<&str>,
     ) -> AtlasResult<JvCostDistributionLine> {
         let row = sqlx::query(
             r"
@@ -799,9 +1061,15 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(distribution_id).bind(partner_id).bind(partner_name)
-        .bind(ownership_pct).bind(cost_bearing_pct).bind(distributed_amount)
-        .bind(gl_account_code).bind(line_description)
+        .bind(org_id)
+        .bind(distribution_id)
+        .bind(partner_id)
+        .bind(partner_name)
+        .bind(ownership_pct)
+        .bind(cost_bearing_pct)
+        .bind(distributed_amount)
+        .bind(gl_account_code)
+        .bind(line_description)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -809,7 +1077,10 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(self.row_to_cost_dist_line(&row))
     }
 
-    async fn list_cost_distribution_lines(&self, distribution_id: Uuid) -> AtlasResult<Vec<JvCostDistributionLine>> {
+    async fn list_cost_distribution_lines(
+        &self,
+        distribution_id: Uuid,
+    ) -> AtlasResult<Vec<JvCostDistributionLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.joint_venture_cost_distribution_lines WHERE distribution_id = $1 ORDER BY partner_name"
         )
@@ -826,10 +1097,17 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn create_revenue_distribution(
         &self,
-        org_id: Uuid, venture_id: Uuid, distribution_number: &str,
-        description: Option<&str>, total_amount: &str, currency_code: &str,
-        revenue_type: &str, distribution_date: chrono::NaiveDate,
-        source_type: Option<&str>, source_id: Option<Uuid>, source_number: Option<&str>,
+        org_id: Uuid,
+        venture_id: Uuid,
+        distribution_number: &str,
+        description: Option<&str>,
+        total_amount: &str,
+        currency_code: &str,
+        revenue_type: &str,
+        distribution_date: chrono::NaiveDate,
+        source_type: Option<&str>,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JvRevenueDistribution> {
         let row = sqlx::query(
@@ -842,9 +1120,18 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(venture_id).bind(distribution_number)
-        .bind(description).bind(total_amount).bind(currency_code).bind(revenue_type)
-        .bind(distribution_date).bind(source_type).bind(source_id).bind(source_number).bind(created_by)
+        .bind(org_id)
+        .bind(venture_id)
+        .bind(distribution_number)
+        .bind(description)
+        .bind(total_amount)
+        .bind(currency_code)
+        .bind(revenue_type)
+        .bind(distribution_date)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -852,18 +1139,24 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(self.row_to_rev_dist(&row))
     }
 
-    async fn get_revenue_distribution(&self, id: Uuid) -> AtlasResult<Option<JvRevenueDistribution>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.joint_venture_revenue_distributions WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_revenue_distribution(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<JvRevenueDistribution>> {
+        let row =
+            sqlx::query("SELECT * FROM _atlas.joint_venture_revenue_distributions WHERE id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_rev_dist(&r)))
     }
 
-    async fn list_revenue_distributions(&self, venture_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JvRevenueDistribution>> {
+    async fn list_revenue_distributions(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JvRevenueDistribution>> {
         let rows = match status {
             Some(s) => sqlx::query(
                 "SELECT * FROM _atlas.joint_venture_revenue_distributions WHERE venture_id = $1 AND status = $2 ORDER BY distribution_date DESC"
@@ -880,7 +1173,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(rows.iter().map(|r| self.row_to_rev_dist(r)).collect())
     }
 
-    async fn update_revenue_distribution_status(&self, id: Uuid, status: &str) -> AtlasResult<JvRevenueDistribution> {
+    async fn update_revenue_distribution_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<JvRevenueDistribution> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.joint_venture_revenue_distributions
@@ -891,7 +1188,8 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status)
+        .bind(id)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -900,9 +1198,14 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn create_revenue_distribution_line(
         &self,
-        org_id: Uuid, distribution_id: Uuid, partner_id: Uuid, partner_name: Option<&str>,
-        revenue_interest_pct: &str, distributed_amount: &str,
-        gl_account_code: Option<&str>, line_description: Option<&str>,
+        org_id: Uuid,
+        distribution_id: Uuid,
+        partner_id: Uuid,
+        partner_name: Option<&str>,
+        revenue_interest_pct: &str,
+        distributed_amount: &str,
+        gl_account_code: Option<&str>,
+        line_description: Option<&str>,
     ) -> AtlasResult<JvRevenueDistributionLine> {
         let row = sqlx::query(
             r"
@@ -914,9 +1217,14 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(distribution_id).bind(partner_id).bind(partner_name)
-        .bind(revenue_interest_pct).bind(distributed_amount)
-        .bind(gl_account_code).bind(line_description)
+        .bind(org_id)
+        .bind(distribution_id)
+        .bind(partner_id)
+        .bind(partner_name)
+        .bind(revenue_interest_pct)
+        .bind(distributed_amount)
+        .bind(gl_account_code)
+        .bind(line_description)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -924,7 +1232,10 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(self.row_to_rev_dist_line(&row))
     }
 
-    async fn list_revenue_distribution_lines(&self, distribution_id: Uuid) -> AtlasResult<Vec<JvRevenueDistributionLine>> {
+    async fn list_revenue_distribution_lines(
+        &self,
+        distribution_id: Uuid,
+    ) -> AtlasResult<Vec<JvRevenueDistributionLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.joint_venture_revenue_distribution_lines WHERE distribution_id = $1 ORDER BY partner_name"
         )
@@ -941,12 +1252,20 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn create_billing(
         &self,
-        org_id: Uuid, venture_id: Uuid, billing_number: &str,
-        partner_id: Uuid, partner_name: Option<&str>, billing_type: &str,
-        total_amount: &str, tax_amount: &str, total_with_tax: &str,
+        org_id: Uuid,
+        venture_id: Uuid,
+        billing_number: &str,
+        partner_id: Uuid,
+        partner_name: Option<&str>,
+        billing_type: &str,
+        total_amount: &str,
+        tax_amount: &str,
+        total_with_tax: &str,
         currency_code: &str,
-        billing_period_start: chrono::NaiveDate, billing_period_end: chrono::NaiveDate,
-        due_date: Option<chrono::NaiveDate>, created_by: Option<Uuid>,
+        billing_period_start: chrono::NaiveDate,
+        billing_period_end: chrono::NaiveDate,
+        due_date: Option<chrono::NaiveDate>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<JvBilling> {
         let row = sqlx::query(
             r"
@@ -962,11 +1281,20 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(venture_id).bind(billing_number)
-        .bind(partner_id).bind(partner_name).bind(billing_type)
-        .bind(total_amount).bind(tax_amount).bind(total_with_tax)
-        .bind(currency_code).bind(billing_period_start).bind(billing_period_end)
-        .bind(due_date).bind(created_by)
+        .bind(org_id)
+        .bind(venture_id)
+        .bind(billing_number)
+        .bind(partner_id)
+        .bind(partner_name)
+        .bind(billing_type)
+        .bind(total_amount)
+        .bind(tax_amount)
+        .bind(total_with_tax)
+        .bind(currency_code)
+        .bind(billing_period_start)
+        .bind(billing_period_end)
+        .bind(due_date)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -983,7 +1311,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(row.map(|r| self.row_to_billing(&r)))
     }
 
-    async fn get_billing_by_number(&self, org_id: Uuid, billing_number: &str) -> AtlasResult<Option<JvBilling>> {
+    async fn get_billing_by_number(
+        &self,
+        org_id: Uuid,
+        billing_number: &str,
+    ) -> AtlasResult<Option<JvBilling>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.joint_venture_billings WHERE organization_id = $1 AND billing_number = $2"
         )
@@ -994,7 +1326,12 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         Ok(row.map(|r| self.row_to_billing(&r)))
     }
 
-    async fn list_billings(&self, venture_id: Uuid, status: Option<&str>, billing_type: Option<&str>) -> AtlasResult<Vec<JvBilling>> {
+    async fn list_billings(
+        &self,
+        venture_id: Uuid,
+        status: Option<&str>,
+        billing_type: Option<&str>,
+    ) -> AtlasResult<Vec<JvBilling>> {
         let rows = match (status, billing_type) {
             (Some(s), Some(bt)) => sqlx::query(
                 "SELECT * FROM _atlas.joint_venture_billings WHERE venture_id = $1 AND status = $2 AND billing_type = $3 ORDER BY created_at DESC"
@@ -1022,8 +1359,12 @@ impl JointVentureRepository for PostgresJointVentureRepository {
     }
 
     async fn update_billing_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
-        payment_reference: Option<&str>, dispute_reason: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        payment_reference: Option<&str>,
+        dispute_reason: Option<&str>,
     ) -> AtlasResult<JvBilling> {
         let row = sqlx::query(
             r"
@@ -1039,7 +1380,11 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by).bind(payment_reference).bind(dispute_reason)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(payment_reference)
+        .bind(dispute_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -1048,9 +1393,14 @@ impl JointVentureRepository for PostgresJointVentureRepository {
 
     async fn create_billing_line(
         &self,
-        org_id: Uuid, billing_id: Uuid, line_number: i32,
-        cost_distribution_id: Option<Uuid>, revenue_distribution_id: Option<Uuid>,
-        description: Option<&str>, cost_type: Option<&str>, amount: &str,
+        org_id: Uuid,
+        billing_id: Uuid,
+        line_number: i32,
+        cost_distribution_id: Option<Uuid>,
+        revenue_distribution_id: Option<Uuid>,
+        description: Option<&str>,
+        cost_type: Option<&str>,
+        amount: &str,
         ownership_pct: Option<&str>,
     ) -> AtlasResult<JvBillingLine> {
         let row = sqlx::query(
@@ -1063,9 +1413,15 @@ impl JointVentureRepository for PostgresJointVentureRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(billing_id).bind(line_number)
-        .bind(cost_distribution_id).bind(revenue_distribution_id)
-        .bind(description).bind(cost_type).bind(amount).bind(ownership_pct)
+        .bind(org_id)
+        .bind(billing_id)
+        .bind(line_number)
+        .bind(cost_distribution_id)
+        .bind(revenue_distribution_id)
+        .bind(description)
+        .bind(cost_type)
+        .bind(amount)
+        .bind(ownership_pct)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -1185,10 +1541,17 @@ impl JointVentureRepository for PostgresJointVentureRepository {
         let total_ventures: i64 = venture_row.try_get("total_ventures").unwrap_or(0);
         let active_ventures: i64 = venture_row.try_get("active_ventures").unwrap_or(0);
         let total_partners: i64 = partner_row.try_get("total_partners").unwrap_or(0);
-        let total_cost: serde_json::Value = cost_row.try_get("total_cost").unwrap_or(serde_json::json!(0));
-        let total_rev: serde_json::Value = rev_row.try_get("total_rev").unwrap_or(serde_json::json!(0));
-        let total_billed: serde_json::Value = billing_row.try_get("total_billed").unwrap_or(serde_json::json!(0));
-        let total_collected: serde_json::Value = billing_row.try_get("total_collected").unwrap_or(serde_json::json!(0));
+        let total_cost: serde_json::Value = cost_row
+            .try_get("total_cost")
+            .unwrap_or(serde_json::json!(0));
+        let total_rev: serde_json::Value =
+            rev_row.try_get("total_rev").unwrap_or(serde_json::json!(0));
+        let total_billed: serde_json::Value = billing_row
+            .try_get("total_billed")
+            .unwrap_or(serde_json::json!(0));
+        let total_collected: serde_json::Value = billing_row
+            .try_get("total_collected")
+            .unwrap_or(serde_json::json!(0));
         let pending_afes: i64 = afe_row.try_get("pending_afes").unwrap_or(0);
         let by_status: serde_json::Value = status_row
             .and_then(|r| r.try_get("by_status").ok())

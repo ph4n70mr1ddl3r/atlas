@@ -52,7 +52,7 @@ impl TaxExemptionService {
                     Some(end) => request.transaction_date <= end,
                     None => true,
                 };
-                
+
                 is_customer && is_active_status && is_started && is_not_expired
             })
             .collect();
@@ -70,12 +70,13 @@ impl TaxExemptionService {
         // 1. Matches regime AND specific tax code
         // 2. Matches regime (and tax code is None)
         let specific_match = active_certs.iter().find(|c| {
-            c.tax_regime_code == request.tax_regime_code && c.tax_code.as_deref() == Some(request.tax_code.as_str())
+            c.tax_regime_code == request.tax_regime_code
+                && c.tax_code.as_deref() == Some(request.tax_code.as_str())
         });
 
-        let regime_match = active_certs.iter().find(|c| {
-            c.tax_regime_code == request.tax_regime_code && c.tax_code.is_none()
-        });
+        let regime_match = active_certs
+            .iter()
+            .find(|c| c.tax_regime_code == request.tax_regime_code && c.tax_code.is_none());
 
         let applied_cert = specific_match.or(regime_match);
 
@@ -89,7 +90,10 @@ impl TaxExemptionService {
                 is_exempt: true,
                 exemption_percentage_applied: percent_to_exempt,
                 final_tax_amount: final_amount.max(0.0), // Prevent negative tax
-                reason: Some(format!("Applied exemption from regime {}", cert.tax_regime_code)),
+                reason: Some(format!(
+                    "Applied exemption from regime {}",
+                    cert.tax_regime_code
+                )),
             }
         } else {
             ExemptionResult {
@@ -123,17 +127,15 @@ mod tests {
 
     #[test]
     fn test_full_regime_exemption() {
-        let certs = vec![
-            TaxExemptionCertificate {
-                customer_id: "CUST-1".to_string(),
-                tax_regime_code: "US-SALES".to_string(),
-                tax_code: None, // Applies to all taxes under US-SALES
-                exemption_percentage: 100.0,
-                start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-                end_date: None,
-                status: "PRIMARY".to_string(),
-            }
-        ];
+        let certs = vec![TaxExemptionCertificate {
+            customer_id: "CUST-1".to_string(),
+            tax_regime_code: "US-SALES".to_string(),
+            tax_code: None, // Applies to all taxes under US-SALES
+            exemption_percentage: 100.0,
+            start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+            end_date: None,
+            status: "PRIMARY".to_string(),
+        }];
 
         let request = TaxCalculationRequest {
             customer_id: "CUST-1".to_string(),
@@ -169,7 +171,7 @@ mod tests {
                 start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
                 end_date: None,
                 status: "PRIMARY".to_string(),
-            }
+            },
         ];
 
         let request = TaxCalculationRequest {
@@ -189,17 +191,15 @@ mod tests {
 
     #[test]
     fn test_expired_certificate() {
-        let certs = vec![
-            TaxExemptionCertificate {
-                customer_id: "CUST-3".to_string(),
-                tax_regime_code: "UK-VAT".to_string(),
-                tax_code: None,
-                exemption_percentage: 100.0,
-                start_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
-                end_date: Some(NaiveDate::from_ymd_opt(2024, 12, 31).unwrap()), // Expired
-                status: "PRIMARY".to_string(),
-            }
-        ];
+        let certs = vec![TaxExemptionCertificate {
+            customer_id: "CUST-3".to_string(),
+            tax_regime_code: "UK-VAT".to_string(),
+            tax_code: None,
+            exemption_percentage: 100.0,
+            start_date: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            end_date: Some(NaiveDate::from_ymd_opt(2024, 12, 31).unwrap()), // Expired
+            status: "PRIMARY".to_string(),
+        }];
 
         let request = TaxCalculationRequest {
             customer_id: "CUST-3".to_string(),
@@ -216,17 +216,15 @@ mod tests {
 
     #[test]
     fn test_partial_exemption() {
-        let certs = vec![
-            TaxExemptionCertificate {
-                customer_id: "CUST-4".to_string(),
-                tax_regime_code: "CA-GST".to_string(),
-                tax_code: None,
-                exemption_percentage: 25.0, // Only 25% exempt
-                start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-                end_date: None,
-                status: "PRIMARY".to_string(),
-            }
-        ];
+        let certs = vec![TaxExemptionCertificate {
+            customer_id: "CUST-4".to_string(),
+            tax_regime_code: "CA-GST".to_string(),
+            tax_code: None,
+            exemption_percentage: 25.0, // Only 25% exempt
+            start_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+            end_date: None,
+            status: "PRIMARY".to_string(),
+        }];
 
         let request = TaxCalculationRequest {
             customer_id: "CUST-4".to_string(),

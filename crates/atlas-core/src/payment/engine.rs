@@ -5,50 +5,49 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Payables > Payments
 
-use atlas_shared::{
-    PaymentTerm, PaymentBatch, Payment, PaymentLine, ScheduledPayment,
-    PaymentFormat, RemittanceAdvice, PaymentDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::PaymentRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, Payment, PaymentBatch, PaymentDashboardSummary, PaymentFormat,
+    PaymentLine, PaymentTerm, RemittanceAdvice, ScheduledPayment,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid payment methods
-const VALID_PAYMENT_METHODS: &[&str] = &[
-    "check", "eft", "wire", "ach",
-];
+const VALID_PAYMENT_METHODS: &[&str] = &["check", "eft", "wire", "ach"];
 
 /// Valid payment statuses
 const VALID_PAYMENT_STATUSES: &[&str] = &[
-    "draft", "issued", "cleared", "voided", "reconciled", "stopped",
+    "draft",
+    "issued",
+    "cleared",
+    "voided",
+    "reconciled",
+    "stopped",
 ];
 
 /// Valid batch statuses
 const VALID_BATCH_STATUSES: &[&str] = &[
-    "draft", "selected", "approved", "formatted", "confirmed", "cancelled",
+    "draft",
+    "selected",
+    "approved",
+    "formatted",
+    "confirmed",
+    "cancelled",
 ];
 
 /// Valid scheduled payment statuses
-const VALID_SCHEDULED_STATUSES: &[&str] = &[
-    "pending", "selected", "paid", "cancelled",
-];
+const VALID_SCHEDULED_STATUSES: &[&str] = &["pending", "selected", "paid", "cancelled"];
 
 /// Valid installment frequencies
-const VALID_FREQUENCIES: &[&str] = &[
-    "monthly", "quarterly", "weekly",
-];
+const VALID_FREQUENCIES: &[&str] = &["monthly", "quarterly", "weekly"];
 
 /// Valid remittance delivery methods
-const VALID_DELIVERY_METHODS: &[&str] = &[
-    "email", "print", "edi", "xml",
-];
+const VALID_DELIVERY_METHODS: &[&str] = &["email", "print", "edi", "xml"];
 
 /// Valid format types
-const VALID_FORMAT_TYPES: &[&str] = &[
-    "file", "printed_check", "edi", "xml", "json",
-];
+const VALID_FORMAT_TYPES: &[&str] = &["file", "printed_check", "edi", "xml", "json"];
 
 /// Payment Management engine
 pub struct PaymentEngine {
@@ -96,7 +95,8 @@ impl PaymentEngine {
             if !VALID_PAYMENT_METHODS.contains(&method) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid payment method '{}'. Must be one of: {}",
-                    method, VALID_PAYMENT_METHODS.join(", ")
+                    method,
+                    VALID_PAYMENT_METHODS.join(", ")
                 )));
             }
         }
@@ -105,7 +105,8 @@ impl PaymentEngine {
                 if !VALID_FREQUENCIES.contains(&freq) {
                     return Err(AtlasError::ValidationFailed(format!(
                         "Invalid frequency '{}'. Must be one of: {}",
-                        freq, VALID_FREQUENCIES.join(", ")
+                        freq,
+                        VALID_FREQUENCIES.join(", ")
                     )));
                 }
             }
@@ -118,17 +119,32 @@ impl PaymentEngine {
 
         info!("Creating/updating payment term {} in org {}", code, org_id);
 
-        self.repository.create_payment_term(
-            org_id, code, name, description, due_days,
-            discount_days, discount_percentage,
-            is_installment, installment_count, installment_frequency,
-            default_payment_method, effective_from, effective_to,
-            created_by,
-        ).await
+        self.repository
+            .create_payment_term(
+                org_id,
+                code,
+                name,
+                description,
+                due_days,
+                discount_days,
+                discount_percentage,
+                is_installment,
+                installment_count,
+                installment_frequency,
+                default_payment_method,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a payment term by code
-    pub async fn get_payment_term(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PaymentTerm>> {
+    pub async fn get_payment_term(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PaymentTerm>> {
         self.repository.get_payment_term(org_id, code).await
     }
 
@@ -139,10 +155,12 @@ impl PaymentEngine {
 
     /// Delete (soft-delete) a payment term
     pub async fn delete_payment_term(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        self.repository.get_payment_term(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment term '{code}' not found")
-            ))?;
+        self.repository
+            .get_payment_term(org_id, code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Payment term '{code}' not found"))
+            })?;
 
         info!("Deleting payment term {} in org {}", code, org_id);
         self.repository.delete_payment_term(org_id, code).await
@@ -168,7 +186,8 @@ impl PaymentEngine {
         if !VALID_PAYMENT_METHODS.contains(&payment_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid payment method '{}'. Must be one of: {}",
-                payment_method, VALID_PAYMENT_METHODS.join(", ")
+                payment_method,
+                VALID_PAYMENT_METHODS.join(", ")
             )));
         }
 
@@ -176,11 +195,20 @@ impl PaymentEngine {
 
         info!("Creating payment batch {} for org {}", batch_number, org_id);
 
-        self.repository.create_payment_batch(
-            org_id, &batch_number, name, description,
-            payment_date, bank_account_id, payment_method,
-            currency_code, selection_criteria, created_by,
-        ).await
+        self.repository
+            .create_payment_batch(
+                org_id,
+                &batch_number,
+                name,
+                description,
+                payment_date,
+                bank_account_id,
+                payment_method,
+                currency_code,
+                selection_criteria,
+                created_by,
+            )
+            .await
     }
 
     /// Get a payment batch
@@ -189,12 +217,17 @@ impl PaymentEngine {
     }
 
     /// List payment batches
-    pub async fn list_payment_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PaymentBatch>> {
+    pub async fn list_payment_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PaymentBatch>> {
         if let Some(s) = status {
             if !VALID_BATCH_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid batch status '{}'. Must be one of: {}",
-                    s, VALID_BATCH_STATUSES.join(", ")
+                    s,
+                    VALID_BATCH_STATUSES.join(", ")
                 )));
             }
         }
@@ -210,10 +243,13 @@ impl PaymentEngine {
         action_by: Option<Uuid>,
         cancellation_reason: Option<&str>,
     ) -> AtlasResult<PaymentBatch> {
-        let batch = self.repository.get_payment_batch_by_id(batch_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment batch {batch_id} not found")
-            ))?;
+        let batch = self
+            .repository
+            .get_payment_batch_by_id(batch_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Payment batch {batch_id} not found"))
+            })?;
 
         // Validate transition
         let valid = match new_status {
@@ -232,11 +268,14 @@ impl PaymentEngine {
             )));
         }
 
-        info!("Transitioning batch {} from {} to {}", batch.batch_number, batch.status, new_status);
+        info!(
+            "Transitioning batch {} from {} to {}",
+            batch.batch_number, batch.status, new_status
+        );
 
-        self.repository.update_payment_batch_status(
-            batch_id, new_status, action_by, cancellation_reason,
-        ).await
+        self.repository
+            .update_payment_batch_status(batch_id, new_status, action_by, cancellation_reason)
+            .await
     }
 
     // ========================================================================
@@ -268,13 +307,14 @@ impl PaymentEngine {
         if !VALID_PAYMENT_METHODS.contains(&payment_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid payment method '{}'. Must be one of: {}",
-                payment_method, VALID_PAYMENT_METHODS.join(", ")
+                payment_method,
+                VALID_PAYMENT_METHODS.join(", ")
             )));
         }
 
-        let amount: f64 = payment_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Payment amount must be a valid number".to_string(),
-        ))?;
+        let amount: f64 = payment_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Payment amount must be a valid number".to_string())
+        })?;
         if amount <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Payment amount must be positive".to_string(),
@@ -283,17 +323,34 @@ impl PaymentEngine {
 
         let payment_number = format!("PAY-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
-        info!("Creating payment {} for supplier {}", payment_number, supplier_id);
+        info!(
+            "Creating payment {} for supplier {}",
+            payment_number, supplier_id
+        );
 
-        self.repository.create_payment(
-            org_id, &payment_number, batch_id,
-            supplier_id, supplier_number, supplier_name, supplier_site,
-            payment_date, payment_method, currency_code,
-            payment_amount, discount_taken,
-            bank_account_id, bank_account_name,
-            cash_account_code, ap_account_code, discount_account_code,
-            check_number, created_by,
-        ).await
+        self.repository
+            .create_payment(
+                org_id,
+                &payment_number,
+                batch_id,
+                supplier_id,
+                supplier_number,
+                supplier_name,
+                supplier_site,
+                payment_date,
+                payment_method,
+                currency_code,
+                payment_amount,
+                discount_taken,
+                bank_account_id,
+                bank_account_name,
+                cash_account_code,
+                ap_account_code,
+                discount_account_code,
+                check_number,
+                created_by,
+            )
+            .await
     }
 
     /// Get a payment by ID
@@ -313,19 +370,23 @@ impl PaymentEngine {
             if !VALID_PAYMENT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid payment status '{}'. Must be one of: {}",
-                    s, VALID_PAYMENT_STATUSES.join(", ")
+                    s,
+                    VALID_PAYMENT_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_payments(org_id, status, supplier_id, batch_id).await
+        self.repository
+            .list_payments(org_id, status, supplier_id, batch_id)
+            .await
     }
 
     /// Issue a payment (transition from draft to issued)
     pub async fn issue_payment(&self, payment_id: Uuid) -> AtlasResult<Payment> {
-        let payment = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment {payment_id} not found")
-            ))?;
+        let payment = self
+            .repository
+            .get_payment(payment_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if payment.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -335,17 +396,22 @@ impl PaymentEngine {
         }
 
         info!("Issuing payment {}", payment.payment_number);
-        self.repository.update_payment_status(
-            payment_id, "issued", None, None, None, None,
-        ).await
+        self.repository
+            .update_payment_status(payment_id, "issued", None, None, None, None)
+            .await
     }
 
     /// Clear a payment (bank has cleared it)
-    pub async fn clear_payment(&self, payment_id: Uuid, cleared_by: Option<Uuid>) -> AtlasResult<Payment> {
-        let payment = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment {payment_id} not found")
-            ))?;
+    pub async fn clear_payment(
+        &self,
+        payment_id: Uuid,
+        cleared_by: Option<Uuid>,
+    ) -> AtlasResult<Payment> {
+        let payment = self
+            .repository
+            .get_payment(payment_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if payment.status != "issued" {
             return Err(AtlasError::WorkflowError(format!(
@@ -355,19 +421,30 @@ impl PaymentEngine {
         }
 
         info!("Clearing payment {}", payment.payment_number);
-        self.repository.update_payment_status(
-            payment_id, "cleared",
-            Some(chrono::Utc::now().date_naive()),
-            cleared_by, None, None,
-        ).await
+        self.repository
+            .update_payment_status(
+                payment_id,
+                "cleared",
+                Some(chrono::Utc::now().date_naive()),
+                cleared_by,
+                None,
+                None,
+            )
+            .await
     }
 
     /// Void a payment
-    pub async fn void_payment(&self, payment_id: Uuid, voided_by: Uuid, reason: &str) -> AtlasResult<Payment> {
-        let payment = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment {payment_id} not found")
-            ))?;
+    pub async fn void_payment(
+        &self,
+        payment_id: Uuid,
+        voided_by: Uuid,
+        reason: &str,
+    ) -> AtlasResult<Payment> {
+        let payment = self
+            .repository
+            .get_payment(payment_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if payment.status == "voided" {
             return Err(AtlasError::WorkflowError(
@@ -385,10 +462,20 @@ impl PaymentEngine {
             ));
         }
 
-        info!("Voiding payment {} - reason: {}", payment.payment_number, reason);
-        self.repository.update_payment_status(
-            payment_id, "voided", None, None, Some(reason), Some(voided_by),
-        ).await
+        info!(
+            "Voiding payment {} - reason: {}",
+            payment.payment_number, reason
+        );
+        self.repository
+            .update_payment_status(
+                payment_id,
+                "voided",
+                None,
+                None,
+                Some(reason),
+                Some(voided_by),
+            )
+            .await
     }
 
     // ========================================================================
@@ -410,20 +497,30 @@ impl PaymentEngine {
         discount_taken: &str,
         withholding_amount: &str,
     ) -> AtlasResult<PaymentLine> {
-        let paid: f64 = amount_paid.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount paid must be a valid number".to_string(),
-        ))?;
+        let paid: f64 = amount_paid.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount paid must be a valid number".to_string())
+        })?;
         if paid <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Amount paid must be positive".to_string(),
             ));
         }
 
-        self.repository.create_payment_line(
-            org_id, payment_id, line_number,
-            invoice_id, invoice_number, invoice_date, invoice_due_date,
-            invoice_amount, amount_paid, discount_taken, withholding_amount,
-        ).await
+        self.repository
+            .create_payment_line(
+                org_id,
+                payment_id,
+                line_number,
+                invoice_id,
+                invoice_number,
+                invoice_date,
+                invoice_due_date,
+                invoice_amount,
+                amount_paid,
+                discount_taken,
+                withholding_amount,
+            )
+            .await
     }
 
     /// List payment lines for a payment
@@ -450,9 +547,9 @@ impl PaymentEngine {
         bank_account_id: Option<Uuid>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ScheduledPayment> {
-        let amount: f64 = scheduled_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Scheduled amount must be a valid number".to_string(),
-        ))?;
+        let amount: f64 = scheduled_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Scheduled amount must be a valid number".to_string())
+        })?;
         if amount <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Scheduled amount must be positive".to_string(),
@@ -462,21 +559,32 @@ impl PaymentEngine {
             if !VALID_PAYMENT_METHODS.contains(&method) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid payment method '{}'. Must be one of: {}",
-                    method, VALID_PAYMENT_METHODS.join(", ")
+                    method,
+                    VALID_PAYMENT_METHODS.join(", ")
                 )));
             }
         }
 
-        info!("Creating scheduled payment for invoice {} due {}",
-            invoice_id, scheduled_payment_date);
+        info!(
+            "Creating scheduled payment for invoice {} due {}",
+            invoice_id, scheduled_payment_date
+        );
 
-        self.repository.create_scheduled_payment(
-            org_id, invoice_id, invoice_number,
-            supplier_id, supplier_name,
-            scheduled_payment_date, scheduled_amount,
-            installment_number, payment_method, bank_account_id,
-            created_by,
-        ).await
+        self.repository
+            .create_scheduled_payment(
+                org_id,
+                invoice_id,
+                invoice_number,
+                supplier_id,
+                supplier_name,
+                scheduled_payment_date,
+                scheduled_amount,
+                installment_number,
+                payment_method,
+                bank_account_id,
+                created_by,
+            )
+            .await
     }
 
     /// List scheduled payments
@@ -490,16 +598,19 @@ impl PaymentEngine {
             if !VALID_SCHEDULED_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_SCHEDULED_STATUSES.join(", ")
+                    s,
+                    VALID_SCHEDULED_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_scheduled_payments(org_id, status, supplier_id).await
+        self.repository
+            .list_scheduled_payments(org_id, status, supplier_id)
+            .await
     }
 
     /// Calculate early payment discount for a given payment term
     /// Returns the discount amount if paid within the discount period
-    #[must_use] 
+    #[must_use]
     pub fn calculate_early_payment_discount(
         &self,
         term: &PaymentTerm,
@@ -519,8 +630,12 @@ impl PaymentEngine {
     }
 
     /// Calculate the due date for an invoice given a payment term
-    #[must_use] 
-    pub fn calculate_due_date(&self, term: &PaymentTerm, invoice_date: chrono::NaiveDate) -> chrono::NaiveDate {
+    #[must_use]
+    pub fn calculate_due_date(
+        &self,
+        term: &PaymentTerm,
+        invoice_date: chrono::NaiveDate,
+    ) -> chrono::NaiveDate {
         invoice_date + chrono::Duration::days(i64::from(term.due_days))
     }
 
@@ -542,15 +657,23 @@ impl PaymentEngine {
         if !VALID_FORMAT_TYPES.contains(&format_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid format type '{}'. Must be one of: {}",
-                format_type, VALID_FORMAT_TYPES.join(", ")
+                format_type,
+                VALID_FORMAT_TYPES.join(", ")
             )));
         }
 
-        self.repository.create_payment_format(
-            org_id, code, name, description,
-            format_type, template_reference,
-            applicable_methods, false,
-        ).await
+        self.repository
+            .create_payment_format(
+                org_id,
+                code,
+                name,
+                description,
+                format_type,
+                template_reference,
+                applicable_methods,
+                false,
+            )
+            .await
     }
 
     /// List payment formats
@@ -579,15 +702,17 @@ impl PaymentEngine {
         if !VALID_DELIVERY_METHODS.contains(&delivery_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid delivery method '{}'. Must be one of: {}",
-                delivery_method, VALID_DELIVERY_METHODS.join(", ")
+                delivery_method,
+                VALID_DELIVERY_METHODS.join(", ")
             )));
         }
 
         // Verify payment exists
-        let payment = self.repository.get_payment(payment_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payment {payment_id} not found")
-            ))?;
+        let payment = self
+            .repository
+            .get_payment(payment_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Payment {payment_id} not found")))?;
 
         if payment.status == "draft" {
             return Err(AtlasError::ValidationFailed(
@@ -595,13 +720,25 @@ impl PaymentEngine {
             ));
         }
 
-        info!("Creating remittance advice for payment {}", payment.payment_number);
+        info!(
+            "Creating remittance advice for payment {}",
+            payment.payment_number
+        );
 
-        self.repository.create_remittance_advice(
-            org_id, payment_id, delivery_method, delivery_address,
-            contact_name, contact_email, subject, body,
-            payment_summary, created_by,
-        ).await
+        self.repository
+            .create_remittance_advice(
+                org_id,
+                payment_id,
+                delivery_method,
+                delivery_address,
+                contact_name,
+                contact_email,
+                subject,
+                body,
+                payment_summary,
+                created_by,
+            )
+            .await
     }
 
     /// List remittance advices
@@ -610,7 +747,9 @@ impl PaymentEngine {
         org_id: Uuid,
         payment_id: Option<Uuid>,
     ) -> AtlasResult<Vec<RemittanceAdvice>> {
-        self.repository.list_remittance_advices(org_id, payment_id).await
+        self.repository
+            .list_remittance_advices(org_id, payment_id)
+            .await
     }
 
     // ========================================================================
@@ -618,9 +757,18 @@ impl PaymentEngine {
     // ========================================================================
 
     /// Generate a payment dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<PaymentDashboardSummary> {
-        let all_payments = self.repository.list_payments(org_id, None, None, None).await?;
-        let scheduled = self.repository.list_scheduled_payments(org_id, Some("pending"), None).await?;
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<PaymentDashboardSummary> {
+        let all_payments = self
+            .repository
+            .list_payments(org_id, None, None, None)
+            .await?;
+        let scheduled = self
+            .repository
+            .list_scheduled_payments(org_id, Some("pending"), None)
+            .await?;
 
         let mut total_pending_count = 0i32;
         let mut total_pending_amount = 0.0f64;
@@ -657,29 +805,39 @@ impl PaymentEngine {
         }
 
         // Group by method
-        let mut by_method: std::collections::HashMap<String, (i32, f64)> = std::collections::HashMap::new();
+        let mut by_method: std::collections::HashMap<String, (i32, f64)> =
+            std::collections::HashMap::new();
         for p in &all_payments {
-            let entry = by_method.entry(p.payment_method.clone()).or_insert((0, 0.0));
+            let entry = by_method
+                .entry(p.payment_method.clone())
+                .or_insert((0, 0.0));
             entry.0 += 1;
             entry.1 += p.payment_amount.parse::<f64>().unwrap_or(0.0);
         }
-        let payments_by_method: serde_json::Value = by_method.into_iter()
-            .map(|(k, (count, total))| serde_json::json!({
-                "method": k, "count": count, "total": format!("{:.2}", total)
-            }))
+        let payments_by_method: serde_json::Value = by_method
+            .into_iter()
+            .map(|(k, (count, total))| {
+                serde_json::json!({
+                    "method": k, "count": count, "total": format!("{:.2}", total)
+                })
+            })
             .collect();
 
         // Group by status
-        let mut by_status: std::collections::HashMap<String, (i32, f64)> = std::collections::HashMap::new();
+        let mut by_status: std::collections::HashMap<String, (i32, f64)> =
+            std::collections::HashMap::new();
         for p in &all_payments {
             let entry = by_status.entry(p.status.clone()).or_insert((0, 0.0));
             entry.0 += 1;
             entry.1 += p.payment_amount.parse::<f64>().unwrap_or(0.0);
         }
-        let payments_by_status: serde_json::Value = by_status.into_iter()
-            .map(|(k, (count, total))| serde_json::json!({
-                "status": k, "count": count, "total": format!("{:.2}", total)
-            }))
+        let payments_by_status: serde_json::Value = by_status
+            .into_iter()
+            .map(|(k, (count, total))| {
+                serde_json::json!({
+                    "status": k, "count": count, "total": format!("{:.2}", total)
+                })
+            })
             .collect();
 
         Ok(PaymentDashboardSummary {
@@ -787,7 +945,10 @@ mod tests {
 
         let invoice_date = chrono::NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
         let due_date = engine.calculate_due_date(&term, invoice_date);
-        assert_eq!(due_date, chrono::NaiveDate::from_ymd_opt(2024, 2, 14).unwrap());
+        assert_eq!(
+            due_date,
+            chrono::NaiveDate::from_ymd_opt(2024, 2, 14).unwrap()
+        );
     }
 
     #[test]
@@ -918,9 +1079,8 @@ mod tests {
 
         // Use tokio runtime for async
         let rt = tokio::runtime::Runtime::new().unwrap();
-        let summary = rt.block_on(async {
-            engine.get_dashboard_summary(Uuid::new_v4()).await.unwrap()
-        });
+        let summary =
+            rt.block_on(async { engine.get_dashboard_summary(Uuid::new_v4()).await.unwrap() });
 
         assert_eq!(summary.total_pending_payment_count, 0);
         assert_eq!(summary.total_paid_payment_count, 0);

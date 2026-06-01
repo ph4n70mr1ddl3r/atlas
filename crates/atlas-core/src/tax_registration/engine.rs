@@ -13,11 +13,8 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Tax > Tax Registrations
 
-use atlas_shared::{
-    TaxRegistration, TaxRegistrationSummary,
-    AtlasError, AtlasResult,
-};
 use super::TaxRegistrationRepository;
+use atlas_shared::{AtlasError, AtlasResult, TaxRegistration, TaxRegistrationSummary};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -28,41 +25,48 @@ use uuid::Uuid;
 
 /// Valid registration types
 pub const VALID_REGISTRATION_TYPES: &[&str] = &[
-    "tin", "vat", "gst", "ein", "sst", "pan", "cst",
-    "sales_tax", "withholding_tax", "excise", "customs", "other",
+    "tin",
+    "vat",
+    "gst",
+    "ein",
+    "sst",
+    "pan",
+    "cst",
+    "sales_tax",
+    "withholding_tax",
+    "excise",
+    "customs",
+    "other",
 ];
 
 /// Valid tax purposes
 pub const VALID_TAX_PURPOSES: &[&str] = &[
-    "input_tax", "output_tax", "both", "reporting_only",
-    "withholding", "reverse_charge", "intracommunity",
+    "input_tax",
+    "output_tax",
+    "both",
+    "reporting_only",
+    "withholding",
+    "reverse_charge",
+    "intracommunity",
 ];
 
 /// Valid party types
-pub const VALID_PARTY_TYPES: &[&str] = &[
-    "first_party", "third_party",
-];
+pub const VALID_PARTY_TYPES: &[&str] = &["first_party", "third_party"];
 
 /// Valid registration statuses
-pub const VALID_STATUSES: &[&str] = &[
-    "active", "suspended", "deregistered", "expired", "pending",
-];
+pub const VALID_STATUSES: &[&str] = &["active", "suspended", "deregistered", "expired", "pending"];
 
 /// Valid validation statuses
-pub const VALID_VALIDATION_STATUSES: &[&str] = &[
-    "pending", "validated", "failed", "not_applicable",
-];
+pub const VALID_VALIDATION_STATUSES: &[&str] =
+    &["pending", "validated", "failed", "not_applicable"];
 
 /// Valid sources
-pub const VALID_SOURCES: &[&str] = &[
-    "manual", "import", "integration", "migration",
-];
+pub const VALID_SOURCES: &[&str] = &["manual", "import", "integration", "migration"];
 
 /// Valid country codes (common jurisdictions for tax registration)
 pub const VALID_COUNTRY_CODES: &[&str] = &[
-    "US", "GB", "DE", "FR", "CA", "AU", "IN", "JP", "BR", "MX",
-    "NL", "IT", "ES", "CH", "SG", "NZ", "IE", "SE", "NO", "DK",
-    "BE", "AT", "PT", "KR", "CN", "ZA", "AE", "SA",
+    "US", "GB", "DE", "FR", "CA", "AU", "IN", "JP", "BR", "MX", "NL", "IT", "ES", "CH", "SG", "NZ",
+    "IE", "SE", "NO", "DK", "BE", "AT", "PT", "KR", "CN", "ZA", "AE", "SA",
 ];
 
 // ============================================================================
@@ -118,19 +122,22 @@ impl TaxRegistrationEngine {
         if !VALID_REGISTRATION_TYPES.contains(&registration_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid registration_type '{}'. Must be one of: {}",
-                registration_type, VALID_REGISTRATION_TYPES.join(", ")
+                registration_type,
+                VALID_REGISTRATION_TYPES.join(", ")
             )));
         }
         if !VALID_TAX_PURPOSES.contains(&tax_purpose) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid tax_purpose '{}'. Must be one of: {}",
-                tax_purpose, VALID_TAX_PURPOSES.join(", ")
+                tax_purpose,
+                VALID_TAX_PURPOSES.join(", ")
             )));
         }
         if !VALID_PARTY_TYPES.contains(&party_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid party_type '{}'. Must be one of: {}",
-                party_type, VALID_PARTY_TYPES.join(", ")
+                party_type,
+                VALID_PARTY_TYPES.join(", ")
             )));
         }
         if jurisdiction_code.is_empty() {
@@ -146,7 +153,8 @@ impl TaxRegistrationEngine {
         if !VALID_SOURCES.contains(&source) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid source '{}'. Must be one of: {}",
-                source, VALID_SOURCES.join(", ")
+                source,
+                VALID_SOURCES.join(", ")
             )));
         }
 
@@ -163,7 +171,11 @@ impl TaxRegistrationEngine {
         validate_registration_number_format(registration_number, registration_type, country_code)?;
 
         // Check for duplicate registration number within the org
-        if let Some(existing) = self.repository.get_registration_by_number(org_id, registration_number).await? {
+        if let Some(existing) = self
+            .repository
+            .get_registration_by_number(org_id, registration_number)
+            .await?
+        {
             if existing.status != "deregistered" && existing.status != "expired" {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Registration number '{}' already exists for this organization (status: {})",
@@ -184,14 +196,26 @@ impl TaxRegistrationEngine {
             registration_number, registration_type, org_id, country_code
         );
 
-        self.repository.create_registration(
-            org_id, registration_number, registration_type, tax_purpose,
-            party_type, party_id, party_name,
-            jurisdiction_code, country_code, state_code,
-            effective_from, effective_to,
-            is_default, reporting_name, legal_entity_id,
-            created_by,
-        ).await
+        self.repository
+            .create_registration(
+                org_id,
+                registration_number,
+                registration_type,
+                tax_purpose,
+                party_type,
+                party_id,
+                party_name,
+                jurisdiction_code,
+                country_code,
+                state_code,
+                effective_from,
+                effective_to,
+                is_default,
+                reporting_name,
+                legal_entity_id,
+                created_by,
+            )
+            .await
     }
 
     /// Get a tax registration by ID
@@ -205,7 +229,9 @@ impl TaxRegistrationEngine {
         org_id: Uuid,
         registration_number: &str,
     ) -> AtlasResult<Option<TaxRegistration>> {
-        self.repository.get_registration_by_number(org_id, registration_number).await
+        self.repository
+            .get_registration_by_number(org_id, registration_number)
+            .await
     }
 
     /// List registrations with optional filters
@@ -221,7 +247,8 @@ impl TaxRegistrationEngine {
             if !VALID_PARTY_TYPES.contains(&pt) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid party_type '{}'. Must be one of: {}",
-                    pt, VALID_PARTY_TYPES.join(", ")
+                    pt,
+                    VALID_PARTY_TYPES.join(", ")
                 )));
             }
         }
@@ -229,11 +256,14 @@ impl TaxRegistrationEngine {
             if !VALID_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_STATUSES.join(", ")
+                    s,
+                    VALID_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_registrations(org_id, party_type, status, jurisdiction_code, country_code).await
+        self.repository
+            .list_registrations(org_id, party_type, status, jurisdiction_code, country_code)
+            .await
     }
 
     // ========================================================================
@@ -244,8 +274,9 @@ impl TaxRegistrationEngine {
     ///
     /// Oracle Fusion: Tax > Tax Registrations > Activate
     pub async fn activate_registration(&self, id: Uuid) -> AtlasResult<TaxRegistration> {
-        let reg = self.repository.get_registration(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {id} not found")))?;
+        let reg = self.repository.get_registration(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax registration {id} not found"))
+        })?;
 
         if reg.status != "pending" {
             return Err(AtlasError::WorkflowError(format!(
@@ -254,16 +285,22 @@ impl TaxRegistrationEngine {
             )));
         }
 
-        info!("Activating tax registration {} ({})", reg.registration_number, reg.registration_type);
-        self.repository.update_registration_status(id, "active", None).await
+        info!(
+            "Activating tax registration {} ({})",
+            reg.registration_number, reg.registration_type
+        );
+        self.repository
+            .update_registration_status(id, "active", None)
+            .await
     }
 
     /// Suspend an active registration
     ///
     /// Oracle Fusion: Tax > Tax Registrations > Suspend
     pub async fn suspend_registration(&self, id: Uuid) -> AtlasResult<TaxRegistration> {
-        let reg = self.repository.get_registration(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {id} not found")))?;
+        let reg = self.repository.get_registration(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax registration {id} not found"))
+        })?;
 
         if reg.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -272,14 +309,20 @@ impl TaxRegistrationEngine {
             )));
         }
 
-        info!("Suspending tax registration {} ({})", reg.registration_number, reg.registration_type);
-        self.repository.update_registration_status(id, "suspended", None).await
+        info!(
+            "Suspending tax registration {} ({})",
+            reg.registration_number, reg.registration_type
+        );
+        self.repository
+            .update_registration_status(id, "suspended", None)
+            .await
     }
 
     /// Reactivate a suspended registration
     pub async fn reactivate_registration(&self, id: Uuid) -> AtlasResult<TaxRegistration> {
-        let reg = self.repository.get_registration(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {id} not found")))?;
+        let reg = self.repository.get_registration(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax registration {id} not found"))
+        })?;
 
         if reg.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -288,8 +331,13 @@ impl TaxRegistrationEngine {
             )));
         }
 
-        info!("Reactivating tax registration {} ({})", reg.registration_number, reg.registration_type);
-        self.repository.update_registration_status(id, "active", None).await
+        info!(
+            "Reactivating tax registration {} ({})",
+            reg.registration_number, reg.registration_type
+        );
+        self.repository
+            .update_registration_status(id, "active", None)
+            .await
     }
 
     /// Deregister a registration (permanent)
@@ -300,8 +348,9 @@ impl TaxRegistrationEngine {
         id: Uuid,
         deregistration_date: chrono::NaiveDate,
     ) -> AtlasResult<TaxRegistration> {
-        let reg = self.repository.get_registration(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {id} not found")))?;
+        let reg = self.repository.get_registration(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax registration {id} not found"))
+        })?;
 
         if reg.status != "active" && reg.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -314,7 +363,9 @@ impl TaxRegistrationEngine {
             "Deregistering tax registration {} ({}) effective {}",
             reg.registration_number, reg.registration_type, deregistration_date
         );
-        self.repository.update_registration_status(id, "deregistered", Some(deregistration_date)).await
+        self.repository
+            .update_registration_status(id, "deregistered", Some(deregistration_date))
+            .await
     }
 
     // ========================================================================
@@ -325,8 +376,9 @@ impl TaxRegistrationEngine {
     ///
     /// Oracle Fusion: Tax > Tax Registrations > Validate
     pub async fn validate_registration(&self, id: Uuid) -> AtlasResult<TaxRegistration> {
-        let reg = self.repository.get_registration(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Tax registration {id} not found")))?;
+        let reg = self.repository.get_registration(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Tax registration {id} not found"))
+        })?;
 
         // Perform format validation
         let validation_result = validate_registration_number_format(
@@ -386,7 +438,7 @@ impl TaxRegistrationEngine {
     }
 
     /// Determine if a registration is currently effective as of a given date
-    #[must_use] 
+    #[must_use]
     pub fn is_effective(reg: &TaxRegistration, as_of: chrono::NaiveDate) -> bool {
         if reg.status != "active" {
             return false;
@@ -406,7 +458,7 @@ impl TaxRegistrationEngine {
     /// are missing or will expire soon.
     ///
     /// Returns a list of (`jurisdiction_code`, `issue_description`) tuples.
-    #[must_use] 
+    #[must_use]
     pub fn detect_compliance_gaps(
         registrations: &[TaxRegistration],
         required_jurisdictions: &[(&str, &str)], // (jurisdiction_code, country_code)
@@ -416,7 +468,8 @@ impl TaxRegistrationEngine {
         let mut gaps = Vec::new();
 
         for (jurisdiction, country) in required_jurisdictions {
-            let matching: Vec<&TaxRegistration> = registrations.iter()
+            let matching: Vec<&TaxRegistration> = registrations
+                .iter()
                 .filter(|r| {
                     r.jurisdiction_code == *jurisdiction
                         && r.country_code == *country
@@ -427,7 +480,9 @@ impl TaxRegistrationEngine {
             if matching.is_empty() {
                 gaps.push((
                     jurisdiction.to_string(),
-                    format!("No active registration found for jurisdiction {jurisdiction} ({country})"),
+                    format!(
+                        "No active registration found for jurisdiction {jurisdiction} ({country})"
+                    ),
                 ));
             } else {
                 // Check if any will expire within warning_days
@@ -460,36 +515,35 @@ impl TaxRegistrationEngine {
     }
 
     /// Check if a registration number already exists in a list (duplicate detection)
-    #[must_use] 
+    #[must_use]
     pub fn is_duplicate_number(number: &str, existing: &[TaxRegistration]) -> bool {
         existing.iter().any(|r| {
-            r.registration_number == number
-                && r.status != "deregistered"
-                && r.status != "expired"
+            r.registration_number == number && r.status != "deregistered" && r.status != "expired"
         })
     }
 
     /// Filter registrations by status
-    #[must_use] 
+    #[must_use]
     pub fn filter_by_status<'a>(
         registrations: &'a [TaxRegistration],
         status: &str,
     ) -> Vec<&'a TaxRegistration> {
-        registrations.iter().filter(|r| r.status == status).collect()
+        registrations
+            .iter()
+            .filter(|r| r.status == status)
+            .collect()
     }
 
     /// Get registrations expiring within N days from a reference date
-    #[must_use] 
+    #[must_use]
     pub fn get_expiring(
         registrations: &[TaxRegistration],
         as_of: chrono::NaiveDate,
         within_days: i32,
     ) -> Vec<(&TaxRegistration, i64)> {
-        registrations.iter()
-            .filter(|r| {
-                r.status == "active"
-                    && r.effective_to.is_some()
-            })
+        registrations
+            .iter()
+            .filter(|r| r.status == "active" && r.effective_to.is_some())
             .filter_map(|r| {
                 let to = r.effective_to.unwrap();
                 let days = (to - as_of).num_days();
@@ -503,11 +557,14 @@ impl TaxRegistrationEngine {
     }
 
     /// Validate a status transition is allowed
-    #[must_use] 
+    #[must_use]
     pub fn validate_status_transition(from: &str, to: &str) -> bool {
-        matches!((from, to), ("pending" | "suspended", "active") |
-("active", "suspended" | "deregistered" | "expired") |
-("suspended", "deregistered"))
+        matches!(
+            (from, to),
+            ("pending" | "suspended", "active")
+                | ("active", "suspended" | "deregistered" | "expired")
+                | ("suspended", "deregistered")
+        )
     }
 }
 
@@ -544,7 +601,10 @@ fn validate_registration_number_format(
                     "Registration number '{number}' is too short (minimum 3 characters)"
                 )));
             }
-            if !number.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '.' || c == '/' || c == ' ') {
+            if !number
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '.' || c == '/' || c == ' ')
+            {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Registration number '{number}' contains invalid characters"
                 )));
@@ -605,9 +665,7 @@ fn validate_eu_vat(number: &str, reg_type: &str, country_code: &str) -> AtlasRes
             number
         };
 
-        let cleaned: String = trimmed.chars()
-            .filter(|c| c.is_alphanumeric())
-            .collect();
+        let cleaned: String = trimmed.chars().filter(|c| c.is_alphanumeric()).collect();
 
         if cleaned.len() < 8 || cleaned.len() > 15 {
             return Err(AtlasError::ValidationFailed(format!(
@@ -632,10 +690,16 @@ fn validate_au_abn(number: &str, reg_type: &str) -> AtlasResult<()> {
         // Basic ABN checksum: subtract 1 from first digit, then weighted sum mod 89 == 0
         let digits: Vec<u32> = digits_only.chars().filter_map(|c| c.to_digit(10)).collect();
         let weights = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
-        let adjusted: Vec<u32> = digits.iter().enumerate().map(|(i, &d)| {
-            if i == 0 { d.saturating_sub(1) } else { d }
-        }).collect();
-        let sum: u32 = adjusted.iter().zip(weights.iter()).map(|(&d, &w)| d * w).sum();
+        let adjusted: Vec<u32> = digits
+            .iter()
+            .enumerate()
+            .map(|(i, &d)| if i == 0 { d.saturating_sub(1) } else { d })
+            .collect();
+        let sum: u32 = adjusted
+            .iter()
+            .zip(weights.iter())
+            .map(|(&d, &w)| d * w)
+            .sum();
         if !sum.is_multiple_of(89) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Australian ABN '{number}' failed checksum validation"
@@ -746,7 +810,12 @@ fn validate_br_cnpj(number: &str, reg_type: &str) -> AtlasResult<()> {
 
         // First check digit (position 12)
         let weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-        let sum1: u32 = digits.iter().take(12).zip(weights1.iter()).map(|(&d, &w)| d * w).sum();
+        let sum1: u32 = digits
+            .iter()
+            .take(12)
+            .zip(weights1.iter())
+            .map(|(&d, &w)| d * w)
+            .sum();
         let check1 = if sum1 % 11 < 2 { 0 } else { 11 - (sum1 % 11) };
         if digits[12] != check1 {
             return Err(AtlasError::ValidationFailed(format!(
@@ -756,7 +825,12 @@ fn validate_br_cnpj(number: &str, reg_type: &str) -> AtlasResult<()> {
 
         // Second check digit (position 13)
         let weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-        let sum2: u32 = digits.iter().take(13).zip(weights2.iter()).map(|(&d, &w)| d * w).sum();
+        let sum2: u32 = digits
+            .iter()
+            .take(13)
+            .zip(weights2.iter())
+            .map(|(&d, &w)| d * w)
+            .sum();
         let check2 = if sum2 % 11 < 2 { 0 } else { 11 - (sum2 % 11) };
         if digits[13] != check2 {
             return Err(AtlasError::ValidationFailed(format!(
@@ -794,18 +868,41 @@ mod tests {
 
     #[test]
     fn test_valid_registration_types() {
-        let valid = ["tin", "vat", "gst", "ein", "sst", "pan", "cst",
-                     "sales_tax", "withholding_tax", "excise", "customs", "other"];
+        let valid = [
+            "tin",
+            "vat",
+            "gst",
+            "ein",
+            "sst",
+            "pan",
+            "cst",
+            "sales_tax",
+            "withholding_tax",
+            "excise",
+            "customs",
+            "other",
+        ];
         for t in &valid {
-            assert!(VALID_REGISTRATION_TYPES.contains(t), "{} should be valid", t);
+            assert!(
+                VALID_REGISTRATION_TYPES.contains(t),
+                "{} should be valid",
+                t
+            );
         }
         assert!(!VALID_REGISTRATION_TYPES.contains(&"passport"));
     }
 
     #[test]
     fn test_valid_tax_purposes() {
-        let valid = ["input_tax", "output_tax", "both", "reporting_only",
-                     "withholding", "reverse_charge", "intracommunity"];
+        let valid = [
+            "input_tax",
+            "output_tax",
+            "both",
+            "reporting_only",
+            "withholding",
+            "reverse_charge",
+            "intracommunity",
+        ];
         for p in &valid {
             assert!(VALID_TAX_PURPOSES.contains(p));
         }
@@ -1070,47 +1167,81 @@ mod tests {
 
     #[test]
     fn test_status_transition_pending_to_active() {
-        assert!(TaxRegistrationEngine::validate_status_transition("pending", "active"));
+        assert!(TaxRegistrationEngine::validate_status_transition(
+            "pending", "active"
+        ));
     }
 
     #[test]
     fn test_status_transition_active_to_suspended() {
-        assert!(TaxRegistrationEngine::validate_status_transition("active", "suspended"));
+        assert!(TaxRegistrationEngine::validate_status_transition(
+            "active",
+            "suspended"
+        ));
     }
 
     #[test]
     fn test_status_transition_active_to_deregistered() {
-        assert!(TaxRegistrationEngine::validate_status_transition("active", "deregistered"));
+        assert!(TaxRegistrationEngine::validate_status_transition(
+            "active",
+            "deregistered"
+        ));
     }
 
     #[test]
     fn test_status_transition_active_to_expired() {
-        assert!(TaxRegistrationEngine::validate_status_transition("active", "expired"));
+        assert!(TaxRegistrationEngine::validate_status_transition(
+            "active", "expired"
+        ));
     }
 
     #[test]
     fn test_status_transition_suspended_to_active() {
-        assert!(TaxRegistrationEngine::validate_status_transition("suspended", "active"));
+        assert!(TaxRegistrationEngine::validate_status_transition(
+            "suspended",
+            "active"
+        ));
     }
 
     #[test]
     fn test_status_transition_suspended_to_deregistered() {
-        assert!(TaxRegistrationEngine::validate_status_transition("suspended", "deregistered"));
+        assert!(TaxRegistrationEngine::validate_status_transition(
+            "suspended",
+            "deregistered"
+        ));
     }
 
     #[test]
     fn test_status_transition_invalid() {
-        assert!(!TaxRegistrationEngine::validate_status_transition("pending", "suspended"));
-        assert!(!TaxRegistrationEngine::validate_status_transition("deregistered", "active"));
-        assert!(!TaxRegistrationEngine::validate_status_transition("expired", "active"));
-        assert!(!TaxRegistrationEngine::validate_status_transition("active", "pending"));
+        assert!(!TaxRegistrationEngine::validate_status_transition(
+            "pending",
+            "suspended"
+        ));
+        assert!(!TaxRegistrationEngine::validate_status_transition(
+            "deregistered",
+            "active"
+        ));
+        assert!(!TaxRegistrationEngine::validate_status_transition(
+            "expired", "active"
+        ));
+        assert!(!TaxRegistrationEngine::validate_status_transition(
+            "active", "pending"
+        ));
     }
 
     #[test]
     fn test_status_transition_terminal_states() {
-        assert!(!TaxRegistrationEngine::validate_status_transition("deregistered", "active"));
-        assert!(!TaxRegistrationEngine::validate_status_transition("deregistered", "suspended"));
-        assert!(!TaxRegistrationEngine::validate_status_transition("expired", "active"));
+        assert!(!TaxRegistrationEngine::validate_status_transition(
+            "deregistered",
+            "active"
+        ));
+        assert!(!TaxRegistrationEngine::validate_status_transition(
+            "deregistered",
+            "suspended"
+        ));
+        assert!(!TaxRegistrationEngine::validate_status_transition(
+            "expired", "active"
+        ));
     }
 
     // ========================================================================
@@ -1219,9 +1350,9 @@ mod tests {
 
     #[test]
     fn test_compliance_gaps_missing_one() {
-        let regs = vec![
-            make_test_registration_with_jurisdiction("active", "US-FED", "US"),
-        ];
+        let regs = vec![make_test_registration_with_jurisdiction(
+            "active", "US-FED", "US",
+        )];
         let required = vec![("US-FED", "US"), ("GB-VAT", "GB")];
         let gaps = TaxRegistrationEngine::detect_compliance_gaps(
             &regs,
@@ -1273,34 +1404,37 @@ mod tests {
 
     #[test]
     fn test_is_duplicate_found() {
-        let existing = vec![
-            make_test_registration_with_number("VAT-123", "active"),
-        ];
-        assert!(TaxRegistrationEngine::is_duplicate_number("VAT-123", &existing));
+        let existing = vec![make_test_registration_with_number("VAT-123", "active")];
+        assert!(TaxRegistrationEngine::is_duplicate_number(
+            "VAT-123", &existing
+        ));
     }
 
     #[test]
     fn test_is_duplicate_not_found() {
-        let existing = vec![
-            make_test_registration_with_number("VAT-123", "active"),
-        ];
-        assert!(!TaxRegistrationEngine::is_duplicate_number("VAT-456", &existing));
+        let existing = vec![make_test_registration_with_number("VAT-123", "active")];
+        assert!(!TaxRegistrationEngine::is_duplicate_number(
+            "VAT-456", &existing
+        ));
     }
 
     #[test]
     fn test_is_duplicate_ignores_deregistered() {
-        let existing = vec![
-            make_test_registration_with_number("VAT-123", "deregistered"),
-        ];
-        assert!(!TaxRegistrationEngine::is_duplicate_number("VAT-123", &existing));
+        let existing = vec![make_test_registration_with_number(
+            "VAT-123",
+            "deregistered",
+        )];
+        assert!(!TaxRegistrationEngine::is_duplicate_number(
+            "VAT-123", &existing
+        ));
     }
 
     #[test]
     fn test_is_duplicate_ignores_expired() {
-        let existing = vec![
-            make_test_registration_with_number("VAT-123", "expired"),
-        ];
-        assert!(!TaxRegistrationEngine::is_duplicate_number("VAT-123", &existing));
+        let existing = vec![make_test_registration_with_number("VAT-123", "expired")];
+        assert!(!TaxRegistrationEngine::is_duplicate_number(
+            "VAT-123", &existing
+        ));
     }
 
     // ========================================================================
@@ -1353,12 +1487,10 @@ mod tests {
     #[test]
     fn test_get_expiring_none() {
         let as_of = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
-        let regs = vec![
-            TaxRegistration {
-                effective_to: Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
-                ..make_test_registration_with_number("R1", "active")
-            },
-        ];
+        let regs = vec![TaxRegistration {
+            effective_to: Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
+            ..make_test_registration_with_number("R1", "active")
+        }];
         let expiring = TaxRegistrationEngine::get_expiring(&regs, as_of, 30);
         assert!(expiring.is_empty());
     }
@@ -1366,12 +1498,10 @@ mod tests {
     #[test]
     fn test_get_expiring_already_expired() {
         let as_of = chrono::NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
-        let regs = vec![
-            TaxRegistration {
-                effective_to: Some(chrono::NaiveDate::from_ymd_opt(2025, 6, 10).unwrap()),
-                ..make_test_registration_with_number("R1", "active")
-            },
-        ];
+        let regs = vec![TaxRegistration {
+            effective_to: Some(chrono::NaiveDate::from_ymd_opt(2025, 6, 10).unwrap()),
+            ..make_test_registration_with_number("R1", "active")
+        }];
         let expiring = TaxRegistrationEngine::get_expiring(&regs, as_of, 30);
         assert!(expiring.is_empty()); // Already past end date
     }
@@ -1467,20 +1597,25 @@ mod tests {
             status: status.to_string(),
             effective_from: chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
             effective_to: None,
-            ..make_test_registration("active", chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None)
+            ..make_test_registration(
+                "active",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+            )
         }
     }
 
-    fn make_test_registration_with_number(
-        number: &str,
-        status: &str,
-    ) -> TaxRegistration {
+    fn make_test_registration_with_number(number: &str, status: &str) -> TaxRegistration {
         TaxRegistration {
             registration_number: number.to_string(),
             status: status.to_string(),
             effective_from: chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
             effective_to: None,
-            ..make_test_registration(status, chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None)
+            ..make_test_registration(
+                status,
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+            )
         }
     }
 }

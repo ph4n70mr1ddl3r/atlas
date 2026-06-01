@@ -9,11 +9,11 @@
 //! - Dashboard summary
 //! - Validation edge cases
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 use uuid::Uuid;
 
 async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
@@ -21,19 +21,33 @@ async fn setup_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router)
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
     // Clean chargeback test data
-    sqlx::query("DELETE FROM _atlas.chargeback_activities").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.chargeback_lines").execute(&state.db_pool).await.ok();
-    sqlx::query("DELETE FROM _atlas.chargebacks").execute(&state.db_pool).await.ok();
+    sqlx::query("DELETE FROM _atlas.chargeback_activities")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.chargeback_lines")
+        .execute(&state.db_pool)
+        .await
+        .ok();
+    sqlx::query("DELETE FROM _atlas.chargebacks")
+        .execute(&state.db_pool)
+        .await
+        .ok();
     // Reset the sequence by truncating
-    sqlx::query("TRUNCATE _atlas.chargebacks CASCADE").execute(&state.db_pool).await.ok();
+    sqlx::query("TRUNCATE _atlas.chargebacks CASCADE")
+        .execute(&state.db_pool)
+        .await
+        .ok();
     sqlx::query("CREATE SCHEMA IF NOT EXISTS _atlas")
         .execute(&state.db_pool)
         .await
         .ok();
-    sqlx::raw_sql(include_str!("../../../../migrations/128_chargeback_management.sql"))
-        .execute(&state.db_pool)
-        .await
-        .expect("Failed to run chargeback migration");
+    sqlx::raw_sql(include_str!(
+        "../../../../migrations/128_chargeback_management.sql"
+    ))
+    .execute(&state.db_pool)
+    .await
+    .expect("Failed to run chargeback migration");
     let app = build_router(state.clone());
     (state, app)
 }
@@ -58,18 +72,31 @@ async fn create_chargeback(
         "reference": "PO-12345",
         "notes": "Test chargeback",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/chargebacks")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/chargebacks")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("CREATE CHARGEBACK status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to create chargeback: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create chargeback: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -89,18 +116,31 @@ async fn add_line(
         "glAccountCode": "4200",
         "glAccountName": "Chargebacks",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/lines", chargeback_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/lines", chargeback_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let status = r.status();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let body_str = String::from_utf8_lossy(&b);
     eprintln!("ADD LINE status={}: {}", status, body_str);
-    assert_eq!(status, StatusCode::CREATED, "Failed to add line: {:?}", body_str);
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to add line: {:?}",
+        body_str
+    );
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -139,16 +179,24 @@ async fn test_create_chargeback_with_tax() {
         "category": "quality",
         "priority": "high",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/chargebacks")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/chargebacks")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let total: f64 = body["totalAmount"].as_f64().unwrap();
     assert!((total - 12000.0).abs() < 0.01);
     let open: f64 = body["openAmount"].as_f64().unwrap();
@@ -162,14 +210,22 @@ async fn test_get_chargeback() {
     let cb_id: Uuid = cb["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/chargebacks/{}", cb_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/chargebacks/{}", cb_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["id"], cb["id"]);
     assert_eq!(body["customerName"], "Test Co");
 }
@@ -181,14 +237,22 @@ async fn test_get_chargeback_by_number() {
     let number = cb["chargebackNumber"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/chargebacks/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/chargebacks/number/{}", number))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["chargebackNumber"], number);
 }
 
@@ -199,14 +263,22 @@ async fn test_list_chargebacks() {
     create_chargeback(&app, 2000.00, "damaged_goods", "Customer B").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/chargebacks")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/chargebacks")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert!(body["data"].as_array().unwrap().len() >= 2);
 }
 
@@ -219,33 +291,56 @@ async fn test_list_chargebacks_filter_by_status() {
     let (k, v) = auth_header(&admin_claims());
 
     // Move to under_review
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "under_review"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "under_review"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Filter by open - should not include the moved one
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/chargebacks?status=open")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/chargebacks?status=open")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(data.iter().all(|b| b["status"] == "open"));
 
     // Filter by under_review
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/chargebacks?status=under_review")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/chargebacks?status=under_review")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     let data = body["data"].as_array().unwrap();
     assert!(data.iter().all(|b| b["status"] == "under_review"));
     assert!(data.len() >= 1);
@@ -258,11 +353,18 @@ async fn test_delete_open_chargeback() {
     let number = cb["chargebackNumber"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/chargebacks/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/chargebacks/number/{}", number))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 }
 
@@ -279,32 +381,53 @@ async fn test_chargeback_full_lifecycle_accepted() {
     let (k, v) = auth_header(&admin_claims());
 
     // Open -> Under Review
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "under_review"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "under_review"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "under_review");
 
     // Under Review -> Accepted
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "status": "accepted",
-            "resolutionNotes": "Customer provided valid evidence"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "status": "accepted",
+                        "resolutionNotes": "Customer provided valid evidence"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "accepted");
     assert!(body["resolutionDate"].is_string());
 }
@@ -318,28 +441,46 @@ async fn test_chargeback_full_lifecycle_rejected() {
     let (k, v) = auth_header(&admin_claims());
 
     // Open -> Under Review
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "under_review"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "under_review"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Under Review -> Rejected
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "status": "rejected",
-            "resolutionNotes": "No evidence provided"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "status": "rejected",
+                        "resolutionNotes": "No evidence provided"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "rejected");
 }
 
@@ -352,19 +493,30 @@ async fn test_chargeback_write_off_from_open() {
     let (k, v) = auth_header(&admin_claims());
 
     // Open -> Written Off
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "status": "written_off",
-            "resolutionNotes": "Below threshold"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "status": "written_off",
+                        "resolutionNotes": "Below threshold"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["status"], "written_off");
 }
 
@@ -377,13 +529,21 @@ async fn test_invalid_transition_accepted_from_open() {
     let (k, v) = auth_header(&admin_claims());
 
     // Try to accept directly from open (must go through under_review first)
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "accepted"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "accepted"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -396,22 +556,37 @@ async fn test_invalid_transition_reopen() {
     let (k, v) = auth_header(&admin_claims());
 
     // Move to under_review
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "under_review"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "under_review"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to go back to open
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "open"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "open"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -425,20 +600,34 @@ async fn test_delete_non_open_fails() {
     let (k, v) = auth_header(&admin_claims());
 
     // Move to under_review
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "under_review"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "under_review"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to delete non-open chargeback
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/chargebacks/number/{}", number))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/chargebacks/number/{}", number))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -461,16 +650,28 @@ async fn test_add_lines_and_totals() {
 
     // Verify chargeback totals recalculated
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/chargebacks/{}", cb_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/chargebacks/{}", cb_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     let total: f64 = body["totalAmount"].as_f64().unwrap();
-    assert!((total - 5000.0).abs() < 0.01, "Expected total 5000, got {}", total);
+    assert!(
+        (total - 5000.0).abs() < 0.01,
+        "Expected total 5000, got {}",
+        total
+    );
 }
 
 #[tokio::test]
@@ -486,24 +687,43 @@ async fn test_remove_line_and_recalc() {
 
     // Remove first line
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri(&format!("/api/v1/chargebacks/{}/lines/{}", cb_id, line1_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/v1/chargebacks/{}/lines/{}", cb_id, line1_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NO_CONTENT);
 
     // Verify totals recalculated
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/chargebacks/{}", cb_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/chargebacks/{}", cb_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     let total: f64 = body["totalAmount"].as_f64().unwrap();
-    assert!((total - 2000.0).abs() < 0.01, "Expected total 2000 after removal, got {}", total);
+    assert!(
+        (total - 2000.0).abs() < 0.01,
+        "Expected total 2000 after removal, got {}",
+        total
+    );
 }
 
 #[tokio::test]
@@ -517,14 +737,22 @@ async fn test_list_lines() {
     add_line(&app, cb_id, 500.00, "freight").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/chargebacks/{}/lines", cb_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/chargebacks/{}/lines", cb_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["data"].as_array().unwrap().len(), 3);
 }
 
@@ -538,24 +766,37 @@ async fn test_add_line_to_accepted_fails() {
 
     // Move to under_review -> accepted
     for status in &["under_review", "accepted"] {
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({"status": status})).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({"status": status})).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Try to add line to accepted chargeback
     let payload = json!({"lineType": "chargeback", "amount": 500.0});
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/lines", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/lines", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -570,19 +811,30 @@ async fn test_assign_chargeback() {
     let cb_id: Uuid = cb["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/assign", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "assignedTo": "john.doe",
-            "assignedTeam": "AR Collections"
-        })).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/assign", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "assignedTo": "john.doe",
+                        "assignedTeam": "AR Collections"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["assignedTo"], "john.doe");
     assert_eq!(body["assignedTeam"], "AR Collections");
 }
@@ -601,35 +853,60 @@ async fn test_activity_trail() {
 
     // Transition through states
     for status in &["under_review", "accepted"] {
-        app.clone().oneshot(Request::builder().method("POST")
-            .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-            .header("Content-Type", "application/json")
-            .header(&k, &v)
-            .body(Body::from(serde_json::to_string(&json!({"status": *status})).unwrap()))
-            .unwrap()
-        ).await.unwrap();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(
+                        serde_json::to_string(&json!({"status": *status})).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 
     // Check activities
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/chargebacks/{}/activities", cb_id))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/chargebacks/{}/activities", cb_id))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     let activities = body["data"].as_array().unwrap();
     // Should have: created + under_review + accepted = 3 activities
-    assert!(activities.len() >= 3, "Expected at least 3 activities, got {}", activities.len());
+    assert!(
+        activities.len() >= 3,
+        "Expected at least 3 activities, got {}",
+        activities.len()
+    );
 
     // Verify created activity
-    let created = activities.iter().find(|a| a["activityType"] == "created").unwrap();
+    let created = activities
+        .iter()
+        .find(|a| a["activityType"] == "created")
+        .unwrap();
     assert_eq!(created["newStatus"], "open");
 
     // Verify under_review activity
-    let review = activities.iter().find(|a| a["activityType"] == "status_change_under_review").unwrap();
+    let review = activities
+        .iter()
+        .find(|a| a["activityType"] == "status_change_under_review")
+        .unwrap();
     assert_eq!(review["oldStatus"], "open");
     assert_eq!(review["newStatus"], "under_review");
 }
@@ -649,22 +926,37 @@ async fn test_dashboard() {
     let (k, v) = auth_header(&admin_claims());
 
     // Move one to under_review
-    app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb3_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "under_review"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb3_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "under_review"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let r = app.clone().oneshot(Request::builder()
-        .uri("/api/v1/chargebacks/dashboard")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/chargebacks/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
 
     assert!(body.get("totalChargebacks").is_some());
     assert!(body.get("openCount").is_some());
@@ -696,13 +988,19 @@ async fn test_create_chargeback_invalid_reason() {
         "amount": 1000.0,
         "reasonCode": "invalid_reason",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/chargebacks")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/chargebacks")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -715,13 +1013,19 @@ async fn test_create_chargeback_zero_amount_fails() {
         "amount": 0.0,
         "reasonCode": "pricing_dispute",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/chargebacks")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/chargebacks")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -734,13 +1038,19 @@ async fn test_create_chargeback_negative_amount_fails() {
         "amount": -500.0,
         "reasonCode": "pricing_dispute",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/chargebacks")
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/chargebacks")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -748,11 +1058,17 @@ async fn test_create_chargeback_negative_amount_fails() {
 async fn test_get_chargeback_not_found() {
     let (_state, app) = setup_test().await;
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder()
-        .uri(&format!("/api/v1/chargebacks/{}", Uuid::new_v4()))
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/v1/chargebacks/{}", Uuid::new_v4()))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -763,13 +1079,21 @@ async fn test_invalid_status_in_transition() {
     let cb_id: Uuid = cb["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"status": "invalid_status"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/chargebacks/{}/transition", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"status": "invalid_status"})).unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -784,15 +1108,26 @@ async fn test_update_notes() {
     let cb_id: Uuid = cb["id"].as_str().unwrap().parse().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("PUT")
-        .uri(&format!("/api/v1/chargebacks/{}/notes", cb_id))
-        .header("Content-Type", "application/json")
-        .header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({"notes": "Updated notes for investigation"})).unwrap()))
-        .unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(&format!("/api/v1/chargebacks/{}/notes", cb_id))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({"notes": "Updated notes for investigation"}))
+                        .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX).await
-        .map(|b| serde_json::from_slice(&b).unwrap()).unwrap();
+    let body: serde_json::Value = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .map(|b| serde_json::from_slice(&b).unwrap())
+        .unwrap();
     assert_eq!(body["notes"], "Updated notes for investigation");
 }

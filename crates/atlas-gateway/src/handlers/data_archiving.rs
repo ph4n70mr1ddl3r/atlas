@@ -6,18 +6,18 @@
 //! purging, and restoration of enterprise data.
 
 use axum::{
-    extract::{Path, Query, State, Extension},
-    Json,
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::auth::Claims;
-use atlas_shared::{CreateRetentionPolicyRequest, CreateLegalHoldRequest};
+use crate::AppState;
+use atlas_shared::{CreateLegalHoldRequest, CreateRetentionPolicyRequest};
 
 // ============================================================================
 // Query Parameters
@@ -91,10 +91,19 @@ pub async fn create_retention_policy(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.data_archiving_engine.create_policy(org_id, payload, Some(user_id)).await {
-        Ok(policy) => Ok((StatusCode::CREATED, Json(serde_json::to_value(policy).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
-        })))),
+    match state
+        .hcm
+        .data_archiving_engine
+        .create_policy(org_id, payload, Some(user_id))
+        .await
+    {
+        Ok(policy) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(policy).unwrap_or_else(|e| {
+                error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create retention policy: {}", e);
             Err(match e.status_code() {
@@ -115,7 +124,8 @@ pub async fn get_retention_policy(
 
     match state.hcm.data_archiving_engine.get_policy(id).await {
         Ok(Some(policy)) => Ok(Json(serde_json::to_value(policy).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -132,13 +142,19 @@ pub async fn list_retention_policies(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.data_archiving_engine.list_policies(
-        org_id,
-        query.status.as_deref(),
-        query.entity_type.as_deref(),
-    ).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .list_policies(
+            org_id,
+            query.status.as_deref(),
+            query.entity_type.as_deref(),
+        )
+        .await
+    {
         Ok(policies) => Ok(Json(serde_json::to_value(policies).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to list retention policies: {}", e);
@@ -156,7 +172,8 @@ pub async fn activate_retention_policy(
 
     match state.hcm.data_archiving_engine.activate_policy(id).await {
         Ok(policy) => Ok(Json(serde_json::to_value(policy).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to activate retention policy: {}", e);
@@ -178,7 +195,8 @@ pub async fn deactivate_retention_policy(
 
     match state.hcm.data_archiving_engine.deactivate_policy(id).await {
         Ok(policy) => Ok(Json(serde_json::to_value(policy).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to deactivate retention policy: {}", e);
@@ -219,10 +237,19 @@ pub async fn create_legal_hold(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.data_archiving_engine.create_legal_hold(org_id, payload, Some(user_id)).await {
-        Ok(hold) => Ok((StatusCode::CREATED, Json(serde_json::to_value(hold).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
-        })))),
+    match state
+        .hcm
+        .data_archiving_engine
+        .create_legal_hold(org_id, payload, Some(user_id))
+        .await
+    {
+        Ok(hold) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(hold).unwrap_or_else(|e| {
+                error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create legal hold: {}", e);
             Err(match e.status_code() {
@@ -243,7 +270,8 @@ pub async fn get_legal_hold(
 
     match state.hcm.data_archiving_engine.get_legal_hold(id).await {
         Ok(Some(hold)) => Ok(Json(serde_json::to_value(hold).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -260,11 +288,15 @@ pub async fn list_legal_holds(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.data_archiving_engine.list_legal_holds(
-        org_id, query.status.as_deref(),
-    ).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .list_legal_holds(org_id, query.status.as_deref())
+        .await
+    {
         Ok(holds) => Ok(Json(serde_json::to_value(holds).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to list legal holds: {}", e);
@@ -282,9 +314,15 @@ pub async fn release_legal_hold(
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.data_archiving_engine.release_legal_hold(id, user_id, payload.reason.as_deref()).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .release_legal_hold(id, user_id, payload.reason.as_deref())
+        .await
+    {
         Ok(hold) => Ok(Json(serde_json::to_value(hold).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to release legal hold: {}", e);
@@ -326,16 +364,24 @@ pub async fn add_legal_hold_items(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let legal_hold_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let items: Vec<(String, Uuid)> = payload.items.into_iter()
+    let items: Vec<(String, Uuid)> = payload
+        .items
+        .into_iter()
         .filter_map(|item| {
             let record_id = Uuid::parse_str(&item.record_id).ok()?;
             Some((item.entity_type, record_id))
         })
         .collect();
 
-    match state.hcm.data_archiving_engine.add_legal_hold_items(org_id, legal_hold_id, items).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .add_legal_hold_items(org_id, legal_hold_id, items)
+        .await
+    {
         Ok(items) => Ok(Json(serde_json::to_value(items).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to add legal hold items: {}", e);
@@ -355,9 +401,15 @@ pub async fn list_legal_hold_items(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let legal_hold_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.hcm.data_archiving_engine.list_legal_hold_items(legal_hold_id).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .list_legal_hold_items(legal_hold_id)
+        .await
+    {
         Ok(items) => Ok(Json(serde_json::to_value(items).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to list legal hold items: {}", e);
@@ -373,7 +425,12 @@ pub async fn remove_legal_hold_item(
 ) -> Result<StatusCode, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.hcm.data_archiving_engine.remove_legal_hold_item(id).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .remove_legal_hold_item(id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to remove legal hold item: {}", e);
@@ -390,7 +447,12 @@ pub async fn check_legal_hold(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let record_id = Uuid::parse_str(&query.record_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.hcm.data_archiving_engine.is_record_under_hold(org_id, &query.entity_type, record_id).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .is_record_under_hold(org_id, &query.entity_type, record_id)
+        .await
+    {
         Ok(is_held) => Ok(Json(serde_json::json!({
             "entityType": query.entity_type,
             "recordId": query.record_id,
@@ -423,12 +485,19 @@ pub async fn execute_archive(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let policy_id = Uuid::parse_str(&payload.policy_id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.hcm.data_archiving_engine.execute_archive(
-        org_id, policy_id, &payload.batch_number, Some(user_id),
-    ).await {
-        Ok(batch) => Ok((StatusCode::CREATED, Json(serde_json::to_value(batch).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
-        })))),
+    match state
+        .hcm
+        .data_archiving_engine
+        .execute_archive(org_id, policy_id, &payload.batch_number, Some(user_id))
+        .await
+    {
+        Ok(batch) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(batch).unwrap_or_else(|e| {
+                error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to execute archive: {}", e);
             Err(match e.status_code() {
@@ -447,9 +516,15 @@ pub async fn get_archived_record(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.hcm.data_archiving_engine.get_archived_record(id).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .get_archived_record(id)
+        .await
+    {
         Ok(Some(record)) => Ok(Json(serde_json::to_value(record).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -466,11 +541,20 @@ pub async fn list_archived_records(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.data_archiving_engine.list_archived_records(
-        org_id, query.entity_type.as_deref(), query.status.as_deref(), query.limit,
-    ).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .list_archived_records(
+            org_id,
+            query.entity_type.as_deref(),
+            query.status.as_deref(),
+            query.limit,
+        )
+        .await
+    {
         Ok(records) => Ok(Json(serde_json::to_value(records).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to list archived records: {}", e);
@@ -488,9 +572,15 @@ pub async fn restore_archived_record(
     let archived_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.data_archiving_engine.restore_archived_record(org_id, archived_id, Some(user_id)).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .restore_archived_record(org_id, archived_id, Some(user_id))
+        .await
+    {
         Ok(record) => Ok(Json(serde_json::to_value(record).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to restore archived record: {}", e);
@@ -512,9 +602,15 @@ pub async fn purge_archived_record(
     let archived_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.data_archiving_engine.purge_archived_record(org_id, archived_id, Some(user_id)).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .purge_archived_record(org_id, archived_id, Some(user_id))
+        .await
+    {
         Ok(record) => Ok(Json(serde_json::to_value(record).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to purge archived record: {}", e);
@@ -538,11 +634,15 @@ pub async fn list_archive_batches(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.data_archiving_engine.list_archive_batches(
-        org_id, query.status.as_deref(),
-    ).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .list_archive_batches(org_id, query.status.as_deref())
+        .await
+    {
         Ok(batches) => Ok(Json(serde_json::to_value(batches).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to list archive batches: {}", e);
@@ -560,7 +660,8 @@ pub async fn get_archive_batch(
 
     match state.hcm.data_archiving_engine.get_archive_batch(id).await {
         Ok(Some(batch)) => Ok(Json(serde_json::to_value(batch).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -581,11 +682,20 @@ pub async fn list_archive_audit(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.data_archiving_engine.list_audit_entries(
-        org_id, query.operation.as_deref(), query.entity_type.as_deref(), query.limit,
-    ).await {
+    match state
+        .hcm
+        .data_archiving_engine
+        .list_audit_entries(
+            org_id,
+            query.operation.as_deref(),
+            query.entity_type.as_deref(),
+            query.limit,
+        )
+        .await
+    {
         Ok(entries) => Ok(Json(serde_json::to_value(entries).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to list archive audit: {}", e);
@@ -606,7 +716,8 @@ pub async fn get_data_archiving_dashboard(
 
     match state.hcm.data_archiving_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| {
-            error!("Serialization error: {}", e); serde_json::Value::Null
+            error!("Serialization error: {}", e);
+            serde_json::Value::Null
         }))),
         Err(e) => {
             error!("Failed to get archiving dashboard: {}", e);

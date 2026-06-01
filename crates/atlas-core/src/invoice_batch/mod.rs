@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Payables > Invoice Batches
 
-pub mod repository;
 pub mod engine;
+pub mod repository;
 
 pub use engine::InvoiceBatchEngine;
 pub use repository::{InvoiceBatchRepository, PostgresInvoiceBatchRepository};

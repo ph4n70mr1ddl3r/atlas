@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Expenses > Corporate Cards
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::CorporateCardEngine;
 pub use repository::{CorporateCardRepository, PostgresCorporateCardRepository};

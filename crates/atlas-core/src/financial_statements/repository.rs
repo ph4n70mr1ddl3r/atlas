@@ -2,11 +2,8 @@
 //!
 //! Storage interface for financial statement data.
 
-use atlas_shared::{
-    FinancialStatementDefinition, FinancialStatement,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{AtlasResult, FinancialStatement, FinancialStatementDefinition};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -43,8 +40,16 @@ pub trait FinancialStatementRepository: Send + Sync {
     ) -> AtlasResult<FinancialStatementDefinition>;
 
     async fn get_definition(&self, id: Uuid) -> AtlasResult<Option<FinancialStatementDefinition>>;
-    async fn get_definition_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<FinancialStatementDefinition>>;
-    async fn list_definitions(&self, org_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<FinancialStatementDefinition>>;
+    async fn get_definition_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<FinancialStatementDefinition>>;
+    async fn list_definitions(
+        &self,
+        org_id: Uuid,
+        report_type: Option<&str>,
+    ) -> AtlasResult<Vec<FinancialStatementDefinition>>;
 
     // Account balances (from GL)
     async fn get_account_balances(
@@ -57,7 +62,11 @@ pub trait FinancialStatementRepository: Send + Sync {
     // Generated statements
     async fn save_statement(&self, statement: &FinancialStatement) -> AtlasResult<()>;
     async fn get_statement(&self, id: Uuid) -> AtlasResult<Option<FinancialStatement>>;
-    async fn list_statements(&self, org_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<FinancialStatement>>;
+    async fn list_statements(
+        &self,
+        org_id: Uuid,
+        report_type: Option<&str>,
+    ) -> AtlasResult<Vec<FinancialStatement>>;
 }
 
 /// `PostgreSQL` implementation
@@ -66,7 +75,7 @@ pub struct PostgresFinancialStatementRepository {
 }
 
 impl PostgresFinancialStatementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -85,8 +94,12 @@ fn row_to_definition(row: &sqlx::postgres::PgRow) -> FinancialStatementDefinitio
         currency_code: row.get("currency_code"),
         include_comparative: row.get("include_comparative"),
         comparative_period_count: row.try_get("comparative_period_count").unwrap_or(0),
-        row_definitions: row.try_get("row_definitions").unwrap_or(serde_json::json!([])),
-        column_definitions: row.try_get("column_definitions").unwrap_or(serde_json::json!([])),
+        row_definitions: row
+            .try_get("row_definitions")
+            .unwrap_or(serde_json::json!([])),
+        column_definitions: row
+            .try_get("column_definitions")
+            .unwrap_or(serde_json::json!([])),
         period_name: row.get("period_name"),
         fiscal_year: row.get("fiscal_year"),
         is_system: row.get("is_system"),
@@ -102,12 +115,20 @@ fn row_to_definition(row: &sqlx::postgres::PgRow) -> FinancialStatementDefinitio
 impl FinancialStatementRepository for PostgresFinancialStatementRepository {
     async fn create_definition(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        report_type: &str, currency_code: &str,
-        include_comparative: bool, comparative_period_count: i32,
-        row_definitions: serde_json::Value, column_definitions: serde_json::Value,
-        period_name: Option<&str>, fiscal_year: Option<i32>,
-        is_system: bool, created_by: Option<Uuid>,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        report_type: &str,
+        currency_code: &str,
+        include_comparative: bool,
+        comparative_period_count: i32,
+        row_definitions: serde_json::Value,
+        column_definitions: serde_json::Value,
+        period_name: Option<&str>,
+        fiscal_year: Option<i32>,
+        is_system: bool,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<FinancialStatementDefinition> {
         let row = sqlx::query(
             r"
@@ -120,10 +141,20 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(report_type)
-        .bind(currency_code).bind(include_comparative).bind(comparative_period_count)
-        .bind(&row_definitions).bind(&column_definitions)
-        .bind(period_name).bind(fiscal_year).bind(is_system).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(report_type)
+        .bind(currency_code)
+        .bind(include_comparative)
+        .bind(comparative_period_count)
+        .bind(&row_definitions)
+        .bind(&column_definitions)
+        .bind(period_name)
+        .bind(fiscal_year)
+        .bind(is_system)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -140,7 +171,11 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
         Ok(row.map(|r| row_to_definition(&r)))
     }
 
-    async fn get_definition_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<FinancialStatementDefinition>> {
+    async fn get_definition_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<FinancialStatementDefinition>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.financial_report_definitions WHERE organization_id = $1 AND code = $2"
         )
@@ -151,7 +186,11 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
         Ok(row.map(|r| row_to_definition(&r)))
     }
 
-    async fn list_definitions(&self, org_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<FinancialStatementDefinition>> {
+    async fn list_definitions(
+        &self,
+        org_id: Uuid,
+        report_type: Option<&str>,
+    ) -> AtlasResult<Vec<FinancialStatementDefinition>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.financial_report_definitions
@@ -161,7 +200,8 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
             ORDER BY report_type, code
             ",
         )
-        .bind(org_id).bind(report_type)
+        .bind(org_id)
+        .bind(report_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -196,13 +236,16 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| AccountBalance {
-            account_code: r.get("account_code"),
-            account_name: r.get("account_name"),
-            account_type: r.get("account_type"),
-            subtype: r.get("subtype"),
-            balance: r.try_get("balance").unwrap_or(0.0),
-        }).collect())
+        Ok(rows
+            .iter()
+            .map(|r| AccountBalance {
+                account_code: r.get("account_code"),
+                account_name: r.get("account_name"),
+                account_type: r.get("account_type"),
+                subtype: r.get("subtype"),
+                balance: r.try_get("balance").unwrap_or(0.0),
+            })
+            .collect())
     }
 
     async fn save_statement(&self, stmt: &FinancialStatement) -> AtlasResult<()> {
@@ -215,14 +258,20 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             ",
         )
-        .bind(stmt.id).bind(stmt.organization_id).bind(stmt.definition_id)
-        .bind(&stmt.report_name).bind(&stmt.report_type)
-        .bind(stmt.as_of_date).bind(&stmt.period_name).bind(stmt.fiscal_year)
+        .bind(stmt.id)
+        .bind(stmt.organization_id)
+        .bind(stmt.definition_id)
+        .bind(&stmt.report_name)
+        .bind(&stmt.report_type)
+        .bind(stmt.as_of_date)
+        .bind(&stmt.period_name)
+        .bind(stmt.fiscal_year)
         .bind(&stmt.currency_code)
         .bind(serde_json::to_value(&stmt.lines).unwrap_or(serde_json::json!([])))
         .bind(&stmt.totals)
         .bind(stmt.is_balanced)
-        .bind(stmt.generated_at).bind(stmt.generated_by)
+        .bind(stmt.generated_at)
+        .bind(stmt.generated_by)
         .bind(&stmt.metadata)
         .execute(&self.pool)
         .await
@@ -247,7 +296,8 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
             period_name: r.get("period_name"),
             fiscal_year: r.get("fiscal_year"),
             currency_code: r.get("currency_code"),
-            lines: serde_json::from_value(r.try_get("lines").unwrap_or(serde_json::json!([]))).unwrap_or_default(),
+            lines: serde_json::from_value(r.try_get("lines").unwrap_or(serde_json::json!([])))
+                .unwrap_or_default(),
             totals: r.try_get("totals").unwrap_or(serde_json::json!({})),
             is_balanced: r.get("is_balanced"),
             generated_at: r.get("generated_at"),
@@ -257,7 +307,11 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
         }))
     }
 
-    async fn list_statements(&self, org_id: Uuid, report_type: Option<&str>) -> AtlasResult<Vec<FinancialStatement>> {
+    async fn list_statements(
+        &self,
+        org_id: Uuid,
+        report_type: Option<&str>,
+    ) -> AtlasResult<Vec<FinancialStatement>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.financial_statements
@@ -266,28 +320,33 @@ impl FinancialStatementRepository for PostgresFinancialStatementRepository {
             ORDER BY generated_at DESC
             ",
         )
-        .bind(org_id).bind(report_type)
+        .bind(org_id)
+        .bind(report_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|r| FinancialStatement {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            definition_id: r.get("definition_id"),
-            report_name: r.get("report_name"),
-            report_type: r.get("report_type"),
-            as_of_date: r.get("as_of_date"),
-            period_name: r.get("period_name"),
-            fiscal_year: r.get("fiscal_year"),
-            currency_code: r.get("currency_code"),
-            lines: serde_json::from_value(r.try_get("lines").unwrap_or(serde_json::json!([]))).unwrap_or_default(),
-            totals: r.try_get("totals").unwrap_or(serde_json::json!({})),
-            is_balanced: r.get("is_balanced"),
-            generated_at: r.get("generated_at"),
-            generated_by: r.get("generated_by"),
-            metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
-            created_at: r.get("created_at"),
-        }).collect())
+        Ok(rows
+            .iter()
+            .map(|r| FinancialStatement {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                definition_id: r.get("definition_id"),
+                report_name: r.get("report_name"),
+                report_type: r.get("report_type"),
+                as_of_date: r.get("as_of_date"),
+                period_name: r.get("period_name"),
+                fiscal_year: r.get("fiscal_year"),
+                currency_code: r.get("currency_code"),
+                lines: serde_json::from_value(r.try_get("lines").unwrap_or(serde_json::json!([])))
+                    .unwrap_or_default(),
+                totals: r.try_get("totals").unwrap_or(serde_json::json!({})),
+                is_balanced: r.get("is_balanced"),
+                generated_at: r.get("generated_at"),
+                generated_by: r.get("generated_by"),
+                metadata: r.try_get("metadata").unwrap_or(serde_json::json!({})),
+                created_at: r.get("created_at"),
+            })
+            .collect())
     }
 }

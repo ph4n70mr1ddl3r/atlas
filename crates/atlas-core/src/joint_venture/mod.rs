@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Joint Venture Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::JointVentureEngine;
 pub use repository::{JointVentureRepository, PostgresJointVentureRepository};

@@ -13,4 +13,4 @@ mod engine;
 mod repository;
 
 pub use engine::PurchaseRequisitionEngine;
-pub use repository::{PurchaseRequisitionRepository, PostgresPurchaseRequisitionRepository};
+pub use repository::{PostgresPurchaseRequisitionRepository, PurchaseRequisitionRepository};

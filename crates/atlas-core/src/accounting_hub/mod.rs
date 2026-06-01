@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Accounting Hub
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::AccountingHubEngine;
 pub use repository::{AccountingHubRepository, PostgresAccountingHubRepository};

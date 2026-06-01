@@ -1,17 +1,17 @@
 //! Schema Engine
-//! 
+//!
 //! The schema engine provides dynamic entity definitions at runtime.
 //! Entities are stored in the database and can be modified without restarts.
 
-mod engine;
-mod repository;
 mod builder;
+mod engine;
 mod query;
+mod repository;
 
-pub use engine::SchemaEngine;
-pub use repository::{SchemaRepository, PostgresSchemaRepository};
 pub use builder::{SchemaBuilder, WorkflowBuilder};
+pub use engine::SchemaEngine;
 pub use query::DynamicQuery;
+pub use repository::{PostgresSchemaRepository, SchemaRepository};
 
 use atlas_shared::{EntityDefinition, FieldDefinition, FieldType};
 use std::collections::HashMap;
@@ -25,23 +25,29 @@ pub struct CachedEntity {
 }
 
 impl CachedEntity {
-    #[must_use] 
+    #[must_use]
     pub fn new(definition: EntityDefinition, version: i64) -> Self {
-        let field_map: HashMap<_, _> = definition.fields.iter()
+        let field_map: HashMap<_, _> = definition
+            .fields
+            .iter()
             .map(|f| (f.name.clone(), f.clone()))
             .collect();
-        
-        Self { definition, field_map, version }
+
+        Self {
+            definition,
+            field_map,
+            version,
+        }
     }
-    
-    #[must_use] 
+
+    #[must_use]
     pub fn get_field(&self, name: &str) -> Option<&FieldDefinition> {
         self.field_map.get(name)
     }
 }
 
 /// SQL type mapping for field types
-#[must_use] 
+#[must_use]
 pub fn field_type_to_sql(field_type: &FieldType) -> String {
     match field_type {
         FieldType::String { .. } => "TEXT".to_string(),
@@ -68,7 +74,7 @@ pub fn field_type_to_sql(field_type: &FieldType) -> String {
 }
 
 /// Generate CREATE TABLE SQL for an entity
-#[must_use] 
+#[must_use]
 pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
     let table_name = entity.table_name.as_deref().unwrap_or(&entity.name);
     let mut columns = vec![
@@ -79,23 +85,25 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
         "created_by UUID".to_string(),
         "updated_by UUID".to_string(),
     ];
-    
+
     if entity.is_soft_delete {
         columns.push("deleted_at TIMESTAMPTZ".to_string());
     }
-    
+
     for field in &entity.fields {
         let col_type = field_type_to_sql(&field.field_type);
-        let safe_name = field.name.chars()
+        let safe_name = field
+            .name
+            .chars()
             .filter(|c| c.is_alphanumeric() || *c == '_')
             .collect::<String>();
-        
+
         let mut col_def = format!("\"{safe_name}\" {col_type}");
-        
+
         if field.is_required {
             col_def.push_str(" NOT NULL");
         }
-        
+
         if let Some(default) = &field.default_value {
             // Safely serialize the default value for SQL
             let default_str = match default {
@@ -113,18 +121,18 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
             };
             col_def.push_str(&format!(" DEFAULT {default_str}"));
         }
-        
+
         columns.push(col_def);
     }
-    
+
     // Add standard indexes
     columns.push("UNIQUE(organization_id, id)".to_string());
-    
+
     // Sanitize table name: reject embedded quotes or semicolons to prevent injection
     if table_name.contains('"') || table_name.contains(';') || table_name.contains("--") {
         return "-- ERROR: invalid table name".to_string();
     }
-    
+
     format!(
         "CREATE TABLE IF NOT EXISTS \"{}\" (\n  {}\n);",
         table_name,
@@ -133,7 +141,7 @@ pub fn generate_create_table_sql(entity: &EntityDefinition) -> String {
 }
 
 /// Generate CREATE INDEX SQL statements for an entity
-#[must_use] 
+#[must_use]
 pub fn generate_index_sql(entity: &EntityDefinition) -> Vec<String> {
     let table_name = entity.table_name.as_deref().unwrap_or(&entity.name);
     entity.indexes.iter().map(|idx| {
@@ -159,7 +167,7 @@ mod tests {
     use super::*;
     use atlas_shared::{EntityDefinition, FieldDefinition, FieldType};
     use uuid::Uuid;
-    
+
     fn create_test_entity() -> EntityDefinition {
         EntityDefinition {
             id: Some(Uuid::new_v4()),
@@ -169,9 +177,29 @@ mod tests {
             table_name: Some("test_entities".to_string()),
             description: None,
             fields: vec![
-                FieldDefinition::new("name", "Name", FieldType::String { max_length: Some(100), pattern: None }),
-                FieldDefinition::new("amount", "Amount", FieldType::Decimal { precision: 12, scale: 2 }),
-                FieldDefinition::new("status", "Status", FieldType::Enum { values: vec!["draft".to_string(), "active".to_string()] }),
+                FieldDefinition::new(
+                    "name",
+                    "Name",
+                    FieldType::String {
+                        max_length: Some(100),
+                        pattern: None,
+                    },
+                ),
+                FieldDefinition::new(
+                    "amount",
+                    "Amount",
+                    FieldType::Decimal {
+                        precision: 12,
+                        scale: 2,
+                    },
+                ),
+                FieldDefinition::new(
+                    "status",
+                    "Status",
+                    FieldType::Enum {
+                        values: vec!["draft".to_string(), "active".to_string()],
+                    },
+                ),
             ],
             indexes: vec![],
             workflow: None,
@@ -183,23 +211,35 @@ mod tests {
             metadata: serde_json::Value::Null,
         }
     }
-    
+
     #[test]
     fn test_generate_create_table() {
         let entity = create_test_entity();
         let sql = generate_create_table_sql(&entity);
-        
+
         assert!(sql.contains("CREATE TABLE IF NOT EXISTS \"test_entities\""));
         assert!(sql.contains("\"name\" TEXT"));
         assert!(sql.contains("\"amount\" NUMERIC"));
         assert!(sql.contains("\"status\" VARCHAR(100)"));
         assert!(sql.contains("deleted_at TIMESTAMPTZ"));
     }
-    
+
     #[test]
     fn test_field_type_to_sql() {
-        assert_eq!(field_type_to_sql(&FieldType::String { max_length: None, pattern: None }), "TEXT");
-        assert_eq!(field_type_to_sql(&FieldType::Integer { min: None, max: None }), "BIGINT");
+        assert_eq!(
+            field_type_to_sql(&FieldType::String {
+                max_length: None,
+                pattern: None
+            }),
+            "TEXT"
+        );
+        assert_eq!(
+            field_type_to_sql(&FieldType::Integer {
+                min: None,
+                max: None
+            }),
+            "BIGINT"
+        );
         assert_eq!(field_type_to_sql(&FieldType::Boolean), "BOOLEAN");
         assert_eq!(field_type_to_sql(&FieldType::Date), "DATE");
         assert_eq!(field_type_to_sql(&FieldType::DateTime), "TIMESTAMPTZ");

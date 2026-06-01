@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: CX > Channel Revenue Management > Trade Promotions, Funds, Claims
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ChannelRevenueEngine;
 pub use repository::{ChannelRevenueRepository, PostgresChannelRevenueRepository};

@@ -224,4 +224,3 @@ pub struct QualityDashboardSummary {
     pub ncrs_by_severity: serde_json::Value,
     pub ncrs_by_type: serde_json::Value,
 }
-

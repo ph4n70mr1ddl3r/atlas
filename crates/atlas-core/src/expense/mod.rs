@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Expenses > Expense Reports, Categories, Policies
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ExpenseEngine;
 pub use repository::{ExpenseRepository, PostgresExpenseRepository};

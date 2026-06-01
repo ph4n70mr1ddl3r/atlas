@@ -2,13 +2,12 @@
 //!
 //! `PostgreSQL` storage for compensation management data.
 
-use atlas_shared::{
-    CompensationPlan, CompensationComponent, CompensationCycle,
-    CompensationBudgetPool, CompensationWorksheet, CompensationWorksheetLine,
-    CompensationStatement, CompensationDashboard,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, CompensationBudgetPool, CompensationComponent, CompensationCycle,
+    CompensationDashboard, CompensationPlan, CompensationStatement, CompensationWorksheet,
+    CompensationWorksheetLine,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -30,7 +29,11 @@ pub trait CompensationRepository: Send + Sync {
     ) -> AtlasResult<CompensationPlan>;
 
     async fn get_plan(&self, id: Uuid) -> AtlasResult<Option<CompensationPlan>>;
-    async fn get_plan_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CompensationPlan>>;
+    async fn get_plan_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CompensationPlan>>;
     async fn list_plans(&self, org_id: Uuid) -> AtlasResult<Vec<CompensationPlan>>;
     async fn delete_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -62,9 +65,18 @@ pub trait CompensationRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CompensationCycle>;
     async fn get_cycle(&self, id: Uuid) -> AtlasResult<Option<CompensationCycle>>;
-    async fn list_cycles(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CompensationCycle>>;
+    async fn list_cycles(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CompensationCycle>>;
     async fn update_cycle_status(&self, id: Uuid, status: &str) -> AtlasResult<CompensationCycle>;
-    async fn update_cycle_totals(&self, id: Uuid, total_approved: &str, total_employees: i32) -> AtlasResult<()>;
+    async fn update_cycle_totals(
+        &self,
+        id: Uuid,
+        total_approved: &str,
+        total_employees: i32,
+    ) -> AtlasResult<()>;
     async fn delete_cycle(&self, id: Uuid) -> AtlasResult<()>;
 
     // Budget Pools
@@ -97,8 +109,16 @@ pub trait CompensationRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CompensationWorksheet>;
     async fn get_worksheet(&self, id: Uuid) -> AtlasResult<Option<CompensationWorksheet>>;
-    async fn list_worksheets(&self, cycle_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CompensationWorksheet>>;
-    async fn update_worksheet_status(&self, id: Uuid, status: &str) -> AtlasResult<CompensationWorksheet>;
+    async fn list_worksheets(
+        &self,
+        cycle_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CompensationWorksheet>>;
+    async fn update_worksheet_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<CompensationWorksheet>;
     async fn update_worksheet_totals(
         &self,
         id: Uuid,
@@ -135,7 +155,10 @@ pub trait CompensationRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<CompensationWorksheetLine>;
     async fn get_line(&self, id: Uuid) -> AtlasResult<Option<CompensationWorksheetLine>>;
-    async fn list_worksheet_lines(&self, worksheet_id: Uuid) -> AtlasResult<Vec<CompensationWorksheetLine>>;
+    async fn list_worksheet_lines(
+        &self,
+        worksheet_id: Uuid,
+    ) -> AtlasResult<Vec<CompensationWorksheetLine>>;
     async fn update_worksheet_line(
         &self,
         id: Uuid,
@@ -149,7 +172,11 @@ pub trait CompensationRepository: Send + Sync {
         compa_ratio: &str,
         manager_comments: Option<&str>,
     ) -> AtlasResult<CompensationWorksheetLine>;
-    async fn update_line_status(&self, id: Uuid, status: &str) -> AtlasResult<CompensationWorksheetLine>;
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<CompensationWorksheetLine>;
     async fn delete_worksheet_line(&self, id: Uuid) -> AtlasResult<()>;
 
     // Statements
@@ -174,7 +201,11 @@ pub trait CompensationRepository: Send + Sync {
         components: serde_json::Value,
     ) -> AtlasResult<CompensationStatement>;
     async fn get_statement(&self, id: Uuid) -> AtlasResult<Option<CompensationStatement>>;
-    async fn get_statement_by_employee(&self, cycle_id: Uuid, employee_id: Uuid) -> AtlasResult<Option<CompensationStatement>>;
+    async fn get_statement_by_employee(
+        &self,
+        cycle_id: Uuid,
+        employee_id: Uuid,
+    ) -> AtlasResult<Option<CompensationStatement>>;
     async fn list_statements(&self, cycle_id: Uuid) -> AtlasResult<Vec<CompensationStatement>>;
     async fn publish_statement(&self, id: Uuid) -> AtlasResult<CompensationStatement>;
     async fn delete_statement(&self, id: Uuid) -> AtlasResult<()>;
@@ -189,7 +220,7 @@ pub struct PostgresCompensationRepository {
 }
 
 impl PostgresCompensationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -217,12 +248,19 @@ impl CompensationRepository for PostgresCompensationRepository {
                  effective_start_date, effective_end_date, eligibility_criteria, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(plan_code).bind(plan_name).bind(description)
-        .bind(plan_type).bind(effective_start_date).bind(effective_end_date)
-        .bind(&eligibility_criteria).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(plan_code)
+        .bind(plan_name)
+        .bind(description)
+        .bind(plan_type)
+        .bind(effective_start_date)
+        .bind(effective_end_date)
+        .bind(&eligibility_criteria)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_plan(&row))
@@ -231,12 +269,17 @@ impl CompensationRepository for PostgresCompensationRepository {
     async fn get_plan(&self, id: Uuid) -> AtlasResult<Option<CompensationPlan>> {
         let row = sqlx::query("SELECT * FROM _atlas.compensation_plans WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_plan(&r)))
     }
 
-    async fn get_plan_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CompensationPlan>> {
+    async fn get_plan_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CompensationPlan>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.compensation_plans WHERE organization_id = $1 AND plan_code = $2 AND is_active = true"
         )
@@ -257,9 +300,14 @@ impl CompensationRepository for PostgresCompensationRepository {
     }
 
     async fn delete_plan(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        sqlx::query("DELETE FROM _atlas.compensation_plans WHERE organization_id = $1 AND plan_code = $2")
-            .bind(org_id).bind(code).execute(&self.pool).await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "DELETE FROM _atlas.compensation_plans WHERE organization_id = $1 AND plan_code = $2",
+        )
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -302,7 +350,9 @@ impl CompensationRepository for PostgresCompensationRepository {
 
     async fn delete_component(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.compensation_components WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -327,13 +377,19 @@ impl CompensationRepository for PostgresCompensationRepository {
                  start_date, end_date, total_budget, currency_code, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(cycle_name).bind(description).bind(cycle_type)
-        .bind(start_date).bind(end_date)
+        .bind(org_id)
+        .bind(cycle_name)
+        .bind(description)
+        .bind(cycle_type)
+        .bind(start_date)
+        .bind(end_date)
         .bind(total_budget.parse::<f64>().unwrap_or(0.0))
-        .bind(currency_code).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(currency_code)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_cycle(&row))
@@ -342,12 +398,17 @@ impl CompensationRepository for PostgresCompensationRepository {
     async fn get_cycle(&self, id: Uuid) -> AtlasResult<Option<CompensationCycle>> {
         let row = sqlx::query("SELECT * FROM _atlas.compensation_cycles WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_cycle(&r)))
     }
 
-    async fn list_cycles(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CompensationCycle>> {
+    async fn list_cycles(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CompensationCycle>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.compensation_cycles WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC"
@@ -376,7 +437,12 @@ impl CompensationRepository for PostgresCompensationRepository {
         Ok(row_to_cycle(&row))
     }
 
-    async fn update_cycle_totals(&self, id: Uuid, total_approved: &str, total_employees: i32) -> AtlasResult<()> {
+    async fn update_cycle_totals(
+        &self,
+        id: Uuid,
+        total_approved: &str,
+        total_employees: i32,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.compensation_cycles SET total_approved = $2, total_employees = $3, updated_at = now() WHERE id = $1"
         )
@@ -390,7 +456,9 @@ impl CompensationRepository for PostgresCompensationRepository {
 
     async fn delete_cycle(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.compensation_cycles WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -419,13 +487,21 @@ impl CompensationRepository for PostgresCompensationRepository {
                  total_budget, remaining_budget, currency_code, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(cycle_id).bind(pool_name).bind(pool_type)
-        .bind(manager_id).bind(manager_name)
-        .bind(department_id).bind(department_name)
-        .bind(budget_val).bind(currency_code).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(cycle_id)
+        .bind(pool_name)
+        .bind(pool_type)
+        .bind(manager_id)
+        .bind(manager_name)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(budget_val)
+        .bind(currency_code)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_budget_pool(&row))
@@ -434,24 +510,28 @@ impl CompensationRepository for PostgresCompensationRepository {
     async fn get_budget_pool(&self, id: Uuid) -> AtlasResult<Option<CompensationBudgetPool>> {
         let row = sqlx::query("SELECT * FROM _atlas.compensation_budget_pools WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_budget_pool(&r)))
     }
 
     async fn list_budget_pools(&self, cycle_id: Uuid) -> AtlasResult<Vec<CompensationBudgetPool>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.compensation_budget_pools WHERE cycle_id = $1 ORDER BY pool_name"
+            "SELECT * FROM _atlas.compensation_budget_pools WHERE cycle_id = $1 ORDER BY pool_name",
         )
         .bind(cycle_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_budget_pool).collect())
     }
 
     async fn delete_budget_pool(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.compensation_budget_pools WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -472,11 +552,16 @@ impl CompensationRepository for PostgresCompensationRepository {
                 (organization_id, cycle_id, pool_id, manager_id, manager_name, created_by)
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(cycle_id).bind(pool_id)
-        .bind(manager_id).bind(manager_name).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(cycle_id)
+        .bind(pool_id)
+        .bind(manager_id)
+        .bind(manager_name)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_worksheet(&row))
@@ -485,12 +570,17 @@ impl CompensationRepository for PostgresCompensationRepository {
     async fn get_worksheet(&self, id: Uuid) -> AtlasResult<Option<CompensationWorksheet>> {
         let row = sqlx::query("SELECT * FROM _atlas.compensation_worksheets WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_worksheet(&r)))
     }
 
-    async fn list_worksheets(&self, cycle_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<CompensationWorksheet>> {
+    async fn list_worksheets(
+        &self,
+        cycle_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<CompensationWorksheet>> {
         let rows = if let Some(s) = status {
             sqlx::query(
                 "SELECT * FROM _atlas.compensation_worksheets WHERE cycle_id = $1 AND status = $2 ORDER BY created_at DESC"
@@ -509,7 +599,11 @@ impl CompensationRepository for PostgresCompensationRepository {
         Ok(rows.iter().map(row_to_worksheet).collect())
     }
 
-    async fn update_worksheet_status(&self, id: Uuid, status: &str) -> AtlasResult<CompensationWorksheet> {
+    async fn update_worksheet_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<CompensationWorksheet> {
         let row = sqlx::query(
             "UPDATE _atlas.compensation_worksheets SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         )
@@ -537,23 +631,27 @@ impl CompensationRepository for PostgresCompensationRepository {
                 total_merit = $5, total_bonus = $6, total_equity = $7,
                 total_compensation_change = $8, updated_at = now()
             WHERE id = $1
-            "
+            ",
         )
-        .bind(id).bind(total_employees)
+        .bind(id)
+        .bind(total_employees)
         .bind(total_current_salary.parse::<f64>().unwrap_or(0.0))
         .bind(total_proposed_salary.parse::<f64>().unwrap_or(0.0))
         .bind(total_merit.parse::<f64>().unwrap_or(0.0))
         .bind(total_bonus.parse::<f64>().unwrap_or(0.0))
         .bind(total_equity.parse::<f64>().unwrap_or(0.0))
         .bind(total_compensation_change.parse::<f64>().unwrap_or(0.0))
-        .execute(&self.pool).await
+        .execute(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn delete_worksheet(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.compensation_worksheets WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -590,10 +688,14 @@ impl CompensationRepository for PostgresCompensationRepository {
                  performance_rating, compa_ratio, manager_comments, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(worksheet_id).bind(employee_id).bind(employee_name)
-        .bind(job_title).bind(department_name)
+        .bind(org_id)
+        .bind(worksheet_id)
+        .bind(employee_id)
+        .bind(employee_name)
+        .bind(job_title)
+        .bind(department_name)
         .bind(current_base_salary.parse::<f64>().unwrap_or(0.0))
         .bind(proposed_base_salary.parse::<f64>().unwrap_or(0.0))
         .bind(salary_change_amount.parse::<f64>().unwrap_or(0.0))
@@ -604,8 +706,10 @@ impl CompensationRepository for PostgresCompensationRepository {
         .bind(total_compensation.parse::<f64>().unwrap_or(0.0))
         .bind(performance_rating)
         .bind(compa_ratio.parse::<f64>().unwrap_or(0.0))
-        .bind(manager_comments).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(manager_comments)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_worksheet_line(&row))
@@ -614,12 +718,16 @@ impl CompensationRepository for PostgresCompensationRepository {
     async fn get_line(&self, id: Uuid) -> AtlasResult<Option<CompensationWorksheetLine>> {
         let row = sqlx::query("SELECT * FROM _atlas.compensation_worksheet_lines WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_worksheet_line(&r)))
     }
 
-    async fn list_worksheet_lines(&self, worksheet_id: Uuid) -> AtlasResult<Vec<CompensationWorksheetLine>> {
+    async fn list_worksheet_lines(
+        &self,
+        worksheet_id: Uuid,
+    ) -> AtlasResult<Vec<CompensationWorksheetLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.compensation_worksheet_lines WHERE worksheet_id = $1 ORDER BY employee_name"
         )
@@ -651,7 +759,7 @@ impl CompensationRepository for PostgresCompensationRepository {
                 updated_at = now()
             WHERE id = $1
             RETURNING *
-            "
+            ",
         )
         .bind(id)
         .bind(proposed_base_salary.parse::<f64>().unwrap_or(0.0))
@@ -663,13 +771,18 @@ impl CompensationRepository for PostgresCompensationRepository {
         .bind(total_compensation.parse::<f64>().unwrap_or(0.0))
         .bind(compa_ratio.parse::<f64>().unwrap_or(0.0))
         .bind(manager_comments)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_worksheet_line(&row))
     }
 
-    async fn update_line_status(&self, id: Uuid, status: &str) -> AtlasResult<CompensationWorksheetLine> {
+    async fn update_line_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<CompensationWorksheetLine> {
         let row = sqlx::query(
             "UPDATE _atlas.compensation_worksheet_lines SET status = $2, updated_at = now() WHERE id = $1 RETURNING *"
         )
@@ -681,7 +794,9 @@ impl CompensationRepository for PostgresCompensationRepository {
 
     async fn delete_worksheet_line(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.compensation_worksheet_lines WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -732,9 +847,12 @@ impl CompensationRepository for PostgresCompensationRepository {
                 components = EXCLUDED.components,
                 updated_at = now()
             RETURNING *
-            "
+            ",
         )
-        .bind(org_id).bind(cycle_id).bind(employee_id).bind(employee_name)
+        .bind(org_id)
+        .bind(cycle_id)
+        .bind(employee_id)
+        .bind(employee_name)
         .bind(statement_date)
         .bind(base_salary.parse::<f64>().unwrap_or(0.0))
         .bind(merit_increase.parse::<f64>().unwrap_or(0.0))
@@ -746,8 +864,10 @@ impl CompensationRepository for PostgresCompensationRepository {
         .bind(total_indirect_compensation.parse::<f64>().unwrap_or(0.0))
         .bind(change_from_previous.parse::<f64>().unwrap_or(0.0))
         .bind(change_percent.parse::<f64>().unwrap_or(0.0))
-        .bind(currency_code).bind(&components)
-        .fetch_one(&self.pool).await
+        .bind(currency_code)
+        .bind(&components)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row_to_statement(&row))
@@ -756,17 +876,24 @@ impl CompensationRepository for PostgresCompensationRepository {
     async fn get_statement(&self, id: Uuid) -> AtlasResult<Option<CompensationStatement>> {
         let row = sqlx::query("SELECT * FROM _atlas.compensation_statements WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_statement(&r)))
     }
 
-    async fn get_statement_by_employee(&self, cycle_id: Uuid, employee_id: Uuid) -> AtlasResult<Option<CompensationStatement>> {
+    async fn get_statement_by_employee(
+        &self,
+        cycle_id: Uuid,
+        employee_id: Uuid,
+    ) -> AtlasResult<Option<CompensationStatement>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.compensation_statements WHERE cycle_id = $1 AND employee_id = $2"
+            "SELECT * FROM _atlas.compensation_statements WHERE cycle_id = $1 AND employee_id = $2",
         )
-        .bind(cycle_id).bind(employee_id)
-        .fetch_optional(&self.pool).await
+        .bind(cycle_id)
+        .bind(employee_id)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_statement(&r)))
     }
@@ -793,7 +920,9 @@ impl CompensationRepository for PostgresCompensationRepository {
 
     async fn delete_statement(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.compensation_statements WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -816,10 +945,11 @@ impl CompensationRepository for PostgresCompensationRepository {
                    COALESCE(SUM(total_employees), 0) as total_employees
             FROM _atlas.compensation_cycles
             WHERE organization_id = $1
-            "
+            ",
         )
         .bind(org_id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         let ws_row = sqlx::query(
@@ -830,16 +960,21 @@ impl CompensationRepository for PostgresCompensationRepository {
             FROM _atlas.compensation_worksheets w
             JOIN _atlas.compensation_cycles c ON c.id = w.cycle_id
             WHERE c.organization_id = $1
-            "
+            ",
         )
         .bind(org_id)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
 
         use sqlx::Row;
         let total_budget: f64 = cycle_row.try_get("total_budget").unwrap_or(0.0);
         let total_approved: f64 = cycle_row.try_get("total_approved").unwrap_or(0.0);
-        let budget_util = if total_budget > 0.0 { (total_approved / total_budget) * 100.0 } else { 0.0 };
+        let budget_util = if total_budget > 0.0 {
+            (total_approved / total_budget) * 100.0
+        } else {
+            0.0
+        };
 
         Ok(CompensationDashboard {
             active_plans: plan_row.get::<i64, _>("cnt") as i32,

@@ -5,11 +5,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Treasury > Cash Pooling
 
-use atlas_shared::{AtlasError, AtlasResult};
 use super::repository::{
-    CashConcentrationRepository, PoolCreateParams, ParticipantCreateParams,
-    SweepRuleCreateParams, SweepRunCreateParams, SweepRunLineCreateParams,
+    CashConcentrationRepository, ParticipantCreateParams, PoolCreateParams, SweepRuleCreateParams,
+    SweepRunCreateParams, SweepRunLineCreateParams,
 };
+use atlas_shared::{AtlasError, AtlasResult};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -27,16 +27,17 @@ const VALID_SWEEP_FREQUENCIES: &[&str] = &["daily", "weekly", "monthly", "on_dem
 const VALID_PARTICIPANT_TYPES: &[&str] = &["source", "concentration", "both"];
 
 // Valid sweep directions
-const VALID_SWEEP_DIRECTIONS: &[&str] = &[
-    "to_concentration", "from_concentration", "two_way",
-];
+const VALID_SWEEP_DIRECTIONS: &[&str] = &["to_concentration", "from_concentration", "two_way"];
 
 // Valid participant statuses
 const VALID_PARTICIPANT_STATUSES: &[&str] = &["active", "suspended", "removed"];
 
 // Valid sweep types
 const VALID_SWEEP_TYPES: &[&str] = &[
-    "zero_balance", "target_balance", "threshold", "excess_balance",
+    "zero_balance",
+    "target_balance",
+    "threshold",
+    "excess_balance",
 ];
 
 // Valid run types
@@ -48,33 +49,49 @@ const VALID_LINE_STATUSES: &[&str] = &["pending", "completed", "failed", "skippe
 
 // Valid currency codes (common treasury currencies)
 const VALID_CURRENCY_CODES: &[&str] = &[
-    "USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD", "SGD", "HKD",
-    "SEK", "NOK", "DKK", "INR", "CNY", "KRW", "BRL", "MXN", "ZAR", "AED",
+    "USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD", "SGD", "HKD", "SEK", "NOK", "DKK",
+    "INR", "CNY", "KRW", "BRL", "MXN", "ZAR", "AED",
 ];
 
 /// Calculate the sweep amount for a zero-balance sweep.
 /// Returns the amount to sweep from the source account to the concentration account.
-#[must_use] 
+#[must_use]
 pub fn calculate_zero_balance_sweep(current_balance: f64, minimum_balance: f64) -> f64 {
     let excess = current_balance - minimum_balance;
-    if excess > 0.0 { excess } else { 0.0 }
+    if excess > 0.0 {
+        excess
+    } else {
+        0.0
+    }
 }
 
 /// Calculate the sweep amount for a target-balance sweep.
 /// Returns the amount needed to bring the account to its target balance.
-#[must_use] 
+#[must_use]
 pub fn calculate_target_balance_sweep(current_balance: f64, target_balance: f64) -> f64 {
     let excess = current_balance - target_balance;
-    if excess > 0.0 { excess } else { 0.0 }
+    if excess > 0.0 {
+        excess
+    } else {
+        0.0
+    }
 }
 
 /// Calculate the sweep amount for a threshold sweep.
 /// Only sweeps if the balance exceeds the threshold.
-#[must_use] 
-pub fn calculate_threshold_sweep(current_balance: f64, threshold: f64, minimum_balance: f64) -> f64 {
+#[must_use]
+pub fn calculate_threshold_sweep(
+    current_balance: f64,
+    threshold: f64,
+    minimum_balance: f64,
+) -> f64 {
     if current_balance > threshold {
         let excess = current_balance - minimum_balance;
-        if excess > 0.0 { excess } else { 0.0 }
+        if excess > 0.0 {
+            excess
+        } else {
+            0.0
+        }
     } else {
         0.0
     }
@@ -118,29 +135,39 @@ impl CashConcentrationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::CashPool> {
         if pool_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Pool code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Pool code is required".to_string(),
+            ));
         }
         if pool_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Pool name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Pool name is required".to_string(),
+            ));
         }
         if !VALID_POOL_TYPES.contains(&pool_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid pool type '{}'. Must be one of: {}",
-                pool_type, VALID_POOL_TYPES.join(", ")
+                pool_type,
+                VALID_POOL_TYPES.join(", ")
             )));
         }
         if let Some(freq) = sweep_frequency {
             if !VALID_SWEEP_FREQUENCIES.contains(&freq) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid sweep frequency '{}'. Must be one of: {}",
-                    freq, VALID_SWEEP_FREQUENCIES.join(", ")
+                    freq,
+                    VALID_SWEEP_FREQUENCIES.join(", ")
                 )));
             }
         }
         let min_val: Option<f64> = minimum_transfer_amount
-            .map(|s| s.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Minimum transfer amount must be a valid number".to_string(),
-            )))
+            .map(|s| {
+                s.parse().map_err(|_| {
+                    AtlasError::ValidationFailed(
+                        "Minimum transfer amount must be a valid number".to_string(),
+                    )
+                })
+            })
             .transpose()?;
         if let Some(v) = min_val {
             if v < 0.0 {
@@ -150,9 +177,13 @@ impl CashConcentrationEngine {
             }
         }
         let max_val: Option<f64> = maximum_transfer_amount
-            .map(|s| s.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Maximum transfer amount must be a valid number".to_string(),
-            )))
+            .map(|s| {
+                s.parse().map_err(|_| {
+                    AtlasError::ValidationFailed(
+                        "Maximum transfer amount must be a valid number".to_string(),
+                    )
+                })
+            })
             .transpose()?;
         if let Some(v) = max_val {
             if v < 0.0 {
@@ -171,7 +202,8 @@ impl CashConcentrationEngine {
         if !VALID_CURRENCY_CODES.contains(&currency_code) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid currency code '{}'. Must be one of: {}",
-                currency_code, VALID_CURRENCY_CODES.join(", ")
+                currency_code,
+                VALID_CURRENCY_CODES.join(", ")
             )));
         }
         // Validate effective_date <= termination_date
@@ -185,31 +217,41 @@ impl CashConcentrationEngine {
 
         info!("Creating cash pool {} for org {}", pool_code, org_id);
 
-        self.repository.create_pool(&PoolCreateParams {
-            org_id,
-            pool_code: pool_code.to_string(),
-            pool_name: pool_name.to_string(),
-            pool_type: pool_type.to_string(),
-            concentration_account_id,
-            concentration_account_name: concentration_account_name.map(std::string::ToString::to_string),
-            currency_code: currency_code.to_string(),
-            sweep_frequency: sweep_frequency.map(std::string::ToString::to_string),
-            sweep_time: sweep_time.map(std::string::ToString::to_string),
-            minimum_transfer_amount: minimum_transfer_amount.map(std::string::ToString::to_string),
-            maximum_transfer_amount: maximum_transfer_amount.map(std::string::ToString::to_string),
-            target_balance: target_balance.map(std::string::ToString::to_string),
-            interest_allocation_method: interest_allocation_method.map(std::string::ToString::to_string),
-            interest_rate: interest_rate.map(std::string::ToString::to_string),
-            effective_date,
-            termination_date,
-            description: description.map(std::string::ToString::to_string),
-            notes: notes.map(std::string::ToString::to_string),
-            created_by,
-        }).await
+        self.repository
+            .create_pool(&PoolCreateParams {
+                org_id,
+                pool_code: pool_code.to_string(),
+                pool_name: pool_name.to_string(),
+                pool_type: pool_type.to_string(),
+                concentration_account_id,
+                concentration_account_name: concentration_account_name
+                    .map(std::string::ToString::to_string),
+                currency_code: currency_code.to_string(),
+                sweep_frequency: sweep_frequency.map(std::string::ToString::to_string),
+                sweep_time: sweep_time.map(std::string::ToString::to_string),
+                minimum_transfer_amount: minimum_transfer_amount
+                    .map(std::string::ToString::to_string),
+                maximum_transfer_amount: maximum_transfer_amount
+                    .map(std::string::ToString::to_string),
+                target_balance: target_balance.map(std::string::ToString::to_string),
+                interest_allocation_method: interest_allocation_method
+                    .map(std::string::ToString::to_string),
+                interest_rate: interest_rate.map(std::string::ToString::to_string),
+                effective_date,
+                termination_date,
+                description: description.map(std::string::ToString::to_string),
+                notes: notes.map(std::string::ToString::to_string),
+                created_by,
+            })
+            .await
     }
 
     /// Get a cash pool by code
-    pub async fn get_pool(&self, org_id: Uuid, pool_code: &str) -> AtlasResult<Option<atlas_shared::CashPool>> {
+    pub async fn get_pool(
+        &self,
+        org_id: Uuid,
+        pool_code: &str,
+    ) -> AtlasResult<Option<atlas_shared::CashPool>> {
         self.repository.get_pool(org_id, pool_code).await
     }
 
@@ -219,12 +261,18 @@ impl CashConcentrationEngine {
     }
 
     /// List cash pools with optional status filter
-    pub async fn list_pools(&self, org_id: Uuid, status: Option<&str>, pool_type: Option<&str>) -> AtlasResult<Vec<atlas_shared::CashPool>> {
+    pub async fn list_pools(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        pool_type: Option<&str>,
+    ) -> AtlasResult<Vec<atlas_shared::CashPool>> {
         if let Some(s) = status {
             if !VALID_POOL_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_POOL_STATUSES.join(", ")
+                    s,
+                    VALID_POOL_STATUSES.join(", ")
                 )));
             }
         }
@@ -232,7 +280,8 @@ impl CashConcentrationEngine {
             if !VALID_POOL_TYPES.contains(&t) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid pool type '{}'. Must be one of: {}",
-                    t, VALID_POOL_TYPES.join(", ")
+                    t,
+                    VALID_POOL_TYPES.join(", ")
                 )));
             }
         }
@@ -240,12 +289,21 @@ impl CashConcentrationEngine {
     }
 
     /// Activate a cash pool
-    pub async fn activate_pool(&self, id: Uuid, org_id: Uuid) -> AtlasResult<atlas_shared::CashPool> {
-        let pool = self.repository.get_pool_by_id(id).await?
+    pub async fn activate_pool(
+        &self,
+        id: Uuid,
+        org_id: Uuid,
+    ) -> AtlasResult<atlas_shared::CashPool> {
+        let pool = self
+            .repository
+            .get_pool_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Cash pool {id} not found")))?;
 
         if pool.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to access this pool".to_string(),
+            ));
         }
 
         if pool.status != "draft" && pool.status != "suspended" {
@@ -260,12 +318,21 @@ impl CashConcentrationEngine {
     }
 
     /// Suspend a cash pool
-    pub async fn suspend_pool(&self, id: Uuid, org_id: Uuid) -> AtlasResult<atlas_shared::CashPool> {
-        let pool = self.repository.get_pool_by_id(id).await?
+    pub async fn suspend_pool(
+        &self,
+        id: Uuid,
+        org_id: Uuid,
+    ) -> AtlasResult<atlas_shared::CashPool> {
+        let pool = self
+            .repository
+            .get_pool_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Cash pool {id} not found")))?;
 
         if pool.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to access this pool".to_string(),
+            ));
         }
 
         if pool.status != "active" {
@@ -281,15 +348,22 @@ impl CashConcentrationEngine {
 
     /// Close a cash pool
     pub async fn close_pool(&self, id: Uuid, org_id: Uuid) -> AtlasResult<atlas_shared::CashPool> {
-        let pool = self.repository.get_pool_by_id(id).await?
+        let pool = self
+            .repository
+            .get_pool_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Cash pool {id} not found")))?;
 
         if pool.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to access this pool".to_string(),
+            ));
         }
 
         if pool.status == "closed" {
-            return Err(AtlasError::WorkflowError("Pool is already closed".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Pool is already closed".to_string(),
+            ));
         }
 
         info!("Closed cash pool {}", pool.pool_code);
@@ -298,8 +372,13 @@ impl CashConcentrationEngine {
 
     /// Delete a cash pool (only if draft)
     pub async fn delete_pool(&self, org_id: Uuid, pool_code: &str) -> AtlasResult<()> {
-        let pool = self.repository.get_pool(org_id, pool_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Cash pool {pool_code} not found")))?;
+        let pool = self
+            .repository
+            .get_pool(org_id, pool_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Cash pool {pool_code} not found"))
+            })?;
 
         if pool.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -339,64 +418,87 @@ impl CashConcentrationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::CashPoolParticipant> {
         // Validate pool exists
-        let pool = self.repository.get_pool_by_id(pool_id).await?
+        let pool = self
+            .repository
+            .get_pool_by_id(pool_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {pool_id} not found")))?;
 
         if pool.status == "closed" {
-            return Err(AtlasError::WorkflowError("Cannot add participants to a closed pool".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Cannot add participants to a closed pool".to_string(),
+            ));
         }
 
         if !VALID_PARTICIPANT_TYPES.contains(&participant_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid participant type '{}'. Must be one of: {}",
-                participant_type, VALID_PARTICIPANT_TYPES.join(", ")
+                participant_type,
+                VALID_PARTICIPANT_TYPES.join(", ")
             )));
         }
         if !VALID_SWEEP_DIRECTIONS.contains(&sweep_direction) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid sweep direction '{}'. Must be one of: {}",
-                sweep_direction, VALID_SWEEP_DIRECTIONS.join(", ")
+                sweep_direction,
+                VALID_SWEEP_DIRECTIONS.join(", ")
             )));
         }
 
-        info!("Adding participant {} to pool {}", participant_code, pool.pool_code);
+        info!(
+            "Adding participant {} to pool {}",
+            participant_code, pool.pool_code
+        );
 
-        self.repository.create_participant(&ParticipantCreateParams {
-            org_id,
-            pool_id,
-            participant_code: participant_code.to_string(),
-            bank_account_id,
-            bank_account_name: bank_account_name.map(std::string::ToString::to_string),
-            bank_name: bank_name.map(std::string::ToString::to_string),
-            account_number: account_number.map(std::string::ToString::to_string),
-            participant_type: participant_type.to_string(),
-            sweep_direction: sweep_direction.to_string(),
-            priority,
-            minimum_balance: minimum_balance.map(std::string::ToString::to_string),
-            maximum_balance: maximum_balance.map(std::string::ToString::to_string),
-            threshold_amount: threshold_amount.map(std::string::ToString::to_string),
-            current_balance: current_balance.map(std::string::ToString::to_string),
-            entity_id,
-            entity_name: entity_name.map(std::string::ToString::to_string),
-            effective_date,
-            description: description.map(std::string::ToString::to_string),
-            created_by,
-        }).await
+        self.repository
+            .create_participant(&ParticipantCreateParams {
+                org_id,
+                pool_id,
+                participant_code: participant_code.to_string(),
+                bank_account_id,
+                bank_account_name: bank_account_name.map(std::string::ToString::to_string),
+                bank_name: bank_name.map(std::string::ToString::to_string),
+                account_number: account_number.map(std::string::ToString::to_string),
+                participant_type: participant_type.to_string(),
+                sweep_direction: sweep_direction.to_string(),
+                priority,
+                minimum_balance: minimum_balance.map(std::string::ToString::to_string),
+                maximum_balance: maximum_balance.map(std::string::ToString::to_string),
+                threshold_amount: threshold_amount.map(std::string::ToString::to_string),
+                current_balance: current_balance.map(std::string::ToString::to_string),
+                entity_id,
+                entity_name: entity_name.map(std::string::ToString::to_string),
+                effective_date,
+                description: description.map(std::string::ToString::to_string),
+                created_by,
+            })
+            .await
     }
 
     /// List participants for a pool
-    pub async fn list_participants(&self, pool_id: Uuid, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<atlas_shared::CashPoolParticipant>> {
+    pub async fn list_participants(
+        &self,
+        pool_id: Uuid,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<atlas_shared::CashPoolParticipant>> {
         // Verify pool belongs to org
-        let pool = self.repository.get_pool_by_id(pool_id).await?
+        let pool = self
+            .repository
+            .get_pool_by_id(pool_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {pool_id} not found")))?;
         if pool.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to access this pool".to_string(),
+            ));
         }
         if let Some(s) = status {
             if !VALID_PARTICIPANT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid participant status '{}'. Must be one of: {}",
-                    s, VALID_PARTICIPANT_STATUSES.join(", ")
+                    s,
+                    VALID_PARTICIPANT_STATUSES.join(", ")
                 )));
             }
         }
@@ -404,25 +506,44 @@ impl CashConcentrationEngine {
     }
 
     /// Remove a participant from a pool
-    pub async fn remove_participant(&self, pool_id: Uuid, participant_code: &str, org_id: Uuid) -> AtlasResult<()> {
+    pub async fn remove_participant(
+        &self,
+        pool_id: Uuid,
+        participant_code: &str,
+        org_id: Uuid,
+    ) -> AtlasResult<()> {
         // Verify pool belongs to org
-        let pool = self.repository.get_pool_by_id(pool_id).await?
+        let pool = self
+            .repository
+            .get_pool_by_id(pool_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {pool_id} not found")))?;
         if pool.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to access this pool".to_string(),
+            ));
         }
 
-        let participant = self.repository.get_participant(pool_id, participant_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Participant {participant_code} not found in pool"
-            )))?;
+        let participant = self
+            .repository
+            .get_participant(pool_id, participant_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Participant {participant_code} not found in pool"
+                ))
+            })?;
 
         if participant.status == "removed" {
-            return Err(AtlasError::WorkflowError("Participant is already removed".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Participant is already removed".to_string(),
+            ));
         }
 
         info!("Removed participant {} from pool", participant_code);
-        self.repository.update_participant_status(participant.id, "removed").await?;
+        self.repository
+            .update_participant_status(participant.id, "removed")
+            .await?;
         Ok(())
     }
 
@@ -433,18 +554,27 @@ impl CashConcentrationEngine {
         new_balance: &str,
         org_id: Uuid,
     ) -> AtlasResult<atlas_shared::CashPoolParticipant> {
-        let _bal: f64 = new_balance.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Balance must be a valid number".to_string(),
-        ))?;
+        let _bal: f64 = new_balance.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Balance must be a valid number".to_string())
+        })?;
 
         // Verify ownership: fetch participant and check org_id
-        let participant = self.repository.get_participant_by_id(participant_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Participant {participant_id} not found")))?;
+        let participant = self
+            .repository
+            .get_participant_by_id(participant_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Participant {participant_id} not found"))
+            })?;
         if participant.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to update this participant".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to update this participant".to_string(),
+            ));
         }
 
-        self.repository.update_participant_balance(participant_id, new_balance).await
+        self.repository
+            .update_participant_balance(participant_id, new_balance)
+            .await
     }
 
     // ========================================================================
@@ -472,66 +602,97 @@ impl CashConcentrationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::CashPoolSweepRule> {
         // Validate pool exists
-        let pool = self.repository.get_pool_by_id(pool_id).await?
+        let pool = self
+            .repository
+            .get_pool_by_id(pool_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {pool_id} not found")))?;
 
         if pool.status == "closed" {
-            return Err(AtlasError::WorkflowError("Cannot add rules to a closed pool".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Cannot add rules to a closed pool".to_string(),
+            ));
         }
 
         if !VALID_SWEEP_TYPES.contains(&sweep_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid sweep type '{}'. Must be one of: {}",
-                sweep_type, VALID_SWEEP_TYPES.join(", ")
+                sweep_type,
+                VALID_SWEEP_TYPES.join(", ")
             )));
         }
         if !VALID_SWEEP_DIRECTIONS.contains(&direction) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid direction '{}'. Must be one of: {}",
-                direction, VALID_SWEEP_DIRECTIONS.join(", ")
+                direction,
+                VALID_SWEEP_DIRECTIONS.join(", ")
             )));
         }
 
-        info!("Creating sweep rule {} for pool {}", rule_code, pool.pool_code);
+        info!(
+            "Creating sweep rule {} for pool {}",
+            rule_code, pool.pool_code
+        );
 
-        self.repository.create_sweep_rule(&SweepRuleCreateParams {
-            org_id,
-            pool_id,
-            rule_code: rule_code.to_string(),
-            rule_name: rule_name.to_string(),
-            sweep_type: sweep_type.to_string(),
-            participant_id,
-            direction: direction.to_string(),
-            trigger_condition: trigger_condition.map(std::string::ToString::to_string),
-            threshold_amount: threshold_amount.map(std::string::ToString::to_string),
-            target_balance: target_balance.map(std::string::ToString::to_string),
-            minimum_transfer: minimum_transfer.map(std::string::ToString::to_string),
-            maximum_transfer: maximum_transfer.map(std::string::ToString::to_string),
-            priority,
-            effective_date,
-            description: description.map(std::string::ToString::to_string),
-            created_by,
-        }).await
+        self.repository
+            .create_sweep_rule(&SweepRuleCreateParams {
+                org_id,
+                pool_id,
+                rule_code: rule_code.to_string(),
+                rule_name: rule_name.to_string(),
+                sweep_type: sweep_type.to_string(),
+                participant_id,
+                direction: direction.to_string(),
+                trigger_condition: trigger_condition.map(std::string::ToString::to_string),
+                threshold_amount: threshold_amount.map(std::string::ToString::to_string),
+                target_balance: target_balance.map(std::string::ToString::to_string),
+                minimum_transfer: minimum_transfer.map(std::string::ToString::to_string),
+                maximum_transfer: maximum_transfer.map(std::string::ToString::to_string),
+                priority,
+                effective_date,
+                description: description.map(std::string::ToString::to_string),
+                created_by,
+            })
+            .await
     }
 
     /// List sweep rules for a pool
-    pub async fn list_sweep_rules(&self, pool_id: Uuid, org_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRule>> {
+    pub async fn list_sweep_rules(
+        &self,
+        pool_id: Uuid,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRule>> {
         // Verify pool belongs to org
-        let pool = self.repository.get_pool_by_id(pool_id).await?
+        let pool = self
+            .repository
+            .get_pool_by_id(pool_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {pool_id} not found")))?;
         if pool.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to access this pool".to_string(),
+            ));
         }
         self.repository.list_sweep_rules(pool_id).await
     }
 
     /// Delete a sweep rule
-    pub async fn delete_sweep_rule(&self, pool_id: Uuid, rule_code: &str, org_id: Uuid) -> AtlasResult<()> {
+    pub async fn delete_sweep_rule(
+        &self,
+        pool_id: Uuid,
+        rule_code: &str,
+        org_id: Uuid,
+    ) -> AtlasResult<()> {
         // Verify pool belongs to org
-        let pool = self.repository.get_pool_by_id(pool_id).await?
+        let pool = self
+            .repository
+            .get_pool_by_id(pool_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {pool_id} not found")))?;
         if pool.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to access this pool".to_string(),
+            ));
         }
         info!("Deleting sweep rule {} from pool", rule_code);
         self.repository.delete_sweep_rule(pool_id, rule_code).await
@@ -554,11 +715,15 @@ impl CashConcentrationEngine {
         if !VALID_RUN_TYPES.contains(&run_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid run type '{}'. Must be one of: {}",
-                run_type, VALID_RUN_TYPES.join(", ")
+                run_type,
+                VALID_RUN_TYPES.join(", ")
             )));
         }
 
-        let pool = self.repository.get_pool_by_id(pool_id).await?
+        let pool = self
+            .repository
+            .get_pool_by_id(pool_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {pool_id} not found")))?;
 
         if pool.status != "active" {
@@ -572,25 +737,37 @@ impl CashConcentrationEngine {
         let next_num = self.repository.get_latest_run_number(org_id).await? + 1;
         let run_number = format!("SWEEP-{next_num:04}");
 
-        info!("Executing sweep run {} for pool {}", run_number, pool.pool_code);
+        info!(
+            "Executing sweep run {} for pool {}",
+            run_number, pool.pool_code
+        );
 
         // Create the run
-        let run = self.repository.create_sweep_run(&SweepRunCreateParams {
-            org_id,
-            pool_id,
-            run_number: run_number.clone(),
-            run_date,
-            run_type: run_type.to_string(),
-            initiated_by,
-            notes: notes.map(std::string::ToString::to_string),
-        }).await?;
+        let run = self
+            .repository
+            .create_sweep_run(&SweepRunCreateParams {
+                org_id,
+                pool_id,
+                run_number: run_number.clone(),
+                run_date,
+                run_type: run_type.to_string(),
+                initiated_by,
+                notes: notes.map(std::string::ToString::to_string),
+            })
+            .await?;
 
         // Get active participants
-        let participants = self.repository.list_participants(pool_id, Some("active")).await?;
+        let participants = self
+            .repository
+            .list_participants(pool_id, Some("active"))
+            .await?;
 
         // Get active rules
         let rules = self.repository.list_sweep_rules(pool_id).await?;
-        let active_rules: Vec<_> = rules.iter().filter(|r| r.is_active.unwrap_or(true)).collect();
+        let active_rules: Vec<_> = rules
+            .iter()
+            .filter(|r| r.is_active.unwrap_or(true))
+            .collect();
 
         let mut total_swept = 0.0_f64;
         let mut total_txns = 0i32;
@@ -599,11 +776,17 @@ impl CashConcentrationEngine {
 
         // Process each participant
         for participant in &participants {
-            let result = self.process_participant_sweep(
-                org_id, pool_id, run.id, participant, &active_rules,
-                pool.minimum_transfer_amount.as_deref(),
-                pool.maximum_transfer_amount.as_deref(),
-            ).await;
+            let result = self
+                .process_participant_sweep(
+                    org_id,
+                    pool_id,
+                    run.id,
+                    participant,
+                    &active_rules,
+                    pool.minimum_transfer_amount.as_deref(),
+                    pool.maximum_transfer_amount.as_deref(),
+                )
+                .await;
 
             total_txns += 1;
             match result {
@@ -614,23 +797,27 @@ impl CashConcentrationEngine {
                 Err(e) => {
                     tracing::warn!(
                         "Sweep failed for participant {}: {}",
-                        participant.participant_code, e
+                        participant.participant_code,
+                        e
                     );
                     // Record the failure as a sweep run line for auditability
-                    let _ = self.repository.create_sweep_run_line(&SweepRunLineCreateParams {
-                        organization_id: org_id,
-                        sweep_run_id: run.id,
-                        pool_id,
-                        participant_id: participant.id,
-                        participant_code: Some(participant.participant_code.clone()),
-                        bank_account_name: participant.bank_account_name.clone(),
-                        sweep_rule_id: None,
-                        direction: "debit".to_string(),
-                        pre_sweep_balance: participant.current_balance.clone(),
-                        sweep_amount: "0.00".to_string(),
-                        post_sweep_balance: participant.current_balance.clone(),
-                        status: "failed".to_string(),
-                    }).await;
+                    let _ = self
+                        .repository
+                        .create_sweep_run_line(&SweepRunLineCreateParams {
+                            organization_id: org_id,
+                            sweep_run_id: run.id,
+                            pool_id,
+                            participant_id: participant.id,
+                            participant_code: Some(participant.participant_code.clone()),
+                            bank_account_name: participant.bank_account_name.clone(),
+                            sweep_rule_id: None,
+                            direction: "debit".to_string(),
+                            pre_sweep_balance: participant.current_balance.clone(),
+                            sweep_amount: "0.00".to_string(),
+                            post_sweep_balance: participant.current_balance.clone(),
+                            status: "failed".to_string(),
+                        })
+                        .await;
                     failed += 1;
                 }
             }
@@ -645,57 +832,95 @@ impl CashConcentrationEngine {
             "completed"
         };
 
-        let run = self.repository.update_sweep_run_status(
-            run.id,
-            run_status,
-            Some(&format!("{total_swept:.2}")),
-            Some(total_txns),
-            Some(successful),
-            Some(failed),
-        ).await?;
+        let run = self
+            .repository
+            .update_sweep_run_status(
+                run.id,
+                run_status,
+                Some(&format!("{total_swept:.2}")),
+                Some(total_txns),
+                Some(successful),
+                Some(failed),
+            )
+            .await?;
 
         Ok(run)
     }
 
     /// Get a sweep run
-    pub async fn get_sweep_run(&self, id: Uuid, org_id: Uuid) -> AtlasResult<Option<atlas_shared::CashPoolSweepRun>> {
+    pub async fn get_sweep_run(
+        &self,
+        id: Uuid,
+        org_id: Uuid,
+    ) -> AtlasResult<Option<atlas_shared::CashPoolSweepRun>> {
         let run = self.repository.get_sweep_run(id).await?;
         if let Some(r) = &run {
             if r.organization_id != org_id {
-                return Err(AtlasError::Forbidden("Not authorized to access this sweep run".to_string()));
+                return Err(AtlasError::Forbidden(
+                    "Not authorized to access this sweep run".to_string(),
+                ));
             }
         }
         Ok(run)
     }
 
     /// List sweep runs for a pool
-    pub async fn list_sweep_runs(&self, pool_id: Uuid, org_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRun>> {
+    pub async fn list_sweep_runs(
+        &self,
+        pool_id: Uuid,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRun>> {
         // Verify pool belongs to org
-        let pool = self.repository.get_pool_by_id(pool_id).await?
+        let pool = self
+            .repository
+            .get_pool_by_id(pool_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Pool {pool_id} not found")))?;
         if pool.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to access this pool".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to access this pool".to_string(),
+            ));
         }
         self.repository.list_sweep_runs(pool_id).await
     }
 
     /// List sweep run lines for a run
-    pub async fn list_sweep_run_lines(&self, sweep_run_id: Uuid, org_id: Uuid) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRunLine>> {
-        let run = self.repository.get_sweep_run(sweep_run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Sweep run {sweep_run_id} not found")))?;
+    pub async fn list_sweep_run_lines(
+        &self,
+        sweep_run_id: Uuid,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<atlas_shared::CashPoolSweepRunLine>> {
+        let run = self
+            .repository
+            .get_sweep_run(sweep_run_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Sweep run {sweep_run_id} not found"))
+            })?;
         if run.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to access this sweep run".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to access this sweep run".to_string(),
+            ));
         }
         self.repository.list_sweep_run_lines(sweep_run_id).await
     }
 
     /// Cancel a sweep run (only if pending)
-    pub async fn cancel_sweep_run(&self, id: Uuid, org_id: Uuid) -> AtlasResult<atlas_shared::CashPoolSweepRun> {
-        let run = self.repository.get_sweep_run(id).await?
+    pub async fn cancel_sweep_run(
+        &self,
+        id: Uuid,
+        org_id: Uuid,
+    ) -> AtlasResult<atlas_shared::CashPoolSweepRun> {
+        let run = self
+            .repository
+            .get_sweep_run(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Sweep run {id} not found")))?;
 
         if run.organization_id != org_id {
-            return Err(AtlasError::Forbidden("Not authorized to access this sweep run".to_string()));
+            return Err(AtlasError::Forbidden(
+                "Not authorized to access this sweep run".to_string(),
+            ));
         }
 
         if run.status != "pending" {
@@ -706,7 +931,9 @@ impl CashConcentrationEngine {
         }
 
         info!("Cancelled sweep run {}", run.run_number);
-        self.repository.update_sweep_run_status(id, "cancelled", None, None, None, None).await
+        self.repository
+            .update_sweep_run_status(id, "cancelled", None, None, None, None)
+            .await
     }
 
     // ========================================================================
@@ -726,16 +953,18 @@ impl CashConcentrationEngine {
         pool_max_transfer: Option<&str>,
     ) -> AtlasResult<f64> {
         // Find applicable rule for this participant
-        let rule = active_rules.iter().find(|r| {
-            r.participant_id == Some(participant.id) || r.participant_id.is_none()
-        });
+        let rule = active_rules
+            .iter()
+            .find(|r| r.participant_id == Some(participant.id) || r.participant_id.is_none());
 
-        let current_bal: f64 = participant.current_balance
+        let current_bal: f64 = participant
+            .current_balance
             .as_ref()
             .and_then(|b| b.parse().ok())
             .unwrap_or(0.0);
 
-        let min_bal: f64 = participant.minimum_balance
+        let min_bal: f64 = participant
+            .minimum_balance
             .as_ref()
             .and_then(|b| b.parse().ok())
             .unwrap_or(0.0);
@@ -744,21 +973,24 @@ impl CashConcentrationEngine {
             match r.sweep_type.as_str() {
                 "zero_balance" => calculate_zero_balance_sweep(current_bal, min_bal),
                 "target_balance" => {
-                    let target: f64 = r.target_balance
+                    let target: f64 = r
+                        .target_balance
                         .as_ref()
                         .and_then(|t| t.parse().ok())
                         .unwrap_or(min_bal);
                     calculate_target_balance_sweep(current_bal, target)
-                },
+                }
                 "threshold" => {
-                    let threshold: f64 = r.threshold_amount
+                    let threshold: f64 = r
+                        .threshold_amount
                         .as_ref()
                         .and_then(|t| t.parse().ok())
                         .unwrap_or(0.0);
                     calculate_threshold_sweep(current_bal, threshold, min_bal)
-                },
+                }
                 "excess_balance" => {
-                    let max_bal: f64 = participant.maximum_balance
+                    let max_bal: f64 = participant
+                        .maximum_balance
                         .as_ref()
                         .and_then(|b| b.parse().ok())
                         .unwrap_or(f64::MAX);
@@ -767,7 +999,7 @@ impl CashConcentrationEngine {
                     } else {
                         0.0
                     }
-                },
+                }
                 _ => 0.0,
             }
         } else {
@@ -781,20 +1013,22 @@ impl CashConcentrationEngine {
             .unwrap_or(0.0);
         if sweep_amount > 0.0 && sweep_amount < pool_min {
             // Below minimum transfer - record as skipped
-            self.repository.create_sweep_run_line(&SweepRunLineCreateParams {
-                organization_id: org_id,
-                sweep_run_id: run_id,
-                pool_id,
-                participant_id: participant.id,
-                participant_code: Some(participant.participant_code.clone()),
-                bank_account_name: participant.bank_account_name.clone(),
-                sweep_rule_id: rule.map(|r| r.id),
-                direction: "debit".to_string(),
-                pre_sweep_balance: Some(format!("{current_bal:.2}")),
-                sweep_amount: "0.00".to_string(),
-                post_sweep_balance: Some(format!("{current_bal:.2}")),
-                status: "skipped".to_string(),
-            }).await?;
+            self.repository
+                .create_sweep_run_line(&SweepRunLineCreateParams {
+                    organization_id: org_id,
+                    sweep_run_id: run_id,
+                    pool_id,
+                    participant_id: participant.id,
+                    participant_code: Some(participant.participant_code.clone()),
+                    bank_account_name: participant.bank_account_name.clone(),
+                    sweep_rule_id: rule.map(|r| r.id),
+                    direction: "debit".to_string(),
+                    pre_sweep_balance: Some(format!("{current_bal:.2}")),
+                    sweep_amount: "0.00".to_string(),
+                    post_sweep_balance: Some(format!("{current_bal:.2}")),
+                    status: "skipped".to_string(),
+                })
+                .await?;
             return Ok(0.0);
         }
 
@@ -802,48 +1036,56 @@ impl CashConcentrationEngine {
         let pool_max: f64 = pool_max_transfer
             .and_then(|m| m.parse().ok())
             .unwrap_or(f64::MAX);
-        let sweep_amount = if sweep_amount > pool_max { pool_max } else { sweep_amount };
+        let sweep_amount = if sweep_amount > pool_max {
+            pool_max
+        } else {
+            sweep_amount
+        };
 
         if sweep_amount > 0.0 {
             let post_balance = current_bal - sweep_amount;
 
-            self.repository.create_sweep_run_line(&SweepRunLineCreateParams {
-                organization_id: org_id,
-                sweep_run_id: run_id,
-                pool_id,
-                participant_id: participant.id,
-                participant_code: Some(participant.participant_code.clone()),
-                bank_account_name: participant.bank_account_name.clone(),
-                sweep_rule_id: rule.map(|r| r.id),
-                direction: "debit".to_string(),
-                pre_sweep_balance: Some(format!("{current_bal:.2}")),
-                sweep_amount: format!("{sweep_amount:.2}"),
-                post_sweep_balance: Some(format!("{post_balance:.2}")),
-                status: "completed".to_string(),
-            }).await?;
+            self.repository
+                .create_sweep_run_line(&SweepRunLineCreateParams {
+                    organization_id: org_id,
+                    sweep_run_id: run_id,
+                    pool_id,
+                    participant_id: participant.id,
+                    participant_code: Some(participant.participant_code.clone()),
+                    bank_account_name: participant.bank_account_name.clone(),
+                    sweep_rule_id: rule.map(|r| r.id),
+                    direction: "debit".to_string(),
+                    pre_sweep_balance: Some(format!("{current_bal:.2}")),
+                    sweep_amount: format!("{sweep_amount:.2}"),
+                    post_sweep_balance: Some(format!("{post_balance:.2}")),
+                    status: "completed".to_string(),
+                })
+                .await?;
 
             // Update participant balance
-            self.repository.update_participant_balance(
-                participant.id, &format!("{post_balance:.2}"),
-            ).await?;
+            self.repository
+                .update_participant_balance(participant.id, &format!("{post_balance:.2}"))
+                .await?;
 
             Ok(sweep_amount)
         } else {
             // Nothing to sweep - record as skipped
-            self.repository.create_sweep_run_line(&SweepRunLineCreateParams {
-                organization_id: org_id,
-                sweep_run_id: run_id,
-                pool_id,
-                participant_id: participant.id,
-                participant_code: Some(participant.participant_code.clone()),
-                bank_account_name: participant.bank_account_name.clone(),
-                sweep_rule_id: rule.map(|r| r.id),
-                direction: "debit".to_string(),
-                pre_sweep_balance: Some(format!("{current_bal:.2}")),
-                sweep_amount: "0.00".to_string(),
-                post_sweep_balance: Some(format!("{current_bal:.2}")),
-                status: "skipped".to_string(),
-            }).await?;
+            self.repository
+                .create_sweep_run_line(&SweepRunLineCreateParams {
+                    organization_id: org_id,
+                    sweep_run_id: run_id,
+                    pool_id,
+                    participant_id: participant.id,
+                    participant_code: Some(participant.participant_code.clone()),
+                    bank_account_name: participant.bank_account_name.clone(),
+                    sweep_rule_id: rule.map(|r| r.id),
+                    direction: "debit".to_string(),
+                    pre_sweep_balance: Some(format!("{current_bal:.2}")),
+                    sweep_amount: "0.00".to_string(),
+                    post_sweep_balance: Some(format!("{current_bal:.2}")),
+                    status: "skipped".to_string(),
+                })
+                .await?;
             Ok(0.0)
         }
     }
@@ -853,7 +1095,10 @@ impl CashConcentrationEngine {
     // ========================================================================
 
     /// Get cash concentration dashboard summary
-    pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<atlas_shared::CashPoolDashboard> {
+    pub async fn get_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<atlas_shared::CashPoolDashboard> {
         self.repository.get_dashboard(org_id).await
     }
 }

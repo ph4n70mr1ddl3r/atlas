@@ -13,11 +13,11 @@ pub struct BillRateSchedule {
     pub schedule_number: String,
     pub name: String,
     pub description: String,
-    pub schedule_type: String,          // standard, overtime, holiday, custom
+    pub schedule_type: String, // standard, overtime, holiday, custom
     pub currency_code: String,
     pub effective_start: chrono::NaiveDate,
     pub effective_end: Option<chrono::NaiveDate>,
-    pub status: String,                 // draft, active, inactive
+    pub status: String, // draft, active, inactive
     pub default_markup_pct: f64,
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
@@ -49,12 +49,12 @@ pub struct ProjectBillingConfig {
     pub id: Uuid,
     pub organization_id: Uuid,
     pub project_id: Uuid,
-    pub billing_method: String,         // time_and_materials, fixed_price, milestone, cost_plus, retention
+    pub billing_method: String, // time_and_materials, fixed_price, milestone, cost_plus, retention
     pub bill_rate_schedule_id: Option<Uuid>,
     pub contract_amount: f64,
     pub currency_code: String,
-    pub invoice_format: String,         // detailed, summary, consolidated
-    pub billing_cycle: String,          // weekly, biweekly, monthly, milestone
+    pub invoice_format: String, // detailed, summary, consolidated
+    pub billing_cycle: String,  // weekly, biweekly, monthly, milestone
     pub payment_terms_days: i32,
     pub retention_pct: f64,
     pub retention_amount_cap: f64,
@@ -62,7 +62,7 @@ pub struct ProjectBillingConfig {
     pub customer_name: String,
     pub customer_po_number: String,
     pub contract_number: String,
-    pub status: String,                 // draft, active, completed, cancelled
+    pub status: String, // draft, active, completed, cancelled
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -78,11 +78,11 @@ pub struct BillingEvent {
     pub event_number: String,
     pub event_name: String,
     pub description: String,
-    pub event_type: String,             // milestone, progress, completion, retention_release
+    pub event_type: String, // milestone, progress, completion, retention_release
     pub billing_amount: f64,
     pub currency_code: String,
     pub completion_pct: f64,
-    pub status: String,                 // planned, ready, invoiced, partially_invoiced, cancelled
+    pub status: String, // planned, ready, invoiced, partially_invoiced, cancelled
     pub planned_date: Option<chrono::NaiveDate>,
     pub actual_date: Option<chrono::NaiveDate>,
     pub task_id: Option<Uuid>,
@@ -105,8 +105,8 @@ pub struct ProjectInvoiceHeader {
     pub project_id: Uuid,
     pub project_number: String,
     pub project_name: String,
-    pub invoice_type: String,           // progress, milestone, t_and_m, retention_release, debit_memo, credit_memo
-    pub status: String,                 // draft, submitted, approved, rejected, posted, cancelled
+    pub invoice_type: String, // progress, milestone, t_and_m, retention_release, debit_memo, credit_memo
+    pub status: String,       // draft, submitted, approved, rejected, posted, cancelled
     pub customer_id: Option<Uuid>,
     pub customer_name: String,
     pub invoice_amount: f64,
@@ -127,7 +127,7 @@ pub struct ProjectInvoiceHeader {
     pub approved_by: Option<Uuid>,
     pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
     pub rejected_reason: String,
-    pub payment_status: String,         // unpaid, partially_paid, paid
+    pub payment_status: String, // unpaid, partially_paid, paid
     pub payment_date: Option<chrono::DateTime<chrono::Utc>>,
     pub notes: String,
     pub metadata: serde_json::Value,
@@ -143,7 +143,7 @@ pub struct ProjectInvoiceLine {
     pub organization_id: Uuid,
     pub invoice_header_id: Uuid,
     pub line_number: i32,
-    pub line_source: String,            // expenditure_item, billing_event, retention, manual
+    pub line_source: String, // expenditure_item, billing_event, retention, manual
     pub expenditure_item_id: Option<Uuid>,
     pub billing_event_id: Option<Uuid>,
     pub task_id: Option<Uuid>,
@@ -216,8 +216,8 @@ pub struct ResourceProfile {
     pub resource_type: String, // employee, contractor
     pub department: String,
     pub job_title: String,
-    pub skills: String,        // comma-separated skill tags
-    pub certifications: String, // comma-separated
+    pub skills: String,              // comma-separated skill tags
+    pub certifications: String,      // comma-separated
     pub availability_status: String, // available, partially_available, fully_allocated, on_leave
     pub available_hours_per_week: f64,
     pub cost_rate: f64,
@@ -342,4 +342,3 @@ pub struct ResourceDashboard {
     pub top_resources_by_utilization: serde_json::Value,
     pub recent_assignments: serde_json::Value,
 }
-

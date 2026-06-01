@@ -3,11 +3,11 @@
 //! `PostgreSQL` storage for intercompany batches, transactions, settlements,
 //! and balances.
 
-use atlas_shared::{
-    IntercompanyBatch, IntercompanyTransaction, IntercompanySettlement,
-    IntercompanyBalance, AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, IntercompanyBalance, IntercompanyBatch, IntercompanySettlement,
+    IntercompanyTransaction,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -30,9 +30,17 @@ pub trait IntercompanyRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<IntercompanyBatch>;
 
-    async fn get_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<IntercompanyBatch>>;
+    async fn get_batch(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<IntercompanyBatch>>;
     async fn get_batch_by_id(&self, id: Uuid) -> AtlasResult<Option<IntercompanyBatch>>;
-    async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<IntercompanyBatch>>;
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<IntercompanyBatch>>;
     async fn update_batch_status(
         &self,
         id: Uuid,
@@ -78,8 +86,15 @@ pub trait IntercompanyRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<IntercompanyTransaction>;
 
-    async fn get_transaction(&self, org_id: Uuid, transaction_number: &str) -> AtlasResult<Option<IntercompanyTransaction>>;
-    async fn list_transactions_by_batch(&self, batch_id: Uuid) -> AtlasResult<Vec<IntercompanyTransaction>>;
+    async fn get_transaction(
+        &self,
+        org_id: Uuid,
+        transaction_number: &str,
+    ) -> AtlasResult<Option<IntercompanyTransaction>>;
+    async fn list_transactions_by_batch(
+        &self,
+        batch_id: Uuid,
+    ) -> AtlasResult<Vec<IntercompanyTransaction>>;
     async fn list_transactions_by_entity(
         &self,
         org_id: Uuid,
@@ -144,17 +159,20 @@ pub struct PostgresIntercompanyRepository {
 }
 
 impl PostgresIntercompanyRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
     fn row_to_batch(&self, row: &sqlx::postgres::PgRow) -> IntercompanyBatch {
-        let total_amount: serde_json::Value = row.try_get::<serde_json::Value, _>("total_amount")
+        let total_amount: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("total_amount")
             .unwrap_or(serde_json::json!("0"));
-        let total_debit: serde_json::Value = row.try_get::<serde_json::Value, _>("total_debit")
+        let total_debit: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("total_debit")
             .unwrap_or(serde_json::json!("0"));
-        let total_credit: serde_json::Value = row.try_get::<serde_json::Value, _>("total_credit")
+        let total_credit: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("total_credit")
             .unwrap_or(serde_json::json!("0"));
 
         IntercompanyBatch {
@@ -186,10 +204,13 @@ impl PostgresIntercompanyRepository {
     }
 
     fn row_to_transaction(&self, row: &sqlx::postgres::PgRow) -> IntercompanyTransaction {
-        let amount: serde_json::Value = row.try_get::<serde_json::Value, _>("amount")
+        let amount: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("amount")
             .unwrap_or(serde_json::json!("0"));
-        let exchange_rate: Option<serde_json::Value> = row.try_get::<Option<serde_json::Value>, _>("exchange_rate")
-            .ok().flatten();
+        let exchange_rate: Option<serde_json::Value> = row
+            .try_get::<Option<serde_json::Value>, _>("exchange_rate")
+            .ok()
+            .flatten();
 
         IntercompanyTransaction {
             id: row.get("id"),
@@ -225,7 +246,8 @@ impl PostgresIntercompanyRepository {
     }
 
     fn row_to_settlement(&self, row: &sqlx::postgres::PgRow) -> IntercompanySettlement {
-        let settled_amount: serde_json::Value = row.try_get::<serde_json::Value, _>("settled_amount")
+        let settled_amount: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("settled_amount")
             .unwrap_or(serde_json::json!("0"));
 
         IntercompanySettlement {
@@ -249,11 +271,14 @@ impl PostgresIntercompanyRepository {
     }
 
     fn row_to_balance(&self, row: &sqlx::postgres::PgRow) -> IntercompanyBalance {
-        let total_outstanding: serde_json::Value = row.try_get::<serde_json::Value, _>("total_outstanding")
+        let total_outstanding: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("total_outstanding")
             .unwrap_or(serde_json::json!("0"));
-        let total_posted: serde_json::Value = row.try_get::<serde_json::Value, _>("total_posted")
+        let total_posted: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("total_posted")
             .unwrap_or(serde_json::json!("0"));
-        let total_settled: serde_json::Value = row.try_get::<serde_json::Value, _>("total_settled")
+        let total_settled: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("total_settled")
             .unwrap_or(serde_json::json!("0"));
 
         IntercompanyBalance {
@@ -306,10 +331,16 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(batch_number).bind(description)
-        .bind(from_entity_id).bind(from_entity_name)
-        .bind(to_entity_id).bind(to_entity_name)
-        .bind(currency_code).bind(accounting_date).bind(created_by)
+        .bind(org_id)
+        .bind(batch_number)
+        .bind(description)
+        .bind(from_entity_id)
+        .bind(from_entity_name)
+        .bind(to_entity_id)
+        .bind(to_entity_name)
+        .bind(currency_code)
+        .bind(accounting_date)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -317,7 +348,11 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         Ok(self.row_to_batch(&row))
     }
 
-    async fn get_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<IntercompanyBatch>> {
+    async fn get_batch(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<IntercompanyBatch>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.intercompany_batches WHERE organization_id = $1 AND batch_number = $2"
         )
@@ -329,17 +364,19 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
     }
 
     async fn get_batch_by_id(&self, id: Uuid) -> AtlasResult<Option<IntercompanyBatch>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.intercompany_batches WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.intercompany_batches WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_batch(&r)))
     }
 
-    async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<IntercompanyBatch>> {
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<IntercompanyBatch>> {
         let rows = match status {
             Some(s) => sqlx::query(
                 "SELECT * FROM _atlas.intercompany_batches WHERE organization_id = $1 AND status = $2 ORDER BY created_at DESC"
@@ -374,7 +411,11 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by).bind(posted_at).bind(rejected_reason)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(posted_at)
+        .bind(rejected_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -398,7 +439,11 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(total_amount).bind(total_debit).bind(total_credit).bind(transaction_count)
+        .bind(id)
+        .bind(total_amount)
+        .bind(total_debit)
+        .bind(total_credit)
+        .bind(transaction_count)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -461,23 +506,40 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(batch_id).bind(transaction_number).bind(transaction_type)
+        .bind(org_id)
+        .bind(batch_id)
+        .bind(transaction_number)
+        .bind(transaction_type)
         .bind(description)
-        .bind(from_entity_id).bind(from_entity_name)
-        .bind(to_entity_id).bind(to_entity_name)
-        .bind(amount).bind(currency_code).bind(exchange_rate)
-        .bind(from_debit_account).bind(from_credit_account)
-        .bind(to_debit_account).bind(to_credit_account)
-        .bind(from_ic_account).bind(to_ic_account)
-        .bind(transaction_date).bind(due_date)
-        .bind(source_entity_type).bind(source_entity_id).bind(created_by)
+        .bind(from_entity_id)
+        .bind(from_entity_name)
+        .bind(to_entity_id)
+        .bind(to_entity_name)
+        .bind(amount)
+        .bind(currency_code)
+        .bind(exchange_rate)
+        .bind(from_debit_account)
+        .bind(from_credit_account)
+        .bind(to_debit_account)
+        .bind(to_credit_account)
+        .bind(from_ic_account)
+        .bind(to_ic_account)
+        .bind(transaction_date)
+        .bind(due_date)
+        .bind(source_entity_type)
+        .bind(source_entity_id)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_transaction(&row))
     }
 
-    async fn get_transaction(&self, org_id: Uuid, transaction_number: &str) -> AtlasResult<Option<IntercompanyTransaction>> {
+    async fn get_transaction(
+        &self,
+        org_id: Uuid,
+        transaction_number: &str,
+    ) -> AtlasResult<Option<IntercompanyTransaction>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.intercompany_transactions WHERE organization_id = $1 AND transaction_number = $2"
         )
@@ -488,7 +550,10 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         Ok(row.map(|r| self.row_to_transaction(&r)))
     }
 
-    async fn list_transactions_by_batch(&self, batch_id: Uuid) -> AtlasResult<Vec<IntercompanyTransaction>> {
+    async fn list_transactions_by_batch(
+        &self,
+        batch_id: Uuid,
+    ) -> AtlasResult<Vec<IntercompanyTransaction>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.intercompany_transactions WHERE batch_id = $1 ORDER BY transaction_number"
         )
@@ -539,7 +604,9 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(settlement_date)
+        .bind(id)
+        .bind(status)
+        .bind(settlement_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -573,9 +640,16 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(settlement_number).bind(settlement_method)
-        .bind(from_entity_id).bind(to_entity_id).bind(settled_amount)
-        .bind(currency_code).bind(payment_reference).bind(transaction_ids).bind(created_by)
+        .bind(org_id)
+        .bind(settlement_number)
+        .bind(settlement_method)
+        .bind(from_entity_id)
+        .bind(to_entity_id)
+        .bind(settled_amount)
+        .bind(currency_code)
+        .bind(payment_reference)
+        .bind(transaction_ids)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -620,9 +694,13 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         let row = sqlx::query(
             r"SELECT * FROM _atlas.intercompany_balances
             WHERE organization_id = $1 AND from_entity_id = $2
-              AND to_entity_id = $3 AND currency_code = $4 AND as_of_date = $5"
+              AND to_entity_id = $3 AND currency_code = $4 AND as_of_date = $5",
         )
-        .bind(org_id).bind(from_entity_id).bind(to_entity_id).bind(currency_code).bind(today)
+        .bind(org_id)
+        .bind(from_entity_id)
+        .bind(to_entity_id)
+        .bind(currency_code)
+        .bind(today)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -656,9 +734,15 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(from_entity_id).bind(to_entity_id).bind(currency_code)
-        .bind(total_outstanding).bind(total_posted).bind(total_settled)
-        .bind(open_transaction_count).bind(today)
+        .bind(org_id)
+        .bind(from_entity_id)
+        .bind(to_entity_id)
+        .bind(currency_code)
+        .bind(total_outstanding)
+        .bind(total_posted)
+        .bind(total_settled)
+        .bind(open_transaction_count)
+        .bind(today)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -670,9 +754,10 @@ impl IntercompanyRepository for PostgresIntercompanyRepository {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.intercompany_balances
             WHERE organization_id = $1 AND as_of_date = $2
-            ORDER BY from_entity_id, to_entity_id"
+            ORDER BY from_entity_id, to_entity_id",
         )
-        .bind(org_id).bind(today)
+        .bind(org_id)
+        .bind(today)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

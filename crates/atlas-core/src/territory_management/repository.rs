@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for territory data.
 
-use atlas_shared::{
-    Territory, TerritoryMember, TerritoryRule, TerritoryQuota, TerritoryDashboard,
-    AtlasResult, AtlasError,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, Territory, TerritoryDashboard, TerritoryMember, TerritoryQuota,
+    TerritoryRule,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -29,7 +29,11 @@ pub trait TerritoryManagementRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<Territory>;
     async fn get_territory(&self, id: Uuid) -> AtlasResult<Option<Territory>>;
-    async fn get_territory_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<Territory>>;
+    async fn get_territory_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<Territory>>;
     async fn list_territories(
         &self,
         org_id: Uuid,
@@ -64,8 +68,17 @@ pub trait TerritoryManagementRepository: Send + Sync {
         effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TerritoryMember>;
-    async fn find_member(&self, territory_id: Uuid, user_id: Uuid, role: &str) -> AtlasResult<Option<TerritoryMember>>;
-    async fn list_members(&self, territory_id: Uuid, role: Option<&str>) -> AtlasResult<Vec<TerritoryMember>>;
+    async fn find_member(
+        &self,
+        territory_id: Uuid,
+        user_id: Uuid,
+        role: &str,
+    ) -> AtlasResult<Option<TerritoryMember>>;
+    async fn list_members(
+        &self,
+        territory_id: Uuid,
+        role: Option<&str>,
+    ) -> AtlasResult<Vec<TerritoryMember>>;
     async fn remove_member(&self, member_id: Uuid) -> AtlasResult<()>;
 
     // Routing Rules
@@ -80,7 +93,11 @@ pub trait TerritoryManagementRepository: Send + Sync {
         priority: i32,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TerritoryRule>;
-    async fn list_rules(&self, territory_id: Uuid, entity_type: Option<&str>) -> AtlasResult<Vec<TerritoryRule>>;
+    async fn list_rules(
+        &self,
+        territory_id: Uuid,
+        entity_type: Option<&str>,
+    ) -> AtlasResult<Vec<TerritoryRule>>;
     async fn remove_rule(&self, rule_id: Uuid) -> AtlasResult<()>;
 
     // Quotas
@@ -97,10 +114,22 @@ pub trait TerritoryManagementRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TerritoryQuota>;
     async fn get_quota(&self, id: Uuid) -> AtlasResult<Option<TerritoryQuota>>;
-    async fn find_quota(&self, territory_id: Uuid, period_name: &str) -> AtlasResult<Option<TerritoryQuota>>;
+    async fn find_quota(
+        &self,
+        territory_id: Uuid,
+        period_name: &str,
+    ) -> AtlasResult<Option<TerritoryQuota>>;
     async fn list_quotas(&self, territory_id: Uuid) -> AtlasResult<Vec<TerritoryQuota>>;
-    async fn update_quota_amount(&self, id: Uuid, revenue_quota: &str) -> AtlasResult<TerritoryQuota>;
-    async fn update_quota_actual(&self, id: Uuid, actual_revenue: &str) -> AtlasResult<TerritoryQuota>;
+    async fn update_quota_amount(
+        &self,
+        id: Uuid,
+        revenue_quota: &str,
+    ) -> AtlasResult<TerritoryQuota>;
+    async fn update_quota_actual(
+        &self,
+        id: Uuid,
+        actual_revenue: &str,
+    ) -> AtlasResult<TerritoryQuota>;
     async fn delete_quota(&self, id: Uuid) -> AtlasResult<()>;
 
     // Dashboard
@@ -113,7 +142,7 @@ pub struct PostgresTerritoryManagementRepository {
 }
 
 impl PostgresTerritoryManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -142,10 +171,19 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
                RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(territory_type)
-        .bind(parent_id).bind(owner_id).bind(owner_name)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(territory_type)
+        .bind(parent_id)
+        .bind(owner_id)
+        .bind(owner_name)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_territory(&row))
     }
@@ -153,17 +191,24 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
     async fn get_territory(&self, id: Uuid) -> AtlasResult<Option<Territory>> {
         let row = sqlx::query("SELECT * FROM _atlas.territories WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_territory(&r)))
     }
 
-    async fn get_territory_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<Territory>> {
+    async fn get_territory_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<Territory>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.territories WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_territory(&r)))
     }
@@ -175,8 +220,16 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         parent_id: Option<Uuid>,
         include_inactive: bool,
     ) -> AtlasResult<Vec<Territory>> {
-        let _active_filter = if include_inactive { "" } else { " AND is_active = true" };
-        let _type_filter = if territory_type.is_some() { " AND territory_type = $3" } else { "" };
+        let _active_filter = if include_inactive {
+            ""
+        } else {
+            " AND is_active = true"
+        };
+        let _type_filter = if territory_type.is_some() {
+            " AND territory_type = $3"
+        } else {
+            ""
+        };
         let _parent_filter = match parent_id {
             Some(_) => " AND parent_id = $4",
             None => "",
@@ -237,12 +290,20 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
                 updated_at = now()
                WHERE id = $1 RETURNING *",
         )
-        .bind(id).bind(name).bind(description).bind(territory_type)
+        .bind(id)
+        .bind(name)
+        .bind(description)
+        .bind(territory_type)
         .bind(parent_id)
-        .bind(owner_id.is_some()).bind(owner_id).bind(owner_name)
-        .bind(effective_from.is_some()).bind(effective_from)
-        .bind(effective_to.is_some()).bind(effective_to)
-        .fetch_one(&self.pool).await
+        .bind(owner_id.is_some())
+        .bind(owner_id)
+        .bind(owner_name)
+        .bind(effective_from.is_some())
+        .bind(effective_from)
+        .bind(effective_to.is_some())
+        .bind(effective_to)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_territory(&row))
     }
@@ -259,7 +320,9 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
 
     async fn delete_territory(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.territories WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -283,14 +346,26 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
                RETURNING *",
         )
-        .bind(org_id).bind(territory_id).bind(user_id).bind(user_name).bind(role)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(territory_id)
+        .bind(user_id)
+        .bind(user_name)
+        .bind(role)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_member(&row))
     }
 
-    async fn find_member(&self, territory_id: Uuid, user_id: Uuid, role: &str) -> AtlasResult<Option<TerritoryMember>> {
+    async fn find_member(
+        &self,
+        territory_id: Uuid,
+        user_id: Uuid,
+        role: &str,
+    ) -> AtlasResult<Option<TerritoryMember>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.territory_members WHERE territory_id = $1 AND user_id = $2 AND role = $3 AND is_active = true",
         )
@@ -300,7 +375,11 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         Ok(row.map(|r| row_to_member(&r)))
     }
 
-    async fn list_members(&self, territory_id: Uuid, role: Option<&str>) -> AtlasResult<Vec<TerritoryMember>> {
+    async fn list_members(
+        &self,
+        territory_id: Uuid,
+        role: Option<&str>,
+    ) -> AtlasResult<Vec<TerritoryMember>> {
         let rows = match role {
             Some(r) => sqlx::query(
                 "SELECT * FROM _atlas.territory_members WHERE territory_id = $1 AND role = $2 AND is_active = true ORDER BY role, user_name")
@@ -314,7 +393,9 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
 
     async fn remove_member(&self, member_id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.territory_members WHERE id = $1")
-            .bind(member_id).execute(&self.pool).await
+            .bind(member_id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -338,14 +419,25 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
                RETURNING *",
         )
-        .bind(org_id).bind(territory_id).bind(entity_type).bind(field_name)
-        .bind(match_operator).bind(match_value).bind(priority).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(territory_id)
+        .bind(entity_type)
+        .bind(field_name)
+        .bind(match_operator)
+        .bind(match_value)
+        .bind(priority)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_rule(&row))
     }
 
-    async fn list_rules(&self, territory_id: Uuid, entity_type: Option<&str>) -> AtlasResult<Vec<TerritoryRule>> {
+    async fn list_rules(
+        &self,
+        territory_id: Uuid,
+        entity_type: Option<&str>,
+    ) -> AtlasResult<Vec<TerritoryRule>> {
         let rows = match entity_type {
             Some(et) => sqlx::query(
                 "SELECT * FROM _atlas.territory_rules WHERE territory_id = $1 AND entity_type = $2 AND is_active = true ORDER BY priority")
@@ -359,7 +451,9 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
 
     async fn remove_rule(&self, rule_id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.territory_rules WHERE id = $1")
-            .bind(rule_id).execute(&self.pool).await
+            .bind(rule_id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -386,12 +480,17 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
                  revenue_quota::text as revenue_quota, actual_revenue::text as actual_revenue,
                  currency_code, created_by, created_at, updated_at",
         )
-        .bind(org_id).bind(territory_id).bind(period_name)
-        .bind(period_start).bind(period_end)
+        .bind(org_id)
+        .bind(territory_id)
+        .bind(period_name)
+        .bind(period_start)
+        .bind(period_end)
         .bind(revenue_quota.parse::<f64>().unwrap_or(0.0))
         .bind(actual_revenue.parse::<f64>().unwrap_or(0.0))
-        .bind(currency_code).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(currency_code)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_quota(&row))
     }
@@ -403,7 +502,11 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         Ok(row.map(|r| row_to_quota(&r)))
     }
 
-    async fn find_quota(&self, territory_id: Uuid, period_name: &str) -> AtlasResult<Option<TerritoryQuota>> {
+    async fn find_quota(
+        &self,
+        territory_id: Uuid,
+        period_name: &str,
+    ) -> AtlasResult<Option<TerritoryQuota>> {
         let row = sqlx::query(
             "SELECT id, organization_id, territory_id, period_name, period_start, period_end, revenue_quota::text as revenue_quota, actual_revenue::text as actual_revenue, currency_code, created_by, created_at, updated_at FROM _atlas.territory_quotas WHERE territory_id = $1 AND period_name = $2",
         )
@@ -422,7 +525,11 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         Ok(rows.iter().map(row_to_quota).collect())
     }
 
-    async fn update_quota_amount(&self, id: Uuid, revenue_quota: &str) -> AtlasResult<TerritoryQuota> {
+    async fn update_quota_amount(
+        &self,
+        id: Uuid,
+        revenue_quota: &str,
+    ) -> AtlasResult<TerritoryQuota> {
         let row = sqlx::query(
             "UPDATE _atlas.territory_quotas SET revenue_quota = $2::numeric, updated_at = now() WHERE id = $1 RETURNING id, organization_id, territory_id, period_name, period_start, period_end, revenue_quota::text as revenue_quota, actual_revenue::text as actual_revenue, currency_code, created_by, created_at, updated_at",
         )
@@ -432,7 +539,11 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
         Ok(row_to_quota(&row))
     }
 
-    async fn update_quota_actual(&self, id: Uuid, actual_revenue: &str) -> AtlasResult<TerritoryQuota> {
+    async fn update_quota_actual(
+        &self,
+        id: Uuid,
+        actual_revenue: &str,
+    ) -> AtlasResult<TerritoryQuota> {
         let row = sqlx::query(
             "UPDATE _atlas.territory_quotas SET actual_revenue = $2::numeric, updated_at = now() WHERE id = $1 RETURNING id, organization_id, territory_id, period_name, period_start, period_end, revenue_quota::text as revenue_quota, actual_revenue::text as actual_revenue, currency_code, created_by, created_at, updated_at",
         )
@@ -444,7 +555,9 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
 
     async fn delete_quota(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.territory_quotas WHERE id = $1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -459,7 +572,9 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
                 COUNT(DISTINCT parent_id) FILTER (WHERE parent_id IS NOT NULL) as with_parent
                FROM _atlas.territories WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let member_count: i64 = sqlx::query(
@@ -475,28 +590,39 @@ impl TerritoryManagementRepository for PostgresTerritoryManagementRepository {
                 COUNT(*) as quota_count
                FROM _atlas.territory_quotas WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         use sqlx::Row;
         let total_quota: f64 = quota_row.try_get("total_quota").unwrap_or(0.0);
         let total_actual: f64 = quota_row.try_get("total_actual").unwrap_or(0.0);
-        let attainment_pct = if total_quota > 0.0 { (total_actual / total_quota) * 100.0 } else { 0.0 };
+        let attainment_pct = if total_quota > 0.0 {
+            (total_actual / total_quota) * 100.0
+        } else {
+            0.0
+        };
 
         let by_type_row = sqlx::query(
             r"SELECT territory_type, COUNT(*) as cnt
                FROM _atlas.territories WHERE organization_id = $1 AND is_active = true
                GROUP BY territory_type ORDER BY cnt DESC",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let by_type: serde_json::Value = by_type_row.iter().map(|r| {
-            serde_json::json!({
-                "type": r.get::<String, _>("territory_type"),
-                "count": r.get::<i64, _>("cnt"),
+        let by_type: serde_json::Value = by_type_row
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "type": r.get::<String, _>("territory_type"),
+                    "count": r.get::<i64, _>("cnt"),
+                })
             })
-        }).collect();
+            .collect();
 
         Ok(TerritoryDashboard {
             total_territories: terr_row.get::<i64, _>("total") as i32,
@@ -574,11 +700,19 @@ fn row_to_rule(row: &sqlx::postgres::PgRow) -> TerritoryRule {
 }
 
 fn row_to_quota(row: &sqlx::postgres::PgRow) -> TerritoryQuota {
-    let quota_str: String = row.try_get("revenue_quota").unwrap_or_else(|_| "0".to_string());
-    let actual_str: String = row.try_get("actual_revenue").unwrap_or_else(|_| "0".to_string());
+    let quota_str: String = row
+        .try_get("revenue_quota")
+        .unwrap_or_else(|_| "0".to_string());
+    let actual_str: String = row
+        .try_get("actual_revenue")
+        .unwrap_or_else(|_| "0".to_string());
     let quota: f64 = quota_str.parse().unwrap_or(0.0);
     let actual: f64 = actual_str.parse().unwrap_or(0.0);
-    let pct = if quota > 0.0 { (actual / quota) * 100.0 } else { 0.0 };
+    let pct = if quota > 0.0 {
+        (actual / quota) * 100.0
+    } else {
+        0.0
+    };
     TerritoryQuota {
         id: row.get("id"),
         organization_id: row.get("organization_id"),

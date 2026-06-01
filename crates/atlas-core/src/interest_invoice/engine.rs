@@ -6,13 +6,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Receivables > Late Charges
 
-use atlas_shared::{
-    InterestRateSchedule, OverdueInvoice, InterestCalculationRun,
-    InterestCalculationLine, InterestInvoice, InterestInvoiceLine,
-    InterestInvoiceDashboard,
-    AtlasError, AtlasResult,
-};
 use super::InterestInvoiceRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, InterestCalculationLine, InterestCalculationRun, InterestInvoice,
+    InterestInvoiceDashboard, InterestInvoiceLine, InterestRateSchedule, OverdueInvoice,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -38,7 +36,7 @@ const VALID_INVOICE_STATUSES: &[&str] = &["draft", "posted", "reversed", "cancel
 
 /// Calculate interest amount using simple daily interest formula:
 /// interest = `outstanding_amount` * (`annual_rate` / 100) * (`overdue_days` / 365)
-#[must_use] 
+#[must_use]
 pub fn calculate_simple_interest(
     outstanding_amount: f64,
     annual_rate: f64,
@@ -80,10 +78,14 @@ impl InterestInvoiceEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<InterestRateSchedule> {
         if schedule_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Schedule code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Schedule code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Schedule name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Schedule name is required".to_string(),
+            ));
         }
         if !VALID_COMPOUNDING_FREQUENCIES.contains(&compounding_frequency) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -100,9 +102,9 @@ impl InterestInvoiceEngine {
             )));
         }
 
-        let rate: f64 = annual_rate.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Annual rate must be a valid number".to_string(),
-        ))?;
+        let rate: f64 = annual_rate.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Annual rate must be a valid number".to_string())
+        })?;
         if rate <= 0.0 || rate > 100.0 {
             return Err(AtlasError::ValidationFailed(
                 "Annual rate must be between 0 and 100".to_string(),
@@ -123,17 +125,37 @@ impl InterestInvoiceEngine {
             }
         }
 
-        info!("Creating interest rate schedule {} ({}) for org {}", schedule_code, name, org_id);
+        info!(
+            "Creating interest rate schedule {} ({}) for org {}",
+            schedule_code, name, org_id
+        );
 
-        self.repository.create_schedule(
-            org_id, schedule_code, name, description, annual_rate,
-            compounding_frequency, charge_type, grace_period_days, minimum_charge,
-            maximum_charge, currency_code, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_schedule(
+                org_id,
+                schedule_code,
+                name,
+                description,
+                annual_rate,
+                compounding_frequency,
+                charge_type,
+                grace_period_days,
+                minimum_charge,
+                maximum_charge,
+                currency_code,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a schedule by code
-    pub async fn get_schedule(&self, org_id: Uuid, schedule_code: &str) -> AtlasResult<Option<InterestRateSchedule>> {
+    pub async fn get_schedule(
+        &self,
+        org_id: Uuid,
+        schedule_code: &str,
+    ) -> AtlasResult<Option<InterestRateSchedule>> {
         self.repository.get_schedule(org_id, schedule_code).await
     }
 
@@ -143,7 +165,11 @@ impl InterestInvoiceEngine {
     }
 
     /// List schedules with optional status filter
-    pub async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InterestRateSchedule>> {
+    pub async fn list_schedules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<InterestRateSchedule>> {
         if let Some(s) = status {
             if !VALID_SCHEDULE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
@@ -158,7 +184,10 @@ impl InterestInvoiceEngine {
 
     /// Deactivate a schedule
     pub async fn deactivate_schedule(&self, id: Uuid) -> AtlasResult<InterestRateSchedule> {
-        let schedule = self.repository.get_schedule_by_id(id).await?
+        let schedule = self
+            .repository
+            .get_schedule_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {id} not found")))?;
 
         if schedule.status != "active" {
@@ -168,13 +197,19 @@ impl InterestInvoiceEngine {
             )));
         }
 
-        info!("Deactivated interest rate schedule {}", schedule.schedule_code);
+        info!(
+            "Deactivated interest rate schedule {}",
+            schedule.schedule_code
+        );
         self.repository.update_schedule_status(id, "inactive").await
     }
 
     /// Activate a schedule
     pub async fn activate_schedule(&self, id: Uuid) -> AtlasResult<InterestRateSchedule> {
-        let schedule = self.repository.get_schedule_by_id(id).await?
+        let schedule = self
+            .repository
+            .get_schedule_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {id} not found")))?;
 
         if schedule.status != "inactive" {
@@ -184,14 +219,22 @@ impl InterestInvoiceEngine {
             )));
         }
 
-        info!("Activated interest rate schedule {}", schedule.schedule_code);
+        info!(
+            "Activated interest rate schedule {}",
+            schedule.schedule_code
+        );
         self.repository.update_schedule_status(id, "active").await
     }
 
     /// Delete a schedule (only if inactive)
     pub async fn delete_schedule(&self, org_id: Uuid, schedule_code: &str) -> AtlasResult<()> {
-        let schedule = self.repository.get_schedule(org_id, schedule_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_code} not found")))?;
+        let schedule = self
+            .repository
+            .get_schedule(org_id, schedule_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_code} not found"))
+            })?;
 
         if schedule.status != "inactive" {
             return Err(AtlasError::WorkflowError(
@@ -221,12 +264,14 @@ impl InterestInvoiceEngine {
         currency_code: &str,
     ) -> AtlasResult<OverdueInvoice> {
         if invoice_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Invoice number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Invoice number is required".to_string(),
+            ));
         }
 
-        let outstanding: f64 = outstanding_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Outstanding amount must be a valid number".to_string(),
-        ))?;
+        let outstanding: f64 = outstanding_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Outstanding amount must be a valid number".to_string())
+        })?;
         if outstanding <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Outstanding amount must be greater than zero".to_string(),
@@ -239,21 +284,43 @@ impl InterestInvoiceEngine {
             ));
         }
 
-        info!("Registering overdue invoice {} ({} days overdue) for org {}", invoice_number, overdue_days, org_id);
+        info!(
+            "Registering overdue invoice {} ({} days overdue) for org {}",
+            invoice_number, overdue_days, org_id
+        );
 
-        self.repository.register_overdue_invoice(
-            org_id, invoice_number, customer_id, customer_name,
-            original_amount, outstanding_amount, due_date, overdue_days, currency_code,
-        ).await
+        self.repository
+            .register_overdue_invoice(
+                org_id,
+                invoice_number,
+                customer_id,
+                customer_name,
+                original_amount,
+                outstanding_amount,
+                due_date,
+                overdue_days,
+                currency_code,
+            )
+            .await
     }
 
     /// Get an overdue invoice by number
-    pub async fn get_overdue_invoice(&self, org_id: Uuid, invoice_number: &str) -> AtlasResult<Option<OverdueInvoice>> {
-        self.repository.get_overdue_invoice(org_id, invoice_number).await
+    pub async fn get_overdue_invoice(
+        &self,
+        org_id: Uuid,
+        invoice_number: &str,
+    ) -> AtlasResult<Option<OverdueInvoice>> {
+        self.repository
+            .get_overdue_invoice(org_id, invoice_number)
+            .await
     }
 
     /// List overdue invoices
-    pub async fn list_overdue_invoices(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<OverdueInvoice>> {
+    pub async fn list_overdue_invoices(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<OverdueInvoice>> {
         if let Some(s) = status {
             if !VALID_OVERDUE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
@@ -268,7 +335,10 @@ impl InterestInvoiceEngine {
 
     /// Close an overdue invoice (e.g., when fully paid)
     pub async fn close_overdue_invoice(&self, id: Uuid) -> AtlasResult<OverdueInvoice> {
-        let inv = self.repository.get_overdue_invoice_by_id(id).await?
+        let inv = self
+            .repository
+            .get_overdue_invoice_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Overdue invoice {id} not found")))?;
 
         // This is fine - we handle the method not existing on the trait directly
@@ -281,7 +351,9 @@ impl InterestInvoiceEngine {
         }
 
         info!("Closed overdue invoice {}", inv.invoice_number);
-        self.repository.update_overdue_invoice_status(id, "closed").await
+        self.repository
+            .update_overdue_invoice_status(id, "closed")
+            .await
     }
 
     // ========================================================================
@@ -299,15 +371,21 @@ impl InterestInvoiceEngine {
     ) -> AtlasResult<InterestCalculationRun> {
         // Get the schedule to use for calculation
         let schedule = if let Some(sid) = schedule_id {
-            self.repository.get_schedule_by_id(sid).await?
+            self.repository
+                .get_schedule_by_id(sid)
+                .await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {sid} not found")))?
         } else {
             // Find the first active schedule
-            let schedules = self.repository.list_schedules(org_id, Some("active")).await?;
-            schedules.into_iter().next()
-                .ok_or_else(|| AtlasError::ValidationFailed(
+            let schedules = self
+                .repository
+                .list_schedules(org_id, Some("active"))
+                .await?;
+            schedules.into_iter().next().ok_or_else(|| {
+                AtlasError::ValidationFailed(
                     "No active interest rate schedule found. Create one first.".to_string(),
-                ))?
+                )
+            })?
         };
 
         if schedule.status != "active" {
@@ -335,10 +413,14 @@ impl InterestInvoiceEngine {
         let annual_rate: f64 = schedule.annual_rate.parse().unwrap_or(0.0);
 
         // Get open overdue invoices
-        let overdue_invoices = self.repository.list_overdue_invoices(org_id, Some("open")).await?;
+        let overdue_invoices = self
+            .repository
+            .list_overdue_invoices(org_id, Some("open"))
+            .await?;
 
         // Filter by grace period
-        let eligible_invoices: Vec<&OverdueInvoice> = overdue_invoices.iter()
+        let eligible_invoices: Vec<&OverdueInvoice> = overdue_invoices
+            .iter()
             .filter(|inv| inv.overdue_days > schedule.grace_period_days)
             .collect();
 
@@ -352,10 +434,18 @@ impl InterestInvoiceEngine {
         let next_run = self.repository.get_latest_run_number(org_id).await? + 1;
 
         // Create the calculation run
-        let run = self.repository.create_calculation_run(
-            org_id, &next_run.to_string(), description,
-            calculation_date, Some(schedule.id), &schedule.currency_code, generated_by,
-        ).await?;
+        let run = self
+            .repository
+            .create_calculation_run(
+                org_id,
+                &next_run.to_string(),
+                description,
+                calculation_date,
+                Some(schedule.id),
+                &schedule.currency_code,
+                generated_by,
+            )
+            .await?;
 
         // Calculate interest for each invoice
         let mut total_interest = 0.0_f64;
@@ -365,7 +455,8 @@ impl InterestInvoiceEngine {
             let effective_overdue_days = inv.overdue_days - schedule.grace_period_days;
             let outstanding: f64 = inv.outstanding_amount.parse().unwrap_or(0.0);
 
-            let interest = calculate_simple_interest(outstanding, annual_rate, effective_overdue_days);
+            let interest =
+                calculate_simple_interest(outstanding, annual_rate, effective_overdue_days);
 
             // Apply minimum charge
             let minimum: f64 = schedule.minimum_charge.parse().unwrap_or(0.0);
@@ -380,39 +471,48 @@ impl InterestInvoiceEngine {
             };
 
             if interest > 0.0 {
-                self.repository.create_calculation_line(
-                    org_id, run.id, Some(inv.id),
-                    &inv.invoice_number, inv.customer_id,
-                    inv.customer_name.as_deref(),
-                    &format!("{outstanding:.2}"),
-                    effective_overdue_days,
-                    &format!("{annual_rate:.6}"),
-                    &format!("{interest:.2}"),
-                    &schedule.currency_code,
-                ).await?;
+                self.repository
+                    .create_calculation_line(
+                        org_id,
+                        run.id,
+                        Some(inv.id),
+                        &inv.invoice_number,
+                        inv.customer_id,
+                        inv.customer_name.as_deref(),
+                        &format!("{outstanding:.2}"),
+                        effective_overdue_days,
+                        &format!("{annual_rate:.6}"),
+                        &format!("{interest:.2}"),
+                        &schedule.currency_code,
+                    )
+                    .await?;
 
                 total_interest += interest;
                 lines_count += 1;
 
                 // Update overdue invoice tracking
                 let prev_total: f64 = inv.total_interest_charged.parse().unwrap_or(0.0);
-                self.repository.update_overdue_interest(
-                    inv.id,
-                    &format!("{:.2}", prev_total + interest),
-                    calculation_date,
-                ).await?;
+                self.repository
+                    .update_overdue_interest(
+                        inv.id,
+                        &format!("{:.2}", prev_total + interest),
+                        calculation_date,
+                    )
+                    .await?;
             }
         }
 
         // Update run totals
-        let run = self.repository.update_calculation_run_totals(
-            run.id, lines_count, &format!("{total_interest:.2}"),
-        ).await?;
+        let run = self
+            .repository
+            .update_calculation_run_totals(run.id, lines_count, &format!("{total_interest:.2}"))
+            .await?;
 
         // Mark run as calculated
-        let run = self.repository.update_calculation_run_status(
-            run.id, "calculated", None,
-        ).await?;
+        let run = self
+            .repository
+            .update_calculation_run_status(run.id, "calculated", None)
+            .await?;
 
         info!(
             "Calculated interest run #{} for org {}: {} invoices, total interest {:.2}",
@@ -423,23 +523,35 @@ impl InterestInvoiceEngine {
     }
 
     /// Get a calculation run by ID
-    pub async fn get_calculation_run(&self, id: Uuid) -> AtlasResult<Option<InterestCalculationRun>> {
+    pub async fn get_calculation_run(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<InterestCalculationRun>> {
         self.repository.get_calculation_run(id).await
     }
 
     /// List calculation runs
-    pub async fn list_calculation_runs(&self, org_id: Uuid) -> AtlasResult<Vec<InterestCalculationRun>> {
+    pub async fn list_calculation_runs(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<InterestCalculationRun>> {
         self.repository.list_calculation_runs(org_id).await
     }
 
     /// List calculation lines for a run
-    pub async fn list_calculation_lines(&self, run_id: Uuid) -> AtlasResult<Vec<InterestCalculationLine>> {
+    pub async fn list_calculation_lines(
+        &self,
+        run_id: Uuid,
+    ) -> AtlasResult<Vec<InterestCalculationLine>> {
         self.repository.list_calculation_lines(run_id).await
     }
 
     /// Cancel a draft calculation run
     pub async fn cancel_calculation_run(&self, id: Uuid) -> AtlasResult<InterestCalculationRun> {
-        let run = self.repository.get_calculation_run(id).await?
+        let run = self
+            .repository
+            .get_calculation_run(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {id} not found")))?;
 
         if run.status != "calculated" && run.status != "draft" {
@@ -450,7 +562,9 @@ impl InterestInvoiceEngine {
         }
 
         info!("Cancelled interest calculation run #{}", run.run_number);
-        self.repository.update_calculation_run_status(id, "cancelled", None).await
+        self.repository
+            .update_calculation_run_status(id, "cancelled", None)
+            .await
     }
 
     // ========================================================================
@@ -468,7 +582,10 @@ impl InterestInvoiceEngine {
         gl_account_code: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<Vec<InterestInvoice>> {
-        let run = self.repository.get_calculation_run(run_id).await?
+        let run = self
+            .repository
+            .get_calculation_run(run_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Run {run_id} not found")))?;
 
         if run.status != "calculated" {
@@ -489,7 +606,8 @@ impl InterestInvoiceEngine {
         let mut customer_lines: std::collections::HashMap<Uuid, Vec<&InterestCalculationLine>> =
             std::collections::HashMap::new();
         for line in &lines {
-            customer_lines.entry(line.customer_id)
+            customer_lines
+                .entry(line.customer_id)
                 .or_default()
                 .push(line);
         }
@@ -498,45 +616,67 @@ impl InterestInvoiceEngine {
         let mut next_inv_num = self.repository.get_latest_invoice_number(org_id).await? + 1;
 
         for (customer_id, cust_lines) in &customer_lines {
-            let total_interest: f64 = cust_lines.iter()
+            let total_interest: f64 = cust_lines
+                .iter()
                 .map(|l| l.interest_amount.parse::<f64>().unwrap_or(0.0))
                 .sum();
 
             let customer_name = cust_lines.first().and_then(|l| l.customer_name.clone());
 
             let inv_num = format!("{next_inv_num}");
-            let currency = cust_lines.first().map_or("USD".to_string(), |l| l.currency_code.clone());
+            let currency = cust_lines
+                .first()
+                .map_or("USD".to_string(), |l| l.currency_code.clone());
 
-            let invoice = self.repository.create_interest_invoice(
-                org_id, &inv_num, *customer_id, customer_name.as_deref(),
-                Some(run_id), invoice_date, due_date,
-                &format!("{total_interest:.2}"), &currency,
-                cust_lines.len() as i32, gl_account_code,
-                None, None, created_by,
-            ).await?;
+            let invoice = self
+                .repository
+                .create_interest_invoice(
+                    org_id,
+                    &inv_num,
+                    *customer_id,
+                    customer_name.as_deref(),
+                    Some(run_id),
+                    invoice_date,
+                    due_date,
+                    &format!("{total_interest:.2}"),
+                    &currency,
+                    cust_lines.len() as i32,
+                    gl_account_code,
+                    None,
+                    None,
+                    created_by,
+                )
+                .await?;
 
             // Create invoice lines
             for (idx, calc_line) in cust_lines.iter().enumerate() {
-                self.repository.create_interest_invoice_line(
-                    org_id, invoice.id, Some(calc_line.id),
-                    idx as i32 + 1, "interest",
-                    Some(&format!("Interest on invoice {} ({} days overdue @ {}%)",
-                        calc_line.invoice_number,
-                        calc_line.overdue_days,
-                        calc_line.annual_rate_used)),
-                    Some(&calc_line.invoice_number),
-                    Some(calc_line.overdue_days),
-                    Some(&calc_line.outstanding_amount),
-                    Some(&calc_line.annual_rate_used),
-                    &calc_line.interest_amount,
-                    &calc_line.currency_code,
-                    gl_account_code,
-                ).await?;
+                self.repository
+                    .create_interest_invoice_line(
+                        org_id,
+                        invoice.id,
+                        Some(calc_line.id),
+                        idx as i32 + 1,
+                        "interest",
+                        Some(&format!(
+                            "Interest on invoice {} ({} days overdue @ {}%)",
+                            calc_line.invoice_number,
+                            calc_line.overdue_days,
+                            calc_line.annual_rate_used
+                        )),
+                        Some(&calc_line.invoice_number),
+                        Some(calc_line.overdue_days),
+                        Some(&calc_line.outstanding_amount),
+                        Some(&calc_line.annual_rate_used),
+                        &calc_line.interest_amount,
+                        &calc_line.currency_code,
+                        gl_account_code,
+                    )
+                    .await?;
 
                 // Link calculation line to the invoice
-                self.repository.update_calculation_line_status(
-                    calc_line.id, "invoiced", Some(invoice.id),
-                ).await?;
+                self.repository
+                    .update_calculation_line_status(calc_line.id, "invoiced", Some(invoice.id))
+                    .await?;
             }
 
             invoices.push(invoice);
@@ -544,28 +684,45 @@ impl InterestInvoiceEngine {
         }
 
         // Update run status to invoiced
-        self.repository.update_calculation_run_status(run_id, "invoiced", None).await?;
+        self.repository
+            .update_calculation_run_status(run_id, "invoiced", None)
+            .await?;
 
         info!(
             "Generated {} interest invoice(s) from run #{} for org {}",
-            invoices.len(), run.run_number, org_id
+            invoices.len(),
+            run.run_number,
+            org_id
         );
 
         Ok(invoices)
     }
 
     /// Get an interest invoice by number
-    pub async fn get_interest_invoice(&self, org_id: Uuid, invoice_number: &str) -> AtlasResult<Option<InterestInvoice>> {
-        self.repository.get_interest_invoice(org_id, invoice_number).await
+    pub async fn get_interest_invoice(
+        &self,
+        org_id: Uuid,
+        invoice_number: &str,
+    ) -> AtlasResult<Option<InterestInvoice>> {
+        self.repository
+            .get_interest_invoice(org_id, invoice_number)
+            .await
     }
 
     /// Get an interest invoice by ID
-    pub async fn get_interest_invoice_by_id(&self, id: Uuid) -> AtlasResult<Option<InterestInvoice>> {
+    pub async fn get_interest_invoice_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<InterestInvoice>> {
         self.repository.get_interest_invoice_by_id(id).await
     }
 
     /// List interest invoices
-    pub async fn list_interest_invoices(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<InterestInvoice>> {
+    pub async fn list_interest_invoices(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<InterestInvoice>> {
         if let Some(s) = status {
             if !VALID_INVOICE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
@@ -580,7 +737,10 @@ impl InterestInvoiceEngine {
 
     /// Post an interest invoice
     pub async fn post_interest_invoice(&self, id: Uuid) -> AtlasResult<InterestInvoice> {
-        let inv = self.repository.get_interest_invoice_by_id(id).await?
+        let inv = self
+            .repository
+            .get_interest_invoice_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if inv.status != "draft" {
@@ -591,14 +751,17 @@ impl InterestInvoiceEngine {
         }
 
         info!("Posted interest invoice {}", inv.invoice_number);
-        self.repository.update_interest_invoice_status(
-            id, "posted", Some(chrono::Utc::now()), None, None,
-        ).await
+        self.repository
+            .update_interest_invoice_status(id, "posted", Some(chrono::Utc::now()), None, None)
+            .await
     }
 
     /// Reverse a posted interest invoice
     pub async fn reverse_interest_invoice(&self, id: Uuid) -> AtlasResult<InterestInvoice> {
-        let inv = self.repository.get_interest_invoice_by_id(id).await?
+        let inv = self
+            .repository
+            .get_interest_invoice_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if inv.status != "posted" {
@@ -609,14 +772,23 @@ impl InterestInvoiceEngine {
         }
 
         info!("Reversed interest invoice {}", inv.invoice_number);
-        self.repository.update_interest_invoice_status(
-            id, "reversed", None, Some(chrono::Utc::now()), Some(Uuid::new_v4()),
-        ).await
+        self.repository
+            .update_interest_invoice_status(
+                id,
+                "reversed",
+                None,
+                Some(chrono::Utc::now()),
+                Some(Uuid::new_v4()),
+            )
+            .await
     }
 
     /// Cancel a draft interest invoice
     pub async fn cancel_interest_invoice(&self, id: Uuid) -> AtlasResult<InterestInvoice> {
-        let inv = self.repository.get_interest_invoice_by_id(id).await?
+        let inv = self
+            .repository
+            .get_interest_invoice_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if inv.status != "draft" {
@@ -627,14 +799,19 @@ impl InterestInvoiceEngine {
         }
 
         info!("Cancelled interest invoice {}", inv.invoice_number);
-        self.repository.update_interest_invoice_status(
-            id, "cancelled", None, None, None,
-        ).await
+        self.repository
+            .update_interest_invoice_status(id, "cancelled", None, None, None)
+            .await
     }
 
     /// List interest invoice lines
-    pub async fn list_interest_invoice_lines(&self, interest_invoice_id: Uuid) -> AtlasResult<Vec<InterestInvoiceLine>> {
-        self.repository.list_interest_invoice_lines(interest_invoice_id).await
+    pub async fn list_interest_invoice_lines(
+        &self,
+        interest_invoice_id: Uuid,
+    ) -> AtlasResult<Vec<InterestInvoiceLine>> {
+        self.repository
+            .list_interest_invoice_lines(interest_invoice_id)
+            .await
     }
 
     // ========================================================================
@@ -642,7 +819,10 @@ impl InterestInvoiceEngine {
     // ========================================================================
 
     /// Get interest invoice dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<InterestInvoiceDashboard> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<InterestInvoiceDashboard> {
         self.repository.get_dashboard_summary(org_id).await
     }
 }

@@ -10,11 +10,11 @@
 //! - Sustainability dashboard
 //! - Validation edge cases and error handling
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_sustainability_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -457,7 +457,10 @@ async fn test_update_facility_status() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/sustainability/facilities/id/{}/status", id))
+                .uri(format!(
+                    "/api/v1/sustainability/facilities/id/{}/status",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -587,8 +590,22 @@ async fn test_create_emission_factor_invalid_scope() {
 #[tokio::test]
 async fn test_list_emission_factors() {
     let (_state, app) = setup_sustainability_test().await;
-    create_test_emission_factor(&app, "EF-LIST-1", "Factor 1", "scope_1", "stationary_combustion").await;
-    create_test_emission_factor(&app, "EF-LIST-2", "Factor 2", "scope_2", "purchased_electricity").await;
+    create_test_emission_factor(
+        &app,
+        "EF-LIST-1",
+        "Factor 1",
+        "scope_1",
+        "stationary_combustion",
+    )
+    .await;
+    create_test_emission_factor(
+        &app,
+        "EF-LIST-2",
+        "Factor 2",
+        "scope_2",
+        "purchased_electricity",
+    )
+    .await;
 
     let (k, v) = auth_header(&admin_claims());
     let resp = app
@@ -613,7 +630,14 @@ async fn test_list_emission_factors() {
 #[tokio::test]
 async fn test_delete_emission_factor() {
     let (_state, app) = setup_sustainability_test().await;
-    create_test_emission_factor(&app, "EF-DEL", "Delete Me", "scope_1", "stationary_combustion").await;
+    create_test_emission_factor(
+        &app,
+        "EF-DEL",
+        "Delete Me",
+        "scope_1",
+        "stationary_combustion",
+    )
+    .await;
 
     let (k, v) = auth_header(&admin_claims());
     let resp = app
@@ -720,7 +744,10 @@ async fn test_update_activity_status() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/sustainability/activities/id/{}/status", id))
+                .uri(format!(
+                    "/api/v1/sustainability/activities/id/{}/status",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -792,7 +819,14 @@ async fn test_delete_activity() {
 #[tokio::test]
 async fn test_create_metric() {
     let (_state, app) = setup_sustainability_test().await;
-    let metric = create_test_metric(&app, "ESG-001", "GHG Emissions", "environmental", "lower_is_better").await;
+    let metric = create_test_metric(
+        &app,
+        "ESG-001",
+        "GHG Emissions",
+        "environmental",
+        "lower_is_better",
+    )
+    .await;
     assert_eq!(metric["metric_code"], "ESG-001");
     assert_eq!(metric["pillar"], "environmental");
     assert_eq!(metric["direction"], "lower_is_better");
@@ -863,8 +897,22 @@ async fn test_create_metric_invalid_pillar() {
 #[tokio::test]
 async fn test_list_metrics() {
     let (_state, app) = setup_sustainability_test().await;
-    create_test_metric(&app, "MET-LIST-1", "Env Metric", "environmental", "lower_is_better").await;
-    create_test_metric(&app, "MET-LIST-2", "Social Metric", "social", "higher_is_better").await;
+    create_test_metric(
+        &app,
+        "MET-LIST-1",
+        "Env Metric",
+        "environmental",
+        "lower_is_better",
+    )
+    .await;
+    create_test_metric(
+        &app,
+        "MET-LIST-2",
+        "Social Metric",
+        "social",
+        "higher_is_better",
+    )
+    .await;
 
     let (k, v) = auth_header(&admin_claims());
     let resp = app
@@ -889,7 +937,14 @@ async fn test_list_metrics() {
 #[tokio::test]
 async fn test_delete_metric() {
     let (_state, app) = setup_sustainability_test().await;
-    create_test_metric(&app, "DEL-MET", "Delete Me", "governance", "higher_is_better").await;
+    create_test_metric(
+        &app,
+        "DEL-MET",
+        "Delete Me",
+        "governance",
+        "higher_is_better",
+    )
+    .await;
 
     let (k, v) = auth_header(&admin_claims());
     let resp = app
@@ -914,7 +969,14 @@ async fn test_delete_metric() {
 #[tokio::test]
 async fn test_create_metric_reading() {
     let (_state, app) = setup_sustainability_test().await;
-    let metric = create_test_metric(&app, "READ-MET", "Reading Metric", "environmental", "lower_is_better").await;
+    let metric = create_test_metric(
+        &app,
+        "READ-MET",
+        "Reading Metric",
+        "environmental",
+        "lower_is_better",
+    )
+    .await;
     let metric_id = metric["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -979,7 +1041,14 @@ async fn test_create_metric_reading_not_found_metric() {
 #[tokio::test]
 async fn test_list_metric_readings() {
     let (_state, app) = setup_sustainability_test().await;
-    let metric = create_test_metric(&app, "LIST-READ-MET", "List Reading Metric", "environmental", "lower_is_better").await;
+    let metric = create_test_metric(
+        &app,
+        "LIST-READ-MET",
+        "List Reading Metric",
+        "environmental",
+        "lower_is_better",
+    )
+    .await;
     let metric_id = metric["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -1012,7 +1081,10 @@ async fn test_list_metric_readings() {
         .clone()
         .oneshot(
             Request::builder()
-                .uri(format!("/api/v1/sustainability/metrics/{}/readings", metric_id))
+                .uri(format!(
+                    "/api/v1/sustainability/metrics/{}/readings",
+                    metric_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -1030,7 +1102,14 @@ async fn test_list_metric_readings() {
 #[tokio::test]
 async fn test_delete_metric_reading() {
     let (_state, app) = setup_sustainability_test().await;
-    let metric = create_test_metric(&app, "DEL-READ-MET", "Del Reading Metric", "environmental", "lower_is_better").await;
+    let metric = create_test_metric(
+        &app,
+        "DEL-READ-MET",
+        "Del Reading Metric",
+        "environmental",
+        "lower_is_better",
+    )
+    .await;
     let metric_id = metric["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -1065,7 +1144,10 @@ async fn test_delete_metric_reading() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/v1/sustainability/metric-readings/id/{}", reading_id))
+                .uri(format!(
+                    "/api/v1/sustainability/metric-readings/id/{}",
+                    reading_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
@@ -1082,7 +1164,13 @@ async fn test_delete_metric_reading() {
 #[tokio::test]
 async fn test_create_goal() {
     let (_state, app) = setup_sustainability_test().await;
-    let goal = create_test_goal(&app, "GOAL-001", "50% Emission Reduction", "emission_reduction").await;
+    let goal = create_test_goal(
+        &app,
+        "GOAL-001",
+        "50% Emission Reduction",
+        "emission_reduction",
+    )
+    .await;
     assert_eq!(goal["goal_code"], "GOAL-001");
     assert_eq!(goal["goal_type"], "emission_reduction");
     assert_eq!(goal["framework"], "SBTi");
@@ -1265,7 +1353,14 @@ async fn test_delete_goal() {
 #[tokio::test]
 async fn test_create_carbon_offset() {
     let (_state, app) = setup_sustainability_test().await;
-    let offset = create_test_carbon_offset(&app, "OFF-001", "Reforestation Brazil", "reforestation", 1000.0).await;
+    let offset = create_test_carbon_offset(
+        &app,
+        "OFF-001",
+        "Reforestation Brazil",
+        "reforestation",
+        1000.0,
+    )
+    .await;
     assert_eq!(offset["offset_number"], "OFF-001");
     assert_eq!(offset["project_type"], "reforestation");
     assert!((offset["quantity_tonnes"].as_f64().unwrap() - 1000.0).abs() < 0.01);
@@ -1339,7 +1434,8 @@ async fn test_create_carbon_offset_invalid_type() {
 #[tokio::test]
 async fn test_retire_carbon_offset() {
     let (_state, app) = setup_sustainability_test().await;
-    let offset = create_test_carbon_offset(&app, "RETIRE-OFF", "Retire Test", "reforestation", 1000.0).await;
+    let offset =
+        create_test_carbon_offset(&app, "RETIRE-OFF", "Retire Test", "reforestation", 1000.0).await;
     let id = offset["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
@@ -1348,7 +1444,10 @@ async fn test_retire_carbon_offset() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/sustainability/carbon-offsets/id/{}/retire", id))
+                .uri(format!(
+                    "/api/v1/sustainability/carbon-offsets/id/{}/retire",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -1457,12 +1556,20 @@ async fn test_sustainability_full_lifecycle() {
     let (_state, app) = setup_sustainability_test().await;
 
     // 1. Create a facility
-    let facility = create_test_facility(&app, "LIFE-FAC", "Lifecycle Facility", "manufacturing").await;
+    let facility =
+        create_test_facility(&app, "LIFE-FAC", "Lifecycle Facility", "manufacturing").await;
     let fac_id = facility["id"].as_str().unwrap();
     assert_eq!(facility["facility_code"], "LIFE-FAC");
 
     // 2. Create an emission factor
-    let ef = create_test_emission_factor(&app, "LIFE-EF", "Natural Gas", "scope_1", "stationary_combustion").await;
+    let ef = create_test_emission_factor(
+        &app,
+        "LIFE-EF",
+        "Natural Gas",
+        "scope_1",
+        "stationary_combustion",
+    )
+    .await;
     let ef_id = ef["id"].as_str().unwrap();
     assert_eq!(ef["factor_code"], "LIFE-EF");
 
@@ -1503,8 +1610,12 @@ async fn test_sustainability_full_lifecycle() {
         .await
         .unwrap();
     assert_eq!(activity_resp.status(), StatusCode::CREATED);
-    let activity: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(activity_resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let activity: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(activity_resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     let act_id = activity["id"].as_str().unwrap();
 
     // 4. Verify the activity
@@ -1513,7 +1624,10 @@ async fn test_sustainability_full_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/sustainability/activities/id/{}/status", act_id))
+                .uri(format!(
+                    "/api/v1/sustainability/activities/id/{}/status",
+                    act_id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -1526,7 +1640,14 @@ async fn test_sustainability_full_lifecycle() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 5. Create an ESG metric
-    let metric = create_test_metric(&app, "LIFE-ESG", "Total GHG", "environmental", "lower_is_better").await;
+    let metric = create_test_metric(
+        &app,
+        "LIFE-ESG",
+        "Total GHG",
+        "environmental",
+        "lower_is_better",
+    )
+    .await;
     let metric_id = metric["id"].as_str().unwrap();
 
     // 6. Record a metric reading
@@ -1566,7 +1687,10 @@ async fn test_sustainability_full_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/sustainability/goals/id/{}/progress", goal_id))
+                .uri(format!(
+                    "/api/v1/sustainability/goals/id/{}/progress",
+                    goal_id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -1579,7 +1703,8 @@ async fn test_sustainability_full_lifecycle() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // 9. Purchase carbon offsets
-    let offset = create_test_carbon_offset(&app, "LIFE-OFF", "Forest Carbon", "reforestation", 500.0).await;
+    let offset =
+        create_test_carbon_offset(&app, "LIFE-OFF", "Forest Carbon", "reforestation", 500.0).await;
     let offset_id = offset["id"].as_str().unwrap();
 
     // 10. Retire some offsets
@@ -1588,7 +1713,10 @@ async fn test_sustainability_full_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/v1/sustainability/carbon-offsets/id/{}/retire", offset_id))
+                .uri(format!(
+                    "/api/v1/sustainability/carbon-offsets/id/{}/retire",
+                    offset_id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -1599,8 +1727,12 @@ async fn test_sustainability_full_lifecycle() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let retired: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let retired: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!((retired["remaining_tonnes"].as_f64().unwrap() - 300.0).abs() < 0.01);
 
     // 11. Check the dashboard
@@ -1616,8 +1748,12 @@ async fn test_sustainability_full_lifecycle() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let dashboard: serde_json::Value =
-        serde_json::from_slice(&axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap()).unwrap();
+    let dashboard: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(dashboard["total_facilities"].as_i64().unwrap() >= 1);
     assert!(dashboard["active_goals"].as_i64().unwrap() >= 1);
     // Offsets may be aggregated differently in the dashboard
@@ -1629,14 +1765,19 @@ async fn test_sustainability_full_lifecycle() {
         .clone()
         .oneshot(
             Request::builder()
-                .uri(format!("/api/v1/sustainability/metrics/{}/readings", metric_id))
+                .uri(format!(
+                    "/api/v1/sustainability/metrics/{}/readings",
+                    metric_id
+                ))
                 .header(&k, &v)
                 .body(Body::empty())
                 .unwrap(),
         )
         .await
         .unwrap();
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let readings: serde_json::Value = serde_json::from_slice(&body).unwrap();
     for r in readings["data"].as_array().unwrap() {
         let rid = r["id"].as_str().unwrap();
@@ -1654,7 +1795,14 @@ async fn test_sustainability_full_lifecycle() {
     }
 
     // Delete all created resources
-    for code in &["LIFE-OFF", "LIFE-GOAL", "LIFE-ESG", "LIFE-ACT", "LIFE-EF", "LIFE-FAC"] {
+    for code in &[
+        "LIFE-OFF",
+        "LIFE-GOAL",
+        "LIFE-ESG",
+        "LIFE-ACT",
+        "LIFE-EF",
+        "LIFE-FAC",
+    ] {
         let (prefix, route) = match *code {
             "LIFE-OFF" => ("carbon-offsets/number", true),
             "LIFE-GOAL" => ("goals/code", true),
@@ -1665,15 +1813,24 @@ async fn test_sustainability_full_lifecycle() {
             _ => continue,
         };
         if route {
-            let resp = app.clone().oneshot(
-                Request::builder()
-                    .method("DELETE")
-                    .uri(format!("/api/v1/sustainability/{}/{}", prefix, code))
-                    .header(&k, &v)
-                    .body(Body::empty())
-                    .unwrap(),
-            ).await.unwrap();
-            assert_eq!(resp.status(), StatusCode::NO_CONTENT, "Failed to delete {}", code);
+            let resp = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .method("DELETE")
+                        .uri(format!("/api/v1/sustainability/{}/{}", prefix, code))
+                        .header(&k, &v)
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(
+                resp.status(),
+                StatusCode::NO_CONTENT,
+                "Failed to delete {}",
+                code
+            );
         }
     }
 }

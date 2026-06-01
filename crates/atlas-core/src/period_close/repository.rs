@@ -2,11 +2,10 @@
 //!
 //! `PostgreSQL` storage for accounting calendars, periods, and close checklist.
 
-use atlas_shared::{
-    AccountingCalendar, AccountingPeriod, PeriodCloseChecklistItem,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AccountingCalendar, AccountingPeriod, AtlasError, AtlasResult, PeriodCloseChecklistItem,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -91,7 +90,10 @@ pub trait PeriodCloseRepository: Send + Sync {
         depends_on: Option<Uuid>,
     ) -> AtlasResult<PeriodCloseChecklistItem>;
 
-    async fn list_checklist_items(&self, period_id: Uuid) -> AtlasResult<Vec<PeriodCloseChecklistItem>>;
+    async fn list_checklist_items(
+        &self,
+        period_id: Uuid,
+    ) -> AtlasResult<Vec<PeriodCloseChecklistItem>>;
     async fn update_checklist_item_status(
         &self,
         id: Uuid,
@@ -112,11 +114,7 @@ pub trait PeriodCloseRepository: Send + Sync {
         valid_until: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<()>;
 
-    async fn check_period_exception(
-        &self,
-        period_id: Uuid,
-        user_id: Uuid,
-    ) -> AtlasResult<bool>;
+    async fn check_period_exception(&self, period_id: Uuid, user_id: Uuid) -> AtlasResult<bool>;
 
     async fn revoke_period_exception(&self, period_id: Uuid, user_id: Uuid) -> AtlasResult<()>;
 }
@@ -127,7 +125,7 @@ pub struct PostgresPeriodCloseRepository {
 }
 
 impl PostgresPeriodCloseRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -213,7 +211,8 @@ impl PostgresPeriodCloseRepository {
 fn row_to_json_value(row: &sqlx::postgres::PgRow, col: &str) -> serde_json::Value {
     use sqlx::Row;
     // Try numeric first, then string, fallback to 0
-    row.try_get::<serde_json::Value, _>(col).unwrap_or(serde_json::json!(0))
+    row.try_get::<serde_json::Value, _>(col)
+        .unwrap_or(serde_json::json!(0))
 }
 
 #[async_trait]
@@ -432,7 +431,11 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
             "ar" => "ar_status",
             "fa" => "fa_status",
             "po" => "po_status",
-            _ => return Err(AtlasError::ValidationFailed(format!("Unknown subledger: {subledger}"))),
+            _ => {
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Unknown subledger: {subledger}"
+                )))
+            }
         };
 
         let sql = format!(
@@ -501,7 +504,10 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         Ok(self.row_to_checklist_item(&row))
     }
 
-    async fn list_checklist_items(&self, period_id: Uuid) -> AtlasResult<Vec<PeriodCloseChecklistItem>> {
+    async fn list_checklist_items(
+        &self,
+        period_id: Uuid,
+    ) -> AtlasResult<Vec<PeriodCloseChecklistItem>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.period_close_checklist WHERE period_id = $1 ORDER BY task_order",
         )
@@ -587,11 +593,7 @@ impl PeriodCloseRepository for PostgresPeriodCloseRepository {
         Ok(())
     }
 
-    async fn check_period_exception(
-        &self,
-        period_id: Uuid,
-        user_id: Uuid,
-    ) -> AtlasResult<bool> {
+    async fn check_period_exception(&self, period_id: Uuid, user_id: Uuid) -> AtlasResult<bool> {
         let exists: bool = sqlx::query_scalar(
             r"
             SELECT EXISTS(

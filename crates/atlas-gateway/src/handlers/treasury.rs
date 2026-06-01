@@ -5,17 +5,17 @@
 //! deal lifecycle, settlements, and dashboard.
 
 use axum::{
-    extract::{Path, Query, State, Extension},
-    Json,
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
+use crate::handlers::auth::{parse_uuid, Claims};
 use crate::AppState;
-use crate::handlers::auth::{Claims, parse_uuid};
 
 // ============================================================================
 // Counterparty Handlers
@@ -43,18 +43,38 @@ pub async fn create_counterparty(
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let cp_type = req.counterparty_type.as_deref().unwrap_or("bank");
-    match state.financials.treasury_engine.create_counterparty(
-        org_id, &req.counterparty_code, &req.name, cp_type,
-        req.country_code.as_deref(), req.credit_rating.as_deref(),
-        req.credit_limit.as_deref(), req.settlement_currency.as_deref(),
-        req.contact_name.as_deref(), req.contact_email.as_deref(),
-        req.contact_phone.as_deref(), None,
-    ).await {
-        Ok(cp) => Ok((StatusCode::CREATED, Json(serde_json::to_value(cp).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .financials
+        .treasury_engine
+        .create_counterparty(
+            org_id,
+            &req.counterparty_code,
+            &req.name,
+            cp_type,
+            req.country_code.as_deref(),
+            req.credit_rating.as_deref(),
+            req.credit_limit.as_deref(),
+            req.settlement_currency.as_deref(),
+            req.contact_name.as_deref(),
+            req.contact_email.as_deref(),
+            req.contact_phone.as_deref(),
+            None,
+        )
+        .await
+    {
+        Ok(cp) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(cp).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create counterparty: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -71,12 +91,19 @@ pub async fn list_counterparties(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let active_only = query.active_only.unwrap_or(true);
-    match state.financials.treasury_engine.list_counterparties(org_id, active_only).await {
+    match state
+        .financials
+        .treasury_engine
+        .list_counterparties(org_id, active_only)
+        .await
+    {
         Ok(cps) => Ok(Json(serde_json::json!({"data": cps}))),
         Err(e) => {
             error!("Failed to list counterparties: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -87,13 +114,26 @@ pub async fn get_counterparty(
     Path(code): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.financials.treasury_engine.get_counterparty(org_id, &code).await {
-        Ok(Some(cp)) => Ok(Json(serde_json::to_value(cp).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Counterparty not found"})))),
+    match state
+        .financials
+        .treasury_engine
+        .get_counterparty(org_id, &code)
+        .await
+    {
+        Ok(Some(cp)) => Ok(Json(serde_json::to_value(cp).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Counterparty not found"})),
+        )),
         Err(e) => {
             error!("Failed to get counterparty: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -104,12 +144,19 @@ pub async fn delete_counterparty(
     Path(code): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.financials.treasury_engine.delete_counterparty(org_id, &code).await {
+    match state
+        .financials
+        .treasury_engine
+        .delete_counterparty(org_id, &code)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete counterparty: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -147,22 +194,44 @@ pub async fn create_deal(
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
     let currency = req.currency_code.as_deref().unwrap_or("USD");
-    match state.financials.treasury_engine.create_deal(
-        org_id, &req.deal_type, req.description.as_deref(),
-        req.counterparty_id, req.counterparty_name.as_deref(),
-        currency, &req.principal_amount,
-        req.interest_rate.as_deref(), req.interest_basis.as_deref(),
-        req.start_date, req.maturity_date,
-        req.fx_buy_currency.as_deref(), req.fx_buy_amount.as_deref(),
-        req.fx_sell_currency.as_deref(), req.fx_sell_amount.as_deref(),
-        req.fx_rate.as_deref(),
-        req.gl_account_code.as_deref(), None,
-    ).await {
-        Ok(deal) => Ok((StatusCode::CREATED, Json(serde_json::to_value(deal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .financials
+        .treasury_engine
+        .create_deal(
+            org_id,
+            &req.deal_type,
+            req.description.as_deref(),
+            req.counterparty_id,
+            req.counterparty_name.as_deref(),
+            currency,
+            &req.principal_amount,
+            req.interest_rate.as_deref(),
+            req.interest_basis.as_deref(),
+            req.start_date,
+            req.maturity_date,
+            req.fx_buy_currency.as_deref(),
+            req.fx_buy_amount.as_deref(),
+            req.fx_sell_currency.as_deref(),
+            req.fx_sell_amount.as_deref(),
+            req.fx_rate.as_deref(),
+            req.gl_account_code.as_deref(),
+            None,
+        )
+        .await
+    {
+        Ok(deal) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(deal).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create deal: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -179,14 +248,19 @@ pub async fn list_deals(
     Query(query): Query<ListDealsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.financials.treasury_engine.list_deals(
-        org_id, query.deal_type.as_deref(), query.status.as_deref(),
-    ).await {
+    match state
+        .financials
+        .treasury_engine
+        .list_deals(org_id, query.deal_type.as_deref(), query.status.as_deref())
+        .await
+    {
         Ok(deals) => Ok(Json(serde_json::json!({"data": deals}))),
         Err(e) => {
             error!("Failed to list deals: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -197,12 +271,20 @@ pub async fn get_deal(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.financials.treasury_engine.get_deal(id).await {
-        Ok(Some(deal)) => Ok(Json(serde_json::to_value(deal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
-        Ok(None) => Err((StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Deal not found"})))),
+        Ok(Some(deal)) => Ok(Json(serde_json::to_value(deal).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Deal not found"})),
+        )),
         Err(e) => {
             error!("Failed to get deal: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -217,12 +299,22 @@ pub async fn authorize_deal(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = parse_uuid(&claims.sub).ok();
-    match state.financials.treasury_engine.authorize_deal(id, user_id).await {
-        Ok(deal) => Ok(Json(serde_json::to_value(deal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .financials
+        .treasury_engine
+        .authorize_deal(id, user_id)
+        .await
+    {
+        Ok(deal) => Ok(Json(serde_json::to_value(deal).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to authorize deal: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -242,14 +334,30 @@ pub async fn settle_deal(
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<serde_json::Value>)> {
     let user_id = parse_uuid(&claims.sub).ok();
     let settlement_type = req.settlement_type.as_deref().unwrap_or("full");
-    match state.financials.treasury_engine.settle_deal(
-        id, settlement_type, req.payment_reference.as_deref(), user_id,
-    ).await {
-        Ok(settlement) => Ok((StatusCode::CREATED, Json(serde_json::to_value(settlement).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .financials
+        .treasury_engine
+        .settle_deal(
+            id,
+            settlement_type,
+            req.payment_reference.as_deref(),
+            user_id,
+        )
+        .await
+    {
+        Ok(settlement) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(settlement).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to settle deal: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -260,11 +368,16 @@ pub async fn mature_deal(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.financials.treasury_engine.mature_deal(id).await {
-        Ok(deal) => Ok(Json(serde_json::to_value(deal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(deal) => Ok(Json(serde_json::to_value(deal).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to mature deal: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -275,11 +388,16 @@ pub async fn cancel_deal(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     match state.financials.treasury_engine.cancel_deal(id).await {
-        Ok(deal) => Ok(Json(serde_json::to_value(deal).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(deal) => Ok(Json(serde_json::to_value(deal).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to cancel deal: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -297,8 +415,10 @@ pub async fn list_deal_settlements(
         Ok(settlements) => Ok(Json(serde_json::json!({"data": settlements}))),
         Err(e) => {
             error!("Failed to list settlements: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }
@@ -312,12 +432,22 @@ pub async fn get_treasury_dashboard(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let org_id = parse_uuid(&claims.org_id)?;
-    match state.financials.treasury_engine.get_dashboard_summary(org_id).await {
-        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .financials
+        .treasury_engine
+        .get_dashboard_summary(org_id)
+        .await
+    {
+        Ok(summary) => Ok(Json(serde_json::to_value(summary).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to get treasury dashboard: {}", e);
-            Err((StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                 Json(serde_json::json!({"error": e.to_string()}))))
+            Err((
+                StatusCode::from_u16(e.status_code()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(serde_json::json!({"error": e.to_string()})),
+            ))
         }
     }
 }

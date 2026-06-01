@@ -3567,4 +3567,3 @@ pub struct BudgetaryControlDashboard {
     pub top_departments_by_reservation: serde_json::Value,
     pub budget_utilization_pct: f64,
 }
-

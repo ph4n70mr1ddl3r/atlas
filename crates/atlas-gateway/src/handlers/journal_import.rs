@@ -5,19 +5,18 @@
 //! API endpoints for managing journal import formats, column mappings,
 //! import batches, data validation, and import processing.
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
+use tracing::{error, info};
 use uuid::Uuid;
-use tracing::{info, error};
 
 #[derive(Debug, Deserialize)]
 pub struct CreateImportFormatRequest {
@@ -44,8 +43,12 @@ pub struct CreateImportFormatRequest {
     pub column_mappings: serde_json::Value,
 }
 
-const fn default_true() -> bool { true }
-const fn default_max_errors() -> i32 { 100 }
+const fn default_true() -> bool {
+    true
+}
+const fn default_max_errors() -> i32 {
+    100
+}
 
 /// Create a journal import format
 pub async fn create_import_format(
@@ -56,28 +59,36 @@ pub async fn create_import_format(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    info!("Creating journal import format '{}' for org {}", payload.code, org_id);
+    info!(
+        "Creating journal import format '{}' for org {}",
+        payload.code, org_id
+    );
 
-    match state.financials.journal_import_engine.create_format(
-        org_id,
-        &payload.code,
-        &payload.name,
-        payload.description.as_deref(),
-        &payload.source_type,
-        &payload.file_format,
-        payload.delimiter.as_deref(),
-        payload.header_row,
-        payload.ledger_id,
-        &payload.currency_code,
-        payload.default_date,
-        payload.default_journal_type.as_deref(),
-        payload.balancing_segment.as_deref(),
-        payload.validation_enabled,
-        payload.auto_post,
-        payload.max_errors_allowed,
-        payload.column_mappings.clone(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .journal_import_engine
+        .create_format(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.source_type,
+            &payload.file_format,
+            payload.delimiter.as_deref(),
+            payload.header_row,
+            payload.ledger_id,
+            &payload.currency_code,
+            payload.default_date,
+            payload.default_journal_type.as_deref(),
+            payload.balancing_segment.as_deref(),
+            payload.validation_enabled,
+            payload.auto_post,
+            payload.max_errors_allowed,
+            payload.column_mappings.clone(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(format) => Ok(created_json(format)),
         Err(e) => {
             error!("Failed to create import format: {}", e);
@@ -103,7 +114,12 @@ pub async fn list_import_formats(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.journal_import_engine.list_formats(org_id, query.status.as_deref()).await {
+    match state
+        .financials
+        .journal_import_engine
+        .list_formats(org_id, query.status.as_deref())
+        .await
+    {
         Ok(formats) => Ok(Json(serde_json::json!({ "data": formats }))),
         Err(e) => {
             error!("Failed to list import formats: {}", e);
@@ -135,7 +151,12 @@ pub async fn delete_import_format(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.journal_import_engine.delete_format(org_id, &code).await {
+    match state
+        .financials
+        .journal_import_engine
+        .delete_format(org_id, &code)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete import format: {}", e);
@@ -166,18 +187,23 @@ pub async fn add_column_mapping(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.journal_import_engine.add_column_mapping(
-        org_id,
-        format_id,
-        payload.column_position,
-        &payload.source_column,
-        &payload.target_field,
-        &payload.data_type,
-        payload.is_required,
-        payload.default_value.as_deref(),
-        payload.transformation.as_deref(),
-        payload.validation_rule.as_deref(),
-    ).await {
+    match state
+        .financials
+        .journal_import_engine
+        .add_column_mapping(
+            org_id,
+            format_id,
+            payload.column_position,
+            &payload.source_column,
+            &payload.target_field,
+            &payload.data_type,
+            payload.is_required,
+            payload.default_value.as_deref(),
+            payload.transformation.as_deref(),
+            payload.validation_rule.as_deref(),
+        )
+        .await
+    {
         Ok(mapping) => Ok(created_json(mapping)),
         Err(e) => {
             error!("Failed to add column mapping: {}", e);
@@ -191,7 +217,12 @@ pub async fn list_column_mappings(
     State(state): State<Arc<AppState>>,
     Path(format_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.journal_import_engine.list_column_mappings(format_id).await {
+    match state
+        .financials
+        .journal_import_engine
+        .list_column_mappings(format_id)
+        .await
+    {
         Ok(mappings) => Ok(Json(serde_json::json!({ "data": mappings }))),
         Err(e) => {
             error!("Failed to list column mappings: {}", e);
@@ -218,15 +249,20 @@ pub async fn create_import_batch(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.journal_import_engine.create_batch(
-        org_id,
-        payload.format_id,
-        payload.name.as_deref(),
-        payload.description.as_deref(),
-        &payload.source,
-        payload.source_file_name.as_deref(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .journal_import_engine
+        .create_batch(
+            org_id,
+            payload.format_id,
+            payload.name.as_deref(),
+            payload.description.as_deref(),
+            &payload.source,
+            payload.source_file_name.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(batch) => Ok(created_json(batch)),
         Err(e) => {
             error!("Failed to create import batch: {}", e);
@@ -264,25 +300,30 @@ pub async fn add_import_row(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.journal_import_engine.add_row(
-        org_id,
-        batch_id,
-        payload.raw_data.clone(),
-        payload.account_code.as_deref(),
-        payload.account_name.as_deref(),
-        payload.description.as_deref(),
-        &payload.entered_dr,
-        &payload.entered_cr,
-        payload.currency_code.as_deref(),
-        payload.exchange_rate.as_deref(),
-        payload.gl_date,
-        payload.reference.as_deref(),
-        payload.line_type.as_deref(),
-        payload.cost_center.as_deref(),
-        payload.department.as_deref(),
-        payload.project_code.as_deref(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .journal_import_engine
+        .add_row(
+            org_id,
+            batch_id,
+            payload.raw_data.clone(),
+            payload.account_code.as_deref(),
+            payload.account_name.as_deref(),
+            payload.description.as_deref(),
+            &payload.entered_dr,
+            &payload.entered_cr,
+            payload.currency_code.as_deref(),
+            payload.exchange_rate.as_deref(),
+            payload.gl_date,
+            payload.reference.as_deref(),
+            payload.line_type.as_deref(),
+            payload.cost_center.as_deref(),
+            payload.department.as_deref(),
+            payload.project_code.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(row) => Ok(created_json(row)),
         Err(e) => {
             error!("Failed to add import row: {}", e);
@@ -296,7 +337,12 @@ pub async fn list_import_rows(
     State(state): State<Arc<AppState>>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.journal_import_engine.list_batch_rows(batch_id).await {
+    match state
+        .financials
+        .journal_import_engine
+        .list_batch_rows(batch_id)
+        .await
+    {
         Ok(rows) => Ok(Json(serde_json::json!({ "data": rows }))),
         Err(e) => {
             error!("Failed to list import rows: {}", e);
@@ -310,7 +356,12 @@ pub async fn validate_import_batch(
     State(state): State<Arc<AppState>>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.journal_import_engine.validate_batch(batch_id).await {
+    match state
+        .financials
+        .journal_import_engine
+        .validate_batch(batch_id)
+        .await
+    {
         Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to validate import batch: {}", e);
@@ -324,7 +375,12 @@ pub async fn import_batch(
     State(state): State<Arc<AppState>>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.journal_import_engine.import_batch(batch_id).await {
+    match state
+        .financials
+        .journal_import_engine
+        .import_batch(batch_id)
+        .await
+    {
         Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to import batch: {}", e);
@@ -362,9 +418,12 @@ pub async fn list_import_batches(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.journal_import_engine.list_batches(
-        org_id, query.format_id, query.status.as_deref(),
-    ).await {
+    match state
+        .financials
+        .journal_import_engine
+        .list_batches(org_id, query.format_id, query.status.as_deref())
+        .await
+    {
         Ok(batches) => Ok(Json(serde_json::json!({ "data": batches }))),
         Err(e) => {
             error!("Failed to list import batches: {}", e);
@@ -378,7 +437,12 @@ pub async fn delete_import_batch(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.financials.journal_import_engine.delete_batch(id).await {
+    match state
+        .financials
+        .journal_import_engine
+        .delete_batch(id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete import batch: {}", e);
@@ -394,7 +458,12 @@ pub async fn get_journal_import_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.journal_import_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .journal_import_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => {
             error!("Failed to get journal import dashboard: {}", e);

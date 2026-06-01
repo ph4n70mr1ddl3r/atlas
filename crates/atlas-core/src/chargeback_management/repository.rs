@@ -2,8 +2,8 @@
 //!
 //! `PostgreSQL` storage for chargebacks, chargeback lines, and activity audit trail.
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -184,32 +184,67 @@ pub trait ChargebackManagementRepository: Send + Sync {
     // Chargebacks
     async fn create_chargeback(&self, params: &ChargebackCreateParams) -> AtlasResult<Chargeback>;
     async fn get_chargeback(&self, id: Uuid) -> AtlasResult<Option<Chargeback>>;
-    async fn get_chargeback_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<Chargeback>>;
+    async fn get_chargeback_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<Chargeback>>;
     async fn list_chargebacks(
-        &self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>,
-        reason_code: Option<&str>, category: Option<&str>, priority: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+        reason_code: Option<&str>,
+        category: Option<&str>,
+        priority: Option<&str>,
     ) -> AtlasResult<Vec<Chargeback>>;
     async fn update_chargeback_status(
-        &self, id: Uuid, status: &str, resolution_date: Option<chrono::NaiveDate>,
-        resolution_notes: Option<&str>, resolved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        resolution_date: Option<chrono::NaiveDate>,
+        resolution_notes: Option<&str>,
+        resolved_by: Option<Uuid>,
     ) -> AtlasResult<Chargeback>;
-    async fn assign_chargeback(&self, id: Uuid, assigned_to: Option<&str>, assigned_team: Option<&str>) -> AtlasResult<Chargeback>;
+    async fn assign_chargeback(
+        &self,
+        id: Uuid,
+        assigned_to: Option<&str>,
+        assigned_team: Option<&str>,
+    ) -> AtlasResult<Chargeback>;
     async fn update_notes(&self, id: Uuid, notes: Option<&str>) -> AtlasResult<Chargeback>;
-    async fn update_chargeback_totals(&self, id: Uuid, amount: f64, tax_amount: f64, total_amount: f64, open_amount: f64) -> AtlasResult<()>;
+    async fn update_chargeback_totals(
+        &self,
+        id: Uuid,
+        amount: f64,
+        tax_amount: f64,
+        total_amount: f64,
+        open_amount: f64,
+    ) -> AtlasResult<()>;
     async fn delete_chargeback(&self, org_id: Uuid, number: &str) -> AtlasResult<()>;
     async fn get_next_chargeback_number(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Lines
-    async fn create_chargeback_line(&self, params: &ChargebackLineCreateParams) -> AtlasResult<ChargebackLine>;
+    async fn create_chargeback_line(
+        &self,
+        params: &ChargebackLineCreateParams,
+    ) -> AtlasResult<ChargebackLine>;
     async fn list_chargeback_lines(&self, chargeback_id: Uuid) -> AtlasResult<Vec<ChargebackLine>>;
     async fn delete_chargeback_line(&self, chargeback_id: Uuid, line_id: Uuid) -> AtlasResult<()>;
     async fn get_next_line_number(&self, chargeback_id: Uuid) -> AtlasResult<i32>;
 
     // Activities
     async fn create_activity(
-        &self, org_id: Uuid, chargeback_id: Uuid, activity_type: &str,
-        description: Option<&str>, old_status: Option<&str>, new_status: Option<&str>,
-        performed_by: Option<Uuid>, performed_by_name: Option<&str>, notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        chargeback_id: Uuid,
+        activity_type: &str,
+        description: Option<&str>,
+        old_status: Option<&str>,
+        new_status: Option<&str>,
+        performed_by: Option<Uuid>,
+        performed_by_name: Option<&str>,
+        notes: Option<&str>,
     ) -> AtlasResult<ChargebackActivity>;
     async fn list_activities(&self, chargeback_id: Uuid) -> AtlasResult<Vec<ChargebackActivity>>;
 
@@ -227,7 +262,7 @@ pub struct PostgresChargebackManagementRepository {
 }
 
 impl PostgresChargebackManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -236,7 +271,10 @@ impl PostgresChargebackManagementRepository {
 #[async_trait]
 impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
     async fn create_chargeback(&self, params: &ChargebackCreateParams) -> AtlasResult<Chargeback> {
-        let seq = self.get_next_chargeback_number(params.org_id).await.unwrap_or(1);
+        let seq = self
+            .get_next_chargeback_number(params.org_id)
+            .await
+            .unwrap_or(1);
         let chargeback_number = format!("CB-{seq:06}");
 
         let row = sqlx::query_as::<_, Chargeback>(
@@ -288,17 +326,19 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
     }
 
     async fn get_chargeback(&self, id: Uuid) -> AtlasResult<Option<Chargeback>> {
-        let row = sqlx::query_as::<_, Chargeback>(
-            "SELECT * FROM _atlas.chargebacks WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query_as::<_, Chargeback>("SELECT * FROM _atlas.chargebacks WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row)
     }
 
-    async fn get_chargeback_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<Chargeback>> {
+    async fn get_chargeback_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<Chargeback>> {
         let row = sqlx::query_as::<_, Chargeback>(
             "SELECT * FROM _atlas.chargebacks WHERE organization_id = $1 AND chargeback_number = $2",
         )
@@ -311,8 +351,13 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
     }
 
     async fn list_chargebacks(
-        &self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>,
-        reason_code: Option<&str>, category: Option<&str>, priority: Option<&str>,
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+        reason_code: Option<&str>,
+        category: Option<&str>,
+        priority: Option<&str>,
     ) -> AtlasResult<Vec<Chargeback>> {
         let rows = sqlx::query_as::<_, Chargeback>(
             r"SELECT * FROM _atlas.chargebacks
@@ -337,8 +382,12 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
     }
 
     async fn update_chargeback_status(
-        &self, id: Uuid, status: &str, resolution_date: Option<chrono::NaiveDate>,
-        resolution_notes: Option<&str>, resolved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        resolution_date: Option<chrono::NaiveDate>,
+        resolution_notes: Option<&str>,
+        resolved_by: Option<Uuid>,
     ) -> AtlasResult<Chargeback> {
         let row = sqlx::query_as::<_, Chargeback>(
             r"UPDATE _atlas.chargebacks
@@ -359,7 +408,12 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
         Ok(row)
     }
 
-    async fn assign_chargeback(&self, id: Uuid, assigned_to: Option<&str>, assigned_team: Option<&str>) -> AtlasResult<Chargeback> {
+    async fn assign_chargeback(
+        &self,
+        id: Uuid,
+        assigned_to: Option<&str>,
+        assigned_team: Option<&str>,
+    ) -> AtlasResult<Chargeback> {
         let row = sqlx::query_as::<_, Chargeback>(
             r"UPDATE _atlas.chargebacks
                SET assigned_to = $2, assigned_team = $3, updated_at = now()
@@ -386,7 +440,14 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
         Ok(row)
     }
 
-    async fn update_chargeback_totals(&self, id: Uuid, amount: f64, tax_amount: f64, total_amount: f64, open_amount: f64) -> AtlasResult<()> {
+    async fn update_chargeback_totals(
+        &self,
+        id: Uuid,
+        amount: f64,
+        tax_amount: f64,
+        total_amount: f64,
+        open_amount: f64,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.chargebacks
                SET amount = $2, tax_amount = $3, total_amount = $4, open_amount = $5, updated_at = now()
@@ -413,7 +474,9 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Chargeback not found".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Chargeback not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -431,8 +494,14 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
     }
 
     // Lines
-    async fn create_chargeback_line(&self, params: &ChargebackLineCreateParams) -> AtlasResult<ChargebackLine> {
-        let line_number = self.get_next_line_number(params.chargeback_id).await.unwrap_or(1);
+    async fn create_chargeback_line(
+        &self,
+        params: &ChargebackLineCreateParams,
+    ) -> AtlasResult<ChargebackLine> {
+        let line_number = self
+            .get_next_line_number(params.chargeback_id)
+            .await
+            .unwrap_or(1);
 
         let row = sqlx::query_as::<_, ChargebackLine>(
             r"INSERT INTO _atlas.chargeback_lines
@@ -478,16 +547,17 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
     }
 
     async fn delete_chargeback_line(&self, chargeback_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
-        let result = sqlx::query(
-            "DELETE FROM _atlas.chargeback_lines WHERE chargeback_id = $1 AND id = $2",
-        )
-        .bind(chargeback_id)
-        .bind(line_id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let result =
+            sqlx::query("DELETE FROM _atlas.chargeback_lines WHERE chargeback_id = $1 AND id = $2")
+                .bind(chargeback_id)
+                .bind(line_id)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Chargeback line not found".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Chargeback line not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -506,9 +576,16 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
 
     // Activities
     async fn create_activity(
-        &self, org_id: Uuid, chargeback_id: Uuid, activity_type: &str,
-        description: Option<&str>, old_status: Option<&str>, new_status: Option<&str>,
-        performed_by: Option<Uuid>, performed_by_name: Option<&str>, notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        chargeback_id: Uuid,
+        activity_type: &str,
+        description: Option<&str>,
+        old_status: Option<&str>,
+        new_status: Option<&str>,
+        performed_by: Option<Uuid>,
+        performed_by_name: Option<&str>,
+        notes: Option<&str>,
     ) -> AtlasResult<ChargebackActivity> {
         let row = sqlx::query_as::<_, ChargebackActivity>(
             r"INSERT INTO _atlas.chargeback_activities
@@ -583,7 +660,11 @@ impl ChargebackManagementRepository for PostgresChargebackManagementRepository {
 }
 
 impl PostgresChargebackManagementRepository {
-    async fn get_grouped_counts(&self, org_id: Uuid, column: &str) -> AtlasResult<serde_json::Value> {
+    async fn get_grouped_counts(
+        &self,
+        org_id: Uuid,
+        column: &str,
+    ) -> AtlasResult<serde_json::Value> {
         let query = format!(
             "SELECT {column} as key, COUNT(*) as cnt, COALESCE(SUM(total_amount), 0) as total FROM _atlas.chargebacks WHERE organization_id = $1 GROUP BY {column}"
         );

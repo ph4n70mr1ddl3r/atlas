@@ -9,8 +9,8 @@
 //!
 //! Oracle Fusion equivalent: HCM > Succession Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::SuccessionPlanningEngine;
-pub use repository::{SuccessionPlanningRepository, PostgresSuccessionPlanningRepository};
+pub use repository::{PostgresSuccessionPlanningRepository, SuccessionPlanningRepository};

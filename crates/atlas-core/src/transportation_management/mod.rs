@@ -14,8 +14,10 @@
 //!
 //! Oracle Fusion equivalent: SCM > Transportation Management
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::TransportationManagementEngine;
-pub use repository::{TransportationManagementRepository, PostgresTransportationManagementRepository};
+pub use repository::{
+    PostgresTransportationManagementRepository, TransportationManagementRepository,
+};

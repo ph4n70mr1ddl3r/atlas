@@ -5,8 +5,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > General Ledger
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::GeneralLedgerEngine;
 pub use repository::{GeneralLedgerRepository, PostgresGeneralLedgerRepository};

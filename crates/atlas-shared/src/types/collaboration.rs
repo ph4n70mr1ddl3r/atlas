@@ -286,7 +286,9 @@ pub struct CreateDelegationRuleRequest {
     pub auto_expire: Option<bool>,
 }
 
-pub fn default_delegation_all() -> String { "all".to_string() }
+pub fn default_delegation_all() -> String {
+    "all".to_string()
+}
 
 /// Delegation history entry (tracks when delegations were actually used)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -318,4 +320,3 @@ pub struct DelegationDashboard {
     pub delegations_by_type: serde_json::Value,
     pub recent_delegations: Vec<DelegationHistoryEntry>,
 }
-

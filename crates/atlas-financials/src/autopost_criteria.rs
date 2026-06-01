@@ -1,7 +1,7 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AutoPostCriteriaSet {
@@ -58,7 +58,10 @@ impl AutoPostCriteriaService {
         };
 
         let mut sets = self.sets.write().unwrap();
-        if sets.iter().any(|s| s.organization_id == organization_id && s.name == name) {
+        if sets
+            .iter()
+            .any(|s| s.organization_id == organization_id && s.name == name)
+        {
             return Err("AutoPost criteria set with this name already exists".to_string());
         }
 
@@ -120,13 +123,17 @@ impl AutoPostCriteriaService {
         }
 
         let criteria_list = self.criteria.read().unwrap();
-        
+
         for crit in criteria_list.iter() {
             if crit.is_active && active_sets.contains(&crit.criteria_set_id) {
                 // Match dimensions (None means "All")
                 let match_ledger = crit.ledger_id.is_none_or(|id| id == ledger_id);
-                let match_source = crit.journal_source_id.is_none_or(|id| id == journal_source_id);
-                let match_category = crit.journal_category_id.is_none_or(|id| id == journal_category_id);
+                let match_source = crit
+                    .journal_source_id
+                    .is_none_or(|id| id == journal_source_id);
+                let match_category = crit
+                    .journal_category_id
+                    .is_none_or(|id| id == journal_category_id);
 
                 if match_ledger && match_source && match_category {
                     // Check dates
@@ -137,7 +144,7 @@ impl AutoPostCriteriaService {
                 }
             }
         }
-        
+
         false
     }
 }
@@ -150,12 +157,8 @@ mod tests {
     fn test_create_criteria_set() {
         let service = AutoPostCriteriaService::new();
         let org_id = Uuid::new_v4();
-        
-        let result = service.create_criteria_set(
-            org_id,
-            "Daily End of Day".to_string(),
-            None,
-        );
+
+        let result = service.create_criteria_set(org_id, "Daily End of Day".to_string(), None);
 
         assert!(result.is_ok());
         let set = result.unwrap();
@@ -166,18 +169,12 @@ mod tests {
     fn test_create_duplicate_criteria_set() {
         let service = AutoPostCriteriaService::new();
         let org_id = Uuid::new_v4();
-        
-        service.create_criteria_set(
-            org_id,
-            "Daily Post".to_string(),
-            None,
-        ).unwrap();
 
-        let result = service.create_criteria_set(
-            org_id,
-            "Daily Post".to_string(),
-            None,
-        );
+        service
+            .create_criteria_set(org_id, "Daily Post".to_string(), None)
+            .unwrap();
+
+        let result = service.create_criteria_set(org_id, "Daily Post".to_string(), None);
 
         assert!(result.is_err());
     }
@@ -190,40 +187,57 @@ mod tests {
         let source_id = Uuid::new_v4();
         let category_id = Uuid::new_v4();
 
-        let set = service.create_criteria_set(org_id, "Monthly Post".to_string(), None).unwrap();
-        
+        let set = service
+            .create_criteria_set(org_id, "Monthly Post".to_string(), None)
+            .unwrap();
+
         // Add criteria matching specific ledger and source, any category, allowed within 5 days past and 2 days future
-        service.add_criteria(
-            set.id,
-            Some(ledger_id),
-            Some(source_id),
-            None,
-            5,
-            2,
-        ).unwrap();
+        service
+            .add_criteria(set.id, Some(ledger_id), Some(source_id), None, 5, 2)
+            .unwrap();
 
         let current_date = NaiveDate::from_ymd_opt(2026, 5, 31).unwrap();
-        
+
         // Match: exactly current date
         assert!(service.evaluate_journal(
-            org_id, ledger_id, source_id, category_id, current_date, current_date
+            org_id,
+            ledger_id,
+            source_id,
+            category_id,
+            current_date,
+            current_date
         ));
 
         // Match: 3 days ago (<= 5 days before)
         let past_date = NaiveDate::from_ymd_opt(2026, 5, 28).unwrap();
         assert!(service.evaluate_journal(
-            org_id, ledger_id, source_id, category_id, past_date, current_date
+            org_id,
+            ledger_id,
+            source_id,
+            category_id,
+            past_date,
+            current_date
         ));
 
         // No Match: 6 days ago (> 5 days before)
         let too_old = NaiveDate::from_ymd_opt(2026, 5, 25).unwrap();
         assert!(!service.evaluate_journal(
-            org_id, ledger_id, source_id, category_id, too_old, current_date
+            org_id,
+            ledger_id,
+            source_id,
+            category_id,
+            too_old,
+            current_date
         ));
 
         // No Match: different ledger
         assert!(!service.evaluate_journal(
-            org_id, Uuid::new_v4(), source_id, category_id, current_date, current_date
+            org_id,
+            Uuid::new_v4(),
+            source_id,
+            category_id,
+            current_date,
+            current_date
         ));
     }
 }

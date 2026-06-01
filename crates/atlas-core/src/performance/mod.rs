@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: My Client Groups > Performance
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::PerformanceEngine;
 pub use repository::{PerformanceRepository, PostgresPerformanceRepository};

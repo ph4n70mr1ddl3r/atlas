@@ -2,12 +2,11 @@
 //!
 //! `PostgreSQL` storage for payroll definitions, elements, entries, runs, and pay slips.
 
-use atlas_shared::{
-    PayrollDefinition, PayrollElement, PayrollElementEntry,
-    PayrollRun, PaySlip, PaySlipLine, PayrollDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, PaySlip, PaySlipLine, PayrollDashboard, PayrollDefinition,
+    PayrollElement, PayrollElementEntry, PayrollRun,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -31,7 +30,11 @@ pub trait PayrollRepository: Send + Sync {
     ) -> AtlasResult<PayrollDefinition>;
 
     async fn get_payroll(&self, id: Uuid) -> AtlasResult<Option<PayrollDefinition>>;
-    async fn get_payroll_by_name(&self, org_id: Uuid, name: &str) -> AtlasResult<Option<PayrollDefinition>>;
+    async fn get_payroll_by_name(
+        &self,
+        org_id: Uuid,
+        name: &str,
+    ) -> AtlasResult<Option<PayrollDefinition>>;
     async fn list_payrolls(&self, org_id: Uuid) -> AtlasResult<Vec<PayrollDefinition>>;
     async fn delete_payroll(&self, id: Uuid) -> AtlasResult<()>;
 
@@ -57,8 +60,16 @@ pub trait PayrollRepository: Send + Sync {
     ) -> AtlasResult<PayrollElement>;
 
     async fn get_element(&self, id: Uuid) -> AtlasResult<Option<PayrollElement>>;
-    async fn get_element_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PayrollElement>>;
-    async fn list_elements(&self, org_id: Uuid, element_type: Option<&str>) -> AtlasResult<Vec<PayrollElement>>;
+    async fn get_element_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PayrollElement>>;
+    async fn list_elements(
+        &self,
+        org_id: Uuid,
+        element_type: Option<&str>,
+    ) -> AtlasResult<Vec<PayrollElement>>;
     async fn delete_element(&self, id: Uuid) -> AtlasResult<()>;
 
     // Element Entries (employee assignments)
@@ -77,7 +88,10 @@ pub trait PayrollRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PayrollElementEntry>;
 
-    async fn get_entries_by_employee(&self, employee_id: Uuid) -> AtlasResult<Vec<PayrollElementEntry>>;
+    async fn get_entries_by_employee(
+        &self,
+        employee_id: Uuid,
+    ) -> AtlasResult<Vec<PayrollElementEntry>>;
     async fn delete_entry(&self, id: Uuid) -> AtlasResult<()>;
 
     // Payroll Runs
@@ -93,9 +107,18 @@ pub trait PayrollRepository: Send + Sync {
     ) -> AtlasResult<PayrollRun>;
 
     async fn get_run(&self, id: Uuid) -> AtlasResult<Option<PayrollRun>>;
-    async fn get_run_by_number(&self, org_id: Uuid, run_number: &str) -> AtlasResult<Option<PayrollRun>>;
+    async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+    ) -> AtlasResult<Option<PayrollRun>>;
     async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PayrollRun>>;
-    async fn update_run_status(&self, id: Uuid, status: &str, action_by: Option<Uuid>) -> AtlasResult<PayrollRun>;
+    async fn update_run_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        action_by: Option<Uuid>,
+    ) -> AtlasResult<PayrollRun>;
     async fn update_run_totals(
         &self,
         id: Uuid,
@@ -154,7 +177,7 @@ pub struct PostgresPayrollRepository {
 }
 
 impl PostgresPayrollRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -189,10 +212,16 @@ impl PayrollRepository for PostgresPayrollRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(name).bind(description).bind(pay_frequency)
-        .bind(currency_code).bind(salary_expense_account)
-        .bind(liability_account).bind(employer_tax_account)
-        .bind(payment_account).bind(created_by)
+        .bind(org_id)
+        .bind(name)
+        .bind(description)
+        .bind(pay_frequency)
+        .bind(currency_code)
+        .bind(salary_expense_account)
+        .bind(liability_account)
+        .bind(employer_tax_account)
+        .bind(payment_account)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -217,13 +246,11 @@ impl PayrollRepository for PostgresPayrollRepository {
     }
 
     async fn get_payroll(&self, id: Uuid) -> AtlasResult<Option<PayrollDefinition>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.payroll_definitions WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.payroll_definitions WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| PayrollDefinition {
             id: r.get("id"),
             organization_id: r.get("organization_id"),
@@ -243,7 +270,11 @@ impl PayrollRepository for PostgresPayrollRepository {
         }))
     }
 
-    async fn get_payroll_by_name(&self, org_id: Uuid, name: &str) -> AtlasResult<Option<PayrollDefinition>> {
+    async fn get_payroll_by_name(
+        &self,
+        org_id: Uuid,
+        name: &str,
+    ) -> AtlasResult<Option<PayrollDefinition>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.payroll_definitions WHERE organization_id = $1 AND name = $2 AND is_active = true"
         )
@@ -278,23 +309,26 @@ impl PayrollRepository for PostgresPayrollRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| PayrollDefinition {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            name: r.get("name"),
-            description: r.get("description"),
-            pay_frequency: r.get("pay_frequency"),
-            currency_code: r.get("currency_code"),
-            salary_expense_account: r.get("salary_expense_account"),
-            liability_account: r.get("liability_account"),
-            employer_tax_account: r.get("employer_tax_account"),
-            payment_account: r.get("payment_account"),
-            is_active: r.get("is_active"),
-            created_by: r.get("created_by"),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-            metadata: r.get("metadata"),
-        }).collect())
+        Ok(rows
+            .iter()
+            .map(|r| PayrollDefinition {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                name: r.get("name"),
+                description: r.get("description"),
+                pay_frequency: r.get("pay_frequency"),
+                currency_code: r.get("currency_code"),
+                salary_expense_account: r.get("salary_expense_account"),
+                liability_account: r.get("liability_account"),
+                employer_tax_account: r.get("employer_tax_account"),
+                payment_account: r.get("payment_account"),
+                is_active: r.get("is_active"),
+                created_by: r.get("created_by"),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+                metadata: r.get("metadata"),
+            })
+            .collect())
     }
 
     async fn delete_payroll(&self, id: Uuid) -> AtlasResult<()> {
@@ -344,12 +378,22 @@ impl PayrollRepository for PostgresPayrollRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(element_type).bind(category).bind(calculation_method)
-        .bind(default_value).bind(is_recurring)
-        .bind(has_employer_contribution).bind(employer_contribution_rate)
-        .bind(gl_account_code).bind(is_pretax)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(element_type)
+        .bind(category)
+        .bind(calculation_method)
+        .bind(default_value)
+        .bind(is_recurring)
+        .bind(has_employer_contribution)
+        .bind(employer_contribution_rate)
+        .bind(gl_account_code)
+        .bind(is_pretax)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -363,11 +407,17 @@ impl PayrollRepository for PostgresPayrollRepository {
             element_type: row.get("element_type"),
             category: row.get("category"),
             calculation_method: row.get("calculation_method"),
-            default_value: row.try_get("default_value").ok().flatten()
+            default_value: row
+                .try_get("default_value")
+                .ok()
+                .flatten()
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
             is_recurring: row.get("is_recurring"),
             has_employer_contribution: row.get("has_employer_contribution"),
-            employer_contribution_rate: row.try_get("employer_contribution_rate").ok().flatten()
+            employer_contribution_rate: row
+                .try_get("employer_contribution_rate")
+                .ok()
+                .flatten()
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
             gl_account_code: row.get("gl_account_code"),
             is_pretax: row.get("is_pretax"),
@@ -382,13 +432,11 @@ impl PayrollRepository for PostgresPayrollRepository {
     }
 
     async fn get_element(&self, id: Uuid) -> AtlasResult<Option<PayrollElement>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.payroll_elements WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.payroll_elements WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| PayrollElement {
             id: r.get("id"),
             organization_id: r.get("organization_id"),
@@ -398,11 +446,17 @@ impl PayrollRepository for PostgresPayrollRepository {
             element_type: r.get("element_type"),
             category: r.get("category"),
             calculation_method: r.get("calculation_method"),
-            default_value: r.try_get("default_value").ok().flatten()
+            default_value: r
+                .try_get("default_value")
+                .ok()
+                .flatten()
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
             is_recurring: r.get("is_recurring"),
             has_employer_contribution: r.get("has_employer_contribution"),
-            employer_contribution_rate: r.try_get("employer_contribution_rate").ok().flatten()
+            employer_contribution_rate: r
+                .try_get("employer_contribution_rate")
+                .ok()
+                .flatten()
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
             gl_account_code: r.get("gl_account_code"),
             is_pretax: r.get("is_pretax"),
@@ -416,7 +470,11 @@ impl PayrollRepository for PostgresPayrollRepository {
         }))
     }
 
-    async fn get_element_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<PayrollElement>> {
+    async fn get_element_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<PayrollElement>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.payroll_elements WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -433,11 +491,17 @@ impl PayrollRepository for PostgresPayrollRepository {
             element_type: r.get("element_type"),
             category: r.get("category"),
             calculation_method: r.get("calculation_method"),
-            default_value: r.try_get("default_value").ok().flatten()
+            default_value: r
+                .try_get("default_value")
+                .ok()
+                .flatten()
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
             is_recurring: r.get("is_recurring"),
             has_employer_contribution: r.get("has_employer_contribution"),
-            employer_contribution_rate: r.try_get("employer_contribution_rate").ok().flatten()
+            employer_contribution_rate: r
+                .try_get("employer_contribution_rate")
+                .ok()
+                .flatten()
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
             gl_account_code: r.get("gl_account_code"),
             is_pretax: r.get("is_pretax"),
@@ -451,7 +515,11 @@ impl PayrollRepository for PostgresPayrollRepository {
         }))
     }
 
-    async fn list_elements(&self, org_id: Uuid, element_type: Option<&str>) -> AtlasResult<Vec<PayrollElement>> {
+    async fn list_elements(
+        &self,
+        org_id: Uuid,
+        element_type: Option<&str>,
+    ) -> AtlasResult<Vec<PayrollElement>> {
         let rows = match element_type {
             Some(et) => sqlx::query(
                 "SELECT * FROM _atlas.payroll_elements WHERE organization_id = $1 AND element_type = $2 AND is_active = true ORDER BY code"
@@ -465,31 +533,40 @@ impl PayrollRepository for PostgresPayrollRepository {
             .fetch_all(&self.pool).await,
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| PayrollElement {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            code: r.get("code"),
-            name: r.get("name"),
-            description: r.get("description"),
-            element_type: r.get("element_type"),
-            category: r.get("category"),
-            calculation_method: r.get("calculation_method"),
-            default_value: r.try_get("default_value").ok().flatten()
-                .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
-            is_recurring: r.get("is_recurring"),
-            has_employer_contribution: r.get("has_employer_contribution"),
-            employer_contribution_rate: r.try_get("employer_contribution_rate").ok().flatten()
-                .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
-            gl_account_code: r.get("gl_account_code"),
-            is_pretax: r.get("is_pretax"),
-            is_active: r.get("is_active"),
-            effective_from: r.get("effective_from"),
-            effective_to: r.get("effective_to"),
-            created_by: r.get("created_by"),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-            metadata: r.get("metadata"),
-        }).collect())
+        Ok(rows
+            .iter()
+            .map(|r| PayrollElement {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                code: r.get("code"),
+                name: r.get("name"),
+                description: r.get("description"),
+                element_type: r.get("element_type"),
+                category: r.get("category"),
+                calculation_method: r.get("calculation_method"),
+                default_value: r
+                    .try_get("default_value")
+                    .ok()
+                    .flatten()
+                    .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
+                is_recurring: r.get("is_recurring"),
+                has_employer_contribution: r.get("has_employer_contribution"),
+                employer_contribution_rate: r
+                    .try_get("employer_contribution_rate")
+                    .ok()
+                    .flatten()
+                    .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
+                gl_account_code: r.get("gl_account_code"),
+                is_pretax: r.get("is_pretax"),
+                is_active: r.get("is_active"),
+                effective_from: r.get("effective_from"),
+                effective_to: r.get("effective_to"),
+                created_by: r.get("created_by"),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+                metadata: r.get("metadata"),
+            })
+            .collect())
     }
 
     async fn delete_element(&self, id: Uuid) -> AtlasResult<()> {
@@ -531,10 +608,17 @@ impl PayrollRepository for PostgresPayrollRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(employee_id).bind(element_id)
-        .bind(element_code).bind(element_name).bind(element_type)
-        .bind(entry_value).bind(remaining_periods)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(employee_id)
+        .bind(element_id)
+        .bind(element_code)
+        .bind(element_name)
+        .bind(element_type)
+        .bind(entry_value)
+        .bind(remaining_periods)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -547,7 +631,9 @@ impl PayrollRepository for PostgresPayrollRepository {
             element_code: row.get("element_code"),
             element_name: row.get("element_name"),
             element_type: row.get("element_type"),
-            entry_value: row.try_get("entry_value").ok()
+            entry_value: row
+                .try_get("entry_value")
+                .ok()
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string())
                 .unwrap_or_default(),
             remaining_periods: row.get("remaining_periods"),
@@ -561,7 +647,10 @@ impl PayrollRepository for PostgresPayrollRepository {
         })
     }
 
-    async fn get_entries_by_employee(&self, employee_id: Uuid) -> AtlasResult<Vec<PayrollElementEntry>> {
+    async fn get_entries_by_employee(
+        &self,
+        employee_id: Uuid,
+    ) -> AtlasResult<Vec<PayrollElementEntry>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.payroll_element_entries WHERE employee_id = $1 AND is_active = true ORDER BY element_type, element_code"
         )
@@ -569,26 +658,31 @@ impl PayrollRepository for PostgresPayrollRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| PayrollElementEntry {
-            id: r.get("id"),
-            organization_id: r.get("organization_id"),
-            employee_id: r.get("employee_id"),
-            element_id: r.get("element_id"),
-            element_code: r.get("element_code"),
-            element_name: r.get("element_name"),
-            element_type: r.get("element_type"),
-            entry_value: r.try_get("entry_value").ok()
-                .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string())
-                .unwrap_or_default(),
-            remaining_periods: r.get("remaining_periods"),
-            is_active: r.get("is_active"),
-            effective_from: r.get("effective_from"),
-            effective_to: r.get("effective_to"),
-            created_by: r.get("created_by"),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-            metadata: r.get("metadata"),
-        }).collect())
+        Ok(rows
+            .iter()
+            .map(|r| PayrollElementEntry {
+                id: r.get("id"),
+                organization_id: r.get("organization_id"),
+                employee_id: r.get("employee_id"),
+                element_id: r.get("element_id"),
+                element_code: r.get("element_code"),
+                element_name: r.get("element_name"),
+                element_type: r.get("element_type"),
+                entry_value: r
+                    .try_get("entry_value")
+                    .ok()
+                    .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string())
+                    .unwrap_or_default(),
+                remaining_periods: r.get("remaining_periods"),
+                is_active: r.get("is_active"),
+                effective_from: r.get("effective_from"),
+                effective_to: r.get("effective_to"),
+                created_by: r.get("created_by"),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+                metadata: r.get("metadata"),
+            })
+            .collect())
     }
 
     async fn delete_entry(&self, id: Uuid) -> AtlasResult<()> {
@@ -627,8 +721,12 @@ impl PayrollRepository for PostgresPayrollRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(payroll_id).bind(run_number)
-        .bind(period_start).bind(period_end).bind(pay_date)
+        .bind(org_id)
+        .bind(payroll_id)
+        .bind(run_number)
+        .bind(period_start)
+        .bind(period_end)
+        .bind(pay_date)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -638,21 +736,24 @@ impl PayrollRepository for PostgresPayrollRepository {
     }
 
     async fn get_run(&self, id: Uuid) -> AtlasResult<Option<PayrollRun>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.payroll_runs WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.payroll_runs WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_run(&r)))
     }
 
-    async fn get_run_by_number(&self, org_id: Uuid, run_number: &str) -> AtlasResult<Option<PayrollRun>> {
+    async fn get_run_by_number(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+    ) -> AtlasResult<Option<PayrollRun>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.payroll_runs WHERE organization_id = $1 AND run_number = $2"
+            "SELECT * FROM _atlas.payroll_runs WHERE organization_id = $1 AND run_number = $2",
         )
-        .bind(org_id).bind(run_number)
+        .bind(org_id)
+        .bind(run_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -676,7 +777,12 @@ impl PayrollRepository for PostgresPayrollRepository {
         Ok(rows.iter().map(row_to_run).collect())
     }
 
-    async fn update_run_status(&self, id: Uuid, status: &str, action_by: Option<Uuid>) -> AtlasResult<PayrollRun> {
+    async fn update_run_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        action_by: Option<Uuid>,
+    ) -> AtlasResult<PayrollRun> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.payroll_runs
@@ -690,7 +796,9 @@ impl PayrollRepository for PostgresPayrollRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(action_by)
+        .bind(id)
+        .bind(status)
+        .bind(action_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -715,8 +823,12 @@ impl PayrollRepository for PostgresPayrollRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(total_gross).bind(total_deductions)
-        .bind(total_net).bind(total_employer_cost).bind(employee_count)
+        .bind(id)
+        .bind(total_gross)
+        .bind(total_deductions)
+        .bind(total_net)
+        .bind(total_employer_cost)
+        .bind(employee_count)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -752,9 +864,17 @@ impl PayrollRepository for PostgresPayrollRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(payroll_run_id).bind(employee_id).bind(employee_name)
-        .bind(gross_earnings).bind(total_deductions).bind(net_pay).bind(employer_cost)
-        .bind(currency_code).bind(payment_method).bind(bank_account_last4)
+        .bind(org_id)
+        .bind(payroll_run_id)
+        .bind(employee_id)
+        .bind(employee_name)
+        .bind(gross_earnings)
+        .bind(total_deductions)
+        .bind(net_pay)
+        .bind(employer_cost)
+        .bind(currency_code)
+        .bind(payment_method)
+        .bind(bank_account_last4)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -780,19 +900,17 @@ impl PayrollRepository for PostgresPayrollRepository {
     }
 
     async fn get_pay_slip(&self, id: Uuid) -> AtlasResult<Option<PaySlip>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.pay_slips WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.pay_slips WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.as_ref().map(row_to_slip))
     }
 
     async fn list_pay_slips_by_run(&self, payroll_run_id: Uuid) -> AtlasResult<Vec<PaySlip>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.pay_slips WHERE payroll_run_id = $1 ORDER BY employee_name"
+            "SELECT * FROM _atlas.pay_slips WHERE payroll_run_id = $1 ORDER BY employee_name",
         )
         .bind(payroll_run_id)
         .fetch_all(&self.pool)
@@ -803,7 +921,7 @@ impl PayrollRepository for PostgresPayrollRepository {
 
     async fn list_pay_slips_by_employee(&self, employee_id: Uuid) -> AtlasResult<Vec<PaySlip>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.pay_slips WHERE employee_id = $1 ORDER BY created_at DESC"
+            "SELECT * FROM _atlas.pay_slips WHERE employee_id = $1 ORDER BY created_at DESC",
         )
         .bind(employee_id)
         .fetch_all(&self.pool)
@@ -839,10 +957,17 @@ impl PayrollRepository for PostgresPayrollRepository {
             RETURNING *
             ",
         )
-        .bind(pay_slip_id).bind(element_code).bind(element_name)
-        .bind(element_type).bind(category)
-        .bind(hours_or_units).bind(rate).bind(amount)
-        .bind(is_pretax).bind(is_employer).bind(gl_account_code)
+        .bind(pay_slip_id)
+        .bind(element_code)
+        .bind(element_name)
+        .bind(element_type)
+        .bind(category)
+        .bind(hours_or_units)
+        .bind(rate)
+        .bind(amount)
+        .bind(is_pretax)
+        .bind(is_employer)
+        .bind(gl_account_code)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -854,9 +979,15 @@ impl PayrollRepository for PostgresPayrollRepository {
             element_name: row.get("element_name"),
             element_type: row.get("element_type"),
             category: row.get("category"),
-            hours_or_units: row.try_get("hours_or_units").ok().flatten()
+            hours_or_units: row
+                .try_get("hours_or_units")
+                .ok()
+                .flatten()
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
-            rate: row.try_get("rate").ok().flatten()
+            rate: row
+                .try_get("rate")
+                .ok()
+                .flatten()
                 .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
             amount: numeric_to_string(&row, "amount"),
             is_pretax: row.get("is_pretax"),
@@ -868,29 +999,38 @@ impl PayrollRepository for PostgresPayrollRepository {
 
     async fn list_pay_slip_lines(&self, pay_slip_id: Uuid) -> AtlasResult<Vec<PaySlipLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.pay_slip_lines WHERE pay_slip_id = $1 ORDER BY element_type, id"
+            "SELECT * FROM _atlas.pay_slip_lines WHERE pay_slip_id = $1 ORDER BY element_type, id",
         )
         .bind(pay_slip_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| PaySlipLine {
-            id: r.get("id"),
-            pay_slip_id: r.get("pay_slip_id"),
-            element_code: r.get("element_code"),
-            element_name: r.get("element_name"),
-            element_type: r.get("element_type"),
-            category: r.get("category"),
-            hours_or_units: r.try_get("hours_or_units").ok().flatten()
-                .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
-            rate: r.try_get("rate").ok().flatten()
-                .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
-            amount: numeric_to_string(r, "amount"),
-            is_pretax: r.get("is_pretax"),
-            is_employer: r.get("is_employer"),
-            gl_account_code: r.get("gl_account_code"),
-            created_at: r.get("created_at"),
-        }).collect())
+        Ok(rows
+            .iter()
+            .map(|r| PaySlipLine {
+                id: r.get("id"),
+                pay_slip_id: r.get("pay_slip_id"),
+                element_code: r.get("element_code"),
+                element_name: r.get("element_name"),
+                element_type: r.get("element_type"),
+                category: r.get("category"),
+                hours_or_units: r
+                    .try_get("hours_or_units")
+                    .ok()
+                    .flatten()
+                    .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
+                rate: r
+                    .try_get("rate")
+                    .ok()
+                    .flatten()
+                    .map(|v: serde_json::Value| v.to_string().trim_matches('"').to_string()),
+                amount: numeric_to_string(r, "amount"),
+                is_pretax: r.get("is_pretax"),
+                is_employer: r.get("is_employer"),
+                gl_account_code: r.get("gl_account_code"),
+                created_at: r.get("created_at"),
+            })
+            .collect())
     }
 
     // ========================================================================
@@ -931,8 +1071,10 @@ impl PayrollRepository for PostgresPayrollRepository {
 }
 
 fn numeric_to_string(row: &sqlx::postgres::PgRow, field: &str) -> String {
-    row.try_get::<serde_json::Value, _>(field)
-        .ok().map_or_else(|| "0".to_string(), |v| v.to_string().trim_matches('"').to_string())
+    row.try_get::<serde_json::Value, _>(field).ok().map_or_else(
+        || "0".to_string(),
+        |v| v.to_string().trim_matches('"').to_string(),
+    )
 }
 
 fn row_to_run(row: &sqlx::postgres::PgRow) -> PayrollRun {

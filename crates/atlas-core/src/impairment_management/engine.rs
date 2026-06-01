@@ -10,12 +10,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Fixed Assets > Impairment Management
 
-use atlas_shared::{
-    ImpairmentIndicator, ImpairmentTest, ImpairmentCashFlow, ImpairmentTestAsset,
-    ImpairmentDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::ImpairmentManagementRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ImpairmentCashFlow, ImpairmentDashboardSummary, ImpairmentIndicator,
+    ImpairmentTest, ImpairmentTestAsset,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -38,15 +37,11 @@ const VALID_TEST_METHODS: &[&str] = &["value_in_use", "fair_value_less_costs"];
 
 /// Valid test statuses
 #[allow(dead_code)]
-const VALID_TEST_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "completed", "reversed",
-];
+const VALID_TEST_STATUSES: &[&str] = &["draft", "submitted", "approved", "completed", "reversed"];
 
 /// Valid asset statuses
 #[allow(dead_code)]
-const VALID_ASSET_STATUSES: &[&str] = &[
-    "pending", "impaired", "not_impaired", "reversed",
-];
+const VALID_ASSET_STATUSES: &[&str] = &["pending", "impaired", "not_impaired", "reversed"];
 
 /// Impairment Management Engine
 pub struct ImpairmentManagementEngine {
@@ -80,26 +75,43 @@ impl ImpairmentManagementEngine {
         }
         if !VALID_INDICATOR_TYPES.contains(&indicator_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid indicator_type '{}'. Must be one of: {}", indicator_type, VALID_INDICATOR_TYPES.join(", ")
+                "Invalid indicator_type '{}'. Must be one of: {}",
+                indicator_type,
+                VALID_INDICATOR_TYPES.join(", ")
             )));
         }
         if !VALID_SEVERITIES.contains(&severity) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid severity '{}'. Must be one of: {}", severity, VALID_SEVERITIES.join(", ")
+                "Invalid severity '{}'. Must be one of: {}",
+                severity,
+                VALID_SEVERITIES.join(", ")
             )));
         }
 
-        if self.repository.get_indicator_by_code(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(
-                format!("Indicator code '{code}' already exists")
-            ));
+        if self
+            .repository
+            .get_indicator_by_code(org_id, code)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Indicator code '{code}' already exists"
+            )));
         }
 
         info!("Creating impairment indicator '{}'", code);
 
-        self.repository.create_indicator(
-            org_id, code, name, description, indicator_type, severity, created_by,
-        ).await
+        self.repository
+            .create_indicator(
+                org_id,
+                code,
+                name,
+                description,
+                indicator_type,
+                severity,
+                created_by,
+            )
+            .await
     }
 
     /// Get indicator by ID
@@ -108,7 +120,11 @@ impl ImpairmentManagementEngine {
     }
 
     /// List indicators
-    pub async fn list_indicators(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<ImpairmentIndicator>> {
+    pub async fn list_indicators(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<ImpairmentIndicator>> {
         self.repository.list_indicators(org_id, active_only).await
     }
 
@@ -143,18 +159,22 @@ impl ImpairmentManagementEngine {
         }
         if !VALID_TEST_TYPES.contains(&test_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid test_type '{}'. Must be one of: {}", test_type, VALID_TEST_TYPES.join(", ")
+                "Invalid test_type '{}'. Must be one of: {}",
+                test_type,
+                VALID_TEST_TYPES.join(", ")
             )));
         }
         if !VALID_TEST_METHODS.contains(&test_method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid test_method '{}'. Must be one of: {}", test_method, VALID_TEST_METHODS.join(", ")
+                "Invalid test_method '{}'. Must be one of: {}",
+                test_method,
+                VALID_TEST_METHODS.join(", ")
             )));
         }
 
-        let carrying: f64 = carrying_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Carrying amount must be a valid number".to_string(),
-        ))?;
+        let carrying: f64 = carrying_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Carrying amount must be a valid number".to_string())
+        })?;
         if carrying < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Carrying amount must be non-negative".to_string(),
@@ -165,14 +185,30 @@ impl ImpairmentManagementEngine {
 
         info!("Creating impairment test {} for asset/cgu", test_number);
 
-        self.repository.create_test(
-            org_id, &test_number, name, description, test_type, test_method,
-            test_date, reporting_period, indicator_id, carrying_amount,
-            "0", "0", // recoverable_amount, impairment_loss - will be calculated
-            impairment_account, reversal_account, asset_id, cgu_id,
-            discount_rate, growth_rate, None, // terminal_value
-            created_by,
-        ).await
+        self.repository
+            .create_test(
+                org_id,
+                &test_number,
+                name,
+                description,
+                test_type,
+                test_method,
+                test_date,
+                reporting_period,
+                indicator_id,
+                carrying_amount,
+                "0",
+                "0", // recoverable_amount, impairment_loss - will be calculated
+                impairment_account,
+                reversal_account,
+                asset_id,
+                cgu_id,
+                discount_rate,
+                growth_rate,
+                None, // terminal_value
+                created_by,
+            )
+            .await
     }
 
     /// Get test by ID
@@ -181,11 +217,17 @@ impl ImpairmentManagementEngine {
     }
 
     /// List tests
-    pub async fn list_tests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ImpairmentTest>> {
+    pub async fn list_tests(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ImpairmentTest>> {
         if let Some(s) = status {
             if !VALID_TEST_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_TEST_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_TEST_STATUSES.join(", ")
                 )));
             }
         }
@@ -208,13 +250,17 @@ impl ImpairmentManagementEngine {
         cash_outflow: &str,
         discount_factor: Option<&str>,
     ) -> AtlasResult<ImpairmentCashFlow> {
-        let test = self.repository.get_test(test_id).await?
+        let test = self
+            .repository
+            .get_test(test_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot add cash flows to test in '{}' status. Must be 'draft'.", test.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot add cash flows to test in '{}' status. Must be 'draft'.",
+                test.status
+            )));
         }
 
         if test.test_method != "value_in_use" {
@@ -223,30 +269,45 @@ impl ImpairmentManagementEngine {
             ));
         }
 
-        let inflow: f64 = cash_inflow.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Cash inflow must be a valid number".to_string(),
-        ))?;
-        let outflow: f64 = cash_outflow.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Cash outflow must be a valid number".to_string(),
-        ))?;
+        let inflow: f64 = cash_inflow.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Cash inflow must be a valid number".to_string())
+        })?;
+        let outflow: f64 = cash_outflow.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Cash outflow must be a valid number".to_string())
+        })?;
         let factor: f64 = discount_factor
-            .map(|f| f.parse::<f64>().map_err(|_| AtlasError::ValidationFailed(
-                "Discount factor must be a valid number".to_string(),
-            )))
+            .map(|f| {
+                f.parse::<f64>().map_err(|_| {
+                    AtlasError::ValidationFailed(
+                        "Discount factor must be a valid number".to_string(),
+                    )
+                })
+            })
             .transpose()?
             .unwrap_or(1.0);
 
         let net = inflow - outflow;
         let pv = net * factor;
 
-        info!("Adding cash flow projection for test {} year {} (net: {:.2}, PV: {:.2})",
-            test.test_number, period_year, net, pv);
+        info!(
+            "Adding cash flow projection for test {} year {} (net: {:.2}, PV: {:.2})",
+            test.test_number, period_year, net, pv
+        );
 
-        self.repository.create_cash_flow(
-            org_id, test_id, period_year, period_number, description,
-            cash_inflow, cash_outflow, &format!("{net:.2}"),
-            &format!("{factor:.6}"), &format!("{pv:.2}"),
-        ).await
+        self.repository
+            .create_cash_flow(
+                org_id,
+                test_id,
+                period_year,
+                period_number,
+                description,
+                cash_inflow,
+                cash_outflow,
+                &format!("{net:.2}"),
+                &format!("{factor:.6}"),
+                &format!("{pv:.2}"),
+            )
+            .await
     }
 
     /// List cash flows for a test
@@ -269,30 +330,48 @@ impl ImpairmentManagementEngine {
         asset_category: Option<&str>,
         carrying_amount: &str,
     ) -> AtlasResult<ImpairmentTestAsset> {
-        let test = self.repository.get_test(test_id).await?
+        let test = self
+            .repository
+            .get_test(test_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot add assets to test in '{}' status. Must be 'draft'.", test.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot add assets to test in '{}' status. Must be 'draft'.",
+                test.status
+            )));
         }
 
-        let carrying: f64 = carrying_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Carrying amount must be a valid number".to_string(),
-        ))?;
+        let carrying: f64 = carrying_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Carrying amount must be a valid number".to_string())
+        })?;
         if carrying < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Carrying amount must be non-negative".to_string(),
             ));
         }
 
-        info!("Adding asset {} to impairment test {}", asset_id, test.test_number);
+        info!(
+            "Adding asset {} to impairment test {}",
+            asset_id, test.test_number
+        );
 
-        self.repository.create_test_asset(
-            org_id, test_id, asset_id, asset_number, asset_name, asset_category,
-            carrying_amount, "0", "0", "pending", None,
-        ).await
+        self.repository
+            .create_test_asset(
+                org_id,
+                test_id,
+                asset_id,
+                asset_number,
+                asset_name,
+                asset_category,
+                carrying_amount,
+                "0",
+                "0",
+                "pending",
+                None,
+            )
+            .await
     }
 
     /// List test assets
@@ -305,17 +384,18 @@ impl ImpairmentManagementEngine {
     // ========================================================================
 
     /// Calculate value in use from cash flows (sum of present values)
-    #[must_use] 
+    #[must_use]
     pub fn calculate_value_in_use(cash_flows: &[(f64, f64, f64)]) -> f64 {
         // Each tuple is (inflow, outflow, discount_factor)
-        cash_flows.iter()
+        cash_flows
+            .iter()
             .map(|(inflow, outflow, factor)| (inflow - outflow) * factor)
             .sum()
     }
 
     /// Calculate impairment loss
     /// Returns (`recoverable_amount`, `impairment_loss`)
-    #[must_use] 
+    #[must_use]
     pub fn calculate_impairment(carrying_amount: f64, recoverable_amount: f64) -> (f64, f64) {
         if carrying_amount > recoverable_amount {
             (recoverable_amount, carrying_amount - recoverable_amount)
@@ -326,7 +406,7 @@ impl ImpairmentManagementEngine {
 
     /// Calculate discount factor for a period
     /// factor = 1 / (1 + rate)^period
-    #[must_use] 
+    #[must_use]
     pub fn calculate_discount_factor(discount_rate: f64, period: i32) -> f64 {
         if discount_rate <= -1.0 {
             return 0.0; // invalid rate
@@ -336,7 +416,7 @@ impl ImpairmentManagementEngine {
 
     /// Calculate terminal value (for value-in-use beyond projection period)
     /// TV = `terminal_cash_flow` / (`discount_rate` - `growth_rate`)
-    #[must_use] 
+    #[must_use]
     pub fn calculate_terminal_value(
         terminal_cash_flow: f64,
         discount_rate: f64,
@@ -355,13 +435,17 @@ impl ImpairmentManagementEngine {
 
     /// Execute impairment test calculations
     pub async fn execute_test(&self, test_id: Uuid) -> AtlasResult<ImpairmentTest> {
-        let test = self.repository.get_test(test_id).await?
+        let test = self
+            .repository
+            .get_test(test_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot execute test in '{}' status. Must be 'draft'.", test.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot execute test in '{}' status. Must be 'draft'.",
+                test.status
+            )));
         }
 
         let mut recoverable_amount = 0.0;
@@ -369,7 +453,8 @@ impl ImpairmentManagementEngine {
         // For value-in-use: sum PV of cash flows
         if test.test_method == "value_in_use" {
             let cash_flows = self.repository.list_cash_flows(test_id).await?;
-            let cf_data: Vec<(f64, f64, f64)> = cash_flows.iter()
+            let cf_data: Vec<(f64, f64, f64)> = cash_flows
+                .iter()
                 .map(|cf| {
                     let inflow: f64 = cf.cash_inflow.parse().unwrap_or(0.0);
                     let outflow: f64 = cf.cash_outflow.parse().unwrap_or(0.0);
@@ -387,79 +472,121 @@ impl ImpairmentManagementEngine {
         }
 
         // Update recoverable amount
-        self.repository.update_test_recoverable(
-            test_id,
-            &format!("{recoverable_amount:.2}"),
-        ).await?;
+        self.repository
+            .update_test_recoverable(test_id, &format!("{recoverable_amount:.2}"))
+            .await?;
 
         // Update test assets
         let assets = self.repository.list_test_assets(test_id).await?;
         for asset in &assets {
             let carrying: f64 = asset.carrying_amount.parse().unwrap_or(0.0);
             let (_, loss) = Self::calculate_impairment(carrying, recoverable_amount);
-            let status = if loss > 0.0 { "impaired" } else { "not_impaired" };
-            self.repository.update_test_asset(asset.id, &format!("{recoverable_amount:.2}"), &format!("{loss:.2}"), status).await?;
+            let status = if loss > 0.0 {
+                "impaired"
+            } else {
+                "not_impaired"
+            };
+            self.repository
+                .update_test_asset(
+                    asset.id,
+                    &format!("{recoverable_amount:.2}"),
+                    &format!("{loss:.2}"),
+                    status,
+                )
+                .await?;
         }
 
         // Calculate total impairment
-        let total_impairment: f64 = assets.iter()
+        let total_impairment: f64 = assets
+            .iter()
             .map(|a| a.carrying_amount.parse::<f64>().unwrap_or(0.0))
-            .sum::<f64>() - (recoverable_amount * assets.len() as f64).max(0.0);
+            .sum::<f64>()
+            - (recoverable_amount * assets.len() as f64).max(0.0);
         let total_impairment = total_impairment.max(0.0);
 
-        info!("Executing impairment test {}: recoverable={:.2}, loss={:.2}",
-            test.test_number, recoverable_amount, total_impairment);
+        info!(
+            "Executing impairment test {}: recoverable={:.2}, loss={:.2}",
+            test.test_number, recoverable_amount, total_impairment
+        );
 
-        self.repository.update_test_results(
-            test_id,
-            &format!("{recoverable_amount:.2}"),
-            &format!("{total_impairment:.2}"),
-        ).await
+        self.repository
+            .update_test_results(
+                test_id,
+                &format!("{recoverable_amount:.2}"),
+                &format!("{total_impairment:.2}"),
+            )
+            .await
     }
 
     /// Submit test for approval
-    pub async fn submit_test(&self, test_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<ImpairmentTest> {
-        let test = self.repository.get_test(test_id).await?
+    pub async fn submit_test(
+        &self,
+        test_id: Uuid,
+        submitted_by: Option<Uuid>,
+    ) -> AtlasResult<ImpairmentTest> {
+        let test = self
+            .repository
+            .get_test(test_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit test in '{}' status. Must be 'draft'.", test.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit test in '{}' status. Must be 'draft'.",
+                test.status
+            )));
         }
 
         info!("Submitting impairment test {}", test.test_number);
-        self.repository.update_test_status(test_id, "submitted", submitted_by, None).await
+        self.repository
+            .update_test_status(test_id, "submitted", submitted_by, None)
+            .await
     }
 
     /// Approve test
-    pub async fn approve_test(&self, test_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<ImpairmentTest> {
-        let test = self.repository.get_test(test_id).await?
+    pub async fn approve_test(
+        &self,
+        test_id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<ImpairmentTest> {
+        let test = self
+            .repository
+            .get_test(test_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve test in '{}' status. Must be 'submitted'.", test.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve test in '{}' status. Must be 'submitted'.",
+                test.status
+            )));
         }
 
         info!("Approving impairment test {}", test.test_number);
-        self.repository.update_test_status(test_id, "approved", None, approved_by).await
+        self.repository
+            .update_test_status(test_id, "approved", None, approved_by)
+            .await
     }
 
     /// Complete test
     pub async fn complete_test(&self, test_id: Uuid) -> AtlasResult<ImpairmentTest> {
-        let test = self.repository.get_test(test_id).await?
+        let test = self
+            .repository
+            .get_test(test_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Test {test_id} not found")))?;
 
         if test.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot complete test in '{}' status. Must be 'approved'.", test.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot complete test in '{}' status. Must be 'approved'.",
+                test.status
+            )));
         }
 
         info!("Completing impairment test {}", test.test_number);
-        self.repository.update_test_status(test_id, "completed", None, None).await
+        self.repository
+            .update_test_status(test_id, "completed", None, None)
+            .await
     }
 
     /// Get dashboard summary
@@ -526,9 +653,9 @@ mod tests {
     fn test_calculate_value_in_use() {
         // 3 years of cash flows with discount factors
         let cash_flows = vec![
-            (100000.0, 30000.0, 0.9091),  // year 1: net 70000, PV 63637
-            (110000.0, 35000.0, 0.8264),  // year 2: net 75000, PV 61980
-            (120000.0, 40000.0, 0.7513),  // year 3: net 80000, PV 60104
+            (100000.0, 30000.0, 0.9091), // year 1: net 70000, PV 63637
+            (110000.0, 35000.0, 0.8264), // year 2: net 75000, PV 61980
+            (120000.0, 40000.0, 0.7513), // year 3: net 80000, PV 60104
         ];
         let viu = ImpairmentManagementEngine::calculate_value_in_use(&cash_flows);
         assert!(viu > 0.0);
@@ -539,7 +666,8 @@ mod tests {
     #[test]
     fn test_calculate_impairment_with_loss() {
         // Carrying > recoverable -> impairment
-        let (recoverable, loss) = ImpairmentManagementEngine::calculate_impairment(100000.0, 75000.0);
+        let (recoverable, loss) =
+            ImpairmentManagementEngine::calculate_impairment(100000.0, 75000.0);
         assert!((recoverable - 75000.0).abs() < 0.01);
         assert!((loss - 25000.0).abs() < 0.01);
     }
@@ -547,7 +675,8 @@ mod tests {
     #[test]
     fn test_calculate_impairment_no_loss() {
         // Carrying <= recoverable -> no impairment
-        let (recoverable, loss) = ImpairmentManagementEngine::calculate_impairment(50000.0, 75000.0);
+        let (recoverable, loss) =
+            ImpairmentManagementEngine::calculate_impairment(50000.0, 75000.0);
         assert!((recoverable - 75000.0).abs() < 0.01);
         assert!((loss - 0.0).abs() < 0.01);
     }

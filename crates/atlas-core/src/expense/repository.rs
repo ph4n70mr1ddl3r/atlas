@@ -2,11 +2,10 @@
 //!
 //! `PostgreSQL` storage for expense categories, policies, reports, and lines.
 
-use atlas_shared::{
-    ExpenseCategory, ExpensePolicy, ExpenseReport, ExpenseLine,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, ExpenseCategory, ExpenseLine, ExpensePolicy, ExpenseReport,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -55,7 +54,11 @@ pub trait ExpenseRepository: Send + Sync {
     ) -> AtlasResult<ExpensePolicy>;
 
     async fn get_policy(&self, id: Uuid) -> AtlasResult<Option<ExpensePolicy>>;
-    async fn list_policies(&self, org_id: Uuid, category_id: Option<Uuid>) -> AtlasResult<Vec<ExpensePolicy>>;
+    async fn list_policies(
+        &self,
+        org_id: Uuid,
+        category_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ExpensePolicy>>;
     async fn delete_policy(&self, id: Uuid) -> AtlasResult<()>;
 
     // Expense Reports
@@ -78,8 +81,17 @@ pub trait ExpenseRepository: Send + Sync {
     ) -> AtlasResult<ExpenseReport>;
 
     async fn get_report(&self, id: Uuid) -> AtlasResult<Option<ExpenseReport>>;
-    async fn get_report_by_number(&self, org_id: Uuid, report_number: &str) -> AtlasResult<Option<ExpenseReport>>;
-    async fn list_reports(&self, org_id: Uuid, employee_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<ExpenseReport>>;
+    async fn get_report_by_number(
+        &self,
+        org_id: Uuid,
+        report_number: &str,
+    ) -> AtlasResult<Option<ExpenseReport>>;
+    async fn list_reports(
+        &self,
+        org_id: Uuid,
+        employee_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ExpenseReport>>;
     async fn update_report_status(
         &self,
         id: Uuid,
@@ -142,15 +154,18 @@ pub struct PostgresExpenseRepository {
 }
 
 impl PostgresExpenseRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
     fn row_to_category(&self, row: &sqlx::postgres::PgRow) -> ExpenseCategory {
-        let receipt_threshold: Option<serde_json::Value> = row.try_get("receipt_threshold").ok().flatten();
-        let per_diem_rate: Option<serde_json::Value> = row.try_get("default_per_diem_rate").ok().flatten();
-        let mileage_rate: Option<serde_json::Value> = row.try_get("default_mileage_rate").ok().flatten();
+        let receipt_threshold: Option<serde_json::Value> =
+            row.try_get("receipt_threshold").ok().flatten();
+        let per_diem_rate: Option<serde_json::Value> =
+            row.try_get("default_per_diem_rate").ok().flatten();
+        let mileage_rate: Option<serde_json::Value> =
+            row.try_get("default_mileage_rate").ok().flatten();
 
         ExpenseCategory {
             id: row.get("id"),
@@ -200,9 +215,15 @@ impl PostgresExpenseRepository {
     }
 
     fn row_to_report(&self, row: &sqlx::postgres::PgRow) -> ExpenseReport {
-        let total_amount: serde_json::Value = row.try_get("total_amount").unwrap_or(serde_json::json!("0"));
-        let reimbursable_amount: serde_json::Value = row.try_get("reimbursable_amount").unwrap_or(serde_json::json!("0"));
-        let receipt_required_amount: serde_json::Value = row.try_get("receipt_required_amount").unwrap_or(serde_json::json!("0"));
+        let total_amount: serde_json::Value = row
+            .try_get("total_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let reimbursable_amount: serde_json::Value = row
+            .try_get("reimbursable_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let receipt_required_amount: serde_json::Value = row
+            .try_get("receipt_required_amount")
+            .unwrap_or(serde_json::json!("0"));
 
         ExpenseReport {
             id: row.get("id"),
@@ -239,7 +260,8 @@ impl PostgresExpenseRepository {
 
     fn row_to_line(&self, row: &sqlx::postgres::PgRow) -> ExpenseLine {
         let amount: serde_json::Value = row.try_get("amount").unwrap_or(serde_json::json!("0"));
-        let original_amount: Option<serde_json::Value> = row.try_get("original_amount").ok().flatten();
+        let original_amount: Option<serde_json::Value> =
+            row.try_get("original_amount").ok().flatten();
         let exchange_rate: Option<serde_json::Value> = row.try_get("exchange_rate").ok().flatten();
         let per_diem_rate: Option<serde_json::Value> = row.try_get("per_diem_rate").ok().flatten();
         let mileage_rate: Option<serde_json::Value> = row.try_get("mileage_rate").ok().flatten();
@@ -321,11 +343,18 @@ impl ExpenseRepository for PostgresExpenseRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(receipt_required).bind(receipt_threshold)
-        .bind(is_per_diem).bind(default_per_diem_rate)
-        .bind(is_mileage).bind(default_mileage_rate)
-        .bind(expense_account_code).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(receipt_required)
+        .bind(receipt_threshold)
+        .bind(is_per_diem)
+        .bind(default_per_diem_rate)
+        .bind(is_mileage)
+        .bind(default_mileage_rate)
+        .bind(expense_account_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -345,13 +374,11 @@ impl ExpenseRepository for PostgresExpenseRepository {
     }
 
     async fn get_category_by_id(&self, id: Uuid) -> AtlasResult<Option<ExpenseCategory>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.expense_categories WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.expense_categories WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_category(&r)))
     }
 
@@ -409,10 +436,19 @@ impl ExpenseRepository for PostgresExpenseRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(name).bind(description).bind(category_id)
-        .bind(min_amount).bind(max_amount).bind(daily_limit).bind(report_limit)
-        .bind(requires_approval_on_violation).bind(violation_action)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(name)
+        .bind(description)
+        .bind(category_id)
+        .bind(min_amount)
+        .bind(max_amount)
+        .bind(daily_limit)
+        .bind(report_limit)
+        .bind(requires_approval_on_violation)
+        .bind(violation_action)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -421,17 +457,19 @@ impl ExpenseRepository for PostgresExpenseRepository {
     }
 
     async fn get_policy(&self, id: Uuid) -> AtlasResult<Option<ExpensePolicy>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.expense_policies WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.expense_policies WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_policy(&r)))
     }
 
-    async fn list_policies(&self, org_id: Uuid, category_id: Option<Uuid>) -> AtlasResult<Vec<ExpensePolicy>> {
+    async fn list_policies(
+        &self,
+        org_id: Uuid,
+        category_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ExpensePolicy>> {
         let rows = match category_id {
             Some(cid) => sqlx::query(
                 "SELECT * FROM _atlas.expense_policies WHERE organization_id = $1 AND (category_id = $2 OR category_id IS NULL) AND is_active = true ORDER BY name"
@@ -492,10 +530,19 @@ impl ExpenseRepository for PostgresExpenseRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(report_number).bind(title).bind(description)
-        .bind(employee_id).bind(employee_name).bind(department_id).bind(purpose)
-        .bind(project_id).bind(currency_code)
-        .bind(trip_start_date).bind(trip_end_date).bind(cost_center)
+        .bind(org_id)
+        .bind(report_number)
+        .bind(title)
+        .bind(description)
+        .bind(employee_id)
+        .bind(employee_name)
+        .bind(department_id)
+        .bind(purpose)
+        .bind(project_id)
+        .bind(currency_code)
+        .bind(trip_start_date)
+        .bind(trip_end_date)
+        .bind(cost_center)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -505,17 +552,19 @@ impl ExpenseRepository for PostgresExpenseRepository {
     }
 
     async fn get_report(&self, id: Uuid) -> AtlasResult<Option<ExpenseReport>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.expense_reports WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.expense_reports WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_report(&r)))
     }
 
-    async fn get_report_by_number(&self, org_id: Uuid, report_number: &str) -> AtlasResult<Option<ExpenseReport>> {
+    async fn get_report_by_number(
+        &self,
+        org_id: Uuid,
+        report_number: &str,
+    ) -> AtlasResult<Option<ExpenseReport>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.expense_reports WHERE organization_id = $1 AND report_number = $2"
         )
@@ -526,7 +575,12 @@ impl ExpenseRepository for PostgresExpenseRepository {
         Ok(row.map(|r| self.row_to_report(&r)))
     }
 
-    async fn list_reports(&self, org_id: Uuid, employee_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<ExpenseReport>> {
+    async fn list_reports(
+        &self,
+        org_id: Uuid,
+        employee_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ExpenseReport>> {
         let rows = match (employee_id, status) {
             (Some(eid), Some(s)) => sqlx::query(
                 "SELECT * FROM _atlas.expense_reports WHERE organization_id = $1 AND employee_id = $2 AND status = $3 ORDER BY created_at DESC"
@@ -570,7 +624,11 @@ impl ExpenseRepository for PostgresExpenseRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by).bind(rejection_reason).bind(reimbursed_at)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(rejection_reason)
+        .bind(reimbursed_at)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -594,7 +652,11 @@ impl ExpenseRepository for PostgresExpenseRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(total_amount).bind(reimbursable_amount).bind(receipt_required_amount).bind(receipt_count)
+        .bind(id)
+        .bind(total_amount)
+        .bind(reimbursable_amount)
+        .bind(receipt_required_amount)
+        .bind(receipt_count)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -659,17 +721,35 @@ impl ExpenseRepository for PostgresExpenseRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(report_id).bind(line_number)
-        .bind(expense_category_id).bind(expense_category_name).bind(expense_type)
-        .bind(description).bind(expense_date)
-        .bind(amount).bind(original_currency).bind(original_amount).bind(exchange_rate)
-        .bind(is_reimbursable).bind(has_receipt).bind(receipt_reference)
-        .bind(merchant_name).bind(location).bind(attendees)
-        .bind(per_diem_days).bind(per_diem_rate)
-        .bind(mileage_distance).bind(mileage_rate).bind(mileage_unit)
-        .bind(mileage_from).bind(mileage_to)
-        .bind(policy_violation).bind(policy_violation_message)
-        .bind(expense_account_code).bind(created_by)
+        .bind(org_id)
+        .bind(report_id)
+        .bind(line_number)
+        .bind(expense_category_id)
+        .bind(expense_category_name)
+        .bind(expense_type)
+        .bind(description)
+        .bind(expense_date)
+        .bind(amount)
+        .bind(original_currency)
+        .bind(original_amount)
+        .bind(exchange_rate)
+        .bind(is_reimbursable)
+        .bind(has_receipt)
+        .bind(receipt_reference)
+        .bind(merchant_name)
+        .bind(location)
+        .bind(attendees)
+        .bind(per_diem_days)
+        .bind(per_diem_rate)
+        .bind(mileage_distance)
+        .bind(mileage_rate)
+        .bind(mileage_unit)
+        .bind(mileage_from)
+        .bind(mileage_to)
+        .bind(policy_violation)
+        .bind(policy_violation_message)
+        .bind(expense_account_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -678,19 +758,17 @@ impl ExpenseRepository for PostgresExpenseRepository {
     }
 
     async fn get_line(&self, id: Uuid) -> AtlasResult<Option<ExpenseLine>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.expense_lines WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.expense_lines WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_line(&r)))
     }
 
     async fn list_lines_by_report(&self, report_id: Uuid) -> AtlasResult<Vec<ExpenseLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.expense_lines WHERE report_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.expense_lines WHERE report_id = $1 ORDER BY line_number",
         )
         .bind(report_id)
         .fetch_all(&self.pool)
@@ -700,13 +778,11 @@ impl ExpenseRepository for PostgresExpenseRepository {
     }
 
     async fn delete_line(&self, id: Uuid) -> AtlasResult<()> {
-        sqlx::query(
-            "DELETE FROM _atlas.expense_lines WHERE id = $1"
-        )
-        .bind(id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query("DELETE FROM _atlas.expense_lines WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 }

@@ -1,5 +1,5 @@
 //! Atlas Projects - Project Management
-//! 
+//!
 //! Provides project planning, task tracking, timesheet management,
 //! milestone tracking, and resource allocation.
 

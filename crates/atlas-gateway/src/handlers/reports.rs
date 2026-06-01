@@ -1,18 +1,18 @@
 //! Report generation and data import/export handlers
 
+use crate::handlers::auth::Claims;
+use crate::handlers::records::{json_to_text, row_to_json, sanitize_identifier};
+use crate::AppState;
+use axum::Extension;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::{Deserialize, Serialize};
-use crate::AppState;
-use crate::handlers::records::{sanitize_identifier, row_to_json, json_to_text};
-use crate::handlers::auth::Claims;
-use axum::Extension;
 use sqlx::Row;
 use std::sync::Arc;
-use tracing::{info, error};
+use tracing::{error, info};
 
 // ============================================================================
 // Report Generation
@@ -35,7 +35,10 @@ pub async fn generate_entity_report(
 ) -> Result<Json<ReportResponse>, StatusCode> {
     info!("Generating report for entity: {}", entity);
 
-    let entity_def = state.core.schema_engine.get_entity(&entity)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
@@ -44,8 +47,8 @@ pub async fn generate_entity_report(
         StatusCode::BAD_REQUEST
     })?;
 
-    let org_id = uuid::Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id =
+        uuid::Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Build WHERE clause: soft-delete + org scoping
     let mut where_parts = vec!["organization_id = $1".to_string()];
@@ -56,7 +59,7 @@ pub async fn generate_entity_report(
 
     // Get total count
     let count_row = sqlx::query(
-        format!("SELECT COUNT(*) as count FROM \"{table_name}\"{where_clause}").as_str()
+        format!("SELECT COUNT(*) as count FROM \"{table_name}\"{where_clause}").as_str(),
     )
     .bind(org_id)
     .fetch_one(&state.db_pool)
@@ -70,9 +73,8 @@ pub async fn generate_entity_report(
 
     // Get recent records (parameterize org_id as $1, limit as $2)
     let recent = sqlx::query(
-        format!(
-            "SELECT * FROM \"{table_name}\"{where_clause} ORDER BY created_at DESC LIMIT $2"
-        ).as_str()
+        format!("SELECT * FROM \"{table_name}\"{where_clause} ORDER BY created_at DESC LIMIT $2")
+            .as_str(),
     )
     .bind(org_id)
     .bind(10i64)
@@ -130,8 +132,8 @@ pub async fn dashboard_report(
 ) -> Result<Json<ReportResponse>, StatusCode> {
     info!("Generating dashboard report");
 
-    let org_id = uuid::Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id =
+        uuid::Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let entities = state.core.schema_engine.entity_names();
     let mut entity_counts = serde_json::Map::new();
@@ -142,9 +144,13 @@ pub async fn dashboard_report(
             let Ok(table) = sanitize_identifier(table) else {
                 continue;
             };
-            let where_clause = if def.is_soft_delete { " WHERE organization_id = $1 AND deleted_at IS NULL" } else { " WHERE organization_id = $1" };
+            let where_clause = if def.is_soft_delete {
+                " WHERE organization_id = $1 AND deleted_at IS NULL"
+            } else {
+                " WHERE organization_id = $1"
+            };
             let count = sqlx::query(
-                format!("SELECT COUNT(*) as count FROM \"{table}\"{where_clause}").as_str()
+                format!("SELECT COUNT(*) as count FROM \"{table}\"{where_clause}").as_str(),
             )
             .bind(org_id)
             .fetch_one(&state.db_pool)
@@ -158,16 +164,21 @@ pub async fn dashboard_report(
     }
 
     // Get recent audit entries
-    let recent_audit = state.core.audit_engine.query(&atlas_core::audit::AuditQuery {
-        entity_type: None,
-        entity_id: None,
-        action: None,
-        user_id: None,
-        from_date: Some(chrono::Utc::now() - chrono::Duration::days(7)),
-        to_date: Some(chrono::Utc::now()),
-        limit: Some(20),
-        offset: None,
-    }).await.unwrap_or_default();
+    let recent_audit = state
+        .core
+        .audit_engine
+        .query(&atlas_core::audit::AuditQuery {
+            entity_type: None,
+            entity_id: None,
+            action: None,
+            user_id: None,
+            from_date: Some(chrono::Utc::now() - chrono::Duration::days(7)),
+            to_date: Some(chrono::Utc::now()),
+            limit: Some(20),
+            offset: None,
+        })
+        .await
+        .unwrap_or_default();
 
     Ok(Json(ReportResponse {
         report_type: "dashboard_overview".to_string(),
@@ -208,9 +219,15 @@ pub async fn import_data(
     claims: Extension<Claims>,
     Json(payload): Json<ImportRequest>,
 ) -> Result<Json<ImportResponse>, StatusCode> {
-    info!("Importing data for entity: {} (format: {})", payload.entity, payload.format);
+    info!(
+        "Importing data for entity: {} (format: {})",
+        payload.entity, payload.format
+    );
 
-    let entity_def = state.core.schema_engine.get_entity(&payload.entity)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&payload.entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = entity_def.table_name.as_deref().unwrap_or(&payload.entity);
@@ -219,15 +236,13 @@ pub async fn import_data(
         StatusCode::BAD_REQUEST
     })?;
 
-    let org_id = uuid::Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id =
+        uuid::Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let records = match payload.format.as_str() {
         "json" => {
             // Expect an array of objects
-            payload.data.as_array()
-                .cloned()
-                .unwrap_or_default()
+            payload.data.as_array().cloned().unwrap_or_default()
         }
         _ => {
             return Ok(Json(ImportResponse {
@@ -245,7 +260,8 @@ pub async fn import_data(
         if let Some(obj) = record.as_object() {
             // Sanitize field names while preserving value lookup with original keys
             let original_keys: Vec<String> = obj.keys().cloned().collect();
-            let sanitized_fields: Vec<String> = original_keys.iter()
+            let sanitized_fields: Vec<String> = original_keys
+                .iter()
                 .map(|k| sanitize_identifier(k))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -266,7 +282,11 @@ pub async fn import_data(
                 format!(
                     "INSERT INTO \"{}\" ({}, \"organization_id\") VALUES ({}, {})",
                     table_name,
-                    sanitized_fields.iter().map(|f| format!("\"{f}\"")).collect::<Vec<_>>().join(", "),
+                    sanitized_fields
+                        .iter()
+                        .map(|f| format!("\"{f}\""))
+                        .collect::<Vec<_>>()
+                        .join(", "),
                     placeholders.join(", "),
                     org_placeholder
                 )
@@ -317,7 +337,10 @@ pub async fn export_data(
 ) -> Result<Json<ExportResponse>, StatusCode> {
     info!("Exporting data for entity: {}", entity);
 
-    let entity_def = state.core.schema_engine.get_entity(&entity)
+    let entity_def = state
+        .core
+        .schema_engine
+        .get_entity(&entity)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let table_name = entity_def.table_name.as_deref().unwrap_or(&entity);
@@ -328,12 +351,16 @@ pub async fn export_data(
         StatusCode::BAD_REQUEST
     })?;
 
-    let org_id = uuid::Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id =
+        uuid::Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let where_clause = if entity_def.is_soft_delete { " WHERE organization_id = $1 AND deleted_at IS NULL" } else { " WHERE organization_id = $1" };
+    let where_clause = if entity_def.is_soft_delete {
+        " WHERE organization_id = $1 AND deleted_at IS NULL"
+    } else {
+        " WHERE organization_id = $1"
+    };
     let rows = sqlx::query(
-        format!("SELECT * FROM \"{safe_table}\"{where_clause} ORDER BY created_at DESC").as_str()
+        format!("SELECT * FROM \"{safe_table}\"{where_clause} ORDER BY created_at DESC").as_str(),
     )
     .bind(org_id)
     .fetch_all(&state.db_pool)

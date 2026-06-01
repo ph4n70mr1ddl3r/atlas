@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for loyalty programs, tiers, members, point transactions,
 //! rewards, redemptions, and dashboard analytics.
 
-use atlas_shared::{
-    LoyaltyProgram, LoyaltyTier, LoyaltyMember, LoyaltyPointTransaction,
-    LoyaltyReward, LoyaltyRedemption, LoyaltyDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, LoyaltyDashboard, LoyaltyMember, LoyaltyPointTransaction,
+    LoyaltyProgram, LoyaltyRedemption, LoyaltyReward, LoyaltyTier,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -18,26 +17,60 @@ use uuid::Uuid;
 pub trait LoyaltyManagementRepository: Send + Sync {
     // Programs
     async fn create_program(
-        &self, org_id: Uuid, program_number: &str, name: &str, description: Option<&str>,
-        program_type: &str, currency_code: &str, points_name: &str, enrollment_type: &str,
-        start_date: chrono::NaiveDate, end_date: Option<chrono::NaiveDate>,
-        accrual_rate: f64, accrual_basis: &str, minimum_accrual_amount: f64,
-        rounding_method: &str, points_expiry_days: Option<i32>,
-        tier_qualification_period: &str, auto_upgrade: bool, auto_downgrade: bool,
-        max_points_per_member: Option<f64>, allow_point_transfer: bool, allow_redemption: bool,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_number: &str,
+        name: &str,
+        description: Option<&str>,
+        program_type: &str,
+        currency_code: &str,
+        points_name: &str,
+        enrollment_type: &str,
+        start_date: chrono::NaiveDate,
+        end_date: Option<chrono::NaiveDate>,
+        accrual_rate: f64,
+        accrual_basis: &str,
+        minimum_accrual_amount: f64,
+        rounding_method: &str,
+        points_expiry_days: Option<i32>,
+        tier_qualification_period: &str,
+        auto_upgrade: bool,
+        auto_downgrade: bool,
+        max_points_per_member: Option<f64>,
+        allow_point_transfer: bool,
+        allow_redemption: bool,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyProgram>;
     async fn get_program(&self, id: Uuid) -> AtlasResult<Option<LoyaltyProgram>>;
-    async fn get_program_by_number(&self, org_id: Uuid, program_number: &str) -> AtlasResult<Option<LoyaltyProgram>>;
-    async fn list_programs(&self, org_id: Uuid, status: Option<&str>, program_type: Option<&str>) -> AtlasResult<Vec<LoyaltyProgram>>;
+    async fn get_program_by_number(
+        &self,
+        org_id: Uuid,
+        program_number: &str,
+    ) -> AtlasResult<Option<LoyaltyProgram>>;
+    async fn list_programs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        program_type: Option<&str>,
+    ) -> AtlasResult<Vec<LoyaltyProgram>>;
     async fn update_program_status(&self, id: Uuid, status: &str) -> AtlasResult<LoyaltyProgram>;
     async fn delete_program(&self, org_id: Uuid, program_number: &str) -> AtlasResult<()>;
 
     // Tiers
     async fn create_tier(
-        &self, org_id: Uuid, program_id: Uuid, tier_code: &str, tier_name: &str,
-        tier_level: i32, minimum_points: f64, maximum_points: Option<f64>,
-        accrual_bonus_percentage: f64, benefits: &str, color: &str, icon: &str,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        tier_code: &str,
+        tier_name: &str,
+        tier_level: i32,
+        minimum_points: f64,
+        maximum_points: Option<f64>,
+        accrual_bonus_percentage: f64,
+        benefits: &str,
+        color: &str,
+        icon: &str,
         is_default: bool,
     ) -> AtlasResult<LoyaltyTier>;
     async fn list_tiers(&self, program_id: Uuid) -> AtlasResult<Vec<LoyaltyTier>>;
@@ -45,62 +78,149 @@ pub trait LoyaltyManagementRepository: Send + Sync {
 
     // Members
     async fn create_member(
-        &self, org_id: Uuid, program_id: Uuid, member_number: &str,
-        customer_id: Option<Uuid>, customer_name: &str, customer_email: &str,
-        tier_id: Option<Uuid>, tier_code: &str, enrollment_date: chrono::NaiveDate,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        member_number: &str,
+        customer_id: Option<Uuid>,
+        customer_name: &str,
+        customer_email: &str,
+        tier_id: Option<Uuid>,
+        tier_code: &str,
+        enrollment_date: chrono::NaiveDate,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyMember>;
     async fn get_member(&self, id: Uuid) -> AtlasResult<Option<LoyaltyMember>>;
-    async fn get_member_by_number(&self, org_id: Uuid, member_number: &str) -> AtlasResult<Option<LoyaltyMember>>;
-    async fn list_members(&self, program_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<LoyaltyMember>>;
+    async fn get_member_by_number(
+        &self,
+        org_id: Uuid,
+        member_number: &str,
+    ) -> AtlasResult<Option<LoyaltyMember>>;
+    async fn list_members(
+        &self,
+        program_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<LoyaltyMember>>;
     async fn update_member_status(&self, id: Uuid, status: &str) -> AtlasResult<LoyaltyMember>;
-    async fn update_member_points(&self, id: Uuid, current_points: f64, lifetime_points: f64) -> AtlasResult<()>;
+    async fn update_member_points(
+        &self,
+        id: Uuid,
+        current_points: f64,
+        lifetime_points: f64,
+    ) -> AtlasResult<()>;
     async fn update_member_redeemed(&self, id: Uuid, redeemed_points: f64) -> AtlasResult<()>;
-    async fn update_member_tier(&self, id: Uuid, tier_id: Uuid, tier_code: &str) -> AtlasResult<()>;
-    async fn update_member_next_tier_remaining(&self, id: Uuid, remaining: Option<f64>) -> AtlasResult<()>;
+    async fn update_member_tier(&self, id: Uuid, tier_id: Uuid, tier_code: &str)
+        -> AtlasResult<()>;
+    async fn update_member_next_tier_remaining(
+        &self,
+        id: Uuid,
+        remaining: Option<f64>,
+    ) -> AtlasResult<()>;
     async fn delete_member(&self, org_id: Uuid, member_number: &str) -> AtlasResult<()>;
 
     // Point Transactions
     async fn create_transaction(
-        &self, org_id: Uuid, program_id: Uuid, member_id: Uuid,
-        transaction_number: &str, transaction_type: &str, points: f64,
-        source_type: &str, source_id: Option<Uuid>, source_number: &str,
-        description: &str, reference_amount: Option<f64>, reference_currency: &str,
-        tier_bonus_applied: f64, promo_bonus_applied: f64, expiry_date: Option<chrono::NaiveDate>,
-        status: &str, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        member_id: Uuid,
+        transaction_number: &str,
+        transaction_type: &str,
+        points: f64,
+        source_type: &str,
+        source_id: Option<Uuid>,
+        source_number: &str,
+        description: &str,
+        reference_amount: Option<f64>,
+        reference_currency: &str,
+        tier_bonus_applied: f64,
+        promo_bonus_applied: f64,
+        expiry_date: Option<chrono::NaiveDate>,
+        status: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyPointTransaction>;
     async fn get_transaction(&self, id: Uuid) -> AtlasResult<Option<LoyaltyPointTransaction>>;
-    async fn get_transaction_by_number(&self, org_id: Uuid, transaction_number: &str) -> AtlasResult<Option<LoyaltyPointTransaction>>;
-    async fn list_transactions(&self, member_id: Uuid, txn_type: Option<&str>) -> AtlasResult<Vec<LoyaltyPointTransaction>>;
-    async fn update_transaction_status(&self, id: Uuid, status: &str, reason: &str) -> AtlasResult<LoyaltyPointTransaction>;
+    async fn get_transaction_by_number(
+        &self,
+        org_id: Uuid,
+        transaction_number: &str,
+    ) -> AtlasResult<Option<LoyaltyPointTransaction>>;
+    async fn list_transactions(
+        &self,
+        member_id: Uuid,
+        txn_type: Option<&str>,
+    ) -> AtlasResult<Vec<LoyaltyPointTransaction>>;
+    async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        reason: &str,
+    ) -> AtlasResult<LoyaltyPointTransaction>;
     async fn delete_transaction(&self, org_id: Uuid, transaction_number: &str) -> AtlasResult<()>;
 
     // Rewards
     async fn create_reward(
-        &self, org_id: Uuid, program_id: Uuid, reward_code: &str, name: &str,
-        description: Option<&str>, reward_type: &str, points_required: f64,
-        cash_value: f64, currency_code: &str, tier_restriction: &str,
-        quantity_available: Option<i32>, max_per_member: Option<i32>,
-        image_url: &str, is_active: bool,
-        start_date: Option<chrono::NaiveDate>, end_date: Option<chrono::NaiveDate>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        reward_code: &str,
+        name: &str,
+        description: Option<&str>,
+        reward_type: &str,
+        points_required: f64,
+        cash_value: f64,
+        currency_code: &str,
+        tier_restriction: &str,
+        quantity_available: Option<i32>,
+        max_per_member: Option<i32>,
+        image_url: &str,
+        is_active: bool,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyReward>;
     async fn get_reward(&self, id: Uuid) -> AtlasResult<Option<LoyaltyReward>>;
-    async fn get_reward_by_code(&self, org_id: Uuid, reward_code: &str) -> AtlasResult<Option<LoyaltyReward>>;
-    async fn list_rewards(&self, program_id: Uuid, reward_type: Option<&str>) -> AtlasResult<Vec<LoyaltyReward>>;
+    async fn get_reward_by_code(
+        &self,
+        org_id: Uuid,
+        reward_code: &str,
+    ) -> AtlasResult<Option<LoyaltyReward>>;
+    async fn list_rewards(
+        &self,
+        program_id: Uuid,
+        reward_type: Option<&str>,
+    ) -> AtlasResult<Vec<LoyaltyReward>>;
     async fn update_reward_active(&self, id: Uuid, is_active: bool) -> AtlasResult<LoyaltyReward>;
     async fn update_reward_claimed(&self, id: Uuid, quantity_claimed: i32) -> AtlasResult<()>;
     async fn delete_reward(&self, org_id: Uuid, reward_code: &str) -> AtlasResult<()>;
 
     // Redemptions
     async fn create_redemption(
-        &self, org_id: Uuid, program_id: Uuid, member_id: Uuid, reward_id: Uuid,
-        redemption_number: &str, points_spent: f64, quantity: i32, status: &str,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        member_id: Uuid,
+        reward_id: Uuid,
+        redemption_number: &str,
+        points_spent: f64,
+        quantity: i32,
+        status: &str,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyRedemption>;
     async fn get_redemption(&self, id: Uuid) -> AtlasResult<Option<LoyaltyRedemption>>;
-    async fn get_redemption_by_number(&self, org_id: Uuid, redemption_number: &str) -> AtlasResult<Option<LoyaltyRedemption>>;
-    async fn list_redemptions(&self, member_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<LoyaltyRedemption>>;
+    async fn get_redemption_by_number(
+        &self,
+        org_id: Uuid,
+        redemption_number: &str,
+    ) -> AtlasResult<Option<LoyaltyRedemption>>;
+    async fn list_redemptions(
+        &self,
+        member_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<LoyaltyRedemption>>;
     async fn fulfill_redemption(&self, id: Uuid) -> AtlasResult<LoyaltyRedemption>;
     async fn cancel_redemption(&self, id: Uuid, reason: &str) -> AtlasResult<LoyaltyRedemption>;
     async fn count_member_redemptions(&self, member_id: Uuid, reward_id: Uuid) -> AtlasResult<i32>;
@@ -115,7 +235,7 @@ pub struct PostgresLoyaltyManagementRepository {
 }
 
 impl PostgresLoyaltyManagementRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -123,20 +243,36 @@ impl PostgresLoyaltyManagementRepository {
 
 // Helper numeric decoding
 fn get_numeric(row: &sqlx::postgres::PgRow, column: &str) -> f64 {
-    if let Ok(v) = row.try_get::<f64, _>(column) { return v; }
-    if let Ok(v) = row.try_get::<serde_json::Value, _>(column) {
-        if let Some(n) = v.as_f64() { return n; }
-        if let Some(s) = v.as_str() { if let Ok(n) = s.parse::<f64>() { return n; } }
+    if let Ok(v) = row.try_get::<f64, _>(column) {
+        return v;
     }
-    if let Ok(s) = row.try_get::<String, _>(column) { return s.parse::<f64>().unwrap_or(0.0); }
+    if let Ok(v) = row.try_get::<serde_json::Value, _>(column) {
+        if let Some(n) = v.as_f64() {
+            return n;
+        }
+        if let Some(s) = v.as_str() {
+            if let Ok(n) = s.parse::<f64>() {
+                return n;
+            }
+        }
+    }
+    if let Ok(s) = row.try_get::<String, _>(column) {
+        return s.parse::<f64>().unwrap_or(0.0);
+    }
     0.0
 }
 
 fn get_optional_numeric(row: &sqlx::postgres::PgRow, column: &str) -> Option<f64> {
-    if let Ok(v) = row.try_get::<f64, _>(column) { return Some(v); }
+    if let Ok(v) = row.try_get::<f64, _>(column) {
+        return Some(v);
+    }
     if let Ok(v) = row.try_get::<serde_json::Value, _>(column) {
-        if let Some(n) = v.as_f64() { return Some(n); }
-        if let Some(s) = v.as_str() { return s.parse::<f64>().ok(); }
+        if let Some(n) = v.as_f64() {
+            return Some(n);
+        }
+        if let Some(s) = v.as_str() {
+            return s.parse::<f64>().ok();
+        }
     }
     None
 }
@@ -153,7 +289,9 @@ fn row_to_program(row: &sqlx::postgres::PgRow) -> LoyaltyProgram {
         currency_code: row.try_get("currency_code").unwrap_or_default(),
         points_name: row.try_get("points_name").unwrap_or_default(),
         enrollment_type: row.try_get("enrollment_type").unwrap_or_default(),
-        start_date: row.try_get("start_date").unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+        start_date: row
+            .try_get("start_date")
+            .unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
         end_date: row.try_get("end_date").unwrap_or_default(),
         accrual_rate: get_numeric(row, "accrual_rate"),
         accrual_basis: row.try_get("accrual_basis").unwrap_or_default(),
@@ -210,7 +348,9 @@ fn row_to_member(row: &sqlx::postgres::PgRow) -> LoyaltyMember {
         lifetime_points: get_numeric(row, "lifetime_points"),
         redeemed_points: get_numeric(row, "redeemed_points"),
         expired_points: get_numeric(row, "expired_points"),
-        enrollment_date: row.try_get("enrollment_date").unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+        enrollment_date: row
+            .try_get("enrollment_date")
+            .unwrap_or(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
         status: row.try_get("status").unwrap_or_default(),
         last_activity_date: row.try_get("last_activity_date").unwrap_or_default(),
         next_tier_points_remaining: get_optional_numeric(row, "next_tier_points_remaining"),
@@ -306,14 +446,30 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
 
     #[allow(clippy::too_many_arguments)]
     async fn create_program(
-        &self, org_id: Uuid, program_number: &str, name: &str, description: Option<&str>,
-        program_type: &str, currency_code: &str, points_name: &str, enrollment_type: &str,
-        start_date: chrono::NaiveDate, end_date: Option<chrono::NaiveDate>,
-        accrual_rate: f64, accrual_basis: &str, minimum_accrual_amount: f64,
-        rounding_method: &str, points_expiry_days: Option<i32>,
-        tier_qualification_period: &str, auto_upgrade: bool, auto_downgrade: bool,
-        max_points_per_member: Option<f64>, allow_point_transfer: bool, allow_redemption: bool,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_number: &str,
+        name: &str,
+        description: Option<&str>,
+        program_type: &str,
+        currency_code: &str,
+        points_name: &str,
+        enrollment_type: &str,
+        start_date: chrono::NaiveDate,
+        end_date: Option<chrono::NaiveDate>,
+        accrual_rate: f64,
+        accrual_basis: &str,
+        minimum_accrual_amount: f64,
+        rounding_method: &str,
+        points_expiry_days: Option<i32>,
+        tier_qualification_period: &str,
+        auto_upgrade: bool,
+        auto_downgrade: bool,
+        max_points_per_member: Option<f64>,
+        allow_point_transfer: bool,
+        allow_redemption: bool,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyProgram> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.loyalty_programs
@@ -329,31 +485,59 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
                     $21, $22, '{}'::jsonb, $23)
             RETURNING *",
         )
-        .bind(org_id).bind(program_number).bind(name).bind(description.unwrap_or(""))
-        .bind(program_type).bind(currency_code).bind(points_name).bind(enrollment_type)
-        .bind(start_date).bind(end_date).bind(accrual_rate).bind(accrual_basis)
-        .bind(minimum_accrual_amount).bind(rounding_method).bind(points_expiry_days)
-        .bind(tier_qualification_period).bind(auto_upgrade).bind(auto_downgrade)
-        .bind(max_points_per_member).bind(allow_point_transfer).bind(allow_redemption)
-        .bind(notes.unwrap_or("")).bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(program_number)
+        .bind(name)
+        .bind(description.unwrap_or(""))
+        .bind(program_type)
+        .bind(currency_code)
+        .bind(points_name)
+        .bind(enrollment_type)
+        .bind(start_date)
+        .bind(end_date)
+        .bind(accrual_rate)
+        .bind(accrual_basis)
+        .bind(minimum_accrual_amount)
+        .bind(rounding_method)
+        .bind(points_expiry_days)
+        .bind(tier_qualification_period)
+        .bind(auto_upgrade)
+        .bind(auto_downgrade)
+        .bind(max_points_per_member)
+        .bind(allow_point_transfer)
+        .bind(allow_redemption)
+        .bind(notes.unwrap_or(""))
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_program(&row))
     }
 
     async fn get_program(&self, id: Uuid) -> AtlasResult<Option<LoyaltyProgram>> {
         let row = sqlx::query("SELECT * FROM _atlas.loyalty_programs WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_program))
     }
 
-    async fn get_program_by_number(&self, org_id: Uuid, program_number: &str) -> AtlasResult<Option<LoyaltyProgram>> {
+    async fn get_program_by_number(
+        &self,
+        org_id: Uuid,
+        program_number: &str,
+    ) -> AtlasResult<Option<LoyaltyProgram>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.loyalty_programs WHERE organization_id = $1 AND program_number = $2"
         ).bind(org_id).bind(program_number).fetch_optional(&self.pool).await?;
         Ok(row.as_ref().map(row_to_program))
     }
 
-    async fn list_programs(&self, org_id: Uuid, status: Option<&str>, program_type: Option<&str>) -> AtlasResult<Vec<LoyaltyProgram>> {
+    async fn list_programs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        program_type: Option<&str>,
+    ) -> AtlasResult<Vec<LoyaltyProgram>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.loyalty_programs
                WHERE organization_id = $1
@@ -361,8 +545,11 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
                  AND ($3::text IS NULL OR program_type = $3)
                ORDER BY created_at DESC",
         )
-        .bind(org_id).bind(status).bind(program_type)
-        .fetch_all(&self.pool).await?;
+        .bind(org_id)
+        .bind(status)
+        .bind(program_type)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows.iter().map(row_to_program).collect())
     }
 
@@ -380,7 +567,9 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
             "DELETE FROM _atlas.loyalty_programs WHERE organization_id = $1 AND program_number = $2 AND status = 'draft'"
         ).bind(org_id).bind(program_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Draft program '{program_number}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Draft program '{program_number}' not found"
+            )));
         }
         Ok(())
     }
@@ -390,9 +579,18 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
     // ========================================================================
 
     async fn create_tier(
-        &self, org_id: Uuid, program_id: Uuid, tier_code: &str, tier_name: &str,
-        tier_level: i32, minimum_points: f64, maximum_points: Option<f64>,
-        accrual_bonus_percentage: f64, benefits: &str, color: &str, icon: &str,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        tier_code: &str,
+        tier_name: &str,
+        tier_level: i32,
+        minimum_points: f64,
+        maximum_points: Option<f64>,
+        accrual_bonus_percentage: f64,
+        benefits: &str,
+        color: &str,
+        icon: &str,
         is_default: bool,
     ) -> AtlasResult<LoyaltyTier> {
         let row = sqlx::query(
@@ -403,23 +601,38 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, '{}'::jsonb)
             RETURNING *",
         )
-        .bind(org_id).bind(program_id).bind(tier_code).bind(tier_name).bind(tier_level)
-        .bind(minimum_points).bind(maximum_points).bind(accrual_bonus_percentage)
-        .bind(benefits).bind(color).bind(icon).bind(is_default)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(program_id)
+        .bind(tier_code)
+        .bind(tier_name)
+        .bind(tier_level)
+        .bind(minimum_points)
+        .bind(maximum_points)
+        .bind(accrual_bonus_percentage)
+        .bind(benefits)
+        .bind(color)
+        .bind(icon)
+        .bind(is_default)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_tier(&row))
     }
 
     async fn list_tiers(&self, program_id: Uuid) -> AtlasResult<Vec<LoyaltyTier>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.loyalty_tiers WHERE program_id = $1 ORDER BY tier_level"
-        ).bind(program_id).fetch_all(&self.pool).await?;
+            "SELECT * FROM _atlas.loyalty_tiers WHERE program_id = $1 ORDER BY tier_level",
+        )
+        .bind(program_id)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows.iter().map(row_to_tier).collect())
     }
 
     async fn delete_tier(&self, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query("DELETE FROM _atlas.loyalty_tiers WHERE id = $1")
-            .bind(id).execute(&self.pool).await?;
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound("Tier not found".to_string()));
         }
@@ -432,10 +645,18 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
 
     #[allow(clippy::too_many_arguments)]
     async fn create_member(
-        &self, org_id: Uuid, program_id: Uuid, member_number: &str,
-        customer_id: Option<Uuid>, customer_name: &str, customer_email: &str,
-        tier_id: Option<Uuid>, tier_code: &str, enrollment_date: chrono::NaiveDate,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        member_number: &str,
+        customer_id: Option<Uuid>,
+        customer_name: &str,
+        customer_email: &str,
+        tier_id: Option<Uuid>,
+        tier_code: &str,
+        enrollment_date: chrono::NaiveDate,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyMember> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.loyalty_members
@@ -446,33 +667,55 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, '{}'::jsonb, $11)
             RETURNING *",
         )
-        .bind(org_id).bind(program_id).bind(member_number)
-        .bind(customer_id).bind(customer_name).bind(customer_email)
-        .bind(tier_id).bind(tier_code).bind(enrollment_date)
-        .bind(notes.unwrap_or("")).bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(program_id)
+        .bind(member_number)
+        .bind(customer_id)
+        .bind(customer_name)
+        .bind(customer_email)
+        .bind(tier_id)
+        .bind(tier_code)
+        .bind(enrollment_date)
+        .bind(notes.unwrap_or(""))
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_member(&row))
     }
 
     async fn get_member(&self, id: Uuid) -> AtlasResult<Option<LoyaltyMember>> {
         let row = sqlx::query("SELECT * FROM _atlas.loyalty_members WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_member))
     }
 
-    async fn get_member_by_number(&self, org_id: Uuid, member_number: &str) -> AtlasResult<Option<LoyaltyMember>> {
+    async fn get_member_by_number(
+        &self,
+        org_id: Uuid,
+        member_number: &str,
+    ) -> AtlasResult<Option<LoyaltyMember>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.loyalty_members WHERE organization_id = $1 AND member_number = $2"
         ).bind(org_id).bind(member_number).fetch_optional(&self.pool).await?;
         Ok(row.as_ref().map(row_to_member))
     }
 
-    async fn list_members(&self, program_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<LoyaltyMember>> {
+    async fn list_members(
+        &self,
+        program_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<LoyaltyMember>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.loyalty_members
                WHERE program_id = $1 AND ($2::text IS NULL OR status = $2)
                ORDER BY enrollment_date DESC",
-        ).bind(program_id).bind(status).fetch_all(&self.pool).await?;
+        )
+        .bind(program_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows.iter().map(row_to_member).collect())
     }
 
@@ -485,12 +728,21 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
         Ok(row_to_member(&row))
     }
 
-    async fn update_member_points(&self, id: Uuid, current_points: f64, lifetime_points: f64) -> AtlasResult<()> {
+    async fn update_member_points(
+        &self,
+        id: Uuid,
+        current_points: f64,
+        lifetime_points: f64,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.loyalty_members SET current_points = $2, lifetime_points = $3,
                last_activity_date = CURRENT_DATE, updated_at = now() WHERE id = $1",
-        ).bind(id).bind(current_points).bind(lifetime_points)
-        .execute(&self.pool).await?;
+        )
+        .bind(id)
+        .bind(current_points)
+        .bind(lifetime_points)
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 
@@ -501,14 +753,23 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
         Ok(())
     }
 
-    async fn update_member_tier(&self, id: Uuid, tier_id: Uuid, tier_code: &str) -> AtlasResult<()> {
+    async fn update_member_tier(
+        &self,
+        id: Uuid,
+        tier_id: Uuid,
+        tier_code: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.loyalty_members SET tier_id = $2, tier_code = $3, updated_at = now() WHERE id = $1"
         ).bind(id).bind(tier_id).bind(tier_code).execute(&self.pool).await?;
         Ok(())
     }
 
-    async fn update_member_next_tier_remaining(&self, id: Uuid, remaining: Option<f64>) -> AtlasResult<()> {
+    async fn update_member_next_tier_remaining(
+        &self,
+        id: Uuid,
+        remaining: Option<f64>,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.loyalty_members SET next_tier_points_remaining = $2, updated_at = now() WHERE id = $1"
         ).bind(id).bind(remaining).execute(&self.pool).await?;
@@ -517,10 +778,16 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
 
     async fn delete_member(&self, org_id: Uuid, member_number: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.loyalty_members WHERE organization_id = $1 AND member_number = $2"
-        ).bind(org_id).bind(member_number).execute(&self.pool).await?;
+            "DELETE FROM _atlas.loyalty_members WHERE organization_id = $1 AND member_number = $2",
+        )
+        .bind(org_id)
+        .bind(member_number)
+        .execute(&self.pool)
+        .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Member '{member_number}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Member '{member_number}' not found"
+            )));
         }
         Ok(())
     }
@@ -531,12 +798,24 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
 
     #[allow(clippy::too_many_arguments)]
     async fn create_transaction(
-        &self, org_id: Uuid, program_id: Uuid, member_id: Uuid,
-        transaction_number: &str, transaction_type: &str, points: f64,
-        source_type: &str, source_id: Option<Uuid>, source_number: &str,
-        description: &str, reference_amount: Option<f64>, reference_currency: &str,
-        tier_bonus_applied: f64, promo_bonus_applied: f64, expiry_date: Option<chrono::NaiveDate>,
-        status: &str, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        member_id: Uuid,
+        transaction_number: &str,
+        transaction_type: &str,
+        points: f64,
+        source_type: &str,
+        source_id: Option<Uuid>,
+        source_number: &str,
+        description: &str,
+        reference_amount: Option<f64>,
+        reference_currency: &str,
+        tier_bonus_applied: f64,
+        promo_bonus_applied: f64,
+        expiry_date: Option<chrono::NaiveDate>,
+        status: &str,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyPointTransaction> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.loyalty_point_transactions
@@ -559,27 +838,46 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
 
     async fn get_transaction(&self, id: Uuid) -> AtlasResult<Option<LoyaltyPointTransaction>> {
         let row = sqlx::query("SELECT * FROM _atlas.loyalty_point_transactions WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_transaction))
     }
 
-    async fn get_transaction_by_number(&self, org_id: Uuid, transaction_number: &str) -> AtlasResult<Option<LoyaltyPointTransaction>> {
+    async fn get_transaction_by_number(
+        &self,
+        org_id: Uuid,
+        transaction_number: &str,
+    ) -> AtlasResult<Option<LoyaltyPointTransaction>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.loyalty_point_transactions WHERE organization_id = $1 AND transaction_number = $2"
         ).bind(org_id).bind(transaction_number).fetch_optional(&self.pool).await?;
         Ok(row.as_ref().map(row_to_transaction))
     }
 
-    async fn list_transactions(&self, member_id: Uuid, txn_type: Option<&str>) -> AtlasResult<Vec<LoyaltyPointTransaction>> {
+    async fn list_transactions(
+        &self,
+        member_id: Uuid,
+        txn_type: Option<&str>,
+    ) -> AtlasResult<Vec<LoyaltyPointTransaction>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.loyalty_point_transactions
                WHERE member_id = $1 AND ($2::text IS NULL OR transaction_type = $2)
                ORDER BY created_at DESC",
-        ).bind(member_id).bind(txn_type).fetch_all(&self.pool).await?;
+        )
+        .bind(member_id)
+        .bind(txn_type)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows.iter().map(row_to_transaction).collect())
     }
 
-    async fn update_transaction_status(&self, id: Uuid, status: &str, reason: &str) -> AtlasResult<LoyaltyPointTransaction> {
+    async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        reason: &str,
+    ) -> AtlasResult<LoyaltyPointTransaction> {
         let row = sqlx::query(
             r"UPDATE _atlas.loyalty_point_transactions SET status = $2, reversal_reason = $3, updated_at = now()
                WHERE id = $1 RETURNING *",
@@ -594,7 +892,9 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
             "DELETE FROM _atlas.loyalty_point_transactions WHERE organization_id = $1 AND transaction_number = $2"
         ).bind(org_id).bind(transaction_number).execute(&self.pool).await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Transaction '{transaction_number}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Transaction '{transaction_number}' not found"
+            )));
         }
         Ok(())
     }
@@ -605,13 +905,25 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
 
     #[allow(clippy::too_many_arguments)]
     async fn create_reward(
-        &self, org_id: Uuid, program_id: Uuid, reward_code: &str, name: &str,
-        description: Option<&str>, reward_type: &str, points_required: f64,
-        cash_value: f64, currency_code: &str, tier_restriction: &str,
-        quantity_available: Option<i32>, max_per_member: Option<i32>,
-        image_url: &str, is_active: bool,
-        start_date: Option<chrono::NaiveDate>, end_date: Option<chrono::NaiveDate>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        reward_code: &str,
+        name: &str,
+        description: Option<&str>,
+        reward_type: &str,
+        points_required: f64,
+        cash_value: f64,
+        currency_code: &str,
+        tier_restriction: &str,
+        quantity_available: Option<i32>,
+        max_per_member: Option<i32>,
+        image_url: &str,
+        is_active: bool,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyReward> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.loyalty_rewards
@@ -624,34 +936,66 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
                     $13, $14, $15, $16, $17, '{}'::jsonb, $18)
             RETURNING *",
         )
-        .bind(org_id).bind(program_id).bind(reward_code).bind(name).bind(description.unwrap_or(""))
-        .bind(reward_type).bind(points_required).bind(cash_value).bind(currency_code)
-        .bind(tier_restriction).bind(quantity_available).bind(max_per_member)
-        .bind(image_url).bind(is_active).bind(start_date).bind(end_date)
-        .bind(notes.unwrap_or("")).bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(program_id)
+        .bind(reward_code)
+        .bind(name)
+        .bind(description.unwrap_or(""))
+        .bind(reward_type)
+        .bind(points_required)
+        .bind(cash_value)
+        .bind(currency_code)
+        .bind(tier_restriction)
+        .bind(quantity_available)
+        .bind(max_per_member)
+        .bind(image_url)
+        .bind(is_active)
+        .bind(start_date)
+        .bind(end_date)
+        .bind(notes.unwrap_or(""))
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_reward(&row))
     }
 
     async fn get_reward(&self, id: Uuid) -> AtlasResult<Option<LoyaltyReward>> {
         let row = sqlx::query("SELECT * FROM _atlas.loyalty_rewards WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_reward))
     }
 
-    async fn get_reward_by_code(&self, org_id: Uuid, reward_code: &str) -> AtlasResult<Option<LoyaltyReward>> {
+    async fn get_reward_by_code(
+        &self,
+        org_id: Uuid,
+        reward_code: &str,
+    ) -> AtlasResult<Option<LoyaltyReward>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.loyalty_rewards WHERE organization_id = $1 AND reward_code = $2"
-        ).bind(org_id).bind(reward_code).fetch_optional(&self.pool).await?;
+            "SELECT * FROM _atlas.loyalty_rewards WHERE organization_id = $1 AND reward_code = $2",
+        )
+        .bind(org_id)
+        .bind(reward_code)
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(row.as_ref().map(row_to_reward))
     }
 
-    async fn list_rewards(&self, program_id: Uuid, reward_type: Option<&str>) -> AtlasResult<Vec<LoyaltyReward>> {
+    async fn list_rewards(
+        &self,
+        program_id: Uuid,
+        reward_type: Option<&str>,
+    ) -> AtlasResult<Vec<LoyaltyReward>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.loyalty_rewards
                WHERE program_id = $1 AND ($2::text IS NULL OR reward_type = $2)
                ORDER BY points_required ASC",
-        ).bind(program_id).bind(reward_type).fetch_all(&self.pool).await?;
+        )
+        .bind(program_id)
+        .bind(reward_type)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows.iter().map(row_to_reward).collect())
     }
 
@@ -673,10 +1017,16 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
 
     async fn delete_reward(&self, org_id: Uuid, reward_code: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.loyalty_rewards WHERE organization_id = $1 AND reward_code = $2"
-        ).bind(org_id).bind(reward_code).execute(&self.pool).await?;
+            "DELETE FROM _atlas.loyalty_rewards WHERE organization_id = $1 AND reward_code = $2",
+        )
+        .bind(org_id)
+        .bind(reward_code)
+        .execute(&self.pool)
+        .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Reward '{reward_code}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Reward '{reward_code}' not found"
+            )));
         }
         Ok(())
     }
@@ -686,9 +1036,17 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
     // ========================================================================
 
     async fn create_redemption(
-        &self, org_id: Uuid, program_id: Uuid, member_id: Uuid, reward_id: Uuid,
-        redemption_number: &str, points_spent: f64, quantity: i32, status: &str,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        member_id: Uuid,
+        reward_id: Uuid,
+        redemption_number: &str,
+        points_spent: f64,
+        quantity: i32,
+        status: &str,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyRedemption> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.loyalty_redemptions
@@ -698,32 +1056,54 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '{}'::jsonb, $10)
             RETURNING *",
         )
-        .bind(org_id).bind(program_id).bind(member_id).bind(reward_id)
-        .bind(redemption_number).bind(points_spent).bind(quantity).bind(status)
-        .bind(notes.unwrap_or("")).bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(program_id)
+        .bind(member_id)
+        .bind(reward_id)
+        .bind(redemption_number)
+        .bind(points_spent)
+        .bind(quantity)
+        .bind(status)
+        .bind(notes.unwrap_or(""))
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_redemption(&row))
     }
 
     async fn get_redemption(&self, id: Uuid) -> AtlasResult<Option<LoyaltyRedemption>> {
         let row = sqlx::query("SELECT * FROM _atlas.loyalty_redemptions WHERE id = $1")
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_redemption))
     }
 
-    async fn get_redemption_by_number(&self, org_id: Uuid, redemption_number: &str) -> AtlasResult<Option<LoyaltyRedemption>> {
+    async fn get_redemption_by_number(
+        &self,
+        org_id: Uuid,
+        redemption_number: &str,
+    ) -> AtlasResult<Option<LoyaltyRedemption>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.loyalty_redemptions WHERE organization_id = $1 AND redemption_number = $2"
         ).bind(org_id).bind(redemption_number).fetch_optional(&self.pool).await?;
         Ok(row.as_ref().map(row_to_redemption))
     }
 
-    async fn list_redemptions(&self, member_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<LoyaltyRedemption>> {
+    async fn list_redemptions(
+        &self,
+        member_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<LoyaltyRedemption>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.loyalty_redemptions
                WHERE member_id = $1 AND ($2::text IS NULL OR status = $2)
                ORDER BY created_at DESC",
-        ).bind(member_id).bind(status).fetch_all(&self.pool).await?;
+        )
+        .bind(member_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows.iter().map(row_to_redemption).collect())
     }
 
@@ -732,8 +1112,10 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
             r"UPDATE _atlas.loyalty_redemptions
                SET status = 'fulfilled', fulfilled_at = now(), updated_at = now()
                WHERE id = $1 RETURNING *",
-        ).bind(id)
-        .fetch_one(&self.pool).await
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|_| AtlasError::EntityNotFound(format!("Redemption {id} not found")))?;
         Ok(row_to_redemption(&row))
     }
@@ -743,8 +1125,11 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
             r"UPDATE _atlas.loyalty_redemptions
                SET status = 'cancelled', cancelled_reason = $2, updated_at = now()
                WHERE id = $1 RETURNING *",
-        ).bind(id).bind(reason)
-        .fetch_one(&self.pool).await
+        )
+        .bind(id)
+        .bind(reason)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|_| AtlasError::EntityNotFound(format!("Redemption {id} not found")))?;
         Ok(row_to_redemption(&row))
     }
@@ -752,8 +1137,12 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
     async fn count_member_redemptions(&self, member_id: Uuid, reward_id: Uuid) -> AtlasResult<i32> {
         let row = sqlx::query(
             r"SELECT COALESCE(SUM(quantity), 0) as cnt FROM _atlas.loyalty_redemptions
-               WHERE member_id = $1 AND reward_id = $2 AND status != 'cancelled'"
-        ).bind(member_id).bind(reward_id).fetch_one(&self.pool).await?;
+               WHERE member_id = $1 AND reward_id = $2 AND status != 'cancelled'",
+        )
+        .bind(member_id)
+        .bind(reward_id)
+        .fetch_one(&self.pool)
+        .await?;
         let count: i64 = row.try_get("cnt").unwrap_or(0);
         Ok(count as i32)
     }
@@ -763,20 +1152,28 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
     // ========================================================================
 
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<LoyaltyDashboard> {
-        let programs = sqlx::query(
-            "SELECT status FROM _atlas.loyalty_programs WHERE organization_id = $1"
-        ).bind(org_id).fetch_all(&self.pool).await.unwrap_or_default();
+        let programs =
+            sqlx::query("SELECT status FROM _atlas.loyalty_programs WHERE organization_id = $1")
+                .bind(org_id)
+                .fetch_all(&self.pool)
+                .await
+                .unwrap_or_default();
 
         let total_programs = programs.len() as i64;
-        let active_programs = programs.iter()
+        let active_programs = programs
+            .iter()
             .filter(|r| r.try_get::<String, _>("status").unwrap_or_default() == "active")
             .count() as i64;
 
         let member_stats = sqlx::query(
             r"SELECT COUNT(*) as cnt,
                       COUNT(CASE WHEN status = 'active' THEN 1 END) as active_cnt
-               FROM _atlas.loyalty_members WHERE organization_id = $1"
-        ).bind(org_id).fetch_one(&self.pool).await.unwrap();
+               FROM _atlas.loyalty_members WHERE organization_id = $1",
+        )
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap();
 
         let total_members: i64 = member_stats.try_get("cnt").unwrap_or(0);
         let active_members: i64 = member_stats.try_get("active_cnt").unwrap_or(0);
@@ -796,8 +1193,12 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
         let red_stats = sqlx::query(
             r"SELECT COUNT(*) as total,
                       COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending
-               FROM _atlas.loyalty_redemptions WHERE organization_id = $1"
-        ).bind(org_id).fetch_one(&self.pool).await.unwrap();
+               FROM _atlas.loyalty_redemptions WHERE organization_id = $1",
+        )
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap();
 
         let total_redemptions: i64 = red_stats.try_get("total").unwrap_or(0);
         let pending_redemptions: i64 = red_stats.try_get("pending").unwrap_or(0);
@@ -806,8 +1207,12 @@ impl LoyaltyManagementRepository for PostgresLoyaltyManagementRepository {
         let tier_stats = sqlx::query(
             r"SELECT tier_code, COUNT(*) as cnt FROM _atlas.loyalty_members
                WHERE organization_id = $1 AND status = 'active'
-               GROUP BY tier_code"
-        ).bind(org_id).fetch_all(&self.pool).await.unwrap_or_default();
+               GROUP BY tier_code",
+        )
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
+        .unwrap_or_default();
 
         let mut by_tier = serde_json::Map::new();
         for row in &tier_stats {

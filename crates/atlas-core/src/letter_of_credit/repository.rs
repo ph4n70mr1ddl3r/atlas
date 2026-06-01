@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for letters of credit, amendments, required documents,
 //! shipments, presentations, and presentation documents.
 
-use atlas_shared::{
-    LetterOfCredit, LcAmendment, LcRequiredDocument, LcShipment,
-    LcPresentation, LcPresentationDocument, LcDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, LcAmendment, LcDashboard, LcPresentation, LcPresentationDocument,
+    LcRequiredDocument, LcShipment, LetterOfCredit,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 // chrono::DateTime, chrono::Utc used implicitly via sqlx::FromRow
@@ -19,23 +18,54 @@ pub trait LetterOfCreditRepository: Send + Sync {
     // LC CRUD
     async fn create_lc(&self, lc: &LetterOfCredit) -> AtlasResult<LetterOfCredit>;
     async fn get_lc_by_id(&self, id: Uuid) -> AtlasResult<Option<LetterOfCredit>>;
-    async fn get_lc_by_number(&self, org_id: Uuid, lc_number: &str) -> AtlasResult<Option<LetterOfCredit>>;
-    async fn list_lcs(&self, org_id: Uuid, status: Option<&str>, lc_type: Option<&str>) -> AtlasResult<Vec<LetterOfCredit>>;
-    async fn update_lc_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<LetterOfCredit>;
+    async fn get_lc_by_number(
+        &self,
+        org_id: Uuid,
+        lc_number: &str,
+    ) -> AtlasResult<Option<LetterOfCredit>>;
+    async fn list_lcs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        lc_type: Option<&str>,
+    ) -> AtlasResult<Vec<LetterOfCredit>>;
+    async fn update_lc_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<LetterOfCredit>;
     async fn update_lc_issue(&self, id: Uuid, issue_date: chrono::NaiveDate) -> AtlasResult<()>;
-    async fn increment_amendment_count(&self, id: Uuid, latest_amendment_number: &str) -> AtlasResult<()>;
-    async fn update_lc_from_amendment(&self, id: Uuid, new_amount: Option<&str>, new_expiry: Option<chrono::NaiveDate>) -> AtlasResult<()>;
+    async fn increment_amendment_count(
+        &self,
+        id: Uuid,
+        latest_amendment_number: &str,
+    ) -> AtlasResult<()>;
+    async fn update_lc_from_amendment(
+        &self,
+        id: Uuid,
+        new_amount: Option<&str>,
+        new_expiry: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<()>;
     async fn delete_lc(&self, org_id: Uuid, lc_number: &str) -> AtlasResult<()>;
 
     // Amendments
     async fn create_amendment(&self, amendment: &LcAmendment) -> AtlasResult<LcAmendment>;
     async fn get_amendment_by_id(&self, id: Uuid) -> AtlasResult<Option<LcAmendment>>;
     async fn list_amendments(&self, lc_id: Uuid) -> AtlasResult<Vec<LcAmendment>>;
-    async fn update_amendment_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<LcAmendment>;
+    async fn update_amendment_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<LcAmendment>;
     async fn count_pending_amendments(&self, org_id: Uuid) -> AtlasResult<i64>;
 
     // Required Documents
-    async fn create_required_document(&self, doc: &LcRequiredDocument) -> AtlasResult<LcRequiredDocument>;
+    async fn create_required_document(
+        &self,
+        doc: &LcRequiredDocument,
+    ) -> AtlasResult<LcRequiredDocument>;
     async fn list_required_documents(&self, lc_id: Uuid) -> AtlasResult<Vec<LcRequiredDocument>>;
     async fn delete_required_document(&self, id: Uuid) -> AtlasResult<()>;
 
@@ -46,15 +76,33 @@ pub trait LetterOfCreditRepository: Send + Sync {
     async fn update_shipment_status(&self, id: Uuid, status: &str) -> AtlasResult<LcShipment>;
 
     // Presentations
-    async fn create_presentation(&self, presentation: &LcPresentation) -> AtlasResult<LcPresentation>;
+    async fn create_presentation(
+        &self,
+        presentation: &LcPresentation,
+    ) -> AtlasResult<LcPresentation>;
     async fn get_presentation_by_id(&self, id: Uuid) -> AtlasResult<Option<LcPresentation>>;
     async fn list_presentations(&self, lc_id: Uuid) -> AtlasResult<Vec<LcPresentation>>;
-    async fn update_presentation_status(&self, id: Uuid, status: &str) -> AtlasResult<LcPresentation>;
-    async fn update_presentation_payment(&self, id: Uuid, paid_amount: &str, payment_date: chrono::NaiveDate) -> AtlasResult<()>;
+    async fn update_presentation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<LcPresentation>;
+    async fn update_presentation_payment(
+        &self,
+        id: Uuid,
+        paid_amount: &str,
+        payment_date: chrono::NaiveDate,
+    ) -> AtlasResult<()>;
 
     // Presentation Documents
-    async fn create_presentation_document(&self, doc: &LcPresentationDocument) -> AtlasResult<LcPresentationDocument>;
-    async fn list_presentation_documents(&self, presentation_id: Uuid) -> AtlasResult<Vec<LcPresentationDocument>>;
+    async fn create_presentation_document(
+        &self,
+        doc: &LcPresentationDocument,
+    ) -> AtlasResult<LcPresentationDocument>;
+    async fn list_presentation_documents(
+        &self,
+        presentation_id: Uuid,
+    ) -> AtlasResult<Vec<LcPresentationDocument>>;
 
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<LcDashboard>;
@@ -66,7 +114,7 @@ pub struct PostgresLetterOfCreditRepository {
 }
 
 impl PostgresLetterOfCreditRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -325,17 +373,28 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
         Ok(row.as_ref().map(Self::row_to_lc))
     }
 
-    async fn get_lc_by_number(&self, org_id: Uuid, lc_number: &str) -> AtlasResult<Option<LetterOfCredit>> {
-        let row = sqlx::query("SELECT * FROM _atlas.letters_of_credit WHERE organization_id = $1 AND lc_number = $2")
-            .bind(org_id)
-            .bind(lc_number)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_lc_by_number(
+        &self,
+        org_id: Uuid,
+        lc_number: &str,
+    ) -> AtlasResult<Option<LetterOfCredit>> {
+        let row = sqlx::query(
+            "SELECT * FROM _atlas.letters_of_credit WHERE organization_id = $1 AND lc_number = $2",
+        )
+        .bind(org_id)
+        .bind(lc_number)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.as_ref().map(Self::row_to_lc))
     }
 
-    async fn list_lcs(&self, org_id: Uuid, status: Option<&str>, lc_type: Option<&str>) -> AtlasResult<Vec<LetterOfCredit>> {
+    async fn list_lcs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        lc_type: Option<&str>,
+    ) -> AtlasResult<Vec<LetterOfCredit>> {
         let rows = match (status, lc_type) {
             (Some(s), Some(t)) => {
                 sqlx::query("SELECT * FROM _atlas.letters_of_credit WHERE organization_id = $1 AND status = $2 AND lc_type = $3 ORDER BY created_at DESC")
@@ -360,7 +419,12 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
         Ok(rows.iter().map(Self::row_to_lc).collect())
     }
 
-    async fn update_lc_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<LetterOfCredit> {
+    async fn update_lc_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<LetterOfCredit> {
         let row = sqlx::query(
             "UPDATE _atlas.letters_of_credit SET status = $2, approved_by = $3, updated_at = now() WHERE id = $1 RETURNING *"
         )
@@ -372,15 +436,22 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
     }
 
     async fn update_lc_issue(&self, id: Uuid, issue_date: chrono::NaiveDate) -> AtlasResult<()> {
-        sqlx::query("UPDATE _atlas.letters_of_credit SET issue_date = $2, updated_at = now() WHERE id = $1")
-            .bind(id).bind(issue_date)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "UPDATE _atlas.letters_of_credit SET issue_date = $2, updated_at = now() WHERE id = $1",
+        )
+        .bind(id)
+        .bind(issue_date)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
-    async fn increment_amendment_count(&self, id: Uuid, latest_amendment_number: &str) -> AtlasResult<()> {
+    async fn increment_amendment_count(
+        &self,
+        id: Uuid,
+        latest_amendment_number: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.letters_of_credit SET amendment_count = amendment_count + 1, latest_amendment_number = $2, updated_at = now() WHERE id = $1"
         )
@@ -391,7 +462,12 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
         Ok(())
     }
 
-    async fn update_lc_from_amendment(&self, id: Uuid, new_amount: Option<&str>, new_expiry: Option<chrono::NaiveDate>) -> AtlasResult<()> {
+    async fn update_lc_from_amendment(
+        &self,
+        id: Uuid,
+        new_amount: Option<&str>,
+        new_expiry: Option<chrono::NaiveDate>,
+    ) -> AtlasResult<()> {
         match (new_amount, new_expiry) {
             (Some(amt), Some(exp)) => {
                 sqlx::query("UPDATE _atlas.letters_of_credit SET lc_amount = $2, expiry_date = $3, updated_at = now() WHERE id = $1")
@@ -420,14 +496,17 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Letter of credit not found or not in draft status".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Letter of credit not found or not in draft status".to_string(),
+            ));
         }
         Ok(())
     }
 
     // Amendments
     async fn create_amendment(&self, amendment: &LcAmendment) -> AtlasResult<LcAmendment> {
-        let row = sqlx::query(r"
+        let row = sqlx::query(
+            r"
             INSERT INTO _atlas.lc_amendments (
                 id, organization_id, lc_id, lc_number, amendment_number, amendment_type,
                 previous_amount, new_amount, previous_expiry_date, new_expiry_date,
@@ -435,27 +514,28 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
                 status, effective_date, created_by
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
             RETURNING *
-        ")
-            .bind(amendment.id)
-            .bind(amendment.org_id)
-            .bind(amendment.lc_id)
-            .bind(&amendment.lc_number)
-            .bind(&amendment.amendment_number)
-            .bind(&amendment.amendment_type)
-            .bind(&amendment.previous_amount)
-            .bind(&amendment.new_amount)
-            .bind(amendment.previous_expiry_date)
-            .bind(amendment.new_expiry_date)
-            .bind(&amendment.previous_terms)
-            .bind(&amendment.new_terms)
-            .bind(&amendment.reason)
-            .bind(&amendment.bank_reference)
-            .bind(&amendment.status)
-            .bind(amendment.effective_date)
-            .bind(amendment.created_by_id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        ",
+        )
+        .bind(amendment.id)
+        .bind(amendment.org_id)
+        .bind(amendment.lc_id)
+        .bind(&amendment.lc_number)
+        .bind(&amendment.amendment_number)
+        .bind(&amendment.amendment_type)
+        .bind(&amendment.previous_amount)
+        .bind(&amendment.new_amount)
+        .bind(amendment.previous_expiry_date)
+        .bind(amendment.new_expiry_date)
+        .bind(&amendment.previous_terms)
+        .bind(&amendment.new_terms)
+        .bind(&amendment.reason)
+        .bind(&amendment.bank_reference)
+        .bind(&amendment.status)
+        .bind(amendment.effective_date)
+        .bind(amendment.created_by_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(Self::row_to_amendment(&row))
     }
 
@@ -469,15 +549,22 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
     }
 
     async fn list_amendments(&self, lc_id: Uuid) -> AtlasResult<Vec<LcAmendment>> {
-        let rows = sqlx::query("SELECT * FROM _atlas.lc_amendments WHERE lc_id = $1 ORDER BY created_at DESC")
-            .bind(lc_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let rows = sqlx::query(
+            "SELECT * FROM _atlas.lc_amendments WHERE lc_id = $1 ORDER BY created_at DESC",
+        )
+        .bind(lc_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(Self::row_to_amendment).collect())
     }
 
-    async fn update_amendment_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<LcAmendment> {
+    async fn update_amendment_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<LcAmendment> {
         let row = sqlx::query(
             "UPDATE _atlas.lc_amendments SET status = $2, approved_by = $3, updated_at = now() WHERE id = $1 RETURNING *"
         )
@@ -498,36 +585,43 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
     }
 
     // Required Documents
-    async fn create_required_document(&self, doc: &LcRequiredDocument) -> AtlasResult<LcRequiredDocument> {
-        let row = sqlx::query(r"
+    async fn create_required_document(
+        &self,
+        doc: &LcRequiredDocument,
+    ) -> AtlasResult<LcRequiredDocument> {
+        let row = sqlx::query(
+            r"
             INSERT INTO _atlas.lc_required_documents (
                 id, organization_id, lc_id, document_type, document_code,
                 description, original_copies, copy_count, is_mandatory, special_instructions
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
             RETURNING *
-        ")
-            .bind(doc.id)
-            .bind(doc.org_id)
-            .bind(doc.lc_id)
-            .bind(&doc.document_type)
-            .bind(&doc.document_code)
-            .bind(&doc.description)
-            .bind(doc.original_copies)
-            .bind(doc.copy_count)
-            .bind(doc.is_mandatory)
-            .bind(&doc.special_instructions)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        ",
+        )
+        .bind(doc.id)
+        .bind(doc.org_id)
+        .bind(doc.lc_id)
+        .bind(&doc.document_type)
+        .bind(&doc.document_code)
+        .bind(&doc.description)
+        .bind(doc.original_copies)
+        .bind(doc.copy_count)
+        .bind(doc.is_mandatory)
+        .bind(&doc.special_instructions)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(Self::row_to_required_doc(&row))
     }
 
     async fn list_required_documents(&self, lc_id: Uuid) -> AtlasResult<Vec<LcRequiredDocument>> {
-        let rows = sqlx::query("SELECT * FROM _atlas.lc_required_documents WHERE lc_id = $1 ORDER BY created_at")
-            .bind(lc_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let rows = sqlx::query(
+            "SELECT * FROM _atlas.lc_required_documents WHERE lc_id = $1 ORDER BY created_at",
+        )
+        .bind(lc_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(Self::row_to_required_doc).collect())
     }
 
@@ -592,11 +686,12 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
     }
 
     async fn list_shipments(&self, lc_id: Uuid) -> AtlasResult<Vec<LcShipment>> {
-        let rows = sqlx::query("SELECT * FROM _atlas.lc_shipments WHERE lc_id = $1 ORDER BY created_at")
-            .bind(lc_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let rows =
+            sqlx::query("SELECT * FROM _atlas.lc_shipments WHERE lc_id = $1 ORDER BY created_at")
+                .bind(lc_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(Self::row_to_shipment).collect())
     }
 
@@ -610,8 +705,12 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
     }
 
     // Presentations
-    async fn create_presentation(&self, presentation: &LcPresentation) -> AtlasResult<LcPresentation> {
-        let row = sqlx::query(r"
+    async fn create_presentation(
+        &self,
+        presentation: &LcPresentation,
+    ) -> AtlasResult<LcPresentation> {
+        let row = sqlx::query(
+            r"
             INSERT INTO _atlas.lc_presentations (
                 id, organization_id, lc_id, presentation_number, shipment_id,
                 presentation_date, presenting_bank_name,
@@ -621,30 +720,31 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
                 status, notes, created_by
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
             RETURNING *
-        ")
-            .bind(presentation.id)
-            .bind(presentation.org_id)
-            .bind(presentation.lc_id)
-            .bind(&presentation.presentation_number)
-            .bind(presentation.shipment_id)
-            .bind(presentation.presentation_date)
-            .bind(&presentation.presenting_bank_name)
-            .bind(&presentation.total_amount)
-            .bind(&presentation.currency_code)
-            .bind(presentation.document_count)
-            .bind(presentation.discrepant)
-            .bind(&presentation.discrepancies)
-            .bind(&presentation.bank_response)
-            .bind(presentation.response_date)
-            .bind(presentation.payment_due_date)
-            .bind(presentation.payment_date)
-            .bind(&presentation.paid_amount)
-            .bind(&presentation.status)
-            .bind(&presentation.notes)
-            .bind(presentation.created_by_id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        ",
+        )
+        .bind(presentation.id)
+        .bind(presentation.org_id)
+        .bind(presentation.lc_id)
+        .bind(&presentation.presentation_number)
+        .bind(presentation.shipment_id)
+        .bind(presentation.presentation_date)
+        .bind(&presentation.presenting_bank_name)
+        .bind(&presentation.total_amount)
+        .bind(&presentation.currency_code)
+        .bind(presentation.document_count)
+        .bind(presentation.discrepant)
+        .bind(&presentation.discrepancies)
+        .bind(&presentation.bank_response)
+        .bind(presentation.response_date)
+        .bind(presentation.payment_due_date)
+        .bind(presentation.payment_date)
+        .bind(&presentation.paid_amount)
+        .bind(&presentation.status)
+        .bind(&presentation.notes)
+        .bind(presentation.created_by_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(Self::row_to_presentation(&row))
     }
 
@@ -658,15 +758,21 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
     }
 
     async fn list_presentations(&self, lc_id: Uuid) -> AtlasResult<Vec<LcPresentation>> {
-        let rows = sqlx::query("SELECT * FROM _atlas.lc_presentations WHERE lc_id = $1 ORDER BY created_at DESC")
-            .bind(lc_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let rows = sqlx::query(
+            "SELECT * FROM _atlas.lc_presentations WHERE lc_id = $1 ORDER BY created_at DESC",
+        )
+        .bind(lc_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(Self::row_to_presentation).collect())
     }
 
-    async fn update_presentation_status(&self, id: Uuid, status: &str) -> AtlasResult<LcPresentation> {
+    async fn update_presentation_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<LcPresentation> {
         let row = sqlx::query("UPDATE _atlas.lc_presentations SET status = $2, updated_at = now() WHERE id = $1 RETURNING *")
             .bind(id).bind(status)
             .fetch_one(&self.pool)
@@ -675,7 +781,12 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
         Ok(Self::row_to_presentation(&row))
     }
 
-    async fn update_presentation_payment(&self, id: Uuid, paid_amount: &str, payment_date: chrono::NaiveDate) -> AtlasResult<()> {
+    async fn update_presentation_payment(
+        &self,
+        id: Uuid,
+        paid_amount: &str,
+        payment_date: chrono::NaiveDate,
+    ) -> AtlasResult<()> {
         sqlx::query("UPDATE _atlas.lc_presentations SET paid_amount = $2, payment_date = $3, updated_at = now() WHERE id = $1")
             .bind(id).bind(paid_amount).bind(payment_date)
             .execute(&self.pool)
@@ -685,33 +796,41 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
     }
 
     // Presentation Documents
-    async fn create_presentation_document(&self, doc: &LcPresentationDocument) -> AtlasResult<LcPresentationDocument> {
-        let row = sqlx::query(r"
+    async fn create_presentation_document(
+        &self,
+        doc: &LcPresentationDocument,
+    ) -> AtlasResult<LcPresentationDocument> {
+        let row = sqlx::query(
+            r"
             INSERT INTO _atlas.lc_presentation_documents (
                 id, organization_id, presentation_id, required_document_id,
                 document_type, document_reference, description,
                 original_copies, copy_count, is_compliant, discrepancies
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
             RETURNING *
-        ")
-            .bind(doc.id)
-            .bind(doc.org_id)
-            .bind(doc.presentation_id)
-            .bind(doc.required_document_id)
-            .bind(&doc.document_type)
-            .bind(&doc.document_reference)
-            .bind(&doc.description)
-            .bind(doc.original_copies)
-            .bind(doc.copy_count)
-            .bind(doc.is_compliant)
-            .bind(&doc.discrepancies)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        ",
+        )
+        .bind(doc.id)
+        .bind(doc.org_id)
+        .bind(doc.presentation_id)
+        .bind(doc.required_document_id)
+        .bind(&doc.document_type)
+        .bind(&doc.document_reference)
+        .bind(&doc.description)
+        .bind(doc.original_copies)
+        .bind(doc.copy_count)
+        .bind(doc.is_compliant)
+        .bind(&doc.discrepancies)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(Self::row_to_presentation_doc(&row))
     }
 
-    async fn list_presentation_documents(&self, presentation_id: Uuid) -> AtlasResult<Vec<LcPresentationDocument>> {
+    async fn list_presentation_documents(
+        &self,
+        presentation_id: Uuid,
+    ) -> AtlasResult<Vec<LcPresentationDocument>> {
         let rows = sqlx::query("SELECT * FROM _atlas.lc_presentation_documents WHERE presentation_id = $1 ORDER BY created_at")
             .bind(presentation_id)
             .fetch_all(&self.pool)
@@ -732,12 +851,14 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
 
         let active: Vec<LetterOfCredit> = active_rows.iter().map(Self::row_to_lc).collect();
         let total_active_lcs = active.len() as i32;
-        let total_lc_amount: String = active.iter()
+        let total_lc_amount: String = active
+            .iter()
             .filter_map(|lc| lc.lc_amount.parse::<f64>().ok())
             .sum::<f64>()
             .to_string();
 
-        let total_pending_amendments = self.count_pending_amendments(org_id).await.unwrap_or(0) as i32;
+        let total_pending_amendments =
+            self.count_pending_amendments(org_id).await.unwrap_or(0) as i32;
 
         let pending_presentations: i64 = sqlx::query(
             "SELECT COUNT(*) as cnt FROM _atlas.lc_presentations p JOIN _atlas.letters_of_credit lc ON p.lc_id = lc.id WHERE lc.organization_id = $1 AND p.status IN ('submitted', 'under_review')"
@@ -776,28 +897,37 @@ impl LetterOfCreditRepository for PostgresLetterOfCreditRepository {
             .map_or(0, |r| r.get("cnt"));
 
         // by_type / by_currency / by_status
-        let all_rows = sqlx::query("SELECT * FROM _atlas.letters_of_credit WHERE organization_id = $1")
-            .bind(org_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let all_rows =
+            sqlx::query("SELECT * FROM _atlas.letters_of_credit WHERE organization_id = $1")
+                .bind(org_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         let all: Vec<LetterOfCredit> = all_rows.iter().map(Self::row_to_lc).collect();
 
         let mut by_type: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
-        let mut by_currency: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
-        let mut by_status: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+        let mut by_currency: std::collections::HashMap<String, i64> =
+            std::collections::HashMap::new();
+        let mut by_status: std::collections::HashMap<String, i64> =
+            std::collections::HashMap::new();
         for lc in &all {
             *by_type.entry(lc.lc_type.clone()).or_insert(0) += 1;
             *by_currency.entry(lc.currency_code.clone()).or_insert(0) += 1;
             *by_status.entry(lc.status.clone()).or_insert(0) += 1;
         }
 
-        let by_type_json: serde_json::Map<String, serde_json::Value> = by_type.into_iter()
-            .map(|(k, v)| (k, serde_json::Value::from(v))).collect();
-        let by_currency_json: serde_json::Map<String, serde_json::Value> = by_currency.into_iter()
-            .map(|(k, v)| (k, serde_json::Value::from(v))).collect();
-        let by_status_json: serde_json::Map<String, serde_json::Value> = by_status.into_iter()
-            .map(|(k, v)| (k, serde_json::Value::from(v))).collect();
+        let by_type_json: serde_json::Map<String, serde_json::Value> = by_type
+            .into_iter()
+            .map(|(k, v)| (k, serde_json::Value::from(v)))
+            .collect();
+        let by_currency_json: serde_json::Map<String, serde_json::Value> = by_currency
+            .into_iter()
+            .map(|(k, v)| (k, serde_json::Value::from(v)))
+            .collect();
+        let by_status_json: serde_json::Map<String, serde_json::Value> = by_status
+            .into_iter()
+            .map(|(k, v)| (k, serde_json::Value::from(v)))
+            .collect();
 
         Ok(LcDashboard {
             total_active_lcs,

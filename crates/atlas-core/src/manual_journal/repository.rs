@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for journal batches, journal entries, and journal entry lines.
 
-use atlas_shared::{
-    JournalBatch, JournalEntry, JournalEntryLine, ManualJournalDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, JournalBatch, JournalEntry, JournalEntryLine,
+    ManualJournalDashboardSummary,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -15,65 +15,130 @@ use uuid::Uuid;
 pub trait ManualJournalRepository: Send + Sync {
     // Batches
     async fn create_batch(
-        &self, org_id: Uuid, batch_number: &str, name: &str, description: Option<&str>,
-        ledger_id: Option<Uuid>, currency_code: &str, accounting_date: Option<chrono::NaiveDate>,
-        period_name: Option<&str>, source: &str, is_automatic_post: bool,
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+        name: &str,
+        description: Option<&str>,
+        ledger_id: Option<Uuid>,
+        currency_code: &str,
+        accounting_date: Option<chrono::NaiveDate>,
+        period_name: Option<&str>,
+        source: &str,
+        is_automatic_post: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalBatch>;
-    async fn get_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<JournalBatch>>;
+    async fn get_batch(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<JournalBatch>>;
     async fn get_batch_by_id(&self, id: Uuid) -> AtlasResult<Option<JournalBatch>>;
-    async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalBatch>>;
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JournalBatch>>;
     async fn update_batch_status(
-        &self, id: Uuid, status: &str,
-        submitted_by: Option<Uuid>, approved_by: Option<Uuid>,
-        posted_by: Option<Uuid>, rejection_reason: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        submitted_by: Option<Uuid>,
+        approved_by: Option<Uuid>,
+        posted_by: Option<Uuid>,
+        rejection_reason: Option<&str>,
     ) -> AtlasResult<JournalBatch>;
     async fn update_batch_totals(
-        &self, id: Uuid, total_debit: &str, total_credit: &str, entry_count: i32,
+        &self,
+        id: Uuid,
+        total_debit: &str,
+        total_credit: &str,
+        entry_count: i32,
     ) -> AtlasResult<()>;
     async fn delete_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<()>;
 
     // Entries
     async fn create_entry(
-        &self, org_id: Uuid, batch_id: Uuid, entry_number: &str, name: Option<&str>,
-        description: Option<&str>, ledger_id: Option<Uuid>, currency_code: &str,
-        accounting_date: Option<chrono::NaiveDate>, period_name: Option<&str>,
-        journal_category: &str, journal_source: &str,
-        reference_number: Option<&str>, external_reference: Option<&str>,
-        statistical_entry: bool, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        batch_id: Uuid,
+        entry_number: &str,
+        name: Option<&str>,
+        description: Option<&str>,
+        ledger_id: Option<Uuid>,
+        currency_code: &str,
+        accounting_date: Option<chrono::NaiveDate>,
+        period_name: Option<&str>,
+        journal_category: &str,
+        journal_source: &str,
+        reference_number: Option<&str>,
+        external_reference: Option<&str>,
+        statistical_entry: bool,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<JournalEntry>;
     async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<JournalEntry>>;
-    async fn get_entry_by_number(&self, org_id: Uuid, entry_number: &str) -> AtlasResult<Option<JournalEntry>>;
+    async fn get_entry_by_number(
+        &self,
+        org_id: Uuid,
+        entry_number: &str,
+    ) -> AtlasResult<Option<JournalEntry>>;
     async fn list_entries_by_batch(&self, batch_id: Uuid) -> AtlasResult<Vec<JournalEntry>>;
-    async fn list_entries(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalEntry>>;
+    async fn list_entries(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JournalEntry>>;
     async fn update_entry_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
         posted_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<JournalEntry>;
     async fn update_entry_totals(
-        &self, id: Uuid, total_debit: &str, total_credit: &str,
-        line_count: i32, is_balanced: bool,
+        &self,
+        id: Uuid,
+        total_debit: &str,
+        total_credit: &str,
+        line_count: i32,
+        is_balanced: bool,
     ) -> AtlasResult<()>;
     async fn mark_entry_reversal(
-        &self, id: Uuid, reversed_by_entry_id: Uuid,
+        &self,
+        id: Uuid,
+        reversed_by_entry_id: Uuid,
     ) -> AtlasResult<JournalEntry>;
     async fn delete_entry(&self, id: Uuid) -> AtlasResult<()>;
 
     // Lines
     async fn create_line(
-        &self, org_id: Uuid, entry_id: Uuid, line_number: i32,
-        line_type: &str, account_code: &str, account_name: Option<&str>,
-        description: Option<&str>, amount: &str, entered_amount: Option<&str>,
-        entered_currency_code: Option<&str>, exchange_rate: Option<&str>,
-        tax_code: Option<&str>, cost_center: Option<&str>,
-        department_id: Option<Uuid>, project_id: Option<Uuid>,
-        intercompany_entity_id: Option<Uuid>, statistical_amount: Option<&str>,
+        &self,
+        org_id: Uuid,
+        entry_id: Uuid,
+        line_number: i32,
+        line_type: &str,
+        account_code: &str,
+        account_name: Option<&str>,
+        description: Option<&str>,
+        amount: &str,
+        entered_amount: Option<&str>,
+        entered_currency_code: Option<&str>,
+        exchange_rate: Option<&str>,
+        tax_code: Option<&str>,
+        cost_center: Option<&str>,
+        department_id: Option<Uuid>,
+        project_id: Option<Uuid>,
+        intercompany_entity_id: Option<Uuid>,
+        statistical_amount: Option<&str>,
     ) -> AtlasResult<JournalEntryLine>;
     async fn list_lines_by_entry(&self, entry_id: Uuid) -> AtlasResult<Vec<JournalEntryLine>>;
     async fn delete_line(&self, id: Uuid) -> AtlasResult<()>;
 
     // Dashboard
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ManualJournalDashboardSummary>;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ManualJournalDashboardSummary>;
 }
 
 /// `PostgreSQL` implementation
@@ -82,7 +147,7 @@ pub struct PostgresManualJournalRepository {
 }
 
 impl PostgresManualJournalRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -101,8 +166,18 @@ fn row_to_batch(row: &sqlx::postgres::PgRow) -> JournalBatch {
         currency_code: row.get("currency_code"),
         accounting_date: row.get("accounting_date"),
         period_name: row.get("period_name"),
-        total_debit: row.try_get("total_debit").unwrap_or(Value::Null).to_string().trim_matches('"').to_string(),
-        total_credit: row.try_get("total_credit").unwrap_or(Value::Null).to_string().trim_matches('"').to_string(),
+        total_debit: row
+            .try_get("total_debit")
+            .unwrap_or(Value::Null)
+            .to_string()
+            .trim_matches('"')
+            .to_string(),
+        total_credit: row
+            .try_get("total_credit")
+            .unwrap_or(Value::Null)
+            .to_string()
+            .trim_matches('"')
+            .to_string(),
         entry_count: row.get("entry_count"),
         source: row.get("source"),
         is_automatic_post: row.get("is_automatic_post"),
@@ -136,8 +211,18 @@ fn row_to_entry(row: &sqlx::postgres::PgRow) -> JournalEntry {
         period_name: row.get("period_name"),
         journal_category: row.get("journal_category"),
         journal_source: row.get("journal_source"),
-        total_debit: row.try_get("total_debit").unwrap_or(Value::Null).to_string().trim_matches('"').to_string(),
-        total_credit: row.try_get("total_credit").unwrap_or(Value::Null).to_string().trim_matches('"').to_string(),
+        total_debit: row
+            .try_get("total_debit")
+            .unwrap_or(Value::Null)
+            .to_string()
+            .trim_matches('"')
+            .to_string(),
+        total_credit: row
+            .try_get("total_credit")
+            .unwrap_or(Value::Null)
+            .to_string()
+            .trim_matches('"')
+            .to_string(),
         line_count: row.get("line_count"),
         is_balanced: row.get("is_balanced"),
         is_reversal: row.get("is_reversal"),
@@ -167,16 +252,30 @@ fn row_to_line(row: &sqlx::postgres::PgRow) -> JournalEntryLine {
         account_code: row.get("account_code"),
         account_name: row.get("account_name"),
         description: row.get("description"),
-        amount: row.try_get("amount").unwrap_or(Value::Null).to_string().trim_matches('"').to_string(),
-        entered_amount: row.try_get("entered_amount").unwrap_or(None).map(|v: Value| v.to_string().trim_matches('"').to_string()),
+        amount: row
+            .try_get("amount")
+            .unwrap_or(Value::Null)
+            .to_string()
+            .trim_matches('"')
+            .to_string(),
+        entered_amount: row
+            .try_get("entered_amount")
+            .unwrap_or(None)
+            .map(|v: Value| v.to_string().trim_matches('"').to_string()),
         entered_currency_code: row.get("entered_currency_code"),
-        exchange_rate: row.try_get("exchange_rate").unwrap_or(None).map(|v: Value| v.to_string().trim_matches('"').to_string()),
+        exchange_rate: row
+            .try_get("exchange_rate")
+            .unwrap_or(None)
+            .map(|v: Value| v.to_string().trim_matches('"').to_string()),
         tax_code: row.get("tax_code"),
         cost_center: row.get("cost_center"),
         department_id: row.get("department_id"),
         project_id: row.get("project_id"),
         intercompany_entity_id: row.get("intercompany_entity_id"),
-        statistical_amount: row.try_get("statistical_amount").unwrap_or(None).map(|v: Value| v.to_string().trim_matches('"').to_string()),
+        statistical_amount: row
+            .try_get("statistical_amount")
+            .unwrap_or(None)
+            .map(|v: Value| v.to_string().trim_matches('"').to_string()),
         reference1: row.get("reference1"),
         reference2: row.get("reference2"),
         reference3: row.get("reference3"),
@@ -190,9 +289,17 @@ fn row_to_line(row: &sqlx::postgres::PgRow) -> JournalEntryLine {
 #[async_trait]
 impl ManualJournalRepository for PostgresManualJournalRepository {
     async fn create_batch(
-        &self, org_id: Uuid, batch_number: &str, name: &str, description: Option<&str>,
-        ledger_id: Option<Uuid>, currency_code: &str, accounting_date: Option<chrono::NaiveDate>,
-        period_name: Option<&str>, source: &str, is_automatic_post: bool,
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+        name: &str,
+        description: Option<&str>,
+        ledger_id: Option<Uuid>,
+        currency_code: &str,
+        accounting_date: Option<chrono::NaiveDate>,
+        period_name: Option<&str>,
+        source: &str,
+        is_automatic_post: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<JournalBatch> {
         let row = sqlx::query(
@@ -202,21 +309,35 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
                  is_automatic_post, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *",
         )
-        .bind(org_id).bind(batch_number).bind(name).bind(description)
-        .bind(ledger_id).bind(currency_code).bind(accounting_date)
-        .bind(period_name).bind(source).bind(is_automatic_post)
+        .bind(org_id)
+        .bind(batch_number)
+        .bind(name)
+        .bind(description)
+        .bind(ledger_id)
+        .bind(currency_code)
+        .bind(accounting_date)
+        .bind(period_name)
+        .bind(source)
+        .bind(is_automatic_post)
         .bind(created_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_batch(&row))
     }
 
-    async fn get_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<JournalBatch>> {
+    async fn get_batch(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<JournalBatch>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.journal_batches WHERE organization_id=$1 AND batch_number=$2"
+            "SELECT * FROM _atlas.journal_batches WHERE organization_id=$1 AND batch_number=$2",
         )
-        .bind(org_id).bind(batch_number)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(batch_number)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_batch(&r)))
     }
@@ -224,27 +345,38 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
     async fn get_batch_by_id(&self, id: Uuid) -> AtlasResult<Option<JournalBatch>> {
         let row = sqlx::query("SELECT * FROM _atlas.journal_batches WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_batch(&r)))
     }
 
-    async fn list_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalBatch>> {
+    async fn list_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JournalBatch>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.journal_batches
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             ORDER BY created_at DESC",
         )
-        .bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_batch).collect())
     }
 
     async fn update_batch_status(
-        &self, id: Uuid, status: &str,
-        submitted_by: Option<Uuid>, approved_by: Option<Uuid>,
-        posted_by: Option<Uuid>, rejection_reason: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        submitted_by: Option<Uuid>,
+        approved_by: Option<Uuid>,
+        posted_by: Option<Uuid>,
+        rejection_reason: Option<&str>,
     ) -> AtlasResult<JournalBatch> {
         let row = sqlx::query(
             r"UPDATE _atlas.journal_batches SET status=$2,
@@ -265,36 +397,56 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
     }
 
     async fn update_batch_totals(
-        &self, id: Uuid, total_debit: &str, total_credit: &str, entry_count: i32,
+        &self,
+        id: Uuid,
+        total_debit: &str,
+        total_credit: &str,
+        entry_count: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.journal_batches
             SET total_debit=$2::numeric, total_credit=$3::numeric,
                 entry_count=$4, updated_at=now() WHERE id=$1",
         )
-        .bind(id).bind(total_debit).bind(total_credit).bind(entry_count)
-        .execute(&self.pool).await
+        .bind(id)
+        .bind(total_debit)
+        .bind(total_credit)
+        .bind(entry_count)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn delete_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<()> {
         sqlx::query(
-            "DELETE FROM _atlas.journal_batches WHERE organization_id=$1 AND batch_number=$2"
+            "DELETE FROM _atlas.journal_batches WHERE organization_id=$1 AND batch_number=$2",
         )
-        .bind(org_id).bind(batch_number)
-        .execute(&self.pool).await
+        .bind(org_id)
+        .bind(batch_number)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn create_entry(
-        &self, org_id: Uuid, batch_id: Uuid, entry_number: &str, name: Option<&str>,
-        description: Option<&str>, ledger_id: Option<Uuid>, currency_code: &str,
-        accounting_date: Option<chrono::NaiveDate>, period_name: Option<&str>,
-        journal_category: &str, journal_source: &str,
-        reference_number: Option<&str>, external_reference: Option<&str>,
-        statistical_entry: bool, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        batch_id: Uuid,
+        entry_number: &str,
+        name: Option<&str>,
+        description: Option<&str>,
+        ledger_id: Option<Uuid>,
+        currency_code: &str,
+        accounting_date: Option<chrono::NaiveDate>,
+        period_name: Option<&str>,
+        journal_category: &str,
+        journal_source: &str,
+        reference_number: Option<&str>,
+        external_reference: Option<&str>,
+        statistical_entry: bool,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<JournalEntry> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.journal_entries
@@ -304,12 +456,23 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
                  external_reference, statistical_entry, created_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *",
         )
-        .bind(org_id).bind(batch_id).bind(entry_number).bind(name)
-        .bind(description).bind(ledger_id).bind(currency_code)
-        .bind(accounting_date).bind(period_name).bind(journal_category)
-        .bind(journal_source).bind(reference_number)
-        .bind(external_reference).bind(statistical_entry).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(batch_id)
+        .bind(entry_number)
+        .bind(name)
+        .bind(description)
+        .bind(ledger_id)
+        .bind(currency_code)
+        .bind(accounting_date)
+        .bind(period_name)
+        .bind(journal_category)
+        .bind(journal_source)
+        .bind(reference_number)
+        .bind(external_reference)
+        .bind(statistical_entry)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_entry(&row))
     }
@@ -317,45 +480,62 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
     async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<JournalEntry>> {
         let row = sqlx::query("SELECT * FROM _atlas.journal_entries WHERE id=$1")
             .bind(id)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_entry(&r)))
     }
 
-    async fn get_entry_by_number(&self, org_id: Uuid, entry_number: &str) -> AtlasResult<Option<JournalEntry>> {
+    async fn get_entry_by_number(
+        &self,
+        org_id: Uuid,
+        entry_number: &str,
+    ) -> AtlasResult<Option<JournalEntry>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.journal_entries WHERE organization_id=$1 AND entry_number=$2"
+            "SELECT * FROM _atlas.journal_entries WHERE organization_id=$1 AND entry_number=$2",
         )
-        .bind(org_id).bind(entry_number)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(entry_number)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_entry(&r)))
     }
 
     async fn list_entries_by_batch(&self, batch_id: Uuid) -> AtlasResult<Vec<JournalEntry>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.journal_entries WHERE batch_id=$1 ORDER BY entry_number"
+            "SELECT * FROM _atlas.journal_entries WHERE batch_id=$1 ORDER BY entry_number",
         )
         .bind(batch_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_entry).collect())
     }
 
-    async fn list_entries(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<JournalEntry>> {
+    async fn list_entries(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<JournalEntry>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.journal_entries
             WHERE organization_id=$1 AND ($2::text IS NULL OR status=$2)
             ORDER BY created_at DESC",
         )
-        .bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_entry).collect())
     }
 
     async fn update_entry_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
         posted_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<JournalEntry> {
         let row = sqlx::query(
@@ -372,49 +552,74 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
     }
 
     async fn update_entry_totals(
-        &self, id: Uuid, total_debit: &str, total_credit: &str,
-        line_count: i32, is_balanced: bool,
+        &self,
+        id: Uuid,
+        total_debit: &str,
+        total_credit: &str,
+        line_count: i32,
+        is_balanced: bool,
     ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.journal_entries
             SET total_debit=$2::numeric, total_credit=$3::numeric,
                 line_count=$4, is_balanced=$5, updated_at=now() WHERE id=$1",
         )
-        .bind(id).bind(total_debit).bind(total_credit)
-        .bind(line_count).bind(is_balanced)
-        .execute(&self.pool).await
+        .bind(id)
+        .bind(total_debit)
+        .bind(total_credit)
+        .bind(line_count)
+        .bind(is_balanced)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn mark_entry_reversal(
-        &self, id: Uuid, reversed_by_entry_id: Uuid,
+        &self,
+        id: Uuid,
+        reversed_by_entry_id: Uuid,
     ) -> AtlasResult<JournalEntry> {
         let row = sqlx::query(
             r"UPDATE _atlas.journal_entries SET reversed_by_entry_id=$2,
                 status='reversed', updated_at=now() WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(reversed_by_entry_id)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(reversed_by_entry_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_entry(&row))
     }
 
     async fn delete_entry(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.journal_entries WHERE id=$1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn create_line(
-        &self, org_id: Uuid, entry_id: Uuid, line_number: i32,
-        line_type: &str, account_code: &str, account_name: Option<&str>,
-        description: Option<&str>, amount: &str, entered_amount: Option<&str>,
-        entered_currency_code: Option<&str>, exchange_rate: Option<&str>,
-        tax_code: Option<&str>, cost_center: Option<&str>,
-        department_id: Option<Uuid>, project_id: Option<Uuid>,
-        intercompany_entity_id: Option<Uuid>, statistical_amount: Option<&str>,
+        &self,
+        org_id: Uuid,
+        entry_id: Uuid,
+        line_number: i32,
+        line_type: &str,
+        account_code: &str,
+        account_name: Option<&str>,
+        description: Option<&str>,
+        amount: &str,
+        entered_amount: Option<&str>,
+        entered_currency_code: Option<&str>,
+        exchange_rate: Option<&str>,
+        tax_code: Option<&str>,
+        cost_center: Option<&str>,
+        department_id: Option<Uuid>,
+        project_id: Option<Uuid>,
+        intercompany_entity_id: Option<Uuid>,
+        statistical_amount: Option<&str>,
     ) -> AtlasResult<JournalEntryLine> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.journal_entry_lines
@@ -438,22 +643,28 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
 
     async fn list_lines_by_entry(&self, entry_id: Uuid) -> AtlasResult<Vec<JournalEntryLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.journal_entry_lines WHERE entry_id=$1 ORDER BY line_number"
+            "SELECT * FROM _atlas.journal_entry_lines WHERE entry_id=$1 ORDER BY line_number",
         )
         .bind(entry_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_line).collect())
     }
 
     async fn delete_line(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.journal_entry_lines WHERE id=$1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<ManualJournalDashboardSummary> {
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<ManualJournalDashboardSummary> {
         let row = sqlx::query(
             r"SELECT
                 COUNT(*) as total_batches,
@@ -464,7 +675,9 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
                 COUNT(*) FILTER (WHERE status = 'submitted') as pending_approval
             FROM _atlas.journal_batches WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_batches: i64 = row.try_get("total_batches").unwrap_or(0);
@@ -478,7 +691,9 @@ impl ManualJournalRepository for PostgresManualJournalRepository {
                 COUNT(*) FILTER (WHERE status = 'posted') as posted_entries
             FROM _atlas.journal_entries WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total_entries: i64 = entry_row.try_get("total_entries").unwrap_or(0);

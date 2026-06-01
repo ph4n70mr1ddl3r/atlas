@@ -1,13 +1,13 @@
 //! Audit Engine Implementation
 
-use atlas_shared::{AuditEntry, AuditAction, RecordId, UserId, AtlasError, AtlasResult};
-use super::{AuditQuery, AuditSummary, ChangeSet, FieldChange};
 use super::AuditRepository;
+use super::{AuditQuery, AuditSummary, ChangeSet, FieldChange};
+use atlas_shared::{AtlasError, AtlasResult, AuditAction, AuditEntry, RecordId, UserId};
 use chrono::Utc;
-use uuid::Uuid;
-use std::sync::Arc;
 use std::collections::HashMap;
-use tracing::{info, debug};
+use std::sync::Arc;
+use tracing::{debug, info};
+use uuid::Uuid;
 
 /// Audit engine for change tracking
 pub struct AuditEngine {
@@ -22,21 +22,21 @@ impl AuditEngine {
             enabled_entities: parking_lot::RwLock::new(std::collections::HashSet::new()),
         }
     }
-    
+
     /// Enable auditing for an entity
     pub fn enable_audit(&self, entity: &str) {
         let mut entities = self.enabled_entities.write();
         entities.insert(entity.to_string());
         info!("Audit enabled for entity: {}", entity);
     }
-    
+
     /// Disable auditing for an entity
     pub fn disable_audit(&self, entity: &str) {
         let mut entities = self.enabled_entities.write();
         entities.remove(entity);
         info!("Audit disabled for entity: {}", entity);
     }
-    
+
     /// Check if auditing is enabled for an entity
     ///
     /// If the `enabled_entities` set is empty, auditing is enabled for **all**
@@ -47,7 +47,7 @@ impl AuditEngine {
         let entities = self.enabled_entities.read();
         entities.is_empty() || entities.contains(entity)
     }
-    
+
     /// Log an audit entry
     #[allow(clippy::too_many_arguments)]
     pub async fn log(
@@ -68,7 +68,7 @@ impl AuditEngine {
             // intentionally skipped rather than persisted.
             return Ok(Uuid::nil());
         }
-        
+
         let entry = AuditEntry {
             id: Uuid::new_v4(),
             entity_type: entity_type.to_string(),
@@ -82,12 +82,12 @@ impl AuditEngine {
             ip_address: ip_address.map(std::string::ToString::to_string),
             user_agent: user_agent.map(std::string::ToString::to_string),
         };
-        
+
         self.repository.insert(&entry).await?;
-        
+
         Ok(entry.id)
     }
-    
+
     /// Log a create action
     pub async fn log_create(
         &self,
@@ -106,9 +106,10 @@ impl AuditEngine {
             None,
             None,
             None,
-        ).await
+        )
+        .await
     }
-    
+
     /// Log an update action
     pub async fn log_update(
         &self,
@@ -128,9 +129,10 @@ impl AuditEngine {
             None,
             None,
             None,
-        ).await
+        )
+        .await
     }
-    
+
     /// Log a delete action
     pub async fn log_delete(
         &self,
@@ -149,81 +151,95 @@ impl AuditEngine {
             None,
             None,
             None,
-        ).await
+        )
+        .await
     }
-    
+
     /// Get audit trail for an entity
-    pub async fn get_entity_history(&self, entity_type: &str, entity_id: RecordId) -> AtlasResult<Vec<AuditEntry>> {
-        self.repository.query(&AuditQuery {
-            entity_type: Some(entity_type.to_string()),
-            entity_id: Some(entity_id),
-            action: None,
-            user_id: None,
-            from_date: None,
-            to_date: None,
-            limit: None,
-            offset: None,
-        }).await
+    pub async fn get_entity_history(
+        &self,
+        entity_type: &str,
+        entity_id: RecordId,
+    ) -> AtlasResult<Vec<AuditEntry>> {
+        self.repository
+            .query(&AuditQuery {
+                entity_type: Some(entity_type.to_string()),
+                entity_id: Some(entity_id),
+                action: None,
+                user_id: None,
+                from_date: None,
+                to_date: None,
+                limit: None,
+                offset: None,
+            })
+            .await
     }
-    
+
     /// Get changes between two audit entries
     pub async fn get_changes(&self, entry1_id: Uuid, entry2_id: Uuid) -> AtlasResult<ChangeSet> {
         let entries = self.repository.get_by_ids(&[entry1_id, entry2_id]).await?;
-        
+
         if entries.len() != 2 {
             return Err(AtlasError::Internal("Expected 2 entries".to_string()));
         }
-        
+
         let (entry1, entry2) = if entries[0].id == entry1_id {
             (&entries[0], &entries[1])
         } else {
             (&entries[1], &entries[0])
         };
-        
+
         let changes = FieldChange::compute_changes(
             entry1.new_data.as_ref().unwrap_or(&serde_json::Value::Null),
             entry2.new_data.as_ref().unwrap_or(&serde_json::Value::Null),
         );
-        
+
         Ok(ChangeSet {
             entity_id: entry1.entity_id,
             changes,
         })
     }
-    
+
     /// Query audit entries
     pub async fn query(&self, query: &AuditQuery) -> AtlasResult<Vec<AuditEntry>> {
         self.repository.query(query).await
     }
-    
+
     /// Get audit summary
-    pub async fn get_summary(&self, entity_type: Option<&str>, days: i64) -> AtlasResult<AuditSummary> {
+    pub async fn get_summary(
+        &self,
+        entity_type: Option<&str>,
+        days: i64,
+    ) -> AtlasResult<AuditSummary> {
         let from_date = Utc::now() - chrono::Duration::days(days);
-        
-        let entries = self.repository.query(&AuditQuery {
-            entity_type: entity_type.map(std::string::ToString::to_string),
-            entity_id: None,
-            action: None,
-            user_id: None,
-            from_date: Some(from_date),
-            to_date: Some(Utc::now()),
-            limit: Some(1000),
-            offset: None,
-        }).await?;
-        
+
+        let entries = self
+            .repository
+            .query(&AuditQuery {
+                entity_type: entity_type.map(std::string::ToString::to_string),
+                entity_id: None,
+                action: None,
+                user_id: None,
+                from_date: Some(from_date),
+                to_date: Some(Utc::now()),
+                limit: Some(1000),
+                offset: None,
+            })
+            .await?;
+
         let mut actions_by_type: HashMap<String, i64> = HashMap::new();
         let mut actions_by_user: HashMap<String, i64> = HashMap::new();
-        
+
         for entry in &entries {
             let action_key = format!("{:?}", entry.action);
             *actions_by_type.entry(action_key).or_insert(0) += 1;
-            
+
             if let Some(user_id) = entry.changed_by {
                 let user_key = user_id.to_string();
                 *actions_by_user.entry(user_key).or_insert(0) += 1;
             }
         }
-        
+
         Ok(AuditSummary {
             total_actions: entries.len() as i64,
             actions_by_type,

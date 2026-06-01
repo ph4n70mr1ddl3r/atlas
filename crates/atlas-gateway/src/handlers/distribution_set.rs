@@ -3,19 +3,18 @@
 //! Oracle Fusion: Financials > Payables > Distribution Sets
 //! Reusable GL account distribution templates for AP invoices.
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Create Distribution Set
@@ -41,18 +40,23 @@ pub async fn create_distribution_set(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.distribution_set_engine.create_set(
-        org_id,
-        &payload.set_code,
-        &payload.set_name,
-        payload.description.as_deref(),
-        &payload.distribution_type,
-        payload.currency_code.as_deref().unwrap_or("USD"),
-        payload.is_default.unwrap_or(false),
-        payload.effective_from,
-        payload.effective_to,
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .create_set(
+            org_id,
+            &payload.set_code,
+            &payload.set_name,
+            payload.description.as_deref(),
+            &payload.distribution_type,
+            payload.currency_code.as_deref().unwrap_or("USD"),
+            payload.is_default.unwrap_or(false),
+            payload.effective_from,
+            payload.effective_to,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(set) => Ok(created_json(set)),
         Err(e) => {
             error!("Failed to create distribution set: {}", e);
@@ -81,9 +85,16 @@ pub async fn list_distribution_sets(
     Query(query): Query<ListDistributionSetsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.distribution_set_engine.list_sets(
-        org_id, query.status.as_deref(), query.distribution_type.as_deref(),
-    ).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .list_sets(
+            org_id,
+            query.status.as_deref(),
+            query.distribution_type.as_deref(),
+        )
+        .await
+    {
         Ok(sets) => Ok(Json(serde_json::json!({ "data": sets }))),
         Err(e) => {
             error!("Failed to list distribution sets: {}", e);
@@ -118,12 +129,18 @@ pub async fn activate_distribution_set(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.distribution_set_engine.activate_set(id).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .activate_set(id)
+        .await
+    {
         Ok(set) => Ok(to_json(set)),
         Err(e) => {
             error!("Failed to activate distribution set: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
         }
@@ -138,12 +155,18 @@ pub async fn deactivate_distribution_set(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.distribution_set_engine.deactivate_set(id).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .deactivate_set(id)
+        .await
+    {
         Ok(set) => Ok(to_json(set)),
         Err(e) => {
             error!("Failed to deactivate distribution set: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
         }
@@ -158,7 +181,12 @@ pub async fn delete_distribution_set(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.financials.distribution_set_engine.delete_set(id).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .delete_set(id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to delete distribution set: {}", e);
@@ -200,28 +228,34 @@ pub async fn add_distribution_line(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.distribution_set_engine.add_line(
-        org_id,
-        set_id,
-        &payload.account_combination,
-        payload.account_description.as_deref(),
-        payload.segment1.as_deref(),
-        payload.segment2.as_deref(),
-        payload.segment3.as_deref(),
-        payload.segment4.as_deref(),
-        payload.segment5.as_deref(),
-        &payload.percentage,
-        payload.amount.as_deref(),
-        payload.description.as_deref(),
-        payload.cost_center.as_deref(),
-        payload.department.as_deref(),
-        payload.project_code.as_deref(),
-    ).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .add_line(
+            org_id,
+            set_id,
+            &payload.account_combination,
+            payload.account_description.as_deref(),
+            payload.segment1.as_deref(),
+            payload.segment2.as_deref(),
+            payload.segment3.as_deref(),
+            payload.segment4.as_deref(),
+            payload.segment5.as_deref(),
+            &payload.percentage,
+            payload.amount.as_deref(),
+            payload.description.as_deref(),
+            payload.cost_center.as_deref(),
+            payload.department.as_deref(),
+            payload.project_code.as_deref(),
+        )
+        .await
+    {
         Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add distribution line: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
         }
@@ -236,7 +270,12 @@ pub async fn list_distribution_lines(
     State(state): State<Arc<AppState>>,
     Path(set_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.distribution_set_engine.list_lines(set_id).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .list_lines(set_id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => {
             error!("Failed to list distribution lines: {}", e);
@@ -253,7 +292,12 @@ pub async fn remove_distribution_line(
     State(state): State<Arc<AppState>>,
     Path(line_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match state.financials.distribution_set_engine.remove_line(line_id).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .remove_line(line_id)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             error!("Failed to remove distribution line: {}", e);
@@ -286,14 +330,19 @@ pub async fn apply_to_invoice(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.distribution_set_engine.apply_to_invoice(
-        org_id,
-        set_id,
-        payload.invoice_id,
-        payload.invoice_number.as_deref(),
-        &payload.invoice_amount,
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .apply_to_invoice(
+            org_id,
+            set_id,
+            payload.invoice_id,
+            payload.invoice_number.as_deref(),
+            &payload.invoice_amount,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({
             "applied": true,
             "lineCount": lines.len(),
@@ -302,7 +351,8 @@ pub async fn apply_to_invoice(
         Err(e) => {
             error!("Failed to apply distribution set: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
         }
@@ -324,9 +374,12 @@ pub async fn list_distribution_set_usage(
     Query(query): Query<ListUsageQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.distribution_set_engine.list_usage(
-        org_id, query.distribution_set_id,
-    ).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .list_usage(org_id, query.distribution_set_id)
+        .await
+    {
         Ok(usage) => Ok(Json(serde_json::json!({ "data": usage }))),
         Err(e) => {
             error!("Failed to list distribution set usage: {}", e);
@@ -344,7 +397,12 @@ pub async fn get_distribution_set_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.distribution_set_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .distribution_set_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(to_json(dashboard)),
         Err(e) => {
             error!("Failed to get distribution set dashboard: {}", e);

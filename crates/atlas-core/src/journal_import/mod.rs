@@ -12,8 +12,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > General Ledger > Import Journals
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::JournalImportEngine;
 pub use repository::{JournalImportRepository, PostgresJournalImportRepository};

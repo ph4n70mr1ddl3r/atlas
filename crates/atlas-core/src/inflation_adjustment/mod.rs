@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > General Ledger > Inflation Adjustment
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::InflationAdjustmentEngine;
 pub use repository::{InflationAdjustmentRepository, PostgresInflationAdjustmentRepository};

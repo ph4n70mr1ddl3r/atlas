@@ -2,19 +2,18 @@
 //!
 //! Oracle Fusion: Payables > Prepayment Application
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct ApplyPrepaymentRequest {
@@ -40,17 +39,28 @@ pub async fn apply_prepayment(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.prepayment_application_engine.apply(
-        org_id, payload.prepayment_invoice_id,
-        payload.prepayment_invoice_number.as_deref(),
-        payload.standard_invoice_id,
-        payload.standard_invoice_number.as_deref(),
-        payload.supplier_id, payload.supplier_number.as_deref(),
-        &payload.applied_amount, &payload.remaining_prepayment_amount,
-        &payload.currency_code, payload.application_date, payload.gl_date,
-        payload.reason.as_deref(), payload.notes.as_deref(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .prepayment_application_engine
+        .apply(
+            org_id,
+            payload.prepayment_invoice_id,
+            payload.prepayment_invoice_number.as_deref(),
+            payload.standard_invoice_id,
+            payload.standard_invoice_number.as_deref(),
+            payload.supplier_id,
+            payload.supplier_number.as_deref(),
+            &payload.applied_amount,
+            &payload.remaining_prepayment_amount,
+            &payload.currency_code,
+            payload.application_date,
+            payload.gl_date,
+            payload.reason.as_deref(),
+            payload.notes.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(app) => Ok(created_json(app)),
         Err(e) => {
             error!("Failed to apply prepayment: {}", e);
@@ -70,7 +80,10 @@ pub async fn get_prepayment(
     match state.financials.prepayment_application_engine.get(id).await {
         Ok(Some(app)) => Ok(to_json(app)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get prepayment: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get prepayment: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -86,9 +99,17 @@ pub async fn list_prepayments(
     Query(query): Query<ListPrepaymentsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.prepayment_application_engine.list(org_id, query.status.as_deref(), query.supplier_id).await {
+    match state
+        .financials
+        .prepayment_application_engine
+        .list(org_id, query.status.as_deref(), query.supplier_id)
+        .await
+    {
         Ok(items) => Ok(Json(serde_json::json!({ "data": items }))),
-        Err(e) => { error!("Failed to list prepayments: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list prepayments: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -96,12 +117,18 @@ pub async fn confirm_prepayment(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.prepayment_application_engine.confirm(id).await {
+    match state
+        .financials
+        .prepayment_application_engine
+        .confirm(id)
+        .await
+    {
         Ok(app) => Ok(to_json(app)),
         Err(e) => {
             error!("Failed to confirm prepayment: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -113,12 +140,18 @@ pub async fn cancel_prepayment(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.prepayment_application_engine.cancel(id).await {
+    match state
+        .financials
+        .prepayment_application_engine
+        .cancel(id)
+        .await
+    {
         Ok(app) => Ok(to_json(app)),
         Err(e) => {
             error!("Failed to cancel prepayment: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
@@ -131,8 +164,16 @@ pub async fn get_prepayment_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.prepayment_application_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .prepayment_application_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dash) => Ok(to_json(dash)),
-        Err(e) => { error!("Failed to get prepayment dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get prepayment dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

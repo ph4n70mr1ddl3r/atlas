@@ -2,11 +2,11 @@
 //!
 //! `PostgreSQL` storage for KPI definitions, data points, dashboards, and widgets.
 
-use atlas_shared::{
-    KpiDefinition, KpiDataPoint, Dashboard, DashboardWidget, KpiDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, Dashboard, DashboardWidget, KpiDashboardSummary, KpiDataPoint,
+    KpiDefinition,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -33,8 +33,13 @@ pub trait KpiRepository: Send + Sync {
     ) -> AtlasResult<KpiDefinition>;
 
     async fn get_kpi(&self, id: Uuid) -> AtlasResult<Option<KpiDefinition>>;
-    async fn get_kpi_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<KpiDefinition>>;
-    async fn list_kpis(&self, org_id: Uuid, category: Option<&str>) -> AtlasResult<Vec<KpiDefinition>>;
+    async fn get_kpi_by_code(&self, org_id: Uuid, code: &str)
+        -> AtlasResult<Option<KpiDefinition>>;
+    async fn list_kpis(
+        &self,
+        org_id: Uuid,
+        category: Option<&str>,
+    ) -> AtlasResult<Vec<KpiDefinition>>;
     async fn delete_kpi(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // KPI Data Points
@@ -73,8 +78,16 @@ pub trait KpiRepository: Send + Sync {
     ) -> AtlasResult<Dashboard>;
 
     async fn get_dashboard(&self, id: Uuid) -> AtlasResult<Option<Dashboard>>;
-    async fn get_dashboard_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<Dashboard>>;
-    async fn list_dashboards(&self, org_id: Uuid, owner_id: Option<Uuid>) -> AtlasResult<Vec<Dashboard>>;
+    async fn get_dashboard_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<Dashboard>>;
+    async fn list_dashboards(
+        &self,
+        org_id: Uuid,
+        owner_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<Dashboard>>;
     async fn delete_dashboard(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Dashboard Widgets
@@ -104,7 +117,7 @@ pub struct PostgresKpiRepository {
 }
 
 impl PostgresKpiRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -142,7 +155,9 @@ fn row_to_data_point(row: &sqlx::postgres::PgRow) -> KpiDataPoint {
         recorded_at: row.try_get("recorded_at").unwrap_or(chrono::Utc::now()),
         period_start: row.try_get("period_start").unwrap_or_default(),
         period_end: row.try_get("period_end").unwrap_or_default(),
-        status: row.try_get("status").unwrap_or_else(|_| "no_target".to_string()),
+        status: row
+            .try_get("status")
+            .unwrap_or_else(|_| "no_target".to_string()),
         notes: row.try_get("notes").unwrap_or_default(),
         recorded_by: row.try_get("recorded_by").unwrap_or_default(),
         created_at: row.try_get("created_at").unwrap_or(chrono::Utc::now()),
@@ -159,7 +174,9 @@ fn row_to_dashboard(row: &sqlx::postgres::PgRow) -> Dashboard {
         owner_id: row.try_get("owner_id").unwrap_or_default(),
         is_shared: row.try_get("is_shared").unwrap_or(false),
         is_default: row.try_get("is_default").unwrap_or(false),
-        layout_config: row.try_get("layout_config").unwrap_or(serde_json::json!({})),
+        layout_config: row
+            .try_get("layout_config")
+            .unwrap_or(serde_json::json!({})),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.try_get("created_by").unwrap_or_default(),
         created_at: row.try_get("created_at").unwrap_or(chrono::Utc::now()),
@@ -178,7 +195,9 @@ fn row_to_widget(row: &sqlx::postgres::PgRow) -> DashboardWidget {
         position_col: row.try_get("position_col").unwrap_or(0),
         width: row.try_get("width").unwrap_or(1),
         height: row.try_get("height").unwrap_or(1),
-        display_config: row.try_get("display_config").unwrap_or(serde_json::json!({})),
+        display_config: row
+            .try_get("display_config")
+            .unwrap_or(serde_json::json!({})),
         is_visible: row.try_get("is_visible").unwrap_or(true),
         created_at: row.try_get("created_at").unwrap_or(chrono::Utc::now()),
         updated_at: row.try_get("updated_at").unwrap_or(chrono::Utc::now()),
@@ -209,33 +228,54 @@ impl KpiRepository for PostgresKpiRepository {
                  direction, target_value, warning_threshold, critical_threshold,
                  data_source_query, evaluation_frequency, is_active, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, '{}'::jsonb, $13)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(category).bind(unit_of_measure).bind(direction)
-        .bind(target_value).bind(warning_threshold).bind(critical_threshold)
-        .bind(data_source_query).bind(evaluation_frequency).bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(category)
+        .bind(unit_of_measure)
+        .bind(direction)
+        .bind(target_value)
+        .bind(warning_threshold)
+        .bind(critical_threshold)
+        .bind(data_source_query)
+        .bind(evaluation_frequency)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_kpi(&row))
     }
 
     async fn get_kpi(&self, id: Uuid) -> AtlasResult<Option<KpiDefinition>> {
         let row = sqlx::query("SELECT * FROM _atlas.kpi_definitions WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await?;
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_kpi))
     }
 
-    async fn get_kpi_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<KpiDefinition>> {
+    async fn get_kpi_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<KpiDefinition>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.kpi_definitions WHERE organization_id = $1 AND code = $2"
+            "SELECT * FROM _atlas.kpi_definitions WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
-        .fetch_optional(&self.pool).await?;
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(row.as_ref().map(row_to_kpi))
     }
 
-    async fn list_kpis(&self, org_id: Uuid, category: Option<&str>) -> AtlasResult<Vec<KpiDefinition>> {
+    async fn list_kpis(
+        &self,
+        org_id: Uuid,
+        category: Option<&str>,
+    ) -> AtlasResult<Vec<KpiDefinition>> {
         let rows = if let Some(cat) = category {
             sqlx::query(
                 "SELECT * FROM _atlas.kpi_definitions WHERE organization_id = $1 AND category = $2 AND is_active = true ORDER BY created_at DESC"
@@ -254,13 +294,17 @@ impl KpiRepository for PostgresKpiRepository {
 
     async fn delete_kpi(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.kpi_definitions WHERE organization_id = $1 AND code = $2"
+            "DELETE FROM _atlas.kpi_definitions WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
-        .execute(&self.pool).await?;
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await?;
 
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("KPI '{code}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "KPI '{code}' not found"
+            )));
         }
         Ok(())
     }
@@ -276,7 +320,9 @@ impl KpiRepository for PostgresKpiRepository {
         recorded_by: Option<Uuid>,
     ) -> AtlasResult<KpiDataPoint> {
         // Compute status based on thresholds
-        let kpi = self.get_kpi(kpi_id).await?
+        let kpi = self
+            .get_kpi(kpi_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("KPI not found".to_string()))?;
 
         let status = compute_status(
@@ -326,9 +372,12 @@ impl KpiRepository for PostgresKpiRepository {
     async fn delete_data_point(&self, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query("DELETE FROM _atlas.kpi_data_points WHERE id = $1")
             .bind(id)
-            .execute(&self.pool).await?;
+            .execute(&self.pool)
+            .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Data point not found".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Data point not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -350,32 +399,50 @@ impl KpiRepository for PostgresKpiRepository {
                 (organization_id, code, name, description, owner_id,
                  is_shared, is_default, layout_config, metadata, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '{}'::jsonb, $9)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(owner_id).bind(is_shared).bind(is_default)
-        .bind(&layout_config).bind(created_by)
-        .fetch_one(&self.pool).await?;
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(owner_id)
+        .bind(is_shared)
+        .bind(is_default)
+        .bind(&layout_config)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_dashboard(&row))
     }
 
     async fn get_dashboard(&self, id: Uuid) -> AtlasResult<Option<Dashboard>> {
         let row = sqlx::query("SELECT * FROM _atlas.kpi_dashboards WHERE id = $1")
             .bind(id)
-            .fetch_optional(&self.pool).await?;
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(row.as_ref().map(row_to_dashboard))
     }
 
-    async fn get_dashboard_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<Dashboard>> {
+    async fn get_dashboard_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<Dashboard>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.kpi_dashboards WHERE organization_id = $1 AND code = $2"
+            "SELECT * FROM _atlas.kpi_dashboards WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
-        .fetch_optional(&self.pool).await?;
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(row.as_ref().map(row_to_dashboard))
     }
 
-    async fn list_dashboards(&self, org_id: Uuid, owner_id: Option<Uuid>) -> AtlasResult<Vec<Dashboard>> {
+    async fn list_dashboards(
+        &self,
+        org_id: Uuid,
+        owner_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<Dashboard>> {
         let rows = if let Some(oid) = owner_id {
             sqlx::query(
                 "SELECT * FROM _atlas.kpi_dashboards WHERE organization_id = $1 AND (owner_id = $2 OR is_shared = true) ORDER BY created_at DESC"
@@ -394,12 +461,16 @@ impl KpiRepository for PostgresKpiRepository {
 
     async fn delete_dashboard(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         let result = sqlx::query(
-            "DELETE FROM _atlas.kpi_dashboards WHERE organization_id = $1 AND code = $2"
+            "DELETE FROM _atlas.kpi_dashboards WHERE organization_id = $1 AND code = $2",
         )
-        .bind(org_id).bind(code)
-        .execute(&self.pool).await?;
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(format!("Dashboard '{code}' not found")));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Dashboard '{code}' not found"
+            )));
         }
         Ok(())
     }
@@ -421,12 +492,19 @@ impl KpiRepository for PostgresKpiRepository {
                 (dashboard_id, kpi_id, widget_type, title,
                  position_row, position_col, width, height, display_config, is_visible)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
-            RETURNING *"
+            RETURNING *",
         )
-        .bind(dashboard_id).bind(kpi_id).bind(widget_type).bind(title)
-        .bind(position_row).bind(position_col).bind(width).bind(height)
+        .bind(dashboard_id)
+        .bind(kpi_id)
+        .bind(widget_type)
+        .bind(title)
+        .bind(position_row)
+        .bind(position_col)
+        .bind(width)
+        .bind(height)
         .bind(&display_config)
-        .fetch_one(&self.pool).await?;
+        .fetch_one(&self.pool)
+        .await?;
         Ok(row_to_widget(&row))
     }
 
@@ -442,7 +520,8 @@ impl KpiRepository for PostgresKpiRepository {
     async fn delete_widget(&self, id: Uuid) -> AtlasResult<()> {
         let result = sqlx::query("DELETE FROM _atlas.kpi_dashboard_widgets WHERE id = $1")
             .bind(id)
-            .execute(&self.pool).await?;
+            .execute(&self.pool)
+            .await?;
         if result.rows_affected() == 0 {
             return Err(AtlasError::EntityNotFound("Widget not found".to_string()));
         }
@@ -473,7 +552,8 @@ impl KpiRepository for PostgresKpiRepository {
         let active_kpis = kpis.iter().filter(|k| k.is_active).count() as i32;
 
         // Category breakdown
-        let mut categories: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+        let mut categories: std::collections::HashMap<String, i32> =
+            std::collections::HashMap::new();
         for kpi in &kpis {
             *categories.entry(kpi.category.clone()).or_insert(0) += 1;
         }
@@ -484,7 +564,7 @@ impl KpiRepository for PostgresKpiRepository {
                FROM _atlas.kpi_data_points dp
                JOIN _atlas.kpi_definitions kd ON dp.kpi_id = kd.id
                WHERE dp.organization_id = $1
-               ORDER BY dp.recorded_at DESC LIMIT 10"
+               ORDER BY dp.recorded_at DESC LIMIT 10",
         )
         .bind(org_id)
         .fetch_all(&self.pool)

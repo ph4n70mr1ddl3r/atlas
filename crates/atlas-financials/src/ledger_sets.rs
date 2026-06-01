@@ -62,8 +62,13 @@ impl LedgerSetService {
 
         let mut sets = self.sets.write().unwrap();
         // Check uniqueness
-        if sets.iter().any(|s| s.organization_id == organization_id && s.name == name) {
-            return Err("Ledger set with this name already exists for the organization".to_string());
+        if sets
+            .iter()
+            .any(|s| s.organization_id == organization_id && s.name == name)
+        {
+            return Err(
+                "Ledger set with this name already exists for the organization".to_string(),
+            );
         }
 
         sets.push(set.clone());
@@ -86,7 +91,10 @@ impl LedgerSetService {
         };
 
         let mut assignments = self.assignments.write().unwrap();
-        if assignments.iter().any(|a| a.ledger_set_id == ledger_set_id && a.ledger_id == ledger_id) {
+        if assignments
+            .iter()
+            .any(|a| a.ledger_set_id == ledger_set_id && a.ledger_id == ledger_id)
+        {
             return Err("Ledger is already assigned to this ledger set".to_string());
         }
 
@@ -112,7 +120,7 @@ mod tests {
     fn test_create_ledger_set() {
         let service = LedgerSetService::new();
         let org_id = Uuid::new_v4();
-        
+
         let result = service.create_ledger_set(
             org_id,
             "US Ledgers".to_string(),
@@ -130,14 +138,16 @@ mod tests {
     fn test_create_duplicate_ledger_set() {
         let service = LedgerSetService::new();
         let org_id = Uuid::new_v4();
-        
-        service.create_ledger_set(
-            org_id,
-            "US Ledgers".to_string(),
-            None,
-            "US_COA".to_string(),
-            "Standard_Monthly".to_string(),
-        ).unwrap();
+
+        service
+            .create_ledger_set(
+                org_id,
+                "US Ledgers".to_string(),
+                None,
+                "US_COA".to_string(),
+                "Standard_Monthly".to_string(),
+            )
+            .unwrap();
 
         let result = service.create_ledger_set(
             org_id,
@@ -154,18 +164,20 @@ mod tests {
     fn test_assign_ledger() {
         let service = LedgerSetService::new();
         let org_id = Uuid::new_v4();
-        
-        let set = service.create_ledger_set(
-            org_id,
-            "EU Ledgers".to_string(),
-            None,
-            "EU_COA".to_string(),
-            "Standard_Monthly".to_string(),
-        ).unwrap();
+
+        let set = service
+            .create_ledger_set(
+                org_id,
+                "EU Ledgers".to_string(),
+                None,
+                "EU_COA".to_string(),
+                "Standard_Monthly".to_string(),
+            )
+            .unwrap();
 
         let ledger_id = Uuid::new_v4();
         let assign_result = service.assign_ledger(org_id, set.id, ledger_id);
-        
+
         assert!(assign_result.is_ok());
 
         let assigned = service.get_assigned_ledgers(set.id);

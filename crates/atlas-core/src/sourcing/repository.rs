@@ -3,15 +3,11 @@
 //! `PostgreSQL` storage for sourcing events, lines, invites,
 //! supplier responses, scoring, awards, and templates.
 
-use atlas_shared::{
-    SourcingEvent, SourcingEventLine, SourcingInvite,
-    SupplierResponse, SupplierResponseLine,
-    ScoringCriterion, ResponseScore,
-    SourcingAward, SourcingAwardLine,
-    SourcingTemplate,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, ResponseScore, ScoringCriterion, SourcingAward, SourcingAwardLine, SourcingEvent,
+    SourcingEventLine, SourcingInvite, SourcingTemplate, SupplierResponse, SupplierResponseLine,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -48,7 +44,9 @@ fn row_to_event(row: &sqlx::postgres::PgRow) -> SourcingEvent {
         attachments: row.try_get("attachments").unwrap_or(serde_json::json!([])),
         invited_supplier_count: row.get("invited_supplier_count"),
         response_count: row.get("response_count"),
-        award_summary: row.try_get("award_summary").unwrap_or(serde_json::json!({})),
+        award_summary: row
+            .try_get("award_summary")
+            .unwrap_or(serde_json::json!({})),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.get("created_by"),
         cancelled_by: row.get("cancelled_by"),
@@ -251,8 +249,12 @@ fn row_to_template(row: &sqlx::postgres::PgRow) -> SourcingTemplate {
         currency_code: row.get("currency_code"),
         default_bids_visible: row.get("default_bids_visible"),
         default_terms: row.get("default_terms"),
-        default_scoring_criteria: row.try_get("default_scoring_criteria").unwrap_or(serde_json::json!([])),
-        default_lines: row.try_get("default_lines").unwrap_or(serde_json::json!([])),
+        default_scoring_criteria: row
+            .try_get("default_scoring_criteria")
+            .unwrap_or(serde_json::json!([])),
+        default_lines: row
+            .try_get("default_lines")
+            .unwrap_or(serde_json::json!([])),
         is_active: row.get("is_active"),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.get("created_by"),
@@ -266,72 +268,239 @@ fn row_to_template(row: &sqlx::postgres::PgRow) -> SourcingTemplate {
 pub trait SourcingRepository: Send + Sync {
     // Events
     async fn create_event(
-        &self, org_id: Uuid, event_number: &str, title: &str,
-        description: Option<&str>, event_type: &str, style: &str,
-        response_deadline: chrono::NaiveDate, currency_code: &str,
-        scoring_method: &str, template_id: Option<Uuid>,
-        evaluation_lead_id: Option<Uuid>, evaluation_lead_name: Option<&str>,
-        contact_person_id: Option<Uuid>, contact_person_name: Option<&str>,
-        are_bids_visible: bool, allow_supplier_rank_visibility: bool,
-        terms_and_conditions: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        event_number: &str,
+        title: &str,
+        description: Option<&str>,
+        event_type: &str,
+        style: &str,
+        response_deadline: chrono::NaiveDate,
+        currency_code: &str,
+        scoring_method: &str,
+        template_id: Option<Uuid>,
+        evaluation_lead_id: Option<Uuid>,
+        evaluation_lead_name: Option<&str>,
+        contact_person_id: Option<Uuid>,
+        contact_person_name: Option<&str>,
+        are_bids_visible: bool,
+        allow_supplier_rank_visibility: bool,
+        terms_and_conditions: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<SourcingEvent>;
     async fn get_event(&self, id: Uuid) -> AtlasResult<Option<SourcingEvent>>;
-    async fn get_event_by_number(&self, org_id: Uuid, event_number: &str) -> AtlasResult<Option<SourcingEvent>>;
-    async fn list_events(&self, org_id: Uuid, status: Option<&str>, event_type: Option<&str>) -> AtlasResult<Vec<SourcingEvent>>;
-    async fn update_event_status(&self, id: Uuid, status: &str, published_by: Option<Uuid>, closed_by: Option<Uuid>, cancelled_by: Option<Uuid>) -> AtlasResult<SourcingEvent>;
+    async fn get_event_by_number(
+        &self,
+        org_id: Uuid,
+        event_number: &str,
+    ) -> AtlasResult<Option<SourcingEvent>>;
+    async fn list_events(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        event_type: Option<&str>,
+    ) -> AtlasResult<Vec<SourcingEvent>>;
+    async fn update_event_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        published_by: Option<Uuid>,
+        closed_by: Option<Uuid>,
+        cancelled_by: Option<Uuid>,
+    ) -> AtlasResult<SourcingEvent>;
     async fn update_event_invite_count(&self, id: Uuid, count: i32) -> AtlasResult<()>;
     async fn update_event_response_count(&self, id: Uuid, count: i32) -> AtlasResult<()>;
-    async fn update_event_award_summary(&self, id: Uuid, summary: serde_json::Value) -> AtlasResult<()>;
+    async fn update_event_award_summary(
+        &self,
+        id: Uuid,
+        summary: serde_json::Value,
+    ) -> AtlasResult<()>;
 
     // Event Lines
     async fn create_event_line(
-        &self, org_id: Uuid, event_id: Uuid, line_number: i32,
-        description: &str, item_number: Option<&str>, category: Option<&str>,
-        quantity: &str, uom: &str, target_price: Option<&str>, target_total: Option<&str>,
-        need_by_date: Option<chrono::NaiveDate>, ship_to: Option<&str>,
-        specifications: Option<serde_json::Value>, allow_partial_quantity: bool,
+        &self,
+        org_id: Uuid,
+        event_id: Uuid,
+        line_number: i32,
+        description: &str,
+        item_number: Option<&str>,
+        category: Option<&str>,
+        quantity: &str,
+        uom: &str,
+        target_price: Option<&str>,
+        target_total: Option<&str>,
+        need_by_date: Option<chrono::NaiveDate>,
+        ship_to: Option<&str>,
+        specifications: Option<serde_json::Value>,
+        allow_partial_quantity: bool,
         min_award_quantity: Option<&str>,
     ) -> AtlasResult<SourcingEventLine>;
     async fn list_event_lines(&self, event_id: Uuid) -> AtlasResult<Vec<SourcingEventLine>>;
-    async fn update_event_line_award(&self, line_id: Uuid, supplier_id: Uuid, supplier_name: Option<&str>, awarded_price: &str, awarded_quantity: &str) -> AtlasResult<()>;
+    async fn update_event_line_award(
+        &self,
+        line_id: Uuid,
+        supplier_id: Uuid,
+        supplier_name: Option<&str>,
+        awarded_price: &str,
+        awarded_quantity: &str,
+    ) -> AtlasResult<()>;
 
     // Invites
-    async fn create_invite(&self, org_id: Uuid, event_id: Uuid, supplier_id: Uuid, supplier_name: Option<&str>, supplier_email: Option<&str>) -> AtlasResult<SourcingInvite>;
-    async fn get_invite(&self, event_id: Uuid, supplier_id: Uuid) -> AtlasResult<Option<SourcingInvite>>;
+    async fn create_invite(
+        &self,
+        org_id: Uuid,
+        event_id: Uuid,
+        supplier_id: Uuid,
+        supplier_name: Option<&str>,
+        supplier_email: Option<&str>,
+    ) -> AtlasResult<SourcingInvite>;
+    async fn get_invite(
+        &self,
+        event_id: Uuid,
+        supplier_id: Uuid,
+    ) -> AtlasResult<Option<SourcingInvite>>;
     async fn list_invites(&self, event_id: Uuid) -> AtlasResult<Vec<SourcingInvite>>;
-    async fn update_invite_status(&self, id: Uuid, status: &str, viewed_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<()>;
+    async fn update_invite_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        viewed_at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> AtlasResult<()>;
 
     // Responses
-    async fn create_response(&self, org_id: Uuid, event_id: Uuid, response_number: &str, supplier_id: Uuid, supplier_name: Option<&str>, cover_letter: Option<&str>, valid_until: Option<chrono::NaiveDate>, payment_terms: Option<&str>, lead_time_days: Option<i32>, warranty_months: Option<i32>, created_by: Option<Uuid>) -> AtlasResult<SupplierResponse>;
+    async fn create_response(
+        &self,
+        org_id: Uuid,
+        event_id: Uuid,
+        response_number: &str,
+        supplier_id: Uuid,
+        supplier_name: Option<&str>,
+        cover_letter: Option<&str>,
+        valid_until: Option<chrono::NaiveDate>,
+        payment_terms: Option<&str>,
+        lead_time_days: Option<i32>,
+        warranty_months: Option<i32>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<SupplierResponse>;
     async fn get_response(&self, id: Uuid) -> AtlasResult<Option<SupplierResponse>>;
-    async fn list_responses(&self, event_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SupplierResponse>>;
+    async fn list_responses(
+        &self,
+        event_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SupplierResponse>>;
     async fn update_response_total(&self, id: Uuid, total: &str) -> AtlasResult<()>;
     async fn update_response_status(&self, id: Uuid, status: &str) -> AtlasResult<()>;
-    async fn update_response_score_total(&self, id: Uuid, total_score: &str, evaluated_by: Option<Uuid>) -> AtlasResult<()>;
+    async fn update_response_score_total(
+        &self,
+        id: Uuid,
+        total_score: &str,
+        evaluated_by: Option<Uuid>,
+    ) -> AtlasResult<()>;
     async fn update_response_rank(&self, id: Uuid, rank: i32) -> AtlasResult<()>;
 
     // Response Lines
-    async fn create_response_line(&self, org_id: Uuid, response_id: Uuid, event_line_id: Uuid, line_number: i32, unit_price: &str, quantity: &str, line_amount: &str, discount_percent: Option<&str>, effective_price: Option<&str>, promised_delivery_date: Option<chrono::NaiveDate>, lead_time_days: Option<i32>, supplier_notes: Option<&str>) -> AtlasResult<SupplierResponseLine>;
-    async fn list_response_lines(&self, response_id: Uuid) -> AtlasResult<Vec<SupplierResponseLine>>;
+    async fn create_response_line(
+        &self,
+        org_id: Uuid,
+        response_id: Uuid,
+        event_line_id: Uuid,
+        line_number: i32,
+        unit_price: &str,
+        quantity: &str,
+        line_amount: &str,
+        discount_percent: Option<&str>,
+        effective_price: Option<&str>,
+        promised_delivery_date: Option<chrono::NaiveDate>,
+        lead_time_days: Option<i32>,
+        supplier_notes: Option<&str>,
+    ) -> AtlasResult<SupplierResponseLine>;
+    async fn list_response_lines(
+        &self,
+        response_id: Uuid,
+    ) -> AtlasResult<Vec<SupplierResponseLine>>;
 
     // Scoring
-    async fn create_scoring_criterion(&self, org_id: Uuid, event_id: Uuid, name: &str, description: Option<&str>, weight: &str, max_score: &str, criterion_type: &str, display_order: i32, is_mandatory: bool, created_by: Option<Uuid>) -> AtlasResult<ScoringCriterion>;
+    async fn create_scoring_criterion(
+        &self,
+        org_id: Uuid,
+        event_id: Uuid,
+        name: &str,
+        description: Option<&str>,
+        weight: &str,
+        max_score: &str,
+        criterion_type: &str,
+        display_order: i32,
+        is_mandatory: bool,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<ScoringCriterion>;
     async fn get_scoring_criterion(&self, id: Uuid) -> AtlasResult<Option<ScoringCriterion>>;
     async fn list_scoring_criteria(&self, event_id: Uuid) -> AtlasResult<Vec<ScoringCriterion>>;
-    async fn upsert_response_score(&self, org_id: Uuid, response_id: Uuid, criterion_id: Uuid, score: &str, weighted_score: &str, notes: Option<&str>, scored_by: Option<Uuid>) -> AtlasResult<ResponseScore>;
+    async fn upsert_response_score(
+        &self,
+        org_id: Uuid,
+        response_id: Uuid,
+        criterion_id: Uuid,
+        score: &str,
+        weighted_score: &str,
+        notes: Option<&str>,
+        scored_by: Option<Uuid>,
+    ) -> AtlasResult<ResponseScore>;
     async fn list_response_scores(&self, response_id: Uuid) -> AtlasResult<Vec<ResponseScore>>;
 
     // Awards
-    async fn create_award(&self, org_id: Uuid, event_id: Uuid, award_number: &str, award_method: &str, total_awarded_amount: &str, award_rationale: Option<&str>, created_by: Option<Uuid>) -> AtlasResult<SourcingAward>;
+    async fn create_award(
+        &self,
+        org_id: Uuid,
+        event_id: Uuid,
+        award_number: &str,
+        award_method: &str,
+        total_awarded_amount: &str,
+        award_rationale: Option<&str>,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<SourcingAward>;
     async fn get_award(&self, id: Uuid) -> AtlasResult<Option<SourcingAward>>;
     async fn list_awards(&self, event_id: Uuid) -> AtlasResult<Vec<SourcingAward>>;
-    async fn update_award_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, rejected_reason: Option<&str>) -> AtlasResult<SourcingAward>;
-    async fn create_award_line(&self, org_id: Uuid, award_id: Uuid, event_line_id: Uuid, response_id: Uuid, supplier_id: Uuid, supplier_name: Option<&str>, awarded_quantity: &str, awarded_unit_price: &str, awarded_amount: &str) -> AtlasResult<SourcingAwardLine>;
+    async fn update_award_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        rejected_reason: Option<&str>,
+    ) -> AtlasResult<SourcingAward>;
+    async fn create_award_line(
+        &self,
+        org_id: Uuid,
+        award_id: Uuid,
+        event_line_id: Uuid,
+        response_id: Uuid,
+        supplier_id: Uuid,
+        supplier_name: Option<&str>,
+        awarded_quantity: &str,
+        awarded_unit_price: &str,
+        awarded_amount: &str,
+    ) -> AtlasResult<SourcingAwardLine>;
     async fn list_award_lines(&self, award_id: Uuid) -> AtlasResult<Vec<SourcingAwardLine>>;
 
     // Templates
-    async fn create_template(&self, org_id: Uuid, code: &str, name: &str, description: Option<&str>, default_event_type: &str, default_style: &str, default_scoring_method: &str, default_response_deadline_days: i32, currency_code: &str, default_bids_visible: bool, default_terms: Option<&str>, default_scoring_criteria: serde_json::Value, default_lines: serde_json::Value, created_by: Option<Uuid>) -> AtlasResult<SourcingTemplate>;
-    async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<SourcingTemplate>>;
+    async fn create_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        default_event_type: &str,
+        default_style: &str,
+        default_scoring_method: &str,
+        default_response_deadline_days: i32,
+        currency_code: &str,
+        default_bids_visible: bool,
+        default_terms: Option<&str>,
+        default_scoring_criteria: serde_json::Value,
+        default_lines: serde_json::Value,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<SourcingTemplate>;
+    async fn get_template(&self, org_id: Uuid, code: &str)
+        -> AtlasResult<Option<SourcingTemplate>>;
     async fn list_templates(&self, org_id: Uuid) -> AtlasResult<Vec<SourcingTemplate>>;
     async fn delete_template(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 }
@@ -342,7 +511,7 @@ pub struct PostgresSourcingRepository {
 }
 
 impl PostgresSourcingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -355,14 +524,25 @@ impl SourcingRepository for PostgresSourcingRepository {
     // ========================================================================
 
     async fn create_event(
-        &self, org_id: Uuid, event_number: &str, title: &str,
-        description: Option<&str>, event_type: &str, style: &str,
-        response_deadline: chrono::NaiveDate, currency_code: &str,
-        scoring_method: &str, template_id: Option<Uuid>,
-        evaluation_lead_id: Option<Uuid>, evaluation_lead_name: Option<&str>,
-        contact_person_id: Option<Uuid>, contact_person_name: Option<&str>,
-        are_bids_visible: bool, allow_supplier_rank_visibility: bool,
-        terms_and_conditions: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        event_number: &str,
+        title: &str,
+        description: Option<&str>,
+        event_type: &str,
+        style: &str,
+        response_deadline: chrono::NaiveDate,
+        currency_code: &str,
+        scoring_method: &str,
+        template_id: Option<Uuid>,
+        evaluation_lead_id: Option<Uuid>,
+        evaluation_lead_name: Option<&str>,
+        contact_person_id: Option<Uuid>,
+        contact_person_name: Option<&str>,
+        are_bids_visible: bool,
+        allow_supplier_rank_visibility: bool,
+        terms_and_conditions: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<SourcingEvent> {
         let row = sqlx::query(
             r"
@@ -378,13 +558,24 @@ impl SourcingRepository for PostgresSourcingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(event_number).bind(title).bind(description)
-        .bind(event_type).bind(style)
-        .bind(response_deadline).bind(currency_code).bind(scoring_method)
-        .bind(template_id).bind(evaluation_lead_id).bind(evaluation_lead_name)
-        .bind(contact_person_id).bind(contact_person_name)
-        .bind(are_bids_visible).bind(allow_supplier_rank_visibility)
-        .bind(terms_and_conditions).bind(created_by)
+        .bind(org_id)
+        .bind(event_number)
+        .bind(title)
+        .bind(description)
+        .bind(event_type)
+        .bind(style)
+        .bind(response_deadline)
+        .bind(currency_code)
+        .bind(scoring_method)
+        .bind(template_id)
+        .bind(evaluation_lead_id)
+        .bind(evaluation_lead_name)
+        .bind(contact_person_id)
+        .bind(contact_person_name)
+        .bind(are_bids_visible)
+        .bind(allow_supplier_rank_visibility)
+        .bind(terms_and_conditions)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -401,16 +592,28 @@ impl SourcingRepository for PostgresSourcingRepository {
         Ok(row.map(|r| row_to_event(&r)))
     }
 
-    async fn get_event_by_number(&self, org_id: Uuid, event_number: &str) -> AtlasResult<Option<SourcingEvent>> {
-        let row = sqlx::query("SELECT * FROM _atlas.sourcing_events WHERE organization_id = $1 AND event_number = $2")
-            .bind(org_id).bind(event_number)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_event_by_number(
+        &self,
+        org_id: Uuid,
+        event_number: &str,
+    ) -> AtlasResult<Option<SourcingEvent>> {
+        let row = sqlx::query(
+            "SELECT * FROM _atlas.sourcing_events WHERE organization_id = $1 AND event_number = $2",
+        )
+        .bind(org_id)
+        .bind(event_number)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_event(&r)))
     }
 
-    async fn list_events(&self, org_id: Uuid, status: Option<&str>, event_type: Option<&str>) -> AtlasResult<Vec<SourcingEvent>> {
+    async fn list_events(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        event_type: Option<&str>,
+    ) -> AtlasResult<Vec<SourcingEvent>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.sourcing_events
@@ -420,14 +623,23 @@ impl SourcingRepository for PostgresSourcingRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(event_type)
+        .bind(org_id)
+        .bind(status)
+        .bind(event_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_event).collect())
     }
 
-    async fn update_event_status(&self, id: Uuid, status: &str, published_by: Option<Uuid>, closed_by: Option<Uuid>, cancelled_by: Option<Uuid>) -> AtlasResult<SourcingEvent> {
+    async fn update_event_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        published_by: Option<Uuid>,
+        closed_by: Option<Uuid>,
+        cancelled_by: Option<Uuid>,
+    ) -> AtlasResult<SourcingEvent> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.sourcing_events
@@ -466,7 +678,11 @@ impl SourcingRepository for PostgresSourcingRepository {
         Ok(())
     }
 
-    async fn update_event_award_summary(&self, id: Uuid, summary: serde_json::Value) -> AtlasResult<()> {
+    async fn update_event_award_summary(
+        &self,
+        id: Uuid,
+        summary: serde_json::Value,
+    ) -> AtlasResult<()> {
         sqlx::query("UPDATE _atlas.sourcing_events SET award_summary = $2, updated_at = now() WHERE id = $1")
             .bind(id).bind(summary)
             .execute(&self.pool)
@@ -480,11 +696,21 @@ impl SourcingRepository for PostgresSourcingRepository {
     // ========================================================================
 
     async fn create_event_line(
-        &self, org_id: Uuid, event_id: Uuid, line_number: i32,
-        description: &str, item_number: Option<&str>, category: Option<&str>,
-        quantity: &str, uom: &str, target_price: Option<&str>, target_total: Option<&str>,
-        need_by_date: Option<chrono::NaiveDate>, ship_to: Option<&str>,
-        specifications: Option<serde_json::Value>, allow_partial_quantity: bool,
+        &self,
+        org_id: Uuid,
+        event_id: Uuid,
+        line_number: i32,
+        description: &str,
+        item_number: Option<&str>,
+        category: Option<&str>,
+        quantity: &str,
+        uom: &str,
+        target_price: Option<&str>,
+        target_total: Option<&str>,
+        need_by_date: Option<chrono::NaiveDate>,
+        ship_to: Option<&str>,
+        specifications: Option<serde_json::Value>,
+        allow_partial_quantity: bool,
         min_award_quantity: Option<&str>,
     ) -> AtlasResult<SourcingEventLine> {
         let row = sqlx::query(
@@ -498,11 +724,21 @@ impl SourcingRepository for PostgresSourcingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(event_id).bind(line_number).bind(description)
-        .bind(item_number).bind(category)
-        .bind(quantity).bind(uom)
-        .bind(target_price).bind(target_total).bind(need_by_date).bind(ship_to)
-        .bind(specifications).bind(allow_partial_quantity).bind(min_award_quantity)
+        .bind(org_id)
+        .bind(event_id)
+        .bind(line_number)
+        .bind(description)
+        .bind(item_number)
+        .bind(category)
+        .bind(quantity)
+        .bind(uom)
+        .bind(target_price)
+        .bind(target_total)
+        .bind(need_by_date)
+        .bind(ship_to)
+        .bind(specifications)
+        .bind(allow_partial_quantity)
+        .bind(min_award_quantity)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -511,7 +747,7 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn list_event_lines(&self, event_id: Uuid) -> AtlasResult<Vec<SourcingEventLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.sourcing_event_lines WHERE event_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.sourcing_event_lines WHERE event_id = $1 ORDER BY line_number",
         )
         .bind(event_id)
         .fetch_all(&self.pool)
@@ -520,7 +756,14 @@ impl SourcingRepository for PostgresSourcingRepository {
         Ok(rows.iter().map(row_to_event_line).collect())
     }
 
-    async fn update_event_line_award(&self, line_id: Uuid, supplier_id: Uuid, supplier_name: Option<&str>, awarded_price: &str, awarded_quantity: &str) -> AtlasResult<()> {
+    async fn update_event_line_award(
+        &self,
+        line_id: Uuid,
+        supplier_id: Uuid,
+        supplier_name: Option<&str>,
+        awarded_price: &str,
+        awarded_quantity: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"
             UPDATE _atlas.sourcing_event_lines
@@ -529,7 +772,11 @@ impl SourcingRepository for PostgresSourcingRepository {
             WHERE id = $1
             ",
         )
-        .bind(line_id).bind(supplier_id).bind(supplier_name).bind(awarded_price).bind(awarded_quantity)
+        .bind(line_id)
+        .bind(supplier_id)
+        .bind(supplier_name)
+        .bind(awarded_price)
+        .bind(awarded_quantity)
         .execute(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -540,7 +787,14 @@ impl SourcingRepository for PostgresSourcingRepository {
     // Invites
     // ========================================================================
 
-    async fn create_invite(&self, org_id: Uuid, event_id: Uuid, supplier_id: Uuid, supplier_name: Option<&str>, supplier_email: Option<&str>) -> AtlasResult<SourcingInvite> {
+    async fn create_invite(
+        &self,
+        org_id: Uuid,
+        event_id: Uuid,
+        supplier_id: Uuid,
+        supplier_name: Option<&str>,
+        supplier_email: Option<&str>,
+    ) -> AtlasResult<SourcingInvite> {
         let row = sqlx::query(
             r"
             INSERT INTO _atlas.sourcing_invites
@@ -549,18 +803,27 @@ impl SourcingRepository for PostgresSourcingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(event_id).bind(supplier_id).bind(supplier_name).bind(supplier_email)
+        .bind(org_id)
+        .bind(event_id)
+        .bind(supplier_id)
+        .bind(supplier_name)
+        .bind(supplier_email)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_invite(&row))
     }
 
-    async fn get_invite(&self, event_id: Uuid, supplier_id: Uuid) -> AtlasResult<Option<SourcingInvite>> {
+    async fn get_invite(
+        &self,
+        event_id: Uuid,
+        supplier_id: Uuid,
+    ) -> AtlasResult<Option<SourcingInvite>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.sourcing_invites WHERE event_id = $1 AND supplier_id = $2"
+            "SELECT * FROM _atlas.sourcing_invites WHERE event_id = $1 AND supplier_id = $2",
         )
-        .bind(event_id).bind(supplier_id)
+        .bind(event_id)
+        .bind(supplier_id)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -569,7 +832,7 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn list_invites(&self, event_id: Uuid) -> AtlasResult<Vec<SourcingInvite>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.sourcing_invites WHERE event_id = $1 ORDER BY created_at"
+            "SELECT * FROM _atlas.sourcing_invites WHERE event_id = $1 ORDER BY created_at",
         )
         .bind(event_id)
         .fetch_all(&self.pool)
@@ -578,7 +841,12 @@ impl SourcingRepository for PostgresSourcingRepository {
         Ok(rows.iter().map(row_to_invite).collect())
     }
 
-    async fn update_invite_status(&self, id: Uuid, status: &str, viewed_at: Option<chrono::DateTime<chrono::Utc>>) -> AtlasResult<()> {
+    async fn update_invite_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        viewed_at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> AtlasResult<()> {
         sqlx::query(
             r"
             UPDATE _atlas.sourcing_invites
@@ -601,11 +869,18 @@ impl SourcingRepository for PostgresSourcingRepository {
     // ========================================================================
 
     async fn create_response(
-        &self, org_id: Uuid, event_id: Uuid, response_number: &str,
-        supplier_id: Uuid, supplier_name: Option<&str>,
-        cover_letter: Option<&str>, valid_until: Option<chrono::NaiveDate>,
-        payment_terms: Option<&str>, lead_time_days: Option<i32>,
-        warranty_months: Option<i32>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        event_id: Uuid,
+        response_number: &str,
+        supplier_id: Uuid,
+        supplier_name: Option<&str>,
+        cover_letter: Option<&str>,
+        valid_until: Option<chrono::NaiveDate>,
+        payment_terms: Option<&str>,
+        lead_time_days: Option<i32>,
+        warranty_months: Option<i32>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<SupplierResponse> {
         let row = sqlx::query(
             r"
@@ -617,9 +892,17 @@ impl SourcingRepository for PostgresSourcingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(event_id).bind(response_number).bind(supplier_id).bind(supplier_name)
-        .bind(cover_letter).bind(valid_until).bind(payment_terms)
-        .bind(lead_time_days).bind(warranty_months).bind(created_by)
+        .bind(org_id)
+        .bind(event_id)
+        .bind(response_number)
+        .bind(supplier_id)
+        .bind(supplier_name)
+        .bind(cover_letter)
+        .bind(valid_until)
+        .bind(payment_terms)
+        .bind(lead_time_days)
+        .bind(warranty_months)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -635,7 +918,11 @@ impl SourcingRepository for PostgresSourcingRepository {
         Ok(row.map(|r| row_to_response(&r)))
     }
 
-    async fn list_responses(&self, event_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SupplierResponse>> {
+    async fn list_responses(
+        &self,
+        event_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SupplierResponse>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.supplier_responses
@@ -644,7 +931,8 @@ impl SourcingRepository for PostgresSourcingRepository {
             ORDER BY created_at
             ",
         )
-        .bind(event_id).bind(status)
+        .bind(event_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -661,15 +949,23 @@ impl SourcingRepository for PostgresSourcingRepository {
     }
 
     async fn update_response_status(&self, id: Uuid, status: &str) -> AtlasResult<()> {
-        sqlx::query("UPDATE _atlas.supplier_responses SET status = $2, updated_at = now() WHERE id = $1")
-            .bind(id).bind(status)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "UPDATE _atlas.supplier_responses SET status = $2, updated_at = now() WHERE id = $1",
+        )
+        .bind(id)
+        .bind(status)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
-    async fn update_response_score_total(&self, id: Uuid, total_score: &str, evaluated_by: Option<Uuid>) -> AtlasResult<()> {
+    async fn update_response_score_total(
+        &self,
+        id: Uuid,
+        total_score: &str,
+        evaluated_by: Option<Uuid>,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.supplier_responses SET total_score = $2::numeric, evaluated_by = $3, evaluated_at = now(), updated_at = now() WHERE id = $1"
         )
@@ -681,11 +977,14 @@ impl SourcingRepository for PostgresSourcingRepository {
     }
 
     async fn update_response_rank(&self, id: Uuid, rank: i32) -> AtlasResult<()> {
-        sqlx::query("UPDATE _atlas.supplier_responses SET rank = $2, updated_at = now() WHERE id = $1")
-            .bind(id).bind(rank)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "UPDATE _atlas.supplier_responses SET rank = $2, updated_at = now() WHERE id = $1",
+        )
+        .bind(id)
+        .bind(rank)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -694,10 +993,18 @@ impl SourcingRepository for PostgresSourcingRepository {
     // ========================================================================
 
     async fn create_response_line(
-        &self, org_id: Uuid, response_id: Uuid, event_line_id: Uuid,
-        line_number: i32, unit_price: &str, quantity: &str, line_amount: &str,
-        discount_percent: Option<&str>, effective_price: Option<&str>,
-        promised_delivery_date: Option<chrono::NaiveDate>, lead_time_days: Option<i32>,
+        &self,
+        org_id: Uuid,
+        response_id: Uuid,
+        event_line_id: Uuid,
+        line_number: i32,
+        unit_price: &str,
+        quantity: &str,
+        line_amount: &str,
+        discount_percent: Option<&str>,
+        effective_price: Option<&str>,
+        promised_delivery_date: Option<chrono::NaiveDate>,
+        lead_time_days: Option<i32>,
         supplier_notes: Option<&str>,
     ) -> AtlasResult<SupplierResponseLine> {
         let row = sqlx::query(
@@ -711,17 +1018,28 @@ impl SourcingRepository for PostgresSourcingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(response_id).bind(event_line_id).bind(line_number)
-        .bind(unit_price).bind(quantity).bind(line_amount)
-        .bind(discount_percent).bind(effective_price)
-        .bind(promised_delivery_date).bind(lead_time_days).bind(supplier_notes)
+        .bind(org_id)
+        .bind(response_id)
+        .bind(event_line_id)
+        .bind(line_number)
+        .bind(unit_price)
+        .bind(quantity)
+        .bind(line_amount)
+        .bind(discount_percent)
+        .bind(effective_price)
+        .bind(promised_delivery_date)
+        .bind(lead_time_days)
+        .bind(supplier_notes)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_response_line(&row))
     }
 
-    async fn list_response_lines(&self, response_id: Uuid) -> AtlasResult<Vec<SupplierResponseLine>> {
+    async fn list_response_lines(
+        &self,
+        response_id: Uuid,
+    ) -> AtlasResult<Vec<SupplierResponseLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.supplier_response_lines WHERE response_id = $1 ORDER BY line_number"
         )
@@ -737,9 +1055,16 @@ impl SourcingRepository for PostgresSourcingRepository {
     // ========================================================================
 
     async fn create_scoring_criterion(
-        &self, org_id: Uuid, event_id: Uuid, name: &str,
-        description: Option<&str>, weight: &str, max_score: &str,
-        criterion_type: &str, display_order: i32, is_mandatory: bool,
+        &self,
+        org_id: Uuid,
+        event_id: Uuid,
+        name: &str,
+        description: Option<&str>,
+        weight: &str,
+        max_score: &str,
+        criterion_type: &str,
+        display_order: i32,
+        is_mandatory: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ScoringCriterion> {
         let row = sqlx::query(
@@ -751,9 +1076,16 @@ impl SourcingRepository for PostgresSourcingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(event_id).bind(name).bind(description)
-        .bind(weight).bind(max_score).bind(criterion_type)
-        .bind(display_order).bind(is_mandatory).bind(created_by)
+        .bind(org_id)
+        .bind(event_id)
+        .bind(name)
+        .bind(description)
+        .bind(weight)
+        .bind(max_score)
+        .bind(criterion_type)
+        .bind(display_order)
+        .bind(is_mandatory)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -771,7 +1103,7 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn list_scoring_criteria(&self, event_id: Uuid) -> AtlasResult<Vec<ScoringCriterion>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.scoring_criteria WHERE event_id = $1 ORDER BY display_order"
+            "SELECT * FROM _atlas.scoring_criteria WHERE event_id = $1 ORDER BY display_order",
         )
         .bind(event_id)
         .fetch_all(&self.pool)
@@ -781,8 +1113,13 @@ impl SourcingRepository for PostgresSourcingRepository {
     }
 
     async fn upsert_response_score(
-        &self, org_id: Uuid, response_id: Uuid, criterion_id: Uuid,
-        score: &str, weighted_score: &str, notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        response_id: Uuid,
+        criterion_id: Uuid,
+        score: &str,
+        weighted_score: &str,
+        notes: Option<&str>,
         scored_by: Option<Uuid>,
     ) -> AtlasResult<ResponseScore> {
         let row = sqlx::query(
@@ -806,7 +1143,7 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn list_response_scores(&self, response_id: Uuid) -> AtlasResult<Vec<ResponseScore>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.response_scores WHERE response_id = $1 ORDER BY created_at"
+            "SELECT * FROM _atlas.response_scores WHERE response_id = $1 ORDER BY created_at",
         )
         .bind(response_id)
         .fetch_all(&self.pool)
@@ -820,9 +1157,14 @@ impl SourcingRepository for PostgresSourcingRepository {
     // ========================================================================
 
     async fn create_award(
-        &self, org_id: Uuid, event_id: Uuid, award_number: &str,
-        award_method: &str, total_awarded_amount: &str,
-        award_rationale: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        event_id: Uuid,
+        award_number: &str,
+        award_method: &str,
+        total_awarded_amount: &str,
+        award_rationale: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<SourcingAward> {
         let row = sqlx::query(
             r"
@@ -833,8 +1175,13 @@ impl SourcingRepository for PostgresSourcingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(event_id).bind(award_number).bind(award_method)
-        .bind(total_awarded_amount).bind(award_rationale).bind(created_by)
+        .bind(org_id)
+        .bind(event_id)
+        .bind(award_number)
+        .bind(award_method)
+        .bind(total_awarded_amount)
+        .bind(award_rationale)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -852,7 +1199,7 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn list_awards(&self, event_id: Uuid) -> AtlasResult<Vec<SourcingAward>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.sourcing_awards WHERE event_id = $1 ORDER BY created_at DESC"
+            "SELECT * FROM _atlas.sourcing_awards WHERE event_id = $1 ORDER BY created_at DESC",
         )
         .bind(event_id)
         .fetch_all(&self.pool)
@@ -861,7 +1208,13 @@ impl SourcingRepository for PostgresSourcingRepository {
         Ok(rows.iter().map(row_to_award).collect())
     }
 
-    async fn update_award_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>, rejected_reason: Option<&str>) -> AtlasResult<SourcingAward> {
+    async fn update_award_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        rejected_reason: Option<&str>,
+    ) -> AtlasResult<SourcingAward> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.sourcing_awards
@@ -874,7 +1227,10 @@ impl SourcingRepository for PostgresSourcingRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by).bind(rejected_reason)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(rejected_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -882,9 +1238,16 @@ impl SourcingRepository for PostgresSourcingRepository {
     }
 
     async fn create_award_line(
-        &self, org_id: Uuid, award_id: Uuid, event_line_id: Uuid,
-        response_id: Uuid, supplier_id: Uuid, supplier_name: Option<&str>,
-        awarded_quantity: &str, awarded_unit_price: &str, awarded_amount: &str,
+        &self,
+        org_id: Uuid,
+        award_id: Uuid,
+        event_line_id: Uuid,
+        response_id: Uuid,
+        supplier_id: Uuid,
+        supplier_name: Option<&str>,
+        awarded_quantity: &str,
+        awarded_unit_price: &str,
+        awarded_amount: &str,
     ) -> AtlasResult<SourcingAwardLine> {
         let row = sqlx::query(
             r"
@@ -895,9 +1258,15 @@ impl SourcingRepository for PostgresSourcingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(award_id).bind(event_line_id).bind(response_id)
-        .bind(supplier_id).bind(supplier_name)
-        .bind(awarded_quantity).bind(awarded_unit_price).bind(awarded_amount)
+        .bind(org_id)
+        .bind(award_id)
+        .bind(event_line_id)
+        .bind(response_id)
+        .bind(supplier_id)
+        .bind(supplier_name)
+        .bind(awarded_quantity)
+        .bind(awarded_unit_price)
+        .bind(awarded_amount)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -906,7 +1275,7 @@ impl SourcingRepository for PostgresSourcingRepository {
 
     async fn list_award_lines(&self, award_id: Uuid) -> AtlasResult<Vec<SourcingAwardLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.sourcing_award_lines WHERE award_id = $1 ORDER BY created_at"
+            "SELECT * FROM _atlas.sourcing_award_lines WHERE award_id = $1 ORDER BY created_at",
         )
         .bind(award_id)
         .fetch_all(&self.pool)
@@ -920,11 +1289,18 @@ impl SourcingRepository for PostgresSourcingRepository {
     // ========================================================================
 
     async fn create_template(
-        &self, org_id: Uuid, code: &str, name: &str,
-        description: Option<&str>, default_event_type: &str,
-        default_style: &str, default_scoring_method: &str,
-        default_response_deadline_days: i32, currency_code: &str,
-        default_bids_visible: bool, default_terms: Option<&str>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        default_event_type: &str,
+        default_style: &str,
+        default_scoring_method: &str,
+        default_response_deadline_days: i32,
+        currency_code: &str,
+        default_bids_visible: bool,
+        default_terms: Option<&str>,
         default_scoring_criteria: serde_json::Value,
         default_lines: serde_json::Value,
         created_by: Option<Uuid>,
@@ -956,7 +1332,11 @@ impl SourcingRepository for PostgresSourcingRepository {
         Ok(row_to_template(&row))
     }
 
-    async fn get_template(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<SourcingTemplate>> {
+    async fn get_template(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<SourcingTemplate>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.sourcing_templates WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )

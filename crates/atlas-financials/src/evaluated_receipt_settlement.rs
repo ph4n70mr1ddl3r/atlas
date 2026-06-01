@@ -113,7 +113,10 @@ mod tests {
         let result = EvaluatedReceiptSettlementService::process_receipt(&receipt, Some(&profile));
 
         assert_eq!(result.status, "PROCESSED");
-        assert_eq!(result.generated_invoice_id, Some("ERS-INV-RCPT-100".to_string()));
+        assert_eq!(
+            result.generated_invoice_id,
+            Some("ERS-INV-RCPT-100".to_string())
+        );
         // 10 * 50 = 500. 500 + 10% tax = 550.
         assert_eq!(result.invoice_amount, 550.0);
         assert_eq!(result.payment_terms, "NET 30");
@@ -141,7 +144,10 @@ mod tests {
 
         assert_eq!(result.status, "SKIPPED");
         assert_eq!(result.generated_invoice_id, None);
-        assert_eq!(result.error_reason, Some("Supplier is not ERS enabled".to_string()));
+        assert_eq!(
+            result.error_reason,
+            Some("Supplier is not ERS enabled".to_string())
+        );
     }
 
     #[test]
@@ -158,7 +164,10 @@ mod tests {
         let result = EvaluatedReceiptSettlementService::process_receipt(&receipt, None);
 
         assert_eq!(result.status, "FAILED");
-        assert_eq!(result.error_reason, Some("Supplier ERS profile not found".to_string()));
+        assert_eq!(
+            result.error_reason,
+            Some("Supplier ERS profile not found".to_string())
+        );
     }
 
     #[test]
@@ -181,6 +190,9 @@ mod tests {
         let result = EvaluatedReceiptSettlementService::process_receipt(&receipt, Some(&profile));
 
         assert_eq!(result.status, "FAILED");
-        assert_eq!(result.error_reason, Some("Invalid receipt quantities or price".to_string()));
+        assert_eq!(
+            result.error_reason,
+            Some("Invalid receipt quantities or price".to_string())
+        );
     }
 }

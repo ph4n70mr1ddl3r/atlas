@@ -17,11 +17,19 @@ impl CustomerRefundService {
         } else {
             "REJECTED".to_string()
         };
-        
+
         RefundResult {
             customer_id: customer_id.to_string(),
-            amount_refunded: if credit_balance > 0.0 { credit_balance } else { 0.0 },
-            ap_invoice_id: if credit_balance > 0.0 { format!("REFUND-AP-{}", customer_id) } else { "".to_string() },
+            amount_refunded: if credit_balance > 0.0 {
+                credit_balance
+            } else {
+                0.0
+            },
+            ap_invoice_id: if credit_balance > 0.0 {
+                format!("REFUND-AP-{}", customer_id)
+            } else {
+                "".to_string()
+            },
             status,
         }
     }

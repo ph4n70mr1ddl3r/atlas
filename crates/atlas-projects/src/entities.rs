@@ -5,7 +5,7 @@ use atlas_core::schema::WorkflowBuilder;
 use atlas_shared::EntityDefinition;
 
 /// Project entity with lifecycle workflow
-#[must_use] 
+#[must_use]
 pub fn project_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("project_lifecycle", "planning")
         .initial_state("planning", "Planning")
@@ -41,7 +41,7 @@ pub fn project_definition() -> EntityDefinition {
 }
 
 /// Task entity with workflow
-#[must_use] 
+#[must_use]
 pub fn task_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("task_workflow", "todo")
         .initial_state("todo", "To Do")
@@ -67,12 +67,16 @@ pub fn task_definition() -> EntityDefinition {
         .reference("project_id", "Project", "projects")
         .reference("assignee_id", "Assignee", "employees")
         .reference("parent_task_id", "Parent Task", "tasks")
-        .enumeration("priority", "Priority", vec![
-            "critical", "high", "medium", "low"
-        ])
-        .enumeration("task_type", "Type", vec![
-            "task", "bug", "feature", "improvement", "story"
-        ])
+        .enumeration(
+            "priority",
+            "Priority",
+            vec!["critical", "high", "medium", "low"],
+        )
+        .enumeration(
+            "task_type",
+            "Type",
+            vec!["task", "bug", "feature", "improvement", "story"],
+        )
         .integer("estimated_hours", "Estimated Hours")
         .integer("actual_hours", "Actual Hours")
         .date("due_date", "Due Date")
@@ -83,7 +87,7 @@ pub fn task_definition() -> EntityDefinition {
 }
 
 /// Timesheet entity
-#[must_use] 
+#[must_use]
 pub fn timesheet_definition() -> EntityDefinition {
     let workflow = WorkflowBuilder::new("timesheet_workflow", "draft")
         .initial_state("draft", "Draft")
@@ -107,16 +111,18 @@ pub fn timesheet_definition() -> EntityDefinition {
         .date("date", "Date")
         .decimal("hours", "Hours", 5, 2)
         .string("description", "Description")
-        .enumeration("entry_type", "Type", vec![
-            "regular", "overtime", "holiday", "sick", "vacation"
-        ])
+        .enumeration(
+            "entry_type",
+            "Type",
+            vec!["regular", "overtime", "holiday", "sick", "vacation"],
+        )
         .boolean("billable", "Billable")
         .workflow(workflow)
         .build()
 }
 
 /// Milestone entity
-#[must_use] 
+#[must_use]
 pub fn milestone_definition() -> EntityDefinition {
     SchemaBuilder::new("milestones", "Milestone")
         .plural_label("Milestones")
@@ -127,9 +133,11 @@ pub fn milestone_definition() -> EntityDefinition {
         .reference("project_id", "Project", "projects")
         .date("target_date", "Target Date")
         .date("actual_date", "Actual Date")
-        .enumeration("status", "Status", vec![
-            "planned", "in_progress", "completed", "overdue"
-        ])
+        .enumeration(
+            "status",
+            "Status",
+            vec!["planned", "in_progress", "completed", "overdue"],
+        )
         .currency("budget", "Milestone Budget", "USD")
         .rich_text("description", "Description")
         .build()

@@ -5,11 +5,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: General Ledger > Period Close
 
-use atlas_shared::{
-    AccountingCalendar, AccountingPeriod, PeriodCloseChecklistItem, PeriodCloseSummary,
-    AtlasError, AtlasResult,
-};
 use super::PeriodCloseRepository;
+use atlas_shared::{
+    AccountingCalendar, AccountingPeriod, AtlasError, AtlasResult, PeriodCloseChecklistItem,
+    PeriodCloseSummary,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -54,10 +54,7 @@ impl PeriodCloseEngine {
         current_fiscal_year: Option<i32>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AccountingCalendar> {
-        info!(
-            "Creating accounting calendar '{}' for org {}",
-            name, org_id
-        );
+        info!("Creating accounting calendar '{}' for org {}", name, org_id);
 
         // Validate fiscal_year_start_month
         if !(1..=12).contains(&fiscal_year_start_month) {
@@ -124,9 +121,7 @@ impl PeriodCloseEngine {
             .repository
             .get_calendar(calendar_id)
             .await?
-            .ok_or_else(|| {
-                AtlasError::EntityNotFound(format!("Calendar {calendar_id}"))
-            })?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar {calendar_id}")))?;
 
         if calendar.organization_id != org_id {
             return Err(AtlasError::Forbidden(
@@ -161,11 +156,8 @@ impl PeriodCloseEngine {
             } else {
                 year
             };
-            let next_start =
-                chrono::NaiveDate::from_ymd_opt(next_year, next_month as u32, 1)
-                    .unwrap_or_else(|| {
-                        chrono::NaiveDate::from_ymd_opt(next_year, 1, 1).unwrap()
-                    });
+            let next_start = chrono::NaiveDate::from_ymd_opt(next_year, next_month as u32, 1)
+                .unwrap_or_else(|| chrono::NaiveDate::from_ymd_opt(next_year, 1, 1).unwrap());
             let end_date = next_start - chrono::Duration::days(1);
 
             let quarter = Some(((period_num - 1) / 3) + 1);
@@ -268,10 +260,7 @@ impl PeriodCloseEngine {
             .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Period {period_id}")))?;
 
-        if !matches!(
-            period.status.as_str(),
-            "not_opened" | "future"
-        ) {
+        if !matches!(period.status.as_str(), "not_opened" | "future") {
             return Err(AtlasError::WorkflowError(format!(
                 "Cannot open period '{}' with status '{}'. Period must be in 'not_opened' or 'future' status.",
                 period.period_name, period.status
@@ -304,10 +293,7 @@ impl PeriodCloseEngine {
             )));
         }
 
-        info!(
-            "Setting period '{}' to pending close",
-            period.period_name
-        );
+        info!("Setting period '{}' to pending close", period.period_name);
         self.repository
             .update_period_status(period_id, "pending_close", changed_by)
             .await
@@ -435,9 +421,7 @@ impl PeriodCloseEngine {
             .get_period_by_date(org_id, calendar_id, date)
             .await?
             .ok_or_else(|| {
-                AtlasError::ValidationFailed(format!(
-                    "No accounting period found for date {date}"
-                ))
+                AtlasError::ValidationFailed(format!("No accounting period found for date {date}"))
             })?;
 
         // Check if period is open or pending close
@@ -635,11 +619,7 @@ impl PeriodCloseEngine {
     }
 
     /// Revoke a period exception
-    pub async fn revoke_exception(
-        &self,
-        period_id: Uuid,
-        user_id: Uuid,
-    ) -> AtlasResult<()> {
+    pub async fn revoke_exception(&self, period_id: Uuid, user_id: Uuid) -> AtlasResult<()> {
         info!(
             "Revoking period exception for user {} on period {}",
             user_id, period_id
@@ -664,9 +644,7 @@ impl PeriodCloseEngine {
             .repository
             .get_calendar(calendar_id)
             .await?
-            .ok_or_else(|| {
-                AtlasError::EntityNotFound(format!("Calendar {calendar_id}"))
-            })?;
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calendar {calendar_id}")))?;
 
         if calendar.organization_id != org_id {
             return Err(AtlasError::Forbidden(
@@ -675,7 +653,11 @@ impl PeriodCloseEngine {
         }
 
         let fy = fiscal_year.or(calendar.current_fiscal_year).unwrap_or(
-            chrono::Utc::now().format("%Y").to_string().parse().unwrap_or(2026),
+            chrono::Utc::now()
+                .format("%Y")
+                .to_string()
+                .parse()
+                .unwrap_or(2026),
         );
 
         let periods = self
@@ -683,10 +665,13 @@ impl PeriodCloseEngine {
             .list_periods(org_id, calendar_id, Some(fy))
             .await?;
 
-        let current_period = periods.iter().find(|p| {
-            let today = chrono::Utc::now().date_naive();
-            today >= p.start_date && today <= p.end_date
-        }).cloned();
+        let current_period = periods
+            .iter()
+            .find(|p| {
+                let today = chrono::Utc::now().date_naive();
+                today >= p.start_date && today <= p.end_date
+            })
+            .cloned();
 
         let open_periods: Vec<_> = periods
             .iter()
@@ -705,7 +690,11 @@ impl PeriodCloseEngine {
         let mut completed_items = 0i32;
 
         for period in &periods {
-            let items = self.repository.list_checklist_items(period.id).await.unwrap_or_default();
+            let items = self
+                .repository
+                .list_checklist_items(period.id)
+                .await
+                .unwrap_or_default();
             total_items += items.len() as i32;
             completed_items += items.iter().filter(|i| i.status == "completed").count() as i32;
         }

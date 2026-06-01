@@ -4,12 +4,11 @@
 //! contract types, contracts, contract lines, milestones,
 //! renewals, and spend entries.
 
-use atlas_shared::{
-    ContractType, ProcurementContract, ContractLine, ContractMilestone,
-    ContractRenewal, ContractSpend,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasResult, ContractLine, ContractMilestone, ContractRenewal, ContractSpend, ContractType,
+    ProcurementContract,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -20,19 +19,30 @@ pub trait ProcurementContractRepository: Send + Sync {
     // Contract Types
     async fn create_contract_type(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        contract_classification: &str, requires_approval: bool,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        contract_classification: &str,
+        requires_approval: bool,
         default_duration_days: Option<i32>,
-        allow_amount_commitment: bool, allow_quantity_commitment: bool,
-        allow_line_additions: bool, allow_price_adjustment: bool,
-        allow_renewal: bool, allow_termination: bool,
+        allow_amount_commitment: bool,
+        allow_quantity_commitment: bool,
+        allow_line_additions: bool,
+        allow_price_adjustment: bool,
+        allow_renewal: bool,
+        allow_termination: bool,
         max_renewals: Option<i32>,
         default_payment_terms_code: Option<&str>,
         default_currency_code: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractType>;
 
-    async fn get_contract_type(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ContractType>>;
+    async fn get_contract_type(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ContractType>>;
     async fn get_contract_type_by_id(&self, id: Uuid) -> AtlasResult<Option<ContractType>>;
     async fn list_contract_types(&self, org_id: Uuid) -> AtlasResult<Vec<ContractType>>;
     async fn delete_contract_type(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
@@ -40,28 +50,53 @@ pub trait ProcurementContractRepository: Send + Sync {
     // Contracts
     async fn create_contract(
         &self,
-        org_id: Uuid, contract_number: &str, title: &str, description: Option<&str>,
-        contract_type_code: Option<&str>, contract_classification: &str,
-        supplier_id: Uuid, supplier_number: Option<&str>,
-        supplier_name: Option<&str>, supplier_contact: Option<&str>,
-        buyer_id: Option<Uuid>, buyer_name: Option<&str>,
-        start_date: Option<chrono::NaiveDate>, end_date: Option<chrono::NaiveDate>,
-        total_committed_amount: &str, currency_code: &str,
-        payment_terms_code: Option<&str>, price_type: &str,
-        max_renewals: Option<i32>, notes: Option<&str>,
+        org_id: Uuid,
+        contract_number: &str,
+        title: &str,
+        description: Option<&str>,
+        contract_type_code: Option<&str>,
+        contract_classification: &str,
+        supplier_id: Uuid,
+        supplier_number: Option<&str>,
+        supplier_name: Option<&str>,
+        supplier_contact: Option<&str>,
+        buyer_id: Option<Uuid>,
+        buyer_name: Option<&str>,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
+        total_committed_amount: &str,
+        currency_code: &str,
+        payment_terms_code: Option<&str>,
+        price_type: &str,
+        max_renewals: Option<i32>,
+        notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ProcurementContract>;
 
     async fn get_contract(&self, id: Uuid) -> AtlasResult<Option<ProcurementContract>>;
-    async fn get_contract_by_number(&self, org_id: Uuid, contract_number: &str) -> AtlasResult<Option<ProcurementContract>>;
-    async fn list_contracts(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<ProcurementContract>>;
+    async fn get_contract_by_number(
+        &self,
+        org_id: Uuid,
+        contract_number: &str,
+    ) -> AtlasResult<Option<ProcurementContract>>;
+    async fn list_contracts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        supplier_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ProcurementContract>>;
     async fn update_contract_status(
-        &self, id: Uuid, status: &str,
-        approved_by: Option<Uuid>, rejection_reason: Option<&str>,
-        terminated_by: Option<Uuid>, termination_reason: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        rejection_reason: Option<&str>,
+        terminated_by: Option<Uuid>,
+        termination_reason: Option<&str>,
     ) -> AtlasResult<ProcurementContract>;
     async fn update_contract_totals(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         total_committed_amount: Option<&str>,
         total_released_amount: Option<&str>,
         total_invoiced_amount: Option<&str>,
@@ -69,7 +104,8 @@ pub trait ProcurementContractRepository: Send + Sync {
         milestone_count: Option<i32>,
     ) -> AtlasResult<ProcurementContract>;
     async fn update_contract_dates(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         start_date: Option<chrono::NaiveDate>,
         end_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ProcurementContract>;
@@ -78,15 +114,24 @@ pub trait ProcurementContractRepository: Send + Sync {
     // Contract Lines
     async fn create_contract_line(
         &self,
-        org_id: Uuid, contract_id: Uuid, line_number: i32,
-        item_description: &str, item_code: Option<&str>,
-        category: Option<&str>, uom: Option<&str>,
-        quantity_committed: Option<&str>, quantity_released: &str,
-        unit_price: &str, line_amount: &str, amount_released: &str,
+        org_id: Uuid,
+        contract_id: Uuid,
+        line_number: i32,
+        item_description: &str,
+        item_code: Option<&str>,
+        category: Option<&str>,
+        uom: Option<&str>,
+        quantity_committed: Option<&str>,
+        quantity_released: &str,
+        unit_price: &str,
+        line_amount: &str,
+        amount_released: &str,
         delivery_date: Option<chrono::NaiveDate>,
         supplier_part_number: Option<&str>,
-        account_code: Option<&str>, cost_center: Option<&str>,
-        project_id: Option<Uuid>, notes: Option<&str>,
+        account_code: Option<&str>,
+        cost_center: Option<&str>,
+        project_id: Option<Uuid>,
+        notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractLine>;
 
@@ -97,27 +142,42 @@ pub trait ProcurementContractRepository: Send + Sync {
     // Milestones
     async fn create_milestone(
         &self,
-        org_id: Uuid, contract_id: Uuid, contract_line_id: Option<Uuid>,
-        milestone_number: i32, name: &str, description: Option<&str>,
-        milestone_type: &str, target_date: chrono::NaiveDate,
-        amount: &str, percent_of_total: &str,
-        deliverable: Option<&str>, is_billable: bool,
+        org_id: Uuid,
+        contract_id: Uuid,
+        contract_line_id: Option<Uuid>,
+        milestone_number: i32,
+        name: &str,
+        description: Option<&str>,
+        milestone_type: &str,
+        target_date: chrono::NaiveDate,
+        amount: &str,
+        percent_of_total: &str,
+        deliverable: Option<&str>,
+        is_billable: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractMilestone>;
 
     async fn get_milestone(&self, id: Uuid) -> AtlasResult<Option<ContractMilestone>>;
     async fn list_milestones(&self, contract_id: Uuid) -> AtlasResult<Vec<ContractMilestone>>;
     async fn update_milestone_status(
-        &self, id: Uuid, status: &str, actual_date: Option<chrono::NaiveDate>,
+        &self,
+        id: Uuid,
+        status: &str,
+        actual_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ContractMilestone>;
 
     // Renewals
     async fn create_renewal(
         &self,
-        org_id: Uuid, contract_id: Uuid, renewal_number: i32,
-        previous_end_date: chrono::NaiveDate, new_end_date: chrono::NaiveDate,
-        renewal_type: &str, terms_changed: Option<&str>,
-        renewed_by: Option<Uuid>, notes: Option<&str>,
+        org_id: Uuid,
+        contract_id: Uuid,
+        renewal_number: i32,
+        previous_end_date: chrono::NaiveDate,
+        new_end_date: chrono::NaiveDate,
+        renewal_type: &str,
+        terms_changed: Option<&str>,
+        renewed_by: Option<Uuid>,
+        notes: Option<&str>,
     ) -> AtlasResult<ContractRenewal>;
 
     async fn list_renewals(&self, contract_id: Uuid) -> AtlasResult<Vec<ContractRenewal>>;
@@ -125,10 +185,16 @@ pub trait ProcurementContractRepository: Send + Sync {
     // Spend
     async fn create_spend_entry(
         &self,
-        org_id: Uuid, contract_id: Uuid, contract_line_id: Option<Uuid>,
-        source_type: &str, source_id: Option<Uuid>, source_number: Option<&str>,
-        transaction_date: chrono::NaiveDate, amount: &str,
-        quantity: Option<&str>, description: Option<&str>,
+        org_id: Uuid,
+        contract_id: Uuid,
+        contract_line_id: Option<Uuid>,
+        source_type: &str,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        transaction_date: chrono::NaiveDate,
+        amount: &str,
+        quantity: Option<&str>,
+        description: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractSpend>;
 
@@ -141,7 +207,7 @@ pub struct PostgresProcurementContractRepository {
 }
 
 impl PostgresProcurementContractRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -332,12 +398,19 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
 
     async fn create_contract_type(
         &self,
-        org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        contract_classification: &str, requires_approval: bool,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        contract_classification: &str,
+        requires_approval: bool,
         default_duration_days: Option<i32>,
-        allow_amount_commitment: bool, allow_quantity_commitment: bool,
-        allow_line_additions: bool, allow_price_adjustment: bool,
-        allow_renewal: bool, allow_termination: bool,
+        allow_amount_commitment: bool,
+        allow_quantity_commitment: bool,
+        allow_line_additions: bool,
+        allow_price_adjustment: bool,
+        allow_renewal: bool,
+        allow_termination: bool,
         max_renewals: Option<i32>,
         default_payment_terms_code: Option<&str>,
         default_currency_code: Option<&str>,
@@ -364,12 +437,23 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(contract_classification).bind(requires_approval).bind(default_duration_days)
-        .bind(allow_amount_commitment).bind(allow_quantity_commitment)
-        .bind(allow_line_additions).bind(allow_price_adjustment)
-        .bind(allow_renewal).bind(allow_termination).bind(max_renewals)
-        .bind(default_payment_terms_code).bind(default_currency_code).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(contract_classification)
+        .bind(requires_approval)
+        .bind(default_duration_days)
+        .bind(allow_amount_commitment)
+        .bind(allow_quantity_commitment)
+        .bind(allow_line_additions)
+        .bind(allow_price_adjustment)
+        .bind(allow_renewal)
+        .bind(allow_termination)
+        .bind(max_renewals)
+        .bind(default_payment_terms_code)
+        .bind(default_currency_code)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -377,7 +461,11 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         Ok(row_to_contract_type(&row))
     }
 
-    async fn get_contract_type(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ContractType>> {
+    async fn get_contract_type(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ContractType>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.procurement_contract_types WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -425,15 +513,26 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
 
     async fn create_contract(
         &self,
-        org_id: Uuid, contract_number: &str, title: &str, description: Option<&str>,
-        contract_type_code: Option<&str>, contract_classification: &str,
-        supplier_id: Uuid, supplier_number: Option<&str>,
-        supplier_name: Option<&str>, supplier_contact: Option<&str>,
-        buyer_id: Option<Uuid>, buyer_name: Option<&str>,
-        start_date: Option<chrono::NaiveDate>, end_date: Option<chrono::NaiveDate>,
-        total_committed_amount: &str, currency_code: &str,
-        payment_terms_code: Option<&str>, price_type: &str,
-        max_renewals: Option<i32>, notes: Option<&str>,
+        org_id: Uuid,
+        contract_number: &str,
+        title: &str,
+        description: Option<&str>,
+        contract_type_code: Option<&str>,
+        contract_classification: &str,
+        supplier_id: Uuid,
+        supplier_number: Option<&str>,
+        supplier_name: Option<&str>,
+        supplier_contact: Option<&str>,
+        buyer_id: Option<Uuid>,
+        buyer_name: Option<&str>,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
+        total_committed_amount: &str,
+        currency_code: &str,
+        payment_terms_code: Option<&str>,
+        price_type: &str,
+        max_renewals: Option<i32>,
+        notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ProcurementContract> {
         let row = sqlx::query(
@@ -457,14 +556,27 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(contract_number).bind(title).bind(description)
-        .bind(contract_type_code).bind(contract_classification)
-        .bind(supplier_id).bind(supplier_number).bind(supplier_name).bind(supplier_contact)
-        .bind(buyer_id).bind(buyer_name)
-        .bind(start_date).bind(end_date)
+        .bind(org_id)
+        .bind(contract_number)
+        .bind(title)
+        .bind(description)
+        .bind(contract_type_code)
+        .bind(contract_classification)
+        .bind(supplier_id)
+        .bind(supplier_number)
+        .bind(supplier_name)
+        .bind(supplier_contact)
+        .bind(buyer_id)
+        .bind(buyer_name)
+        .bind(start_date)
+        .bind(end_date)
         .bind(total_committed_amount)
-        .bind(currency_code).bind(payment_terms_code).bind(price_type)
-        .bind(max_renewals).bind(notes).bind(created_by)
+        .bind(currency_code)
+        .bind(payment_terms_code)
+        .bind(price_type)
+        .bind(max_renewals)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -481,7 +593,11 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         Ok(row.map(|r| row_to_contract(&r)))
     }
 
-    async fn get_contract_by_number(&self, org_id: Uuid, contract_number: &str) -> AtlasResult<Option<ProcurementContract>> {
+    async fn get_contract_by_number(
+        &self,
+        org_id: Uuid,
+        contract_number: &str,
+    ) -> AtlasResult<Option<ProcurementContract>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.procurement_contracts WHERE organization_id = $1 AND contract_number = $2"
         )
@@ -492,7 +608,12 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
         Ok(row.map(|r| row_to_contract(&r)))
     }
 
-    async fn list_contracts(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<ProcurementContract>> {
+    async fn list_contracts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        supplier_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ProcurementContract>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.procurement_contracts
@@ -502,7 +623,9 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(supplier_id)
+        .bind(org_id)
+        .bind(status)
+        .bind(supplier_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -510,9 +633,13 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
     }
 
     async fn update_contract_status(
-        &self, id: Uuid, status: &str,
-        approved_by: Option<Uuid>, rejection_reason: Option<&str>,
-        terminated_by: Option<Uuid>, termination_reason: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+        rejection_reason: Option<&str>,
+        terminated_by: Option<Uuid>,
+        termination_reason: Option<&str>,
     ) -> AtlasResult<ProcurementContract> {
         let row = sqlx::query(
             r"
@@ -529,8 +656,12 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by).bind(rejection_reason)
-        .bind(terminated_by).bind(termination_reason)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(rejection_reason)
+        .bind(terminated_by)
+        .bind(termination_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -538,7 +669,8 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
     }
 
     async fn update_contract_totals(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         total_committed_amount: Option<&str>,
         total_released_amount: Option<&str>,
         total_invoiced_amount: Option<&str>,
@@ -558,8 +690,12 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(total_committed_amount).bind(total_released_amount)
-        .bind(total_invoiced_amount).bind(line_count).bind(milestone_count)
+        .bind(id)
+        .bind(total_committed_amount)
+        .bind(total_released_amount)
+        .bind(total_invoiced_amount)
+        .bind(line_count)
+        .bind(milestone_count)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -567,7 +703,8 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
     }
 
     async fn update_contract_dates(
-        &self, id: Uuid,
+        &self,
+        id: Uuid,
         start_date: Option<chrono::NaiveDate>,
         end_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ProcurementContract> {
@@ -581,7 +718,9 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(start_date).bind(end_date)
+        .bind(id)
+        .bind(start_date)
+        .bind(end_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -610,15 +749,24 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
 
     async fn create_contract_line(
         &self,
-        org_id: Uuid, contract_id: Uuid, line_number: i32,
-        item_description: &str, item_code: Option<&str>,
-        category: Option<&str>, uom: Option<&str>,
-        quantity_committed: Option<&str>, quantity_released: &str,
-        unit_price: &str, line_amount: &str, amount_released: &str,
+        org_id: Uuid,
+        contract_id: Uuid,
+        line_number: i32,
+        item_description: &str,
+        item_code: Option<&str>,
+        category: Option<&str>,
+        uom: Option<&str>,
+        quantity_committed: Option<&str>,
+        quantity_released: &str,
+        unit_price: &str,
+        line_amount: &str,
+        amount_released: &str,
         delivery_date: Option<chrono::NaiveDate>,
         supplier_part_number: Option<&str>,
-        account_code: Option<&str>, cost_center: Option<&str>,
-        project_id: Option<Uuid>, notes: Option<&str>,
+        account_code: Option<&str>,
+        cost_center: Option<&str>,
+        project_id: Option<Uuid>,
+        notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractLine> {
         let row = sqlx::query(
@@ -637,12 +785,25 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(contract_id).bind(line_number)
-        .bind(item_description).bind(item_code).bind(category).bind(uom)
-        .bind(quantity_committed).bind(quantity_released)
-        .bind(unit_price).bind(line_amount).bind(amount_released)
-        .bind(delivery_date).bind(supplier_part_number)
-        .bind(account_code).bind(cost_center).bind(project_id).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(contract_id)
+        .bind(line_number)
+        .bind(item_description)
+        .bind(item_code)
+        .bind(category)
+        .bind(uom)
+        .bind(quantity_committed)
+        .bind(quantity_released)
+        .bind(unit_price)
+        .bind(line_amount)
+        .bind(amount_released)
+        .bind(delivery_date)
+        .bind(supplier_part_number)
+        .bind(account_code)
+        .bind(cost_center)
+        .bind(project_id)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -685,11 +846,18 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
 
     async fn create_milestone(
         &self,
-        org_id: Uuid, contract_id: Uuid, contract_line_id: Option<Uuid>,
-        milestone_number: i32, name: &str, description: Option<&str>,
-        milestone_type: &str, target_date: chrono::NaiveDate,
-        amount: &str, percent_of_total: &str,
-        deliverable: Option<&str>, is_billable: bool,
+        org_id: Uuid,
+        contract_id: Uuid,
+        contract_line_id: Option<Uuid>,
+        milestone_number: i32,
+        name: &str,
+        description: Option<&str>,
+        milestone_type: &str,
+        target_date: chrono::NaiveDate,
+        amount: &str,
+        percent_of_total: &str,
+        deliverable: Option<&str>,
+        is_billable: bool,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractMilestone> {
         let row = sqlx::query(
@@ -705,10 +873,19 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(contract_id).bind(contract_line_id)
-        .bind(milestone_number).bind(name).bind(description).bind(milestone_type)
-        .bind(target_date).bind(amount).bind(percent_of_total)
-        .bind(deliverable).bind(is_billable).bind(created_by)
+        .bind(org_id)
+        .bind(contract_id)
+        .bind(contract_line_id)
+        .bind(milestone_number)
+        .bind(name)
+        .bind(description)
+        .bind(milestone_type)
+        .bind(target_date)
+        .bind(amount)
+        .bind(percent_of_total)
+        .bind(deliverable)
+        .bind(is_billable)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -737,7 +914,10 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
     }
 
     async fn update_milestone_status(
-        &self, id: Uuid, status: &str, actual_date: Option<chrono::NaiveDate>,
+        &self,
+        id: Uuid,
+        status: &str,
+        actual_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<ContractMilestone> {
         let row = sqlx::query(
             r"
@@ -749,7 +929,9 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(actual_date)
+        .bind(id)
+        .bind(status)
+        .bind(actual_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -762,10 +944,15 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
 
     async fn create_renewal(
         &self,
-        org_id: Uuid, contract_id: Uuid, renewal_number: i32,
-        previous_end_date: chrono::NaiveDate, new_end_date: chrono::NaiveDate,
-        renewal_type: &str, terms_changed: Option<&str>,
-        renewed_by: Option<Uuid>, notes: Option<&str>,
+        org_id: Uuid,
+        contract_id: Uuid,
+        renewal_number: i32,
+        previous_end_date: chrono::NaiveDate,
+        new_end_date: chrono::NaiveDate,
+        renewal_type: &str,
+        terms_changed: Option<&str>,
+        renewed_by: Option<Uuid>,
+        notes: Option<&str>,
     ) -> AtlasResult<ContractRenewal> {
         let row = sqlx::query(
             r"
@@ -777,9 +964,15 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(contract_id).bind(renewal_number)
-        .bind(previous_end_date).bind(new_end_date).bind(renewal_type)
-        .bind(terms_changed).bind(renewed_by).bind(notes)
+        .bind(org_id)
+        .bind(contract_id)
+        .bind(renewal_number)
+        .bind(previous_end_date)
+        .bind(new_end_date)
+        .bind(renewal_type)
+        .bind(terms_changed)
+        .bind(renewed_by)
+        .bind(notes)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;
@@ -804,10 +997,16 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
 
     async fn create_spend_entry(
         &self,
-        org_id: Uuid, contract_id: Uuid, contract_line_id: Option<Uuid>,
-        source_type: &str, source_id: Option<Uuid>, source_number: Option<&str>,
-        transaction_date: chrono::NaiveDate, amount: &str,
-        quantity: Option<&str>, description: Option<&str>,
+        org_id: Uuid,
+        contract_id: Uuid,
+        contract_line_id: Option<Uuid>,
+        source_type: &str,
+        source_id: Option<Uuid>,
+        source_number: Option<&str>,
+        transaction_date: chrono::NaiveDate,
+        amount: &str,
+        quantity: Option<&str>,
+        description: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ContractSpend> {
         let row = sqlx::query(
@@ -821,10 +1020,17 @@ impl ProcurementContractRepository for PostgresProcurementContractRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(contract_id).bind(contract_line_id)
-        .bind(source_type).bind(source_id).bind(source_number)
-        .bind(transaction_date).bind(amount)
-        .bind(quantity).bind(description).bind(created_by)
+        .bind(org_id)
+        .bind(contract_id)
+        .bind(contract_line_id)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(source_number)
+        .bind(transaction_date)
+        .bind(amount)
+        .bind(quantity)
+        .bind(description)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| atlas_shared::AtlasError::DatabaseError(e.to_string()))?;

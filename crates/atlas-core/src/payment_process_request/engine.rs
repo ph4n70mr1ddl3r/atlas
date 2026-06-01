@@ -5,26 +5,30 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Payables > Payment Process Requests
 
+use super::repository::{PaymentProcessRequest, PaymentProcessRequestRepository};
 use atlas_shared::{AtlasError, AtlasResult};
-use super::repository::{
-    PaymentProcessRequestRepository,
-    PaymentProcessRequest,
-};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 // Valid statuses
 const VALID_STATUSES: &[&str] = &[
-    "draft", "submitted", "selection_complete", "formatted", "confirmed", "cancelled",
+    "draft",
+    "submitted",
+    "selection_complete",
+    "formatted",
+    "confirmed",
+    "cancelled",
 ];
 
-const VALID_PAYMENT_METHODS: &[&str] = &[
-    "check", "electronic", "wire", "ach", "swift", "all",
-];
+const VALID_PAYMENT_METHODS: &[&str] = &["check", "electronic", "wire", "ach", "swift", "all"];
 
 const VALID_SELECTION_CRITERIA: &[&str] = &[
-    "due_date", "discount_date", "all_open", "supplier", "pay_group",
+    "due_date",
+    "discount_date",
+    "all_open",
+    "supplier",
+    "pay_group",
 ];
 
 /// Payment Process Request Engine
@@ -40,7 +44,9 @@ impl PaymentProcessRequestEngine {
     fn validate_payment_method(method: &str) -> AtlasResult<()> {
         if !VALID_PAYMENT_METHODS.contains(&method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid payment_method '{}'. Must be one of: {}", method, VALID_PAYMENT_METHODS.join(", ")
+                "Invalid payment_method '{}'. Must be one of: {}",
+                method,
+                VALID_PAYMENT_METHODS.join(", ")
             )));
         }
         Ok(())
@@ -49,7 +55,9 @@ impl PaymentProcessRequestEngine {
     fn validate_selection_criteria(criteria: &str) -> AtlasResult<()> {
         if !VALID_SELECTION_CRITERIA.contains(&criteria) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid selection_criteria '{}'. Must be one of: {}", criteria, VALID_SELECTION_CRITERIA.join(", ")
+                "Invalid selection_criteria '{}'. Must be one of: {}",
+                criteria,
+                VALID_SELECTION_CRITERIA.join(", ")
             )));
         }
         Ok(())
@@ -58,7 +66,9 @@ impl PaymentProcessRequestEngine {
     fn validate_status(status: &str) -> AtlasResult<()> {
         if !VALID_STATUSES.contains(&status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid status '{}'. Must be one of: {}", status, VALID_STATUSES.join(", ")
+                "Invalid status '{}'. Must be one of: {}",
+                status,
+                VALID_STATUSES.join(", ")
             )));
         }
         Ok(())
@@ -142,25 +152,53 @@ impl PaymentProcessRequestEngine {
         // Generate request number
         let request_number = format!("PPR-{}", chrono::Utc::now().format("%Y%m%d%H%M%S%.f"));
 
-        let ppr = self.repo.create_request(
-            org_id, &request_number, request_name, description,
-            payment_date, gl_date, payment_method, currency_code,
-            exchange_rate_type, exchange_rate,
-            selection_criteria, due_date_from, due_date_to,
-            supplier_id, supplier_name, pay_group,
-            minimum_amount, maximum_amount,
-            include_on_hold, take_discount, pay_only_due,
-            bank_account_id, bank_account_name, payment_document,
-            created_by,
-        ).await?;
+        let ppr = self
+            .repo
+            .create_request(
+                org_id,
+                &request_number,
+                request_name,
+                description,
+                payment_date,
+                gl_date,
+                payment_method,
+                currency_code,
+                exchange_rate_type,
+                exchange_rate,
+                selection_criteria,
+                due_date_from,
+                due_date_to,
+                supplier_id,
+                supplier_name,
+                pay_group,
+                minimum_amount,
+                maximum_amount,
+                include_on_hold,
+                take_discount,
+                pay_only_due,
+                bank_account_id,
+                bank_account_name,
+                payment_document,
+                created_by,
+            )
+            .await?;
 
         // Log creation activity
-        self.repo.log_activity(
-            org_id, ppr.id, None,
-            "created", Some(&format!("Created PPR {request_number}")),
-            None, Some("draft"), created_by, None,
-            serde_json::json!({"requestName": request_name}),
-        ).await.ok();
+        self.repo
+            .log_activity(
+                org_id,
+                ppr.id,
+                None,
+                "created",
+                Some(&format!("Created PPR {request_number}")),
+                None,
+                Some("draft"),
+                created_by,
+                None,
+                serde_json::json!({"requestName": request_name}),
+            )
+            .await
+            .ok();
 
         info!("PPR: Created request {} ({})", request_number, request_name);
         Ok(ppr)
@@ -170,11 +208,21 @@ impl PaymentProcessRequestEngine {
         self.repo.get_request(org_id, id).await
     }
 
-    pub async fn get_request_by_number(&self, org_id: Uuid, request_number: &str) -> AtlasResult<PaymentProcessRequest> {
-        self.repo.get_request_by_number(org_id, request_number).await
+    pub async fn get_request_by_number(
+        &self,
+        org_id: Uuid,
+        request_number: &str,
+    ) -> AtlasResult<PaymentProcessRequest> {
+        self.repo
+            .get_request_by_number(org_id, request_number)
+            .await
     }
 
-    pub async fn list_requests(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PaymentProcessRequest>> {
+    pub async fn list_requests(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PaymentProcessRequest>> {
         if let Some(s) = status {
             Self::validate_status(s)?;
         }
@@ -189,7 +237,12 @@ impl PaymentProcessRequestEngine {
     // Lifecycle
     // ========================================================================
 
-    pub async fn submit_request(&self, org_id: Uuid, id: Uuid, submitted_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
+    pub async fn submit_request(
+        &self,
+        org_id: Uuid,
+        id: Uuid,
+        submitted_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest> {
         let ppr = self.repo.get_request(org_id, id).await?;
         Self::validate_status_transition(&ppr.status, "submitted")?;
 
@@ -201,63 +254,114 @@ impl PaymentProcessRequestEngine {
 
         let updated = self.repo.set_submitted(id, submitted_by).await?;
 
-        self.repo.log_activity(
-            org_id, id, None,
-            "submitted", Some("PPR submitted for processing"),
-            Some("draft"), Some("submitted"), Some(submitted_by), None,
-            serde_json::json!({}),
-        ).await.ok();
+        self.repo
+            .log_activity(
+                org_id,
+                id,
+                None,
+                "submitted",
+                Some("PPR submitted for processing"),
+                Some("draft"),
+                Some("submitted"),
+                Some(submitted_by),
+                None,
+                serde_json::json!({}),
+            )
+            .await
+            .ok();
 
         info!("PPR: Submitted request {}", ppr.request_number);
         Ok(updated)
     }
 
-    pub async fn complete_selection(&self, org_id: Uuid, id: Uuid, completed_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
+    pub async fn complete_selection(
+        &self,
+        org_id: Uuid,
+        id: Uuid,
+        completed_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest> {
         let ppr = self.repo.get_request(org_id, id).await?;
         Self::validate_status_transition(&ppr.status, "selection_complete")?;
 
         let updated = self.repo.set_selection_complete(id, completed_by).await?;
 
-        self.repo.log_activity(
-            org_id, id, None,
-            "selection_complete", Some("Invoice selection completed"),
-            Some("submitted"), Some("selection_complete"), Some(completed_by), None,
-            serde_json::json!({"totalDocuments": ppr.total_documents}),
-        ).await.ok();
+        self.repo
+            .log_activity(
+                org_id,
+                id,
+                None,
+                "selection_complete",
+                Some("Invoice selection completed"),
+                Some("submitted"),
+                Some("selection_complete"),
+                Some(completed_by),
+                None,
+                serde_json::json!({"totalDocuments": ppr.total_documents}),
+            )
+            .await
+            .ok();
 
         info!("PPR: Selection completed for {}", ppr.request_number);
         Ok(updated)
     }
 
-    pub async fn format_payments(&self, org_id: Uuid, id: Uuid, formatted_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
+    pub async fn format_payments(
+        &self,
+        org_id: Uuid,
+        id: Uuid,
+        formatted_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest> {
         let ppr = self.repo.get_request(org_id, id).await?;
         Self::validate_status_transition(&ppr.status, "formatted")?;
 
         let updated = self.repo.set_formatted(id, formatted_by).await?;
 
-        self.repo.log_activity(
-            org_id, id, None,
-            "formatted", Some("Payment formatting completed"),
-            Some("selection_complete"), Some("formatted"), Some(formatted_by), None,
-            serde_json::json!({}),
-        ).await.ok();
+        self.repo
+            .log_activity(
+                org_id,
+                id,
+                None,
+                "formatted",
+                Some("Payment formatting completed"),
+                Some("selection_complete"),
+                Some("formatted"),
+                Some(formatted_by),
+                None,
+                serde_json::json!({}),
+            )
+            .await
+            .ok();
 
         info!("PPR: Payments formatted for {}", ppr.request_number);
         Ok(updated)
     }
 
-    pub async fn confirm_payments(&self, org_id: Uuid, id: Uuid, confirmed_by: Uuid) -> AtlasResult<PaymentProcessRequest> {
+    pub async fn confirm_payments(
+        &self,
+        org_id: Uuid,
+        id: Uuid,
+        confirmed_by: Uuid,
+    ) -> AtlasResult<PaymentProcessRequest> {
         let ppr = self.repo.get_request(org_id, id).await?;
         Self::validate_status_transition(&ppr.status, "confirmed")?;
 
         let updated = self.repo.set_confirmed(id, confirmed_by).await?;
 
-        self.repo.log_activity(
-            org_id, id, None,
-            "confirmed", Some("Payments confirmed and processed"),
-            Some("formatted"), Some("confirmed"), Some(confirmed_by), None,
-            serde_json::json!({"totalPaymentAmount": ppr.total_payment_amount}),
-        ).await.ok();
+        self.repo
+            .log_activity(
+                org_id,
+                id,
+                None,
+                "confirmed",
+                Some("Payments confirmed and processed"),
+                Some("formatted"),
+                Some("confirmed"),
+                Some(confirmed_by),
+                None,
+                serde_json::json!({"totalPaymentAmount": ppr.total_payment_amount}),
+            )
+            .await
+            .ok();
 
         info!("PPR: Payments confirmed for {}", ppr.request_number);
         Ok(updated)
@@ -276,12 +380,24 @@ impl PaymentProcessRequestEngine {
         let old_status = ppr.status.clone();
         let updated = self.repo.set_cancelled(id, cancelled_by, reason).await?;
 
-        self.repo.log_activity(
-            org_id, id, None,
-            "cancelled", Some(&format!("PPR cancelled{}", reason.map(|r| format!(": {r}")).unwrap_or_default())),
-            Some(&old_status), Some("cancelled"), Some(cancelled_by), None,
-            serde_json::json!({"reason": reason}),
-        ).await.ok();
+        self.repo
+            .log_activity(
+                org_id,
+                id,
+                None,
+                "cancelled",
+                Some(&format!(
+                    "PPR cancelled{}",
+                    reason.map(|r| format!(": {r}")).unwrap_or_default()
+                )),
+                Some(&old_status),
+                Some("cancelled"),
+                Some(cancelled_by),
+                None,
+                serde_json::json!({"reason": reason}),
+            )
+            .await
+            .ok();
 
         info!("PPR: Cancelled request {}", ppr.request_number);
         Ok(updated)
@@ -339,30 +455,67 @@ impl PaymentProcessRequestEngine {
             ));
         }
 
-        let doc = self.repo.add_document(
-            org_id, ppr_id,
-            invoice_id, invoice_number, invoice_date, invoice_amount,
-            supplier_id, supplier_number, supplier_name, supplier_site,
-            original_amount, amount_due, amount_to_pay,
-            discount_available, discount_taken, discount_date,
-            currency_code, liability_account, discount_account, cash_account,
-        ).await?;
+        let doc = self
+            .repo
+            .add_document(
+                org_id,
+                ppr_id,
+                invoice_id,
+                invoice_number,
+                invoice_date,
+                invoice_amount,
+                supplier_id,
+                supplier_number,
+                supplier_name,
+                supplier_site,
+                original_amount,
+                amount_due,
+                amount_to_pay,
+                discount_available,
+                discount_taken,
+                discount_date,
+                currency_code,
+                liability_account,
+                discount_account,
+                cash_account,
+            )
+            .await?;
 
-        self.repo.log_activity(
-            org_id, ppr_id, Some(doc.id),
-            "document_added", Some(&format!("Added document for invoice {}", invoice_number.unwrap_or("N/A"))),
-            None, None, None, None,
-            serde_json::json!({"invoiceAmount": invoice_amount}),
-        ).await.ok();
+        self.repo
+            .log_activity(
+                org_id,
+                ppr_id,
+                Some(doc.id),
+                "document_added",
+                Some(&format!(
+                    "Added document for invoice {}",
+                    invoice_number.unwrap_or("N/A")
+                )),
+                None,
+                None,
+                None,
+                None,
+                serde_json::json!({"invoiceAmount": invoice_amount}),
+            )
+            .await
+            .ok();
 
         Ok(doc)
     }
 
-    pub async fn list_documents(&self, ppr_id: Uuid) -> AtlasResult<Vec<super::repository::PprSelectedDocument>> {
+    pub async fn list_documents(
+        &self,
+        ppr_id: Uuid,
+    ) -> AtlasResult<Vec<super::repository::PprSelectedDocument>> {
         self.repo.list_documents(ppr_id).await
     }
 
-    pub async fn remove_document(&self, org_id: Uuid, ppr_id: Uuid, document_id: Uuid) -> AtlasResult<()> {
+    pub async fn remove_document(
+        &self,
+        org_id: Uuid,
+        ppr_id: Uuid,
+        document_id: Uuid,
+    ) -> AtlasResult<()> {
         let ppr = self.repo.get_request(org_id, ppr_id).await?;
         if ppr.status != "draft" {
             return Err(AtlasError::ValidationFailed(
@@ -376,11 +529,17 @@ impl PaymentProcessRequestEngine {
     // Activities & Dashboard
     // ========================================================================
 
-    pub async fn list_activities(&self, ppr_id: Uuid) -> AtlasResult<Vec<super::repository::PprActivity>> {
+    pub async fn list_activities(
+        &self,
+        ppr_id: Uuid,
+    ) -> AtlasResult<Vec<super::repository::PprActivity>> {
         self.repo.list_activities(ppr_id).await
     }
 
-    pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<super::repository::PprDashboard> {
+    pub async fn get_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<super::repository::PprDashboard> {
         self.repo.get_dashboard(org_id).await
     }
 }

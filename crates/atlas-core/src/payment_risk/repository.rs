@@ -3,8 +3,8 @@
 //! `PostgreSQL` storage for risk profiles, fraud alerts, sanctions screening results,
 //! and supplier risk assessments.
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -244,36 +244,103 @@ pub struct SupplierRiskAssessmentCreateParams {
 #[async_trait]
 pub trait PaymentRiskRepository: Send + Sync {
     // Risk Profiles
-    async fn create_risk_profile(&self, params: &RiskProfileCreateParams) -> AtlasResult<RiskProfile>;
+    async fn create_risk_profile(
+        &self,
+        params: &RiskProfileCreateParams,
+    ) -> AtlasResult<RiskProfile>;
     async fn get_risk_profile(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<RiskProfile>>;
     async fn get_risk_profile_by_id(&self, id: Uuid) -> AtlasResult<Option<RiskProfile>>;
-    async fn list_risk_profiles(&self, org_id: Uuid, profile_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<RiskProfile>>;
-    async fn update_risk_profile_status(&self, id: Uuid, is_active: bool) -> AtlasResult<RiskProfile>;
+    async fn list_risk_profiles(
+        &self,
+        org_id: Uuid,
+        profile_type: Option<&str>,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<RiskProfile>>;
+    async fn update_risk_profile_status(
+        &self,
+        id: Uuid,
+        is_active: bool,
+    ) -> AtlasResult<RiskProfile>;
     async fn delete_risk_profile(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
     async fn get_next_profile_sequence(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Fraud Alerts
     async fn create_fraud_alert(&self, params: &FraudAlertCreateParams) -> AtlasResult<FraudAlert>;
-    async fn get_fraud_alert(&self, org_id: Uuid, alert_number: &str) -> AtlasResult<Option<FraudAlert>>;
+    async fn get_fraud_alert(
+        &self,
+        org_id: Uuid,
+        alert_number: &str,
+    ) -> AtlasResult<Option<FraudAlert>>;
     async fn get_fraud_alert_by_id(&self, id: Uuid) -> AtlasResult<Option<FraudAlert>>;
-    async fn list_fraud_alerts(&self, org_id: Uuid, status: Option<&str>, alert_type: Option<&str>, severity: Option<&str>) -> AtlasResult<Vec<FraudAlert>>;
-    async fn update_fraud_alert_status(&self, id: Uuid, status: &str, resolution_notes: Option<&str>, resolved_by: Option<Uuid>) -> AtlasResult<FraudAlert>;
-    async fn assign_fraud_alert(&self, id: Uuid, assigned_to: Option<&str>, assigned_team: Option<&str>) -> AtlasResult<FraudAlert>;
+    async fn list_fraud_alerts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        alert_type: Option<&str>,
+        severity: Option<&str>,
+    ) -> AtlasResult<Vec<FraudAlert>>;
+    async fn update_fraud_alert_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        resolution_notes: Option<&str>,
+        resolved_by: Option<Uuid>,
+    ) -> AtlasResult<FraudAlert>;
+    async fn assign_fraud_alert(
+        &self,
+        id: Uuid,
+        assigned_to: Option<&str>,
+        assigned_team: Option<&str>,
+    ) -> AtlasResult<FraudAlert>;
     async fn get_next_alert_sequence(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Sanctions Screening
-    async fn create_screening_result(&self, params: &SanctionsScreeningCreateParams) -> AtlasResult<SanctionsScreeningResult>;
-    async fn get_screening_result(&self, org_id: Uuid, screening_id: &str) -> AtlasResult<Option<SanctionsScreeningResult>>;
-    async fn list_screening_results(&self, org_id: Uuid, supplier_id: Option<Uuid>, match_status: Option<&str>) -> AtlasResult<Vec<SanctionsScreeningResult>>;
-    async fn review_screening_result(&self, id: Uuid, reviewed_by: &str, review_notes: Option<&str>, action_taken: &str) -> AtlasResult<SanctionsScreeningResult>;
+    async fn create_screening_result(
+        &self,
+        params: &SanctionsScreeningCreateParams,
+    ) -> AtlasResult<SanctionsScreeningResult>;
+    async fn get_screening_result(
+        &self,
+        org_id: Uuid,
+        screening_id: &str,
+    ) -> AtlasResult<Option<SanctionsScreeningResult>>;
+    async fn list_screening_results(
+        &self,
+        org_id: Uuid,
+        supplier_id: Option<Uuid>,
+        match_status: Option<&str>,
+    ) -> AtlasResult<Vec<SanctionsScreeningResult>>;
+    async fn review_screening_result(
+        &self,
+        id: Uuid,
+        reviewed_by: &str,
+        review_notes: Option<&str>,
+        action_taken: &str,
+    ) -> AtlasResult<SanctionsScreeningResult>;
     async fn get_next_screening_sequence(&self, org_id: Uuid) -> AtlasResult<i32>;
 
     // Supplier Risk Assessments
-    async fn create_assessment(&self, params: &SupplierRiskAssessmentCreateParams) -> AtlasResult<SupplierRiskAssessment>;
-    async fn get_assessment(&self, org_id: Uuid, assessment_number: &str) -> AtlasResult<Option<SupplierRiskAssessment>>;
+    async fn create_assessment(
+        &self,
+        params: &SupplierRiskAssessmentCreateParams,
+    ) -> AtlasResult<SupplierRiskAssessment>;
+    async fn get_assessment(
+        &self,
+        org_id: Uuid,
+        assessment_number: &str,
+    ) -> AtlasResult<Option<SupplierRiskAssessment>>;
     async fn get_assessment_by_id(&self, id: Uuid) -> AtlasResult<Option<SupplierRiskAssessment>>;
-    async fn list_assessments(&self, org_id: Uuid, supplier_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<SupplierRiskAssessment>>;
-    async fn update_assessment_status(&self, id: Uuid, status: &str) -> AtlasResult<SupplierRiskAssessment>;
+    async fn list_assessments(
+        &self,
+        org_id: Uuid,
+        supplier_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SupplierRiskAssessment>>;
+    async fn update_assessment_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<SupplierRiskAssessment>;
     async fn delete_assessment(&self, org_id: Uuid, assessment_number: &str) -> AtlasResult<()>;
     async fn get_next_assessment_sequence(&self, org_id: Uuid) -> AtlasResult<i32>;
 }
@@ -288,7 +355,7 @@ pub struct PostgresPaymentRiskRepository {
 }
 
 impl PostgresPaymentRiskRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -297,7 +364,10 @@ impl PostgresPaymentRiskRepository {
 #[async_trait]
 impl PaymentRiskRepository for PostgresPaymentRiskRepository {
     // Risk Profiles
-    async fn create_risk_profile(&self, params: &RiskProfileCreateParams) -> AtlasResult<RiskProfile> {
+    async fn create_risk_profile(
+        &self,
+        params: &RiskProfileCreateParams,
+    ) -> AtlasResult<RiskProfile> {
         let row = sqlx::query_as::<_, RiskProfile>(
             r"INSERT INTO _atlas.payment_risk_profiles
                (organization_id, code, name, description, profile_type, default_risk_level,
@@ -360,7 +430,12 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(row)
     }
 
-    async fn list_risk_profiles(&self, org_id: Uuid, profile_type: Option<&str>, is_active: Option<bool>) -> AtlasResult<Vec<RiskProfile>> {
+    async fn list_risk_profiles(
+        &self,
+        org_id: Uuid,
+        profile_type: Option<&str>,
+        is_active: Option<bool>,
+    ) -> AtlasResult<Vec<RiskProfile>> {
         let rows = sqlx::query_as::<_, RiskProfile>(
             "SELECT * FROM _atlas.payment_risk_profiles WHERE organization_id = $1 AND ($2::text IS NULL OR profile_type = $2) AND ($3::bool IS NULL OR is_active = $3) ORDER BY code",
         )
@@ -373,7 +448,11 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(rows)
     }
 
-    async fn update_risk_profile_status(&self, id: Uuid, is_active: bool) -> AtlasResult<RiskProfile> {
+    async fn update_risk_profile_status(
+        &self,
+        id: Uuid,
+        is_active: bool,
+    ) -> AtlasResult<RiskProfile> {
         let row = sqlx::query_as::<_, RiskProfile>(
             "UPDATE _atlas.payment_risk_profiles SET is_active = $2, updated_at = now() WHERE id = $1 RETURNING *",
         )
@@ -395,7 +474,9 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Risk profile not found".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Risk profile not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -448,7 +529,11 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(row)
     }
 
-    async fn get_fraud_alert(&self, org_id: Uuid, alert_number: &str) -> AtlasResult<Option<FraudAlert>> {
+    async fn get_fraud_alert(
+        &self,
+        org_id: Uuid,
+        alert_number: &str,
+    ) -> AtlasResult<Option<FraudAlert>> {
         let row = sqlx::query_as::<_, FraudAlert>(
             "SELECT * FROM _atlas.payment_fraud_alerts WHERE organization_id = $1 AND alert_number = $2",
         )
@@ -471,7 +556,13 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(row)
     }
 
-    async fn list_fraud_alerts(&self, org_id: Uuid, status: Option<&str>, alert_type: Option<&str>, severity: Option<&str>) -> AtlasResult<Vec<FraudAlert>> {
+    async fn list_fraud_alerts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        alert_type: Option<&str>,
+        severity: Option<&str>,
+    ) -> AtlasResult<Vec<FraudAlert>> {
         let rows = sqlx::query_as::<_, FraudAlert>(
             "SELECT * FROM _atlas.payment_fraud_alerts WHERE organization_id = $1 AND ($2::text IS NULL OR status = $2) AND ($3::text IS NULL OR alert_type = $3) AND ($4::text IS NULL OR severity = $4) ORDER BY detected_date DESC",
         )
@@ -485,7 +576,13 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(rows)
     }
 
-    async fn update_fraud_alert_status(&self, id: Uuid, status: &str, resolution_notes: Option<&str>, resolved_by: Option<Uuid>) -> AtlasResult<FraudAlert> {
+    async fn update_fraud_alert_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        resolution_notes: Option<&str>,
+        resolved_by: Option<Uuid>,
+    ) -> AtlasResult<FraudAlert> {
         let row = sqlx::query_as::<_, FraudAlert>(
             r"UPDATE _atlas.payment_fraud_alerts
                SET status = $2, resolution_notes = COALESCE($3, resolution_notes),
@@ -504,7 +601,12 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(row)
     }
 
-    async fn assign_fraud_alert(&self, id: Uuid, assigned_to: Option<&str>, assigned_team: Option<&str>) -> AtlasResult<FraudAlert> {
+    async fn assign_fraud_alert(
+        &self,
+        id: Uuid,
+        assigned_to: Option<&str>,
+        assigned_team: Option<&str>,
+    ) -> AtlasResult<FraudAlert> {
         let row = sqlx::query_as::<_, FraudAlert>(
             r"UPDATE _atlas.payment_fraud_alerts
                SET assigned_to = $2, assigned_team = $3, updated_at = now()
@@ -532,7 +634,10 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
     }
 
     // Sanctions Screening
-    async fn create_screening_result(&self, params: &SanctionsScreeningCreateParams) -> AtlasResult<SanctionsScreeningResult> {
+    async fn create_screening_result(
+        &self,
+        params: &SanctionsScreeningCreateParams,
+    ) -> AtlasResult<SanctionsScreeningResult> {
         let row = sqlx::query_as::<_, SanctionsScreeningResult>(
             r"INSERT INTO _atlas.sanctions_screening_results
                (organization_id, screening_type, supplier_id, supplier_name, payment_id,
@@ -563,7 +668,11 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(row)
     }
 
-    async fn get_screening_result(&self, org_id: Uuid, screening_id: &str) -> AtlasResult<Option<SanctionsScreeningResult>> {
+    async fn get_screening_result(
+        &self,
+        org_id: Uuid,
+        screening_id: &str,
+    ) -> AtlasResult<Option<SanctionsScreeningResult>> {
         let row = sqlx::query_as::<_, SanctionsScreeningResult>(
             "SELECT * FROM _atlas.sanctions_screening_results WHERE organization_id = $1 AND screening_id = $2",
         )
@@ -575,7 +684,12 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(row)
     }
 
-    async fn list_screening_results(&self, org_id: Uuid, supplier_id: Option<Uuid>, match_status: Option<&str>) -> AtlasResult<Vec<SanctionsScreeningResult>> {
+    async fn list_screening_results(
+        &self,
+        org_id: Uuid,
+        supplier_id: Option<Uuid>,
+        match_status: Option<&str>,
+    ) -> AtlasResult<Vec<SanctionsScreeningResult>> {
         let rows = sqlx::query_as::<_, SanctionsScreeningResult>(
             "SELECT * FROM _atlas.sanctions_screening_results WHERE organization_id = $1 AND ($2::uuid IS NULL OR supplier_id = $2) AND ($3::text IS NULL OR match_status = $3) ORDER BY screening_date DESC",
         )
@@ -588,7 +702,13 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(rows)
     }
 
-    async fn review_screening_result(&self, id: Uuid, reviewed_by: &str, review_notes: Option<&str>, action_taken: &str) -> AtlasResult<SanctionsScreeningResult> {
+    async fn review_screening_result(
+        &self,
+        id: Uuid,
+        reviewed_by: &str,
+        review_notes: Option<&str>,
+        action_taken: &str,
+    ) -> AtlasResult<SanctionsScreeningResult> {
         let row = sqlx::query_as::<_, SanctionsScreeningResult>(
             r"UPDATE _atlas.sanctions_screening_results
                SET reviewed_by = $2, review_notes = $3, action_taken = $4, reviewed_date = CURRENT_DATE
@@ -617,7 +737,10 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
     }
 
     // Supplier Risk Assessments
-    async fn create_assessment(&self, params: &SupplierRiskAssessmentCreateParams) -> AtlasResult<SupplierRiskAssessment> {
+    async fn create_assessment(
+        &self,
+        params: &SupplierRiskAssessmentCreateParams,
+    ) -> AtlasResult<SupplierRiskAssessment> {
         let row = sqlx::query_as::<_, SupplierRiskAssessment>(
             r"INSERT INTO _atlas.supplier_risk_assessments
                (organization_id, supplier_id, supplier_name, assessment_date, assessment_type,
@@ -664,7 +787,11 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(row)
     }
 
-    async fn get_assessment(&self, org_id: Uuid, assessment_number: &str) -> AtlasResult<Option<SupplierRiskAssessment>> {
+    async fn get_assessment(
+        &self,
+        org_id: Uuid,
+        assessment_number: &str,
+    ) -> AtlasResult<Option<SupplierRiskAssessment>> {
         let row = sqlx::query_as::<_, SupplierRiskAssessment>(
             "SELECT * FROM _atlas.supplier_risk_assessments WHERE organization_id = $1 AND assessment_number = $2",
         )
@@ -687,7 +814,12 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(row)
     }
 
-    async fn list_assessments(&self, org_id: Uuid, supplier_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<SupplierRiskAssessment>> {
+    async fn list_assessments(
+        &self,
+        org_id: Uuid,
+        supplier_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SupplierRiskAssessment>> {
         let rows = sqlx::query_as::<_, SupplierRiskAssessment>(
             "SELECT * FROM _atlas.supplier_risk_assessments WHERE organization_id = $1 AND ($2::uuid IS NULL OR supplier_id = $2) AND ($3::text IS NULL OR status = $3) ORDER BY assessment_date DESC",
         )
@@ -700,7 +832,11 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         Ok(rows)
     }
 
-    async fn update_assessment_status(&self, id: Uuid, status: &str) -> AtlasResult<SupplierRiskAssessment> {
+    async fn update_assessment_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<SupplierRiskAssessment> {
         let row = sqlx::query_as::<_, SupplierRiskAssessment>(
             "UPDATE _atlas.supplier_risk_assessments SET status = $2, updated_at = now() WHERE id = $1 RETURNING *",
         )
@@ -722,7 +858,9 @@ impl PaymentRiskRepository for PostgresPaymentRiskRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound("Assessment not found".to_string()));
+            return Err(AtlasError::EntityNotFound(
+                "Assessment not found".to_string(),
+            ));
         }
         Ok(())
     }

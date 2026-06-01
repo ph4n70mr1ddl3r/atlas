@@ -63,14 +63,22 @@ impl ReceiptReversalService {
         }
 
         // Validation: Ensure valid category (similar to Oracle standard categories)
-        let valid_categories = ["NSF", "STOP_PAYMENT", "DATA_ENTRY_ERROR", "PAYMENT_REVERSAL"];
+        let valid_categories = [
+            "NSF",
+            "STOP_PAYMENT",
+            "DATA_ENTRY_ERROR",
+            "PAYMENT_REVERSAL",
+        ];
         if !valid_categories.contains(&request.reversal_category.as_str()) {
             return ReversalResult {
                 receipt_id: receipt.receipt_id.clone(),
                 new_receipt_status: receipt.status.clone(),
                 is_successful: false,
                 reopened_invoices: vec![],
-                error_message: Some(format!("Invalid reversal category: {}", request.reversal_category)),
+                error_message: Some(format!(
+                    "Invalid reversal category: {}",
+                    request.reversal_category
+                )),
             };
         }
 
@@ -105,8 +113,14 @@ mod tests {
             amount: 1500.0,
             status: "APPLIED".to_string(),
             applications: vec![
-                AppliedInvoice { invoice_id: "INV-10".to_string(), applied_amount: 1000.0 },
-                AppliedInvoice { invoice_id: "INV-11".to_string(), applied_amount: 500.0 },
+                AppliedInvoice {
+                    invoice_id: "INV-10".to_string(),
+                    applied_amount: 1000.0,
+                },
+                AppliedInvoice {
+                    invoice_id: "INV-11".to_string(),
+                    applied_amount: 500.0,
+                },
             ],
         };
 
@@ -122,11 +136,19 @@ mod tests {
         assert!(result.is_successful);
         assert_eq!(result.new_receipt_status, "REVERSED");
         assert_eq!(result.reopened_invoices.len(), 2);
-        
-        let inv10 = result.reopened_invoices.iter().find(|i| i.invoice_id == "INV-10").unwrap();
+
+        let inv10 = result
+            .reopened_invoices
+            .iter()
+            .find(|i| i.invoice_id == "INV-10")
+            .unwrap();
         assert_eq!(inv10.amount_to_reopen, 1000.0);
 
-        let inv11 = result.reopened_invoices.iter().find(|i| i.invoice_id == "INV-11").unwrap();
+        let inv11 = result
+            .reopened_invoices
+            .iter()
+            .find(|i| i.invoice_id == "INV-11")
+            .unwrap();
         assert_eq!(inv11.amount_to_reopen, 500.0);
     }
 
@@ -175,7 +197,10 @@ mod tests {
         let result = ReceiptReversalService::process_reversal(&receipt, &request);
 
         assert!(!result.is_successful);
-        assert_eq!(result.error_message, Some("Receipt is already reversed.".to_string()));
+        assert_eq!(
+            result.error_message,
+            Some("Receipt is already reversed.".to_string())
+        );
         assert_eq!(result.new_receipt_status, "REVERSED"); // Unchanged
     }
 
@@ -199,7 +224,10 @@ mod tests {
         let result = ReceiptReversalService::process_reversal(&receipt, &request);
 
         assert!(!result.is_successful);
-        assert_eq!(result.error_message, Some("Invalid reversal category: INVALID_CAT".to_string()));
+        assert_eq!(
+            result.error_message,
+            Some("Invalid reversal category: INVALID_CAT".to_string())
+        );
         assert_eq!(result.new_receipt_status, "APPLIED"); // Unchanged
     }
 }

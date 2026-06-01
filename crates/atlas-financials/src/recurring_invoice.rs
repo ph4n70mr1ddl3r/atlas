@@ -1,7 +1,7 @@
+use chrono::{Datelike, Duration, NaiveDate};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::{NaiveDate, Datelike, Duration};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecurringInvoiceTemplate {
@@ -11,7 +11,7 @@ pub struct RecurringInvoiceTemplate {
     pub template_name: String,
     pub supplier_id: Option<Uuid>,
     pub invoice_type: String, // standard, credit_memo, debit_memo, prepayment
-    pub amount_type: String, // fixed, variable, adjusted
+    pub amount_type: String,  // fixed, variable, adjusted
     pub recurrence_type: String, // daily, weekly, monthly, quarterly, semi_annual, annual
     pub recurrence_interval: i32,
     pub generation_day: i32,
@@ -48,13 +48,23 @@ impl RecurringInvoiceService {
         gen_day: i32,
         effective_from: NaiveDate,
     ) -> Result<RecurringInvoiceTemplate, String> {
-        let valid_recurrences = ["daily", "weekly", "monthly", "quarterly", "semi_annual", "annual"];
+        let valid_recurrences = [
+            "daily",
+            "weekly",
+            "monthly",
+            "quarterly",
+            "semi_annual",
+            "annual",
+        ];
         if !valid_recurrences.contains(&recurrence.as_str()) {
             return Err("Invalid recurrence type".to_string());
         }
 
         let mut templates = self.templates.write().unwrap();
-        if templates.iter().any(|t| t.organization_id == organization_id && t.template_number == number) {
+        if templates
+            .iter()
+            .any(|t| t.organization_id == organization_id && t.template_number == number)
+        {
             return Err("Template with this number already exists".to_string());
         }
 
@@ -81,7 +91,11 @@ impl RecurringInvoiceService {
         Ok(template)
     }
 
-    fn calculate_next_date(&self, template: &RecurringInvoiceTemplate, after_date: NaiveDate) -> Option<NaiveDate> {
+    fn calculate_next_date(
+        &self,
+        template: &RecurringInvoiceTemplate,
+        after_date: NaiveDate,
+    ) -> Option<NaiveDate> {
         match template.recurrence_type.as_str() {
             "monthly" => {
                 let mut year = after_date.year();
@@ -91,20 +105,23 @@ impl RecurringInvoiceService {
                     year += 1;
                 }
                 NaiveDate::from_ymd_opt(year, month as u32, template.generation_day as u32)
-                    .or_else(|| NaiveDate::from_ymd_opt(year, month as u32, 28)) // Fallback for short months
-            },
+                    .or_else(|| NaiveDate::from_ymd_opt(year, month as u32, 28))
+                // Fallback for short months
+            }
             "daily" => {
                 after_date.checked_add_signed(Duration::days(template.recurrence_interval as i64))
-            },
+            }
             _ => Some(after_date + Duration::days(30)), // Simplistic fallback
         }
     }
 
     pub fn activate_template(&self, id: Uuid) -> Result<(), String> {
         let mut templates = self.templates.write().unwrap();
-        let t = templates.iter_mut().find(|t| t.id == id)
+        let t = templates
+            .iter_mut()
+            .find(|t| t.id == id)
             .ok_or_else(|| "Template not found".to_string())?;
-        
+
         t.status = "active".to_string();
         Ok(())
     }
@@ -119,18 +136,23 @@ mod tests {
         let service = RecurringInvoiceService::new();
         let org_id = Uuid::new_v4();
         let start = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
-        
-        let t = service.create_template(
-            org_id,
-            "RENT-001".to_string(),
-            "Monthly Rent".to_string(),
-            "monthly".to_string(),
-            1,
-            1,
-            start,
-        ).unwrap();
 
-        assert_eq!(t.next_generation_date, Some(NaiveDate::from_ymd_opt(2026, 2, 1).unwrap()));
+        let t = service
+            .create_template(
+                org_id,
+                "RENT-001".to_string(),
+                "Monthly Rent".to_string(),
+                "monthly".to_string(),
+                1,
+                1,
+                start,
+            )
+            .unwrap();
+
+        assert_eq!(
+            t.next_generation_date,
+            Some(NaiveDate::from_ymd_opt(2026, 2, 1).unwrap())
+        );
     }
 
     #[test]
@@ -138,14 +160,22 @@ mod tests {
         let service = RecurringInvoiceService::new();
         let org_id = Uuid::new_v4();
         let start = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
-        
-        let t = service.create_template(
-            org_id, "T1".to_string(), "T1".to_string(), "daily".to_string(), 1, 1, start
-        ).unwrap();
+
+        let t = service
+            .create_template(
+                org_id,
+                "T1".to_string(),
+                "T1".to_string(),
+                "daily".to_string(),
+                1,
+                1,
+                start,
+            )
+            .unwrap();
 
         assert_eq!(t.status, "draft");
         service.activate_template(t.id).unwrap();
-        
+
         let templates = service.templates.read().unwrap();
         assert_eq!(templates[0].status, "active");
     }

@@ -2,60 +2,113 @@
 //!
 //! `PostgreSQL` storage for bank guarantees, amendments, and dashboard queries.
 
-use atlas_shared::{
-    BankGuarantee, BankGuaranteeAmendment,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult, BankGuarantee, BankGuaranteeAmendment};
+use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
 /// Repository trait for bank guarantee data storage
 #[async_trait]
 pub trait BankGuaranteeRepository: Send + Sync {
     // Guarantees
     async fn create_guarantee(
-        &self, org_id: Uuid, guarantee_number: &str, guarantee_type: &str,
+        &self,
+        org_id: Uuid,
+        guarantee_number: &str,
+        guarantee_type: &str,
         description: Option<&str>,
-        beneficiary_name: &str, beneficiary_code: Option<&str>,
-        applicant_name: &str, applicant_code: Option<&str>,
-        issuing_bank_name: &str, issuing_bank_code: Option<&str>,
+        beneficiary_name: &str,
+        beneficiary_code: Option<&str>,
+        applicant_name: &str,
+        applicant_code: Option<&str>,
+        issuing_bank_name: &str,
+        issuing_bank_code: Option<&str>,
         bank_account_number: Option<&str>,
-        guarantee_amount: &str, currency_code: &str,
-        margin_percentage: &str, margin_amount: &str,
-        commission_rate: &str, commission_amount: &str,
-        issue_date: Option<chrono::NaiveDate>, effective_date: Option<chrono::NaiveDate>,
+        guarantee_amount: &str,
+        currency_code: &str,
+        margin_percentage: &str,
+        margin_amount: &str,
+        commission_rate: &str,
+        commission_amount: &str,
+        issue_date: Option<chrono::NaiveDate>,
+        effective_date: Option<chrono::NaiveDate>,
         expiry_date: Option<chrono::NaiveDate>,
-        claim_expiry_date: Option<chrono::NaiveDate>, renewal_date: Option<chrono::NaiveDate>,
+        claim_expiry_date: Option<chrono::NaiveDate>,
+        renewal_date: Option<chrono::NaiveDate>,
         auto_renew: bool,
-        reference_contract_number: Option<&str>, reference_purchase_order: Option<&str>,
+        reference_contract_number: Option<&str>,
+        reference_purchase_order: Option<&str>,
         purpose: Option<&str>,
-        collateral_type: Option<&str>, collateral_amount: Option<&str>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        collateral_type: Option<&str>,
+        collateral_amount: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<BankGuarantee>;
-    async fn get_guarantee(&self, org_id: Uuid, guarantee_number: &str) -> AtlasResult<Option<BankGuarantee>>;
+    async fn get_guarantee(
+        &self,
+        org_id: Uuid,
+        guarantee_number: &str,
+    ) -> AtlasResult<Option<BankGuarantee>>;
     async fn get_guarantee_by_id(&self, id: Uuid) -> AtlasResult<Option<BankGuarantee>>;
-    async fn list_guarantees(&self, org_id: Uuid, status: Option<&str>, guarantee_type: Option<&str>) -> AtlasResult<Vec<BankGuarantee>>;
-    async fn update_guarantee_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<BankGuarantee>;
-    async fn update_guarantee_amounts(&self, id: Uuid, guarantee_amount: &str, margin_amount: &str, commission_amount: &str) -> AtlasResult<()>;
-    async fn update_guarantee_expiry(&self, id: Uuid, expiry_date: chrono::NaiveDate) -> AtlasResult<()>;
-    async fn increment_amendment_count(&self, id: Uuid, latest_amendment_number: &str) -> AtlasResult<()>;
+    async fn list_guarantees(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        guarantee_type: Option<&str>,
+    ) -> AtlasResult<Vec<BankGuarantee>>;
+    async fn update_guarantee_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<BankGuarantee>;
+    async fn update_guarantee_amounts(
+        &self,
+        id: Uuid,
+        guarantee_amount: &str,
+        margin_amount: &str,
+        commission_amount: &str,
+    ) -> AtlasResult<()>;
+    async fn update_guarantee_expiry(
+        &self,
+        id: Uuid,
+        expiry_date: chrono::NaiveDate,
+    ) -> AtlasResult<()>;
+    async fn increment_amendment_count(
+        &self,
+        id: Uuid,
+        latest_amendment_number: &str,
+    ) -> AtlasResult<()>;
     async fn delete_guarantee(&self, org_id: Uuid, guarantee_number: &str) -> AtlasResult<()>;
 
     // Amendments
     async fn create_amendment(
-        &self, org_id: Uuid, guarantee_id: Uuid, guarantee_number: &str,
-        amendment_number: &str, amendment_type: &str,
-        previous_amount: Option<&str>, new_amount: Option<&str>,
-        previous_expiry_date: Option<chrono::NaiveDate>, new_expiry_date: Option<chrono::NaiveDate>,
-        previous_terms: Option<&str>, new_terms: Option<&str>,
-        reason: Option<&str>, effective_date: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        guarantee_id: Uuid,
+        guarantee_number: &str,
+        amendment_number: &str,
+        amendment_type: &str,
+        previous_amount: Option<&str>,
+        new_amount: Option<&str>,
+        previous_expiry_date: Option<chrono::NaiveDate>,
+        new_expiry_date: Option<chrono::NaiveDate>,
+        previous_terms: Option<&str>,
+        new_terms: Option<&str>,
+        reason: Option<&str>,
+        effective_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<BankGuaranteeAmendment>;
     async fn get_amendment_by_id(&self, id: Uuid) -> AtlasResult<Option<BankGuaranteeAmendment>>;
-    async fn list_amendments(&self, guarantee_id: Uuid) -> AtlasResult<Vec<BankGuaranteeAmendment>>;
-    async fn update_amendment_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<BankGuaranteeAmendment>;
+    async fn list_amendments(&self, guarantee_id: Uuid)
+        -> AtlasResult<Vec<BankGuaranteeAmendment>>;
+    async fn update_amendment_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<BankGuaranteeAmendment>;
     async fn count_pending_amendments(&self, org_id: Uuid) -> AtlasResult<i64>;
 }
 
@@ -87,7 +140,7 @@ pub struct PostgresBankGuaranteeRepository {
 }
 
 impl PostgresBankGuaranteeRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -162,23 +215,36 @@ impl PostgresBankGuaranteeRepository {
 impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
     async fn create_guarantee(
         &self,
-        org_id: Uuid, guarantee_number: &str, guarantee_type: &str,
+        org_id: Uuid,
+        guarantee_number: &str,
+        guarantee_type: &str,
         description: Option<&str>,
-        beneficiary_name: &str, beneficiary_code: Option<&str>,
-        applicant_name: &str, applicant_code: Option<&str>,
-        issuing_bank_name: &str, issuing_bank_code: Option<&str>,
+        beneficiary_name: &str,
+        beneficiary_code: Option<&str>,
+        applicant_name: &str,
+        applicant_code: Option<&str>,
+        issuing_bank_name: &str,
+        issuing_bank_code: Option<&str>,
         bank_account_number: Option<&str>,
-        guarantee_amount: &str, currency_code: &str,
-        margin_percentage: &str, margin_amount: &str,
-        commission_rate: &str, commission_amount: &str,
-        issue_date: Option<chrono::NaiveDate>, effective_date: Option<chrono::NaiveDate>,
+        guarantee_amount: &str,
+        currency_code: &str,
+        margin_percentage: &str,
+        margin_amount: &str,
+        commission_rate: &str,
+        commission_amount: &str,
+        issue_date: Option<chrono::NaiveDate>,
+        effective_date: Option<chrono::NaiveDate>,
         expiry_date: Option<chrono::NaiveDate>,
-        claim_expiry_date: Option<chrono::NaiveDate>, renewal_date: Option<chrono::NaiveDate>,
+        claim_expiry_date: Option<chrono::NaiveDate>,
+        renewal_date: Option<chrono::NaiveDate>,
         auto_renew: bool,
-        reference_contract_number: Option<&str>, reference_purchase_order: Option<&str>,
+        reference_contract_number: Option<&str>,
+        reference_purchase_order: Option<&str>,
         purpose: Option<&str>,
-        collateral_type: Option<&str>, collateral_amount: Option<&str>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        collateral_type: Option<&str>,
+        collateral_amount: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<BankGuarantee> {
         let sql = format!(
             "INSERT INTO fin_bank_guarantees (\
@@ -236,7 +302,11 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
         Ok(Self::row_to_guarantee(&row))
     }
 
-    async fn get_guarantee(&self, org_id: Uuid, guarantee_number: &str) -> AtlasResult<Option<BankGuarantee>> {
+    async fn get_guarantee(
+        &self,
+        org_id: Uuid,
+        guarantee_number: &str,
+    ) -> AtlasResult<Option<BankGuarantee>> {
         let sql = format!("SELECT {BG_SELECT} FROM fin_bank_guarantees WHERE org_id = $1 AND guarantee_number = $2");
         let row = sqlx::query(&sql)
             .bind(org_id)
@@ -259,7 +329,12 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
         Ok(row.as_ref().map(Self::row_to_guarantee))
     }
 
-    async fn list_guarantees(&self, org_id: Uuid, status: Option<&str>, guarantee_type: Option<&str>) -> AtlasResult<Vec<BankGuarantee>> {
+    async fn list_guarantees(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        guarantee_type: Option<&str>,
+    ) -> AtlasResult<Vec<BankGuarantee>> {
         let rows = match (status, guarantee_type) {
             (Some(s), Some(t)) => {
                 let sql = format!("SELECT {BG_SELECT} FROM fin_bank_guarantees WHERE org_id = $1 AND status = $2 AND guarantee_type = $3 ORDER BY created_at DESC");
@@ -291,12 +366,19 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
         Ok(rows.iter().map(Self::row_to_guarantee).collect())
     }
 
-    async fn update_guarantee_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<BankGuarantee> {
+    async fn update_guarantee_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<BankGuarantee> {
         let sql = format!(
             "UPDATE fin_bank_guarantees SET status = $2, approved_by_id = COALESCE($3, approved_by_id), updated_at = now() WHERE id = $1 RETURNING {BG_SELECT}"
         );
         let row = sqlx::query(&sql)
-            .bind(id).bind(status).bind(approved_by)
+            .bind(id)
+            .bind(status)
+            .bind(approved_by)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -304,7 +386,13 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
         Ok(Self::row_to_guarantee(&row))
     }
 
-    async fn update_guarantee_amounts(&self, id: Uuid, guarantee_amount: &str, margin_amount: &str, commission_amount: &str) -> AtlasResult<()> {
+    async fn update_guarantee_amounts(
+        &self,
+        id: Uuid,
+        guarantee_amount: &str,
+        margin_amount: &str,
+        commission_amount: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE fin_bank_guarantees SET guarantee_amount = $2::numeric, margin_amount = $3::numeric, commission_amount = $4::numeric, updated_at = now() WHERE id = $1"
         )
@@ -315,18 +403,27 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
         Ok(())
     }
 
-    async fn update_guarantee_expiry(&self, id: Uuid, expiry_date: chrono::NaiveDate) -> AtlasResult<()> {
+    async fn update_guarantee_expiry(
+        &self,
+        id: Uuid,
+        expiry_date: chrono::NaiveDate,
+    ) -> AtlasResult<()> {
         sqlx::query(
-            "UPDATE fin_bank_guarantees SET expiry_date = $2, updated_at = now() WHERE id = $1"
+            "UPDATE fin_bank_guarantees SET expiry_date = $2, updated_at = now() WHERE id = $1",
         )
-            .bind(id).bind(expiry_date)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        .bind(id)
+        .bind(expiry_date)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
-    async fn increment_amendment_count(&self, id: Uuid, latest_amendment_number: &str) -> AtlasResult<()> {
+    async fn increment_amendment_count(
+        &self,
+        id: Uuid,
+        latest_amendment_number: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE fin_bank_guarantees SET amendment_count = amendment_count + 1, latest_amendment_number = $2, updated_at = now() WHERE id = $1"
         )
@@ -358,12 +455,19 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
 
     async fn create_amendment(
         &self,
-        org_id: Uuid, guarantee_id: Uuid, guarantee_number: &str,
-        amendment_number: &str, amendment_type: &str,
-        previous_amount: Option<&str>, new_amount: Option<&str>,
-        previous_expiry_date: Option<chrono::NaiveDate>, new_expiry_date: Option<chrono::NaiveDate>,
-        previous_terms: Option<&str>, new_terms: Option<&str>,
-        reason: Option<&str>, effective_date: Option<chrono::NaiveDate>,
+        org_id: Uuid,
+        guarantee_id: Uuid,
+        guarantee_number: &str,
+        amendment_number: &str,
+        amendment_type: &str,
+        previous_amount: Option<&str>,
+        new_amount: Option<&str>,
+        previous_expiry_date: Option<chrono::NaiveDate>,
+        new_expiry_date: Option<chrono::NaiveDate>,
+        previous_terms: Option<&str>,
+        new_terms: Option<&str>,
+        reason: Option<&str>,
+        effective_date: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<BankGuaranteeAmendment> {
         let sql = format!(
@@ -411,7 +515,10 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
         Ok(row.as_ref().map(Self::row_to_amendment))
     }
 
-    async fn list_amendments(&self, guarantee_id: Uuid) -> AtlasResult<Vec<BankGuaranteeAmendment>> {
+    async fn list_amendments(
+        &self,
+        guarantee_id: Uuid,
+    ) -> AtlasResult<Vec<BankGuaranteeAmendment>> {
         let sql = format!("SELECT {AMD_SELECT} FROM fin_bank_guarantee_amendments WHERE guarantee_id = $1 ORDER BY created_at DESC");
         let rows = sqlx::query(&sql)
             .bind(guarantee_id)
@@ -422,12 +529,19 @@ impl BankGuaranteeRepository for PostgresBankGuaranteeRepository {
         Ok(rows.iter().map(Self::row_to_amendment).collect())
     }
 
-    async fn update_amendment_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<BankGuaranteeAmendment> {
+    async fn update_amendment_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<BankGuaranteeAmendment> {
         let sql = format!(
             "UPDATE fin_bank_guarantee_amendments SET status = $2, approved_by_id = COALESCE($3, approved_by_id), updated_at = now() WHERE id = $1 RETURNING {AMD_SELECT}"
         );
         let row = sqlx::query(&sql)
-            .bind(id).bind(status).bind(approved_by)
+            .bind(id)
+            .bind(status)
+            .bind(approved_by)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

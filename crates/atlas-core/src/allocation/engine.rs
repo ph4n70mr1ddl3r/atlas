@@ -3,16 +3,12 @@
 //! Manages GL allocation pools, bases, rules, and runs.
 //! Supports proportional, fixed-percentage, and step-down allocation methods.
 
-use atlas_shared::{
-    GlAllocationPool,
-    GlAllocationBasis,
-    GlAllocationBasisDetail, GlAllocationBasisDetailRequest,
-    GlAllocationRule, GlAllocationRuleRequest,
-    GlAllocationRun, GlAllocationRunRequest,
-    GlAllocationDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::AllocationRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, GlAllocationBasis, GlAllocationBasisDetail,
+    GlAllocationBasisDetailRequest, GlAllocationDashboardSummary, GlAllocationPool,
+    GlAllocationRule, GlAllocationRuleRequest, GlAllocationRun, GlAllocationRunRequest,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -61,19 +57,30 @@ impl AllocationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<GlAllocationPool> {
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Pool code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Pool code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Pool name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Pool name is required".to_string(),
+            ));
         }
         if !VALID_POOL_TYPES.contains(&pool_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid pool type '{}'. Must be one of: {}", pool_type, VALID_POOL_TYPES.join(", ")
+                "Invalid pool type '{}'. Must be one of: {}",
+                pool_type,
+                VALID_POOL_TYPES.join(", ")
             )));
         }
 
         // Check uniqueness
-        if self.repository.get_pool_by_code(org_id, code).await?.is_some() {
+        if self
+            .repository
+            .get_pool_by_code(org_id, code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Allocation pool with code '{code}' already exists"
             )));
@@ -81,16 +88,32 @@ impl AllocationEngine {
 
         info!("Creating allocation pool {} ({})", code, name);
 
-        self.repository.create_pool(
-            org_id, code, name, description, pool_type,
-            source_account_code, source_account_range_from, source_account_range_to,
-            source_department_id, source_project_id,
-            currency_code, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_pool(
+                org_id,
+                code,
+                name,
+                description,
+                pool_type,
+                source_account_code,
+                source_account_range_from,
+                source_account_range_to,
+                source_department_id,
+                source_project_id,
+                currency_code,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a pool by code
-    pub async fn get_pool(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GlAllocationPool>> {
+    pub async fn get_pool(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<GlAllocationPool>> {
         self.repository.get_pool_by_code(org_id, code).await
     }
 
@@ -100,17 +123,25 @@ impl AllocationEngine {
     }
 
     /// List all pools
-    pub async fn list_pools(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<GlAllocationPool>> {
+    pub async fn list_pools(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<GlAllocationPool>> {
         self.repository.list_pools(org_id, active_only).await
     }
 
     /// Activate a pool
     pub async fn activate_pool(&self, id: Uuid) -> AtlasResult<GlAllocationPool> {
-        let pool = self.repository.get_pool_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation pool {id} not found")))?;
+        let pool =
+            self.repository.get_pool_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation pool {id} not found"))
+            })?;
 
         if pool.is_active {
-            return Err(AtlasError::WorkflowError("Pool is already active".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Pool is already active".to_string(),
+            ));
         }
 
         info!("Activating allocation pool {}", pool.code);
@@ -119,11 +150,15 @@ impl AllocationEngine {
 
     /// Deactivate a pool
     pub async fn deactivate_pool(&self, id: Uuid) -> AtlasResult<GlAllocationPool> {
-        let pool = self.repository.get_pool_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation pool {id} not found")))?;
+        let pool =
+            self.repository.get_pool_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation pool {id} not found"))
+            })?;
 
         if !pool.is_active {
-            return Err(AtlasError::WorkflowError("Pool is already inactive".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Pool is already inactive".to_string(),
+            ));
         }
 
         info!("Deactivating allocation pool {}", pool.code);
@@ -156,19 +191,30 @@ impl AllocationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<GlAllocationBasis> {
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Basis code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Basis code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Basis name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Basis name is required".to_string(),
+            ));
         }
         if !VALID_BASIS_TYPES.contains(&basis_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid basis type '{}'. Must be one of: {}", basis_type, VALID_BASIS_TYPES.join(", ")
+                "Invalid basis type '{}'. Must be one of: {}",
+                basis_type,
+                VALID_BASIS_TYPES.join(", ")
             )));
         }
 
         // Check uniqueness
-        if self.repository.get_basis_by_code(org_id, code).await?.is_some() {
+        if self
+            .repository
+            .get_basis_by_code(org_id, code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Allocation basis with code '{code}' already exists"
             )));
@@ -176,15 +222,29 @@ impl AllocationEngine {
 
         info!("Creating allocation basis {} ({})", code, name);
 
-        self.repository.create_basis(
-            org_id, code, name, description, basis_type,
-            unit_of_measure, is_manual, source_account_code,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_basis(
+                org_id,
+                code,
+                name,
+                description,
+                basis_type,
+                unit_of_measure,
+                is_manual,
+                source_account_code,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a basis by code
-    pub async fn get_basis(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GlAllocationBasis>> {
+    pub async fn get_basis(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<GlAllocationBasis>> {
         self.repository.get_basis_by_code(org_id, code).await
     }
 
@@ -194,17 +254,24 @@ impl AllocationEngine {
     }
 
     /// List all bases
-    pub async fn list_bases(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<GlAllocationBasis>> {
+    pub async fn list_bases(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<GlAllocationBasis>> {
         self.repository.list_bases(org_id, active_only).await
     }
 
     /// Activate a basis
     pub async fn activate_basis(&self, id: Uuid) -> AtlasResult<GlAllocationBasis> {
-        let basis = self.repository.get_basis_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation basis {id} not found")))?;
+        let basis = self.repository.get_basis_by_id(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Allocation basis {id} not found"))
+        })?;
 
         if basis.is_active {
-            return Err(AtlasError::WorkflowError("Basis is already active".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Basis is already active".to_string(),
+            ));
         }
 
         info!("Activating allocation basis {}", basis.code);
@@ -213,11 +280,14 @@ impl AllocationEngine {
 
     /// Deactivate a basis
     pub async fn deactivate_basis(&self, id: Uuid) -> AtlasResult<GlAllocationBasis> {
-        let basis = self.repository.get_basis_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation basis {id} not found")))?;
+        let basis = self.repository.get_basis_by_id(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Allocation basis {id} not found"))
+        })?;
 
         if !basis.is_active {
-            return Err(AtlasError::WorkflowError("Basis is already inactive".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Basis is already inactive".to_string(),
+            ));
         }
 
         info!("Deactivating allocation basis {}", basis.code);
@@ -242,10 +312,13 @@ impl AllocationEngine {
         request: &GlAllocationBasisDetailRequest,
         created_by: Option<Uuid>,
     ) -> AtlasResult<GlAllocationBasisDetail> {
-        let basis = self.repository.get_basis_by_code(org_id, basis_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation basis '{basis_code}' not found"
-            )))?;
+        let basis = self
+            .repository
+            .get_basis_by_code(org_id, basis_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation basis '{basis_code}' not found"))
+            })?;
 
         if !basis.is_active {
             return Err(AtlasError::WorkflowError(format!(
@@ -253,20 +326,23 @@ impl AllocationEngine {
             )));
         }
 
-        self.repository.create_basis_detail(
-            org_id, basis.id,
-            request.target_department_id,
-            request.target_department_name.as_deref(),
-            request.target_cost_center.as_deref(),
-            request.target_project_id,
-            request.target_project_name.as_deref(),
-            request.target_account_code.as_deref(),
-            &request.basis_amount,
-            request.period_name.as_deref(),
-            request.period_start_date,
-            request.period_end_date,
-            created_by,
-        ).await
+        self.repository
+            .create_basis_detail(
+                org_id,
+                basis.id,
+                request.target_department_id,
+                request.target_department_name.as_deref(),
+                request.target_cost_center.as_deref(),
+                request.target_project_id,
+                request.target_project_name.as_deref(),
+                request.target_account_code.as_deref(),
+                &request.basis_amount,
+                request.period_name.as_deref(),
+                request.period_start_date,
+                request.period_end_date,
+                created_by,
+            )
+            .await
     }
 
     /// List basis details for a basis
@@ -276,12 +352,17 @@ impl AllocationEngine {
         basis_code: &str,
         period_name: Option<&str>,
     ) -> AtlasResult<Vec<GlAllocationBasisDetail>> {
-        let basis = self.repository.get_basis_by_code(org_id, basis_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation basis '{basis_code}' not found"
-            )))?;
+        let basis = self
+            .repository
+            .get_basis_by_code(org_id, basis_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation basis '{basis_code}' not found"))
+            })?;
 
-        self.repository.list_basis_details(basis.id, period_name).await
+        self.repository
+            .list_basis_details(basis.id, period_name)
+            .await
     }
 
     /// Update basis detail amounts (recalculate percentages)
@@ -290,13 +371,21 @@ impl AllocationEngine {
         detail_id: Uuid,
         basis_amount: &str,
     ) -> AtlasResult<GlAllocationBasisDetail> {
-        let _detail = self.repository.get_basis_detail_by_id(detail_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Basis detail {detail_id} not found"
-            )))?;
+        let _detail = self
+            .repository
+            .get_basis_detail_by_id(detail_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Basis detail {detail_id} not found"))
+            })?;
 
-        info!("Updating basis detail {} amount to {}", detail_id, basis_amount);
-        self.repository.update_basis_detail_amount(detail_id, basis_amount).await
+        info!(
+            "Updating basis detail {} amount to {}",
+            detail_id, basis_amount
+        );
+        self.repository
+            .update_basis_detail_amount(detail_id, basis_amount)
+            .await
     }
 
     /// Delete a basis detail
@@ -311,15 +400,19 @@ impl AllocationEngine {
         org_id: Uuid,
         basis_code: &str,
     ) -> AtlasResult<Vec<GlAllocationBasisDetail>> {
-        let basis = self.repository.get_basis_by_code(org_id, basis_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation basis '{basis_code}' not found"
-            )))?;
+        let basis = self
+            .repository
+            .get_basis_by_code(org_id, basis_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation basis '{basis_code}' not found"))
+            })?;
 
         let details = self.repository.list_basis_details(basis.id, None).await?;
 
         // Calculate total basis amount
-        let total: f64 = details.iter()
+        let total: f64 = details
+            .iter()
             .filter_map(|d| d.basis_amount.parse::<f64>().ok())
             .sum();
 
@@ -331,7 +424,9 @@ impl AllocationEngine {
         for detail in &details {
             let amount: f64 = detail.basis_amount.parse::<f64>().unwrap_or(0.0);
             let percentage = (amount / total) * 100.0;
-            self.repository.update_basis_detail_percentage(detail.id, &format!("{percentage:.6}")).await?;
+            self.repository
+                .update_basis_detail_percentage(detail.id, &format!("{percentage:.6}"))
+                .await?;
         }
 
         self.repository.list_basis_details(basis.id, None).await
@@ -349,47 +444,72 @@ impl AllocationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<GlAllocationRule> {
         if request.code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Rule code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Rule code is required".to_string(),
+            ));
         }
         if request.name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Rule name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Rule name is required".to_string(),
+            ));
         }
         if !VALID_ALLOCATION_METHODS.contains(&request.allocation_method.as_str()) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid allocation method '{}'. Must be one of: {}",
-                request.allocation_method, VALID_ALLOCATION_METHODS.join(", ")
+                request.allocation_method,
+                VALID_ALLOCATION_METHODS.join(", ")
             )));
         }
         if !VALID_OFFSET_METHODS.contains(&request.offset_method.as_str()) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid offset method '{}'. Must be one of: {}",
-                request.offset_method, VALID_OFFSET_METHODS.join(", ")
+                request.offset_method,
+                VALID_OFFSET_METHODS.join(", ")
             )));
         }
 
         // Validate pool exists
-        let pool = self.repository.get_pool_by_code(org_id, &request.pool_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation pool '{}' not found", request.pool_code
-            )))?;
+        let pool = self
+            .repository
+            .get_pool_by_code(org_id, &request.pool_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Allocation pool '{}' not found",
+                    request.pool_code
+                ))
+            })?;
 
         // Validate basis exists
-        let basis = self.repository.get_basis_by_code(org_id, &request.basis_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation basis '{}' not found", request.basis_code
-            )))?;
+        let basis = self
+            .repository
+            .get_basis_by_code(org_id, &request.basis_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Allocation basis '{}' not found",
+                    request.basis_code
+                ))
+            })?;
 
         // Check uniqueness
-        if self.repository.get_rule_by_code(org_id, &request.code).await?.is_some() {
+        if self
+            .repository
+            .get_rule_by_code(org_id, &request.code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
-                "Allocation rule with code '{}' already exists", request.code
+                "Allocation rule with code '{}' already exists",
+                request.code
             )));
         }
 
         // For fixed_percentage method, validate target lines
         if request.allocation_method == "fixed_percentage" {
             if let Some(lines) = &request.target_lines {
-                let total_pct: f64 = lines.iter()
+                let total_pct: f64 = lines
+                    .iter()
                     .filter_map(|l| l.fixed_percentage.as_ref())
                     .filter_map(|p| p.parse::<f64>().ok())
                     .sum();
@@ -404,65 +524,97 @@ impl AllocationEngine {
         // Validate offset account when method is 'specified_account'
         if request.offset_method == "specified_account" && request.offset_account_code.is_none() {
             return Err(AtlasError::ValidationFailed(
-                "Offset account code is required when offset method is 'specified_account'".to_string(),
+                "Offset account code is required when offset method is 'specified_account'"
+                    .to_string(),
             ));
         }
 
-        info!("Creating allocation rule {} ({})", request.code, request.name);
+        info!(
+            "Creating allocation rule {} ({})",
+            request.code, request.name
+        );
 
-        let rule = self.repository.create_rule(
-            org_id, &request.code, &request.name, request.description.as_deref(),
-            pool.id, &request.pool_code, basis.id, &request.basis_code,
-            &request.allocation_method, &request.offset_method,
-            request.offset_account_code.as_deref(),
-            request.journal_batch_prefix.as_deref(),
-            request.round_to_largest,
-            request.minimum_threshold.as_deref(),
-            request.effective_from, request.effective_to,
-            created_by,
-        ).await?;
+        let rule = self
+            .repository
+            .create_rule(
+                org_id,
+                &request.code,
+                &request.name,
+                request.description.as_deref(),
+                pool.id,
+                &request.pool_code,
+                basis.id,
+                &request.basis_code,
+                &request.allocation_method,
+                &request.offset_method,
+                request.offset_account_code.as_deref(),
+                request.journal_batch_prefix.as_deref(),
+                request.round_to_largest,
+                request.minimum_threshold.as_deref(),
+                request.effective_from,
+                request.effective_to,
+                created_by,
+            )
+            .await?;
 
         // Create target lines if provided
         if let Some(lines) = &request.target_lines {
             for (idx, line_req) in lines.iter().enumerate() {
-                self.repository.create_target_line(
-                    org_id, rule.id,
-                    (idx + 1) as i32,
-                    line_req.target_department_id,
-                    line_req.target_department_name.as_deref(),
-                    line_req.target_cost_center.as_deref(),
-                    line_req.target_project_id,
-                    line_req.target_project_name.as_deref(),
-                    &line_req.target_account_code,
-                    line_req.target_account_name.as_deref(),
-                    line_req.fixed_percentage.as_deref(),
-                    line_req.is_active.unwrap_or(true),
-                ).await?;
+                self.repository
+                    .create_target_line(
+                        org_id,
+                        rule.id,
+                        (idx + 1) as i32,
+                        line_req.target_department_id,
+                        line_req.target_department_name.as_deref(),
+                        line_req.target_cost_center.as_deref(),
+                        line_req.target_project_id,
+                        line_req.target_project_name.as_deref(),
+                        &line_req.target_account_code,
+                        line_req.target_account_name.as_deref(),
+                        line_req.fixed_percentage.as_deref(),
+                        line_req.is_active.unwrap_or(true),
+                    )
+                    .await?;
             }
         }
 
         // Reload with target lines
-        self.repository.get_rule_by_code(org_id, &request.code).await?
+        self.repository
+            .get_rule_by_code(org_id, &request.code)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Created rule not found".to_string()))
     }
 
     /// Get a rule by code
-    pub async fn get_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<GlAllocationRule>> {
+    pub async fn get_rule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<GlAllocationRule>> {
         self.repository.get_rule_by_code(org_id, code).await
     }
 
     /// List all rules
-    pub async fn list_rules(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<GlAllocationRule>> {
+    pub async fn list_rules(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<GlAllocationRule>> {
         self.repository.list_rules(org_id, active_only).await
     }
 
     /// Activate a rule
     pub async fn activate_rule(&self, id: Uuid) -> AtlasResult<GlAllocationRule> {
-        let rule = self.repository.get_rule_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation rule {id} not found")))?;
+        let rule =
+            self.repository.get_rule_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation rule {id} not found"))
+            })?;
 
         if rule.is_active {
-            return Err(AtlasError::WorkflowError("Rule is already active".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Rule is already active".to_string(),
+            ));
         }
 
         info!("Activating allocation rule {}", rule.code);
@@ -471,11 +623,15 @@ impl AllocationEngine {
 
     /// Deactivate a rule
     pub async fn deactivate_rule(&self, id: Uuid) -> AtlasResult<GlAllocationRule> {
-        let rule = self.repository.get_rule_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation rule {id} not found")))?;
+        let rule =
+            self.repository.get_rule_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation rule {id} not found"))
+            })?;
 
         if !rule.is_active {
-            return Err(AtlasError::WorkflowError("Rule is already inactive".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Rule is already inactive".to_string(),
+            ));
         }
 
         info!("Deactivating allocation rule {}", rule.code);
@@ -500,33 +656,53 @@ impl AllocationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<GlAllocationRun> {
         // Validate rule exists and is active
-        let rule = self.repository.get_rule_by_code(org_id, &request.rule_code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation rule '{}' not found", request.rule_code
-            )))?;
+        let rule = self
+            .repository
+            .get_rule_by_code(org_id, &request.rule_code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Allocation rule '{}' not found",
+                    request.rule_code
+                ))
+            })?;
 
         if !rule.is_active {
             return Err(AtlasError::WorkflowError(format!(
-                "Allocation rule '{}' is inactive", request.rule_code
+                "Allocation rule '{}' is inactive",
+                request.rule_code
             )));
         }
 
         // Get pool
-        let pool = self.repository.get_pool_by_id(rule.pool_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation pool not found for rule {}", request.rule_code
-            )))?;
+        let pool = self
+            .repository
+            .get_pool_by_id(rule.pool_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Allocation pool not found for rule {}",
+                    request.rule_code
+                ))
+            })?;
 
         // Get basis
-        let basis = self.repository.get_basis_by_id(rule.basis_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Allocation basis not found for rule {}", request.rule_code
-            )))?;
+        let basis = self
+            .repository
+            .get_basis_by_id(rule.basis_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Allocation basis not found for rule {}",
+                    request.rule_code
+                ))
+            })?;
 
         // Get basis details for the period
-        let basis_details = self.repository.list_basis_details(
-            basis.id, Some(&request.period_name),
-        ).await?;
+        let basis_details = self
+            .repository
+            .list_basis_details(basis.id, Some(&request.period_name))
+            .await?;
 
         if basis_details.is_empty() {
             return Err(AtlasError::ValidationFailed(format!(
@@ -536,23 +712,42 @@ impl AllocationEngine {
         }
 
         // Determine pool amount
-        let pool_amount = request.pool_amount_override.clone()
+        let pool_amount = request
+            .pool_amount_override
+            .clone()
             .unwrap_or_else(|| "1000.00".to_string());
 
         // Calculate allocations based on method
-        let run_number = format!("ALLOC-{}-{}", request.period_name, chrono::Utc::now().format("%Y%m%d%H%M%S"));
+        let run_number = format!(
+            "ALLOC-{}-{}",
+            request.period_name,
+            chrono::Utc::now().format("%Y%m%d%H%M%S")
+        );
 
-        info!("Executing allocation rule {} for period {}", request.rule_code, request.period_name);
+        info!(
+            "Executing allocation rule {} for period {}",
+            request.rule_code, request.period_name
+        );
 
         let _run_date = request.run_date.unwrap_or(chrono::Utc::now().date_naive());
 
         // Create the run
-        let run = self.repository.create_run(
-            org_id, &run_number, rule.id, &rule.code, &rule.name,
-            &request.period_name, request.period_start_date, request.period_end_date,
-            &pool_amount, &rule.allocation_method,
-            created_by,
-        ).await?;
+        let run = self
+            .repository
+            .create_run(
+                org_id,
+                &run_number,
+                rule.id,
+                &rule.code,
+                &rule.name,
+                &request.period_name,
+                request.period_start_date,
+                request.period_end_date,
+                &pool_amount,
+                &rule.allocation_method,
+                created_by,
+            )
+            .await?;
 
         // Generate target lines based on method
         let mut run_lines = Vec::new();
@@ -561,7 +756,8 @@ impl AllocationEngine {
         match rule.allocation_method.as_str() {
             "proportional" => {
                 // Calculate total basis
-                let total_basis: f64 = basis_details.iter()
+                let total_basis: f64 = basis_details
+                    .iter()
                     .filter_map(|d| d.basis_amount.parse::<f64>().ok())
                     .sum();
 
@@ -584,50 +780,61 @@ impl AllocationEngine {
                         }
                     }
 
-                    let line = self.repository.create_run_line(
-                        org_id, run.id, (idx + 1) as i32,
-                        detail.target_department_id,
-                        detail.target_department_name.as_deref(),
-                        detail.target_cost_center.as_deref(),
-                        detail.target_project_id,
-                        detail.target_project_name.as_deref(),
-                        detail.target_account_code.as_deref().unwrap_or(""),
-                        None,
-                        pool.source_account_code.as_deref(),
-                        &detail.basis_amount,
-                        &format!("{percentage:.6}"),
-                        &format!("{allocated:.2}"),
-                        &format!("{allocated:.2}"),
-                        "allocation",
-                    ).await?;
+                    let line = self
+                        .repository
+                        .create_run_line(
+                            org_id,
+                            run.id,
+                            (idx + 1) as i32,
+                            detail.target_department_id,
+                            detail.target_department_name.as_deref(),
+                            detail.target_cost_center.as_deref(),
+                            detail.target_project_id,
+                            detail.target_project_name.as_deref(),
+                            detail.target_account_code.as_deref().unwrap_or(""),
+                            None,
+                            pool.source_account_code.as_deref(),
+                            &detail.basis_amount,
+                            &format!("{percentage:.6}"),
+                            &format!("{allocated:.2}"),
+                            &format!("{allocated:.2}"),
+                            "allocation",
+                        )
+                        .await?;
                     run_lines.push(line);
                 }
             }
             "fixed_percentage" => {
                 if !rule.target_lines.is_empty() {
                     for (idx, target) in rule.target_lines.iter().enumerate() {
-                        let pct: f64 = target.fixed_percentage
+                        let pct: f64 = target
+                            .fixed_percentage
                             .as_ref()
                             .and_then(|p| p.parse::<f64>().ok())
                             .unwrap_or(0.0);
                         let allocated = pool_amount_f64 * (pct / 100.0);
 
-                        let line = self.repository.create_run_line(
-                            org_id, run.id, (idx + 1) as i32,
-                            target.target_department_id,
-                            target.target_department_name.as_deref(),
-                            target.target_cost_center.as_deref(),
-                            target.target_project_id,
-                            target.target_project_name.as_deref(),
-                            &target.target_account_code,
-                            target.target_account_name.as_deref(),
-                            pool.source_account_code.as_deref(),
-                            "0.00",
-                            &format!("{pct:.6}"),
-                            &format!("{allocated:.2}"),
-                            &format!("{allocated:.2}"),
-                            "allocation",
-                        ).await?;
+                        let line = self
+                            .repository
+                            .create_run_line(
+                                org_id,
+                                run.id,
+                                (idx + 1) as i32,
+                                target.target_department_id,
+                                target.target_department_name.as_deref(),
+                                target.target_cost_center.as_deref(),
+                                target.target_project_id,
+                                target.target_project_name.as_deref(),
+                                &target.target_account_code,
+                                target.target_account_name.as_deref(),
+                                pool.source_account_code.as_deref(),
+                                "0.00",
+                                &format!("{pct:.6}"),
+                                &format!("{allocated:.2}"),
+                                &format!("{allocated:.2}"),
+                                "allocation",
+                            )
+                            .await?;
                         run_lines.push(line);
                     }
                 }
@@ -635,7 +842,8 @@ impl AllocationEngine {
             "step_down" => {
                 // Step-down allocation: distribute sequentially, removing each target
                 // from the basis after their share is calculated (simplified version)
-                let total_basis: f64 = basis_details.iter()
+                let total_basis: f64 = basis_details
+                    .iter()
                     .filter_map(|d| d.basis_amount.parse::<f64>().ok())
                     .sum();
 
@@ -652,35 +860,42 @@ impl AllocationEngine {
                     let allocated = remaining * (basis_amt / total_basis);
                     remaining -= allocated;
 
-                    let line = self.repository.create_run_line(
-                        org_id, run.id, (idx + 1) as i32,
-                        detail.target_department_id,
-                        detail.target_department_name.as_deref(),
-                        detail.target_cost_center.as_deref(),
-                        detail.target_project_id,
-                        detail.target_project_name.as_deref(),
-                        detail.target_account_code.as_deref().unwrap_or(""),
-                        None,
-                        pool.source_account_code.as_deref(),
-                        &detail.basis_amount,
-                        &format!("{percentage:.6}"),
-                        &format!("{allocated:.2}"),
-                        &format!("{allocated:.2}"),
-                        "allocation",
-                    ).await?;
+                    let line = self
+                        .repository
+                        .create_run_line(
+                            org_id,
+                            run.id,
+                            (idx + 1) as i32,
+                            detail.target_department_id,
+                            detail.target_department_name.as_deref(),
+                            detail.target_cost_center.as_deref(),
+                            detail.target_project_id,
+                            detail.target_project_name.as_deref(),
+                            detail.target_account_code.as_deref().unwrap_or(""),
+                            None,
+                            pool.source_account_code.as_deref(),
+                            &detail.basis_amount,
+                            &format!("{percentage:.6}"),
+                            &format!("{allocated:.2}"),
+                            &format!("{allocated:.2}"),
+                            "allocation",
+                        )
+                        .await?;
                     run_lines.push(line);
                 }
             }
             _ => {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Unsupported allocation method: {}", rule.allocation_method
+                    "Unsupported allocation method: {}",
+                    rule.allocation_method
                 )));
             }
         }
 
         // Add offset line if needed
         if rule.offset_method != "none" && !run_lines.is_empty() {
-            let total_allocated: f64 = run_lines.iter()
+            let total_allocated: f64 = run_lines
+                .iter()
                 .filter_map(|l| l.allocated_amount.parse::<f64>().ok())
                 .sum();
 
@@ -693,26 +908,41 @@ impl AllocationEngine {
             // Calculate rounding difference
             let _rounding_diff = pool_amount_f64 - total_allocated;
 
-            self.repository.create_run_line(
-                org_id, run.id, (run_lines.len() + 1) as i32,
-                None, None, None, None, None,
-                offset_account, None,
-                None,
-                "0.00", // no basis for offset
-                "0.000000", // no percentage for offset
-                &format!("{total_allocated:.2}"),
-                &format!("{total_allocated:.2}"),
-                "offset",
-            ).await?;
+            self.repository
+                .create_run_line(
+                    org_id,
+                    run.id,
+                    (run_lines.len() + 1) as i32,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    offset_account,
+                    None,
+                    None,
+                    "0.00",     // no basis for offset
+                    "0.000000", // no percentage for offset
+                    &format!("{total_allocated:.2}"),
+                    &format!("{total_allocated:.2}"),
+                    "offset",
+                )
+                .await?;
         }
 
         // Recalculate totals
         let final_run = self.repository.update_run_totals(run.id).await?;
 
-        info!("Allocation run {} created with {} lines", run_number, run_lines.len());
+        info!(
+            "Allocation run {} created with {} lines",
+            run_number,
+            run_lines.len()
+        );
 
         // Reload with results
-        self.repository.get_run_by_id(final_run.id).await?
+        self.repository
+            .get_run_by_id(final_run.id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Created run not found".to_string()))
     }
 
@@ -722,53 +952,80 @@ impl AllocationEngine {
     }
 
     /// List runs for an organization
-    pub async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<GlAllocationRun>> {
+    pub async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<GlAllocationRun>> {
         self.repository.list_runs(org_id, status).await
     }
 
     /// Post an allocation run (mark as posted)
-    pub async fn post_run(&self, id: Uuid, posted_by: Option<Uuid>) -> AtlasResult<GlAllocationRun> {
-        let run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation run {id} not found")))?;
+    pub async fn post_run(
+        &self,
+        id: Uuid,
+        posted_by: Option<Uuid>,
+    ) -> AtlasResult<GlAllocationRun> {
+        let run =
+            self.repository.get_run_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation run {id} not found"))
+            })?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot post run in '{}' status. Must be 'draft'.", run.status
+                "Cannot post run in '{}' status. Must be 'draft'.",
+                run.status
             )));
         }
 
         info!("Posting allocation run {}", run.run_number);
-        self.repository.update_run_status(id, "posted", posted_by).await
+        self.repository
+            .update_run_status(id, "posted", posted_by)
+            .await
     }
 
     /// Reverse an allocation run
-    pub async fn reverse_run(&self, id: Uuid, reversed_by: Option<Uuid>) -> AtlasResult<GlAllocationRun> {
-        let run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation run {id} not found")))?;
+    pub async fn reverse_run(
+        &self,
+        id: Uuid,
+        reversed_by: Option<Uuid>,
+    ) -> AtlasResult<GlAllocationRun> {
+        let run =
+            self.repository.get_run_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation run {id} not found"))
+            })?;
 
         if run.status != "posted" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot reverse run in '{}' status. Must be 'posted'.", run.status
+                "Cannot reverse run in '{}' status. Must be 'posted'.",
+                run.status
             )));
         }
 
         info!("Reversing allocation run {}", run.run_number);
-        self.repository.update_run_status(id, "reversed", reversed_by).await
+        self.repository
+            .update_run_status(id, "reversed", reversed_by)
+            .await
     }
 
     /// Cancel an allocation run
     pub async fn cancel_run(&self, id: Uuid) -> AtlasResult<GlAllocationRun> {
-        let run = self.repository.get_run_by_id(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Allocation run {id} not found")))?;
+        let run =
+            self.repository.get_run_by_id(id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Allocation run {id} not found"))
+            })?;
 
         if run.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot cancel run in '{}' status. Must be 'draft'.", run.status
+                "Cannot cancel run in '{}' status. Must be 'draft'.",
+                run.status
             )));
         }
 
         info!("Cancelling allocation run {}", run.run_number);
-        self.repository.update_run_status(id, "cancelled", None).await
+        self.repository
+            .update_run_status(id, "cancelled", None)
+            .await
     }
 
     // ========================================================================
@@ -833,7 +1090,8 @@ mod tests {
 
         assert!((total_basis - 1000.0).abs() < f64::EPSILON);
 
-        let allocations: Vec<f64> = basis_amounts.iter()
+        let allocations: Vec<f64> = basis_amounts
+            .iter()
             .map(|b| pool_amount * (b / total_basis))
             .collect();
 
@@ -853,7 +1111,8 @@ mod tests {
 
         assert!((total_pct - 100.0).abs() < 0.01);
 
-        let allocations: Vec<f64> = percentages.iter()
+        let allocations: Vec<f64> = percentages
+            .iter()
             .map(|p| pool_amount * (p / 100.0))
             .collect();
 
@@ -869,7 +1128,8 @@ mod tests {
         let basis = vec![333333333.0_f64, 333333333.0, 333333334.0];
 
         let total_basis: f64 = basis.iter().sum();
-        let allocations: Vec<f64> = basis.iter()
+        let allocations: Vec<f64> = basis
+            .iter()
             .map(|b| (pool_amount * (b / total_basis) * 100.0).round() / 100.0)
             .collect();
 

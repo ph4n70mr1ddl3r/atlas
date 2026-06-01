@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: General Ledger > Journals > Recurring Journals
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::RecurringJournalEngine;
-pub use repository::{RecurringJournalRepository, PostgresRecurringJournalRepository};
+pub use repository::{PostgresRecurringJournalRepository, RecurringJournalRepository};

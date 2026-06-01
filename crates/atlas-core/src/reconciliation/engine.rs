@@ -5,13 +5,12 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Cash Management > Bank Statements and Reconciliation
 
-use atlas_shared::{
-    BankAccount, BankStatement, BankStatementLine, SystemTransaction,
-    ReconciliationMatch, ReconciliationSummary, ReconciliationMatchingRule,
-    AutoMatchResult, AutoMatchPair,
-    AtlasError, AtlasResult,
-};
 use super::ReconciliationRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, AutoMatchPair, AutoMatchResult, BankAccount, BankStatement,
+    BankStatementLine, ReconciliationMatch, ReconciliationMatchingRule, ReconciliationSummary,
+    SystemTransaction,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -45,7 +44,10 @@ impl ReconciliationEngine {
         account_type: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<BankAccount> {
-        info!("Creating bank account '{}' for org {}", account_number, org_id);
+        info!(
+            "Creating bank account '{}' for org {}",
+            account_number, org_id
+        );
 
         if account_number.is_empty() {
             return Err(AtlasError::ValidationFailed(
@@ -108,7 +110,10 @@ impl ReconciliationEngine {
         closing_balance: &str,
         imported_by: Option<Uuid>,
     ) -> AtlasResult<BankStatement> {
-        info!("Creating bank statement '{}' for account {}", statement_number, bank_account_id);
+        info!(
+            "Creating bank statement '{}' for account {}",
+            statement_number, bank_account_id
+        );
 
         if start_date > end_date {
             return Err(AtlasError::ValidationFailed(
@@ -182,8 +187,13 @@ impl ReconciliationEngine {
     ) -> AtlasResult<BankStatementLine> {
         // Validate transaction_type
         let valid_types = [
-            "deposit", "withdrawal", "interest", "charge",
-            "transfer_in", "transfer_out", "adjustment",
+            "deposit",
+            "withdrawal",
+            "interest",
+            "charge",
+            "transfer_in",
+            "transfer_out",
+            "adjustment",
         ];
         if !valid_types.contains(&transaction_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -328,7 +338,8 @@ impl ReconciliationEngine {
             matches: Vec::new(),
         };
 
-        let mut used_transactions: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
+        let mut used_transactions: std::collections::HashSet<Uuid> =
+            std::collections::HashSet::new();
 
         for line in &lines {
             if line.match_status != "unmatched" {
@@ -336,11 +347,7 @@ impl ReconciliationEngine {
                 continue;
             }
 
-            let line_amount: f64 = line.amount
-                .as_str()
-                .unwrap_or("0")
-                .parse()
-                .unwrap_or(0.0);
+            let line_amount: f64 = line.amount.as_str().unwrap_or("0").parse().unwrap_or(0.0);
             let _line_amount_abs = line_amount.abs();
 
             // Strategy 1: Check number exact match
@@ -386,16 +393,14 @@ impl ReconciliationEngine {
                 if t.status != "unreconciled" || used_transactions.contains(&t.id) {
                     return false;
                 }
-                let txn_amount: f64 = t.amount
-                    .as_str()
-                    .unwrap_or("0")
-                    .parse()
-                    .unwrap_or(0.0);
+                let txn_amount: f64 = t.amount.as_str().unwrap_or("0").parse().unwrap_or(0.0);
                 if (txn_amount - line_amount).abs() > 0.01 {
                     return false;
                 }
                 // Date within 3 days tolerance
-                let date_diff = (t.transaction_date - line.transaction_date).num_days().abs();
+                let date_diff = (t.transaction_date - line.transaction_date)
+                    .num_days()
+                    .abs();
                 date_diff <= 3
             }) {
                 result.matches.push(AutoMatchPair {
@@ -449,7 +454,13 @@ impl ReconciliationEngine {
         };
 
         self.repository
-            .update_statement_counts(statement_id, total_lines, total_matched, unmatched_lines, recon_percent)
+            .update_statement_counts(
+                statement_id,
+                total_lines,
+                total_matched,
+                unmatched_lines,
+                recon_percent,
+            )
             .await?;
 
         // Auto-transition status
@@ -494,7 +505,9 @@ impl ReconciliationEngine {
         let line = lines
             .iter()
             .find(|l| l.id == statement_line_id)
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Statement line {statement_line_id}")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Statement line {statement_line_id}"))
+            })?;
 
         if line.match_status != "unmatched" {
             return Err(AtlasError::Conflict(format!(
@@ -508,7 +521,9 @@ impl ReconciliationEngine {
             .repository
             .get_system_transaction(system_transaction_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("System transaction {system_transaction_id}")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("System transaction {system_transaction_id}"))
+            })?;
 
         if txn.status != "unreconciled" {
             return Err(AtlasError::Conflict(format!(
@@ -551,9 +566,7 @@ impl ReconciliationEngine {
             )));
         }
 
-        self.repository
-            .unmatch(match_id, unmatched_by)
-            .await
+        self.repository.unmatch(match_id, unmatched_by).await
     }
 
     // ========================================================================
@@ -639,10 +652,7 @@ impl ReconciliationEngine {
     // ========================================================================
 
     /// List matches for a statement
-    pub async fn list_matches(
-        &self,
-        statement_id: Uuid,
-    ) -> AtlasResult<Vec<ReconciliationMatch>> {
+    pub async fn list_matches(&self, statement_id: Uuid) -> AtlasResult<Vec<ReconciliationMatch>> {
         self.repository.list_matches(statement_id).await
     }
 }
@@ -654,8 +664,13 @@ mod tests {
     #[test]
     fn test_valid_transaction_types() {
         let valid_types = [
-            "deposit", "withdrawal", "interest", "charge",
-            "transfer_in", "transfer_out", "adjustment",
+            "deposit",
+            "withdrawal",
+            "interest",
+            "charge",
+            "transfer_in",
+            "transfer_out",
+            "adjustment",
         ];
         assert!(valid_types.contains(&"deposit"));
         assert!(valid_types.contains(&"withdrawal"));

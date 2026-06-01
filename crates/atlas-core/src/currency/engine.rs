@@ -5,19 +5,24 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: General Ledger > Currency Rates Manager
 
-use atlas_shared::{
-    CurrencyDefinition, ExchangeRate, CurrencyConversionResult,
-    UnrealizedGainLoss,
-    AtlasError, AtlasResult,
-};
 use super::CurrencyRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CurrencyConversionResult, CurrencyDefinition, ExchangeRate,
+    UnrealizedGainLoss,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Supported rate types
 const VALID_RATE_TYPES: &[&str] = &[
-    "daily", "spot", "corporate", "period_average", "period_end", "user", "fixed",
+    "daily",
+    "spot",
+    "corporate",
+    "period_average",
+    "period_end",
+    "user",
+    "fixed",
 ];
 
 /// Currency engine for managing multi-currency operations
@@ -64,16 +69,32 @@ impl CurrencyEngine {
             ));
         }
 
-        info!("Creating currency '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating currency '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
         self.repository
-            .create_currency(org_id, &code_upper, name, symbol, precision, is_base_currency)
+            .create_currency(
+                org_id,
+                &code_upper,
+                name,
+                symbol,
+                precision,
+                is_base_currency,
+            )
             .await
     }
 
     /// Get a currency by code
-    pub async fn get_currency(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CurrencyDefinition>> {
-        self.repository.get_currency(org_id, &code.to_uppercase()).await
+    pub async fn get_currency(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CurrencyDefinition>> {
+        self.repository
+            .get_currency(org_id, &code.to_uppercase())
+            .await
     }
 
     /// List all active currencies for an organization
@@ -86,9 +107,11 @@ impl CurrencyEngine {
         self.repository
             .get_base_currency(org_id)
             .await?
-            .ok_or_else(|| AtlasError::ConfigError(
-                "No base currency configured for this organization".to_string(),
-            ))
+            .ok_or_else(|| {
+                AtlasError::ConfigError(
+                    "No base currency configured for this organization".to_string(),
+                )
+            })
     }
 
     /// Deactivate a currency
@@ -139,9 +162,9 @@ impl CurrencyEngine {
             )));
         }
 
-        let rate_value: f64 = rate.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Rate must be a valid number".to_string(),
-        ))?;
+        let rate_value: f64 = rate
+            .parse()
+            .map_err(|_| AtlasError::ValidationFailed("Rate must be a valid number".to_string()))?;
 
         if rate_value <= 0.0 {
             return Err(AtlasError::ValidationFailed(
@@ -205,16 +228,20 @@ impl CurrencyEngine {
         }
 
         // Try forward lookup
-        if let Some(rate) = self.repository.get_exchange_rate(
-            org_id, &from_upper, &to_upper, rate_type, effective_date,
-        ).await? {
+        if let Some(rate) = self
+            .repository
+            .get_exchange_rate(org_id, &from_upper, &to_upper, rate_type, effective_date)
+            .await?
+        {
             return Ok(Some(rate));
         }
 
         // Try reverse lookup (use inverse rate)
-        if let Some(rate) = self.repository.get_exchange_rate(
-            org_id, &to_upper, &from_upper, rate_type, effective_date,
-        ).await? {
+        if let Some(rate) = self
+            .repository
+            .get_exchange_rate(org_id, &to_upper, &from_upper, rate_type, effective_date)
+            .await?
+        {
             // Swap and use inverse
             return Ok(Some(ExchangeRate {
                 id: rate.id,
@@ -268,16 +295,20 @@ impl CurrencyEngine {
         }
 
         // Try forward
-        if let Some(rate) = self.repository.get_latest_rate(
-            org_id, &from_upper, &to_upper, rate_type, on_or_before,
-        ).await? {
+        if let Some(rate) = self
+            .repository
+            .get_latest_rate(org_id, &from_upper, &to_upper, rate_type, on_or_before)
+            .await?
+        {
             return Ok(Some(rate));
         }
 
         // Try reverse
-        if let Some(rate) = self.repository.get_latest_rate(
-            org_id, &to_upper, &from_upper, rate_type, on_or_before,
-        ).await? {
+        if let Some(rate) = self
+            .repository
+            .get_latest_rate(org_id, &to_upper, &from_upper, rate_type, on_or_before)
+            .await?
+        {
             return Ok(Some(ExchangeRate {
                 id: rate.id,
                 organization_id: rate.organization_id,
@@ -298,7 +329,8 @@ impl CurrencyEngine {
         }
 
         // Triangulation: try through the base currency
-        self.triangulate_rate(org_id, &from_upper, &to_upper, rate_type, on_or_before).await
+        self.triangulate_rate(org_id, &from_upper, &to_upper, rate_type, on_or_before)
+            .await
     }
 
     /// List exchange rates with optional filters
@@ -312,15 +344,17 @@ impl CurrencyEngine {
         limit: i64,
         offset: i64,
     ) -> AtlasResult<Vec<ExchangeRate>> {
-        self.repository.list_rates(
-            org_id,
-            from_currency.map(|s| s.to_uppercase().leak() as &str),
-            to_currency.map(|s| s.to_uppercase().leak() as &str),
-            rate_type,
-            effective_date,
-            limit.clamp(1, 200),
-            offset.max(0),
-        ).await
+        self.repository
+            .list_rates(
+                org_id,
+                from_currency.map(|s| s.to_uppercase().leak() as &str),
+                to_currency.map(|s| s.to_uppercase().leak() as &str),
+                rate_type,
+                effective_date,
+                limit.clamp(1, 200),
+                offset.max(0),
+            )
+            .await
     }
 
     /// Delete an exchange rate
@@ -352,9 +386,9 @@ impl CurrencyEngine {
         let from_upper = from_currency.to_uppercase();
         let to_upper = to_currency.to_uppercase();
 
-        let amount_value: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amount_value: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
 
         if amount_value < 0.0 {
             return Err(AtlasError::ValidationFailed(
@@ -383,29 +417,33 @@ impl CurrencyEngine {
                 "No exchange rate found for {from_upper} -> {to_upper} (type: {rate_type}) on or before {effective_date}"
             )))?;
 
-        let rate_value: f64 = rate.rate.parse()
+        let rate_value: f64 = rate
+            .rate
+            .parse()
             .map_err(|_| AtlasError::Internal("Invalid rate stored in database".to_string()))?;
 
         let to_amount = amount_value * rate_value;
         let to_amount_str = format!("{to_amount:.2}");
 
         // Record the conversion
-        self.repository.record_conversion(
-            org_id,
-            entity_type,
-            entity_id,
-            &from_upper,
-            &to_upper,
-            amount,
-            &to_amount_str,
-            &rate.rate,
-            rate_type,
-            effective_date,
-            None,
-            None,
-            None,
-            created_by,
-        ).await?;
+        self.repository
+            .record_conversion(
+                org_id,
+                entity_type,
+                entity_id,
+                &from_upper,
+                &to_upper,
+                amount,
+                &to_amount_str,
+                &rate.rate,
+                rate_type,
+                effective_date,
+                None,
+                None,
+                None,
+                created_by,
+            )
+            .await?;
 
         info!(
             "Converted {} {} -> {} {} (rate: {})",
@@ -452,21 +490,33 @@ impl CurrencyEngine {
             ));
         }
 
-        let original_amount_val: f64 = original_amount.parse()
+        let original_amount_val: f64 = original_amount
+            .parse()
             .map_err(|_| AtlasError::ValidationFailed("Invalid original_amount".to_string()))?;
-        let original_rate_val: f64 = original_rate.parse()
+        let original_rate_val: f64 = original_rate
+            .parse()
             .map_err(|_| AtlasError::ValidationFailed("Invalid original_rate".to_string()))?;
 
         // Get the current rate
-        let current_rate = self.get_latest_rate(
-            org_id, &currency_upper, &base.code, rate_type, revaluation_date,
-        ).await?
-        .ok_or_else(|| AtlasError::ValidationFailed(format!(
-            "No exchange rate found for {} -> {} on {}",
-            currency_upper, base.code, revaluation_date
-        )))?;
+        let current_rate = self
+            .get_latest_rate(
+                org_id,
+                &currency_upper,
+                &base.code,
+                rate_type,
+                revaluation_date,
+            )
+            .await?
+            .ok_or_else(|| {
+                AtlasError::ValidationFailed(format!(
+                    "No exchange rate found for {} -> {} on {}",
+                    currency_upper, base.code, revaluation_date
+                ))
+            })?;
 
-        let current_rate_val: f64 = current_rate.rate.parse()
+        let current_rate_val: f64 = current_rate
+            .rate
+            .parse()
             .map_err(|_| AtlasError::Internal("Invalid rate value".to_string()))?;
 
         // Calculate original base amount and revalued amount
@@ -509,16 +559,19 @@ impl CurrencyEngine {
         let mut errors = Vec::new();
 
         for rate in &rates {
-            match self.set_exchange_rate(
-                org_id,
-                &rate.from_currency,
-                &rate.to_currency,
-                &rate.rate_type,
-                &rate.rate,
-                rate.effective_date,
-                rate.source.as_deref(),
-                created_by,
-            ).await {
+            match self
+                .set_exchange_rate(
+                    org_id,
+                    &rate.from_currency,
+                    &rate.to_currency,
+                    &rate.rate_type,
+                    &rate.rate,
+                    rate.effective_date,
+                    rate.source.as_deref(),
+                    created_by,
+                )
+                .await
+            {
                 Ok(_) => imported += 1,
                 Err(e) => {
                     failed += 1;
@@ -530,7 +583,10 @@ impl CurrencyEngine {
             }
         }
 
-        info!("Imported {} exchange rates ({} failed) for org {}", imported, failed, org_id);
+        info!(
+            "Imported {} exchange rates ({} failed) for org {}",
+            imported, failed, org_id
+        );
 
         Ok(ImportRatesResult {
             total: rates.len() as i32,
@@ -566,13 +622,15 @@ impl CurrencyEngine {
         }
 
         // Try: from -> base, then base -> to
-        let from_to_base = self.repository.get_latest_rate(
-            org_id, from_currency, &base.code, rate_type, on_or_before,
-        ).await?;
+        let from_to_base = self
+            .repository
+            .get_latest_rate(org_id, from_currency, &base.code, rate_type, on_or_before)
+            .await?;
 
-        let base_to_to = self.repository.get_latest_rate(
-            org_id, &base.code, to_currency, rate_type, on_or_before,
-        ).await?;
+        let base_to_to = self
+            .repository
+            .get_latest_rate(org_id, &base.code, to_currency, rate_type, on_or_before)
+            .await?;
 
         match (from_to_base, base_to_to) {
             (Some(r1), Some(r2)) => {
@@ -610,13 +668,19 @@ impl CurrencyEngine {
             // Try reverse paths
             _ => {
                 // Try from -> base via inverse of base -> from
-                let base_to_from = self.repository.get_latest_rate(
-                    org_id, &base.code, from_currency, rate_type, on_or_before,
-                ).await.ok().flatten();
+                let base_to_from = self
+                    .repository
+                    .get_latest_rate(org_id, &base.code, from_currency, rate_type, on_or_before)
+                    .await
+                    .ok()
+                    .flatten();
 
-                let to_to_base = self.repository.get_latest_rate(
-                    org_id, to_currency, &base.code, rate_type, on_or_before,
-                ).await.ok().flatten();
+                let to_to_base = self
+                    .repository
+                    .get_latest_rate(org_id, to_currency, &base.code, rate_type, on_or_before)
+                    .await
+                    .ok()
+                    .flatten();
 
                 match (base_to_from, to_to_base) {
                     (Some(r1_inv), Some(r2_inv)) => {

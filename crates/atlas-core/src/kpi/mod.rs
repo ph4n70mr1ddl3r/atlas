@@ -9,8 +9,8 @@
 //!
 //! Oracle Fusion equivalent: Analytics > KPI Library, Dashboards, OTBI
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::KpiEngine;
 pub use repository::{KpiRepository, PostgresKpiRepository};

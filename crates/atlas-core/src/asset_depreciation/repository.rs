@@ -2,8 +2,8 @@
 //!
 //! `PostgreSQL` storage for depreciation history and asset updates.
 
-use atlas_shared::{AssetDepreciationHistory, FixedAsset, AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AssetDepreciationHistory, AtlasError, AtlasResult, FixedAsset};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -25,7 +25,10 @@ pub trait AssetDepreciationRepository: Send + Sync {
         depreciation_method: &str,
         created_by: Option<Uuid>,
     ) -> AtlasResult<AssetDepreciationHistory>;
-    async fn list_depreciation_history(&self, asset_id: Uuid) -> AtlasResult<Vec<AssetDepreciationHistory>>;
+    async fn list_depreciation_history(
+        &self,
+        asset_id: Uuid,
+    ) -> AtlasResult<Vec<AssetDepreciationHistory>>;
     async fn update_asset_depreciation(
         &self,
         asset_id: Uuid,
@@ -43,7 +46,7 @@ pub struct PostgresAssetDepreciationRepository {
 }
 
 impl PostgresAssetDepreciationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -102,10 +105,17 @@ impl AssetDepreciationRepository for PostgresAssetDepreciationRepository {
             original_cost: get_num(&r, "original_cost"),
             current_cost: get_num(&r, "current_cost"),
             salvage_value: get_num(&r, "salvage_value"),
-            salvage_value_percent: r.try_get::<Option<String>, _>("salvage_value_percent").ok().flatten().unwrap_or_else(|| "0".to_string()),
+            salvage_value_percent: r
+                .try_get::<Option<String>, _>("salvage_value_percent")
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "0".to_string()),
             depreciation_method: r.get("depreciation_method"),
             useful_life_months: r.get("useful_life_months"),
-            declining_balance_rate: r.try_get::<Option<String>, _>("declining_balance_rate").ok().flatten(),
+            declining_balance_rate: r
+                .try_get::<Option<String>, _>("declining_balance_rate")
+                .ok()
+                .flatten(),
             depreciable_basis: get_num(&r, "depreciable_basis"),
             accumulated_depreciation: get_num(&r, "accumulated_depreciation"),
             net_book_value: get_num(&r, "net_book_value"),
@@ -168,10 +178,17 @@ impl AssetDepreciationRepository for PostgresAssetDepreciationRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(asset_id).bind(fiscal_year).bind(period_number)
-        .bind(period_name).bind(depreciation_date).bind(depreciation_amount)
-        .bind(accumulated_depreciation).bind(net_book_value)
-        .bind(depreciation_method).bind(created_by)
+        .bind(org_id)
+        .bind(asset_id)
+        .bind(fiscal_year)
+        .bind(period_number)
+        .bind(period_name)
+        .bind(depreciation_date)
+        .bind(depreciation_amount)
+        .bind(accumulated_depreciation)
+        .bind(net_book_value)
+        .bind(depreciation_method)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -179,7 +196,10 @@ impl AssetDepreciationRepository for PostgresAssetDepreciationRepository {
         Ok(row_to_depreciation_history(&row))
     }
 
-    async fn list_depreciation_history(&self, asset_id: Uuid) -> AtlasResult<Vec<AssetDepreciationHistory>> {
+    async fn list_depreciation_history(
+        &self,
+        asset_id: Uuid,
+    ) -> AtlasResult<Vec<AssetDepreciationHistory>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.asset_depreciation_history WHERE asset_id = $1 ORDER BY fiscal_year, period_number"
         )
@@ -211,8 +231,12 @@ impl AssetDepreciationRepository for PostgresAssetDepreciationRepository {
             WHERE id = $1
             ",
         )
-        .bind(asset_id).bind(accumulated_depreciation).bind(net_book_value)
-        .bind(last_depreciation_amount).bind(periods_depreciated).bind(last_depreciation_date)
+        .bind(asset_id)
+        .bind(accumulated_depreciation)
+        .bind(net_book_value)
+        .bind(last_depreciation_amount)
+        .bind(periods_depreciated)
+        .bind(last_depreciation_date)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

@@ -12,7 +12,7 @@ pub struct JournalImportResult {
 
 impl JournalImportService {
     /// Imports journal lines into the General Ledger.
-    /// This is an Oracle Fusion General Ledger feature for transferring data 
+    /// This is an Oracle Fusion General Ledger feature for transferring data
     /// from subledgers or external feeder systems into the GL.
     #[must_use]
     pub fn import_journals(
@@ -89,11 +89,7 @@ mod tests {
 
     #[test]
     fn test_import_journals_balanced() {
-        let lines = vec![
-            (1500.0, 0.0),
-            (0.0, 1000.0),
-            (0.0, 500.0),
-        ];
+        let lines = vec![(1500.0, 0.0), (0.0, 1000.0), (0.0, 500.0)];
         let result = JournalImportService::import_journals("PAYABLES", "LEDGER-US", &lines);
         assert_eq!(result.source, "PAYABLES");
         assert_eq!(result.ledger_id, "LEDGER-US");
@@ -106,10 +102,7 @@ mod tests {
 
     #[test]
     fn test_import_journals_unbalanced() {
-        let lines = vec![
-            (1500.0, 0.0),
-            (0.0, 1000.0),
-        ];
+        let lines = vec![(1500.0, 0.0), (0.0, 1000.0)];
         let result = JournalImportService::import_journals("RECEIVABLES", "LEDGER-UK", &lines);
         assert_eq!(result.total_debits, 1500.0);
         assert_eq!(result.total_credits, 1000.0);
@@ -118,10 +111,7 @@ mod tests {
 
     #[test]
     fn test_import_journals_negative_amount() {
-        let lines = vec![
-            (-500.0, 0.0),
-            (0.0, -500.0),
-        ];
+        let lines = vec![(-500.0, 0.0), (0.0, -500.0)];
         let result = JournalImportService::import_journals("PAYABLES", "LEDGER-US", &lines);
         assert_eq!(result.status, "REJECTED_NEGATIVE_AMOUNTS");
     }

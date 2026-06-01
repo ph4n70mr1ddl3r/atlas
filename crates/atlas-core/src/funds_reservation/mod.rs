@@ -10,8 +10,8 @@
 //!
 //! Oracle Fusion equivalent: Budgetary Control > Funds Reservation, Fund Check
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::FundsReservationEngine;
 pub use repository::{FundsReservationRepository, PostgresFundsReservationRepository};

@@ -5,18 +5,17 @@
 //! API endpoints for managing marketing campaigns, campaign types,
 //! campaign members, responses, and ROI analytics.
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Campaign Type Handlers
@@ -31,9 +30,15 @@ pub struct CreateCampaignTypeRequest {
     pub channel: String,
 }
 
-fn default_email() -> String { "email".to_string() }
-fn default_zero() -> String { "0".to_string() }
-fn default_usd() -> String { "USD".to_string() }
+fn default_email() -> String {
+    "email".to_string()
+}
+fn default_zero() -> String {
+    "0".to_string()
+}
+fn default_usd() -> String {
+    "USD".to_string()
+}
 
 pub async fn create_campaign_type(
     State(state): State<Arc<AppState>>,
@@ -42,14 +47,30 @@ pub async fn create_campaign_type(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.crm.marketing_engine.create_campaign_type(
-        org_id, &payload.code, &payload.name, payload.description.as_deref(),
-        &payload.channel, user_id,
-    ).await {
-        Ok(ct) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(ct)))),
+    match state
+        .crm
+        .marketing_engine
+        .create_campaign_type(
+            org_id,
+            &payload.code,
+            &payload.name,
+            payload.description.as_deref(),
+            &payload.channel,
+            user_id,
+        )
+        .await
+    {
+        Ok(ct) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(ct)),
+        )),
         Err(e) => {
             error!("Failed to create campaign type: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                409 => StatusCode::CONFLICT,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -61,7 +82,10 @@ pub async fn list_campaign_types(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.crm.marketing_engine.list_campaign_types(org_id).await {
         Ok(types) => Ok(Json(serde_json::json!({"data": types}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -71,9 +95,17 @@ pub async fn delete_campaign_type(
     Path(code): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.crm.marketing_engine.delete_campaign_type(org_id, &code).await {
+    match state
+        .crm
+        .marketing_engine
+        .delete_campaign_type(org_id, &code)
+        .await
+    {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -109,7 +141,9 @@ pub struct CreateCampaignRequest {
     pub notes: Option<String>,
 }
 
-const fn default_empty_array() -> serde_json::Value { serde_json::json!([]) }
+const fn default_empty_array() -> serde_json::Value {
+    serde_json::json!([])
+}
 
 pub async fn create_campaign(
     State(state): State<Arc<AppState>>,
@@ -118,20 +152,44 @@ pub async fn create_campaign(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.crm.marketing_engine.create_campaign(
-        org_id, &payload.campaign_number, &payload.name, payload.description.as_deref(),
-        payload.campaign_type_id, payload.campaign_type_name.as_deref(),
-        &payload.channel, &payload.budget, &payload.currency_code,
-        payload.start_date, payload.end_date,
-        payload.owner_id, payload.owner_name.as_deref(),
-        payload.expected_responses, &payload.expected_revenue,
-        payload.parent_campaign_id, payload.parent_campaign_name.as_deref(),
-        payload.tags, payload.notes.as_deref(), user_id,
-    ).await {
-        Ok(campaign) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(campaign)))),
+    match state
+        .crm
+        .marketing_engine
+        .create_campaign(
+            org_id,
+            &payload.campaign_number,
+            &payload.name,
+            payload.description.as_deref(),
+            payload.campaign_type_id,
+            payload.campaign_type_name.as_deref(),
+            &payload.channel,
+            &payload.budget,
+            &payload.currency_code,
+            payload.start_date,
+            payload.end_date,
+            payload.owner_id,
+            payload.owner_name.as_deref(),
+            payload.expected_responses,
+            &payload.expected_revenue,
+            payload.parent_campaign_id,
+            payload.parent_campaign_name.as_deref(),
+            payload.tags,
+            payload.notes.as_deref(),
+            user_id,
+        )
+        .await
+    {
+        Ok(campaign) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(campaign)),
+        )),
         Err(e) => {
             error!("Failed to create campaign: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 409 => StatusCode::CONFLICT, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                409 => StatusCode::CONFLICT,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -144,7 +202,10 @@ pub async fn get_campaign(
     match state.crm.marketing_engine.get_campaign(id).await {
         Ok(Some(c)) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -161,13 +222,24 @@ pub async fn list_campaigns(
     Query(params): Query<ListCampaignsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.crm.marketing_engine.list_campaigns(
-        org_id, params.status.as_deref(), params.channel.as_deref(), params.owner_id,
-    ).await {
+    match state
+        .crm
+        .marketing_engine
+        .list_campaigns(
+            org_id,
+            params.status.as_deref(),
+            params.channel.as_deref(),
+            params.owner_id,
+        )
+        .await
+    {
         Ok(campaigns) => Ok(Json(serde_json::json!({"data": campaigns}))),
         Err(e) => {
             error!("Error: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -181,7 +253,11 @@ pub async fn activate_campaign(
         Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => {
             error!("Error: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -195,7 +271,11 @@ pub async fn pause_campaign(
         Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => {
             error!("Error: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -209,7 +289,11 @@ pub async fn complete_campaign(
         Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => {
             error!("Error: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -223,7 +307,11 @@ pub async fn cancel_campaign(
         Ok(c) => Ok(Json(crate::handlers::records::to_json_or_null(c))),
         Err(e) => {
             error!("Error: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -236,13 +324,24 @@ pub async fn delete_campaign(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.crm.marketing_engine.get_campaign(id).await {
         Ok(Some(campaign)) => {
-            match state.crm.marketing_engine.delete_campaign(org_id, &campaign.campaign_number).await {
+            match state
+                .crm
+                .marketing_engine
+                .delete_campaign(org_id, &campaign.campaign_number)
+                .await
+            {
                 Ok(()) => Ok(StatusCode::NO_CONTENT),
-                Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+                Err(e) => {
+                    error!("Error: {}", e);
+                    Err(StatusCode::INTERNAL_SERVER_ERROR)
+                }
             }
         }
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -267,15 +366,32 @@ pub async fn add_campaign_member(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.crm.marketing_engine.add_campaign_member(
-        org_id, campaign_id,
-        payload.contact_id, payload.contact_name.as_deref(), payload.contact_email.as_deref(),
-        payload.lead_id, payload.lead_number.as_deref(), user_id,
-    ).await {
-        Ok(member) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(member)))),
+    match state
+        .crm
+        .marketing_engine
+        .add_campaign_member(
+            org_id,
+            campaign_id,
+            payload.contact_id,
+            payload.contact_name.as_deref(),
+            payload.contact_email.as_deref(),
+            payload.lead_id,
+            payload.lead_number.as_deref(),
+            user_id,
+        )
+        .await
+    {
+        Ok(member) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(member)),
+        )),
         Err(e) => {
             error!("Failed to add campaign member: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -291,11 +407,19 @@ pub async fn list_campaign_members(
     Path(campaign_id): Path<Uuid>,
     Query(params): Query<ListCampaignMembersQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.crm.marketing_engine.list_campaign_members(campaign_id, params.status.as_deref()).await {
+    match state
+        .crm
+        .marketing_engine
+        .list_campaign_members(campaign_id, params.status.as_deref())
+        .await
+    {
         Ok(members) => Ok(Json(serde_json::json!({"data": members}))),
         Err(e) => {
             error!("Error: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -312,11 +436,20 @@ pub async fn update_member_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateMemberStatusRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.crm.marketing_engine.update_member_status(id, &payload.status, payload.response.as_deref()).await {
+    match state
+        .crm
+        .marketing_engine
+        .update_member_status(id, &payload.status, payload.response.as_deref())
+        .await
+    {
         Ok(m) => Ok(Json(crate::handlers::records::to_json_or_null(m))),
         Err(e) => {
             error!("Error: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -328,7 +461,10 @@ pub async fn delete_campaign_member(
 ) -> Result<StatusCode, StatusCode> {
     match state.crm.marketing_engine.delete_campaign_member(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -360,16 +496,37 @@ pub async fn create_campaign_response(
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    match state.crm.marketing_engine.create_response(
-        org_id, campaign_id, payload.member_id, &payload.response_type,
-        payload.contact_id, payload.contact_name.as_deref(), payload.contact_email.as_deref(),
-        payload.lead_id, payload.description.as_deref(),
-        &payload.value, &payload.currency_code, payload.source_url.as_deref(), user_id,
-    ).await {
-        Ok(resp) => Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(resp)))),
+    match state
+        .crm
+        .marketing_engine
+        .create_response(
+            org_id,
+            campaign_id,
+            payload.member_id,
+            &payload.response_type,
+            payload.contact_id,
+            payload.contact_name.as_deref(),
+            payload.contact_email.as_deref(),
+            payload.lead_id,
+            payload.description.as_deref(),
+            &payload.value,
+            &payload.currency_code,
+            payload.source_url.as_deref(),
+            user_id,
+        )
+        .await
+    {
+        Ok(resp) => Ok((
+            StatusCode::CREATED,
+            Json(crate::handlers::records::to_json_or_null(resp)),
+        )),
         Err(e) => {
             error!("Failed to create campaign response: {}", e);
-            Err(match e.status_code() { 400 => StatusCode::BAD_REQUEST, 404 => StatusCode::NOT_FOUND, _ => StatusCode::INTERNAL_SERVER_ERROR })
+            Err(match e.status_code() {
+                400 => StatusCode::BAD_REQUEST,
+                404 => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })
         }
     }
 }
@@ -385,9 +542,17 @@ pub async fn list_campaign_responses(
     Path(campaign_id): Path<Uuid>,
     Query(params): Query<ListCampaignResponsesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.crm.marketing_engine.list_responses(campaign_id, params.response_type.as_deref()).await {
+    match state
+        .crm
+        .marketing_engine
+        .list_responses(campaign_id, params.response_type.as_deref())
+        .await
+    {
         Ok(responses) => Ok(Json(serde_json::json!({"data": responses}))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -398,7 +563,10 @@ pub async fn delete_campaign_response(
 ) -> Result<StatusCode, StatusCode> {
     match state.crm.marketing_engine.delete_response(id).await {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -413,6 +581,9 @@ pub async fn get_marketing_dashboard(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     match state.crm.marketing_engine.get_dashboard(org_id).await {
         Ok(dashboard) => Ok(Json(crate::handlers::records::to_json_or_null(dashboard))),
-        Err(e) => { error!("Error: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

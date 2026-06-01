@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Tax > Tax Registrations
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::TaxRegistrationEngine;
-pub use repository::{TaxRegistrationRepository, PostgresTaxRegistrationRepository};
+pub use repository::{PostgresTaxRegistrationRepository, TaxRegistrationRepository};

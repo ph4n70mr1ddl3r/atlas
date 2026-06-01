@@ -3,12 +3,12 @@
 //! `PostgreSQL` storage for corporate card programmes, cards, transactions,
 //! statements, and spending limit overrides.
 
-use atlas_shared::{
-    CorporateCardProgram, CorporateCard, CorporateCardTransaction,
-    CorporateCardStatement, CorporateCardLimitOverride, CorporateCardDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, CorporateCard, CorporateCardDashboardSummary,
+    CorporateCardLimitOverride, CorporateCardProgram, CorporateCardStatement,
+    CorporateCardTransaction,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -17,115 +17,214 @@ use uuid::Uuid;
 pub trait CorporateCardRepository: Send + Sync {
     // ── Card Programmes ─────────────────────────────────────────────────
     async fn create_program(
-        &self, org_id: Uuid, program_code: &str, name: &str, description: Option<&str>,
-        issuer_bank: &str, card_network: &str, card_type: &str, currency_code: &str,
-        default_single_purchase_limit: &str, default_monthly_limit: &str,
-        default_cash_limit: &str, default_atm_limit: &str,
-        allow_cash_withdrawal: bool, allow_international: bool,
-        auto_deactivate_on_termination: bool, expense_matching_method: &str,
-        billing_cycle_day: i32, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_code: &str,
+        name: &str,
+        description: Option<&str>,
+        issuer_bank: &str,
+        card_network: &str,
+        card_type: &str,
+        currency_code: &str,
+        default_single_purchase_limit: &str,
+        default_monthly_limit: &str,
+        default_cash_limit: &str,
+        default_atm_limit: &str,
+        allow_cash_withdrawal: bool,
+        allow_international: bool,
+        auto_deactivate_on_termination: bool,
+        expense_matching_method: &str,
+        billing_cycle_day: i32,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardProgram>;
 
-    async fn get_program(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CorporateCardProgram>>;
+    async fn get_program(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CorporateCardProgram>>;
     async fn get_program_by_id(&self, id: Uuid) -> AtlasResult<Option<CorporateCardProgram>>;
-    async fn list_programs(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<CorporateCardProgram>>;
+    async fn list_programs(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<CorporateCardProgram>>;
 
     // ── Cards ───────────────────────────────────────────────────────────
     async fn create_card(
-        &self, org_id: Uuid, program_id: Uuid, card_number_masked: &str,
-        cardholder_name: &str, cardholder_id: Uuid, cardholder_email: Option<&str>,
-        department_id: Option<Uuid>, department_name: Option<&str>,
-        status: &str, issue_date: chrono::NaiveDate, expiry_date: chrono::NaiveDate,
-        single_purchase_limit: &str, monthly_limit: &str,
-        cash_limit: &str, atm_limit: &str,
-        gl_liability_account: Option<&str>, gl_expense_account: Option<&str>,
-        cost_center: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        card_number_masked: &str,
+        cardholder_name: &str,
+        cardholder_id: Uuid,
+        cardholder_email: Option<&str>,
+        department_id: Option<Uuid>,
+        department_name: Option<&str>,
+        status: &str,
+        issue_date: chrono::NaiveDate,
+        expiry_date: chrono::NaiveDate,
+        single_purchase_limit: &str,
+        monthly_limit: &str,
+        cash_limit: &str,
+        atm_limit: &str,
+        gl_liability_account: Option<&str>,
+        gl_expense_account: Option<&str>,
+        cost_center: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCard>;
 
     async fn get_card(&self, id: Uuid) -> AtlasResult<Option<CorporateCard>>;
-    async fn get_card_by_masked_number(&self, org_id: Uuid, masked: &str) -> AtlasResult<Option<CorporateCard>>;
+    async fn get_card_by_masked_number(
+        &self,
+        org_id: Uuid,
+        masked: &str,
+    ) -> AtlasResult<Option<CorporateCard>>;
     async fn list_cards(
-        &self, org_id: Uuid, program_id: Option<Uuid>,
-        cardholder_id: Option<Uuid>, status: Option<&str>,
+        &self,
+        org_id: Uuid,
+        program_id: Option<Uuid>,
+        cardholder_id: Option<Uuid>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<CorporateCard>>;
     async fn update_card_status(&self, id: Uuid, status: &str) -> AtlasResult<CorporateCard>;
     async fn update_card_limits(
-        &self, id: Uuid, single_purchase: &str, monthly: &str,
-        cash: &str, atm: &str,
+        &self,
+        id: Uuid,
+        single_purchase: &str,
+        monthly: &str,
+        cash: &str,
+        atm: &str,
     ) -> AtlasResult<()>;
     async fn update_card_spend(&self, id: Uuid, amount: &str, balance: &str) -> AtlasResult<()>;
 
     // ── Transactions ────────────────────────────────────────────────────
     async fn create_transaction(
-        &self, org_id: Uuid, card_id: Uuid, program_id: Uuid,
-        transaction_reference: &str, posting_date: chrono::NaiveDate,
-        transaction_date: chrono::NaiveDate, merchant_name: &str,
-        merchant_category: Option<&str>, merchant_category_code: Option<&str>,
-        amount: &str, currency_code: &str,
-        original_amount: Option<&str>, original_currency: Option<&str>,
-        exchange_rate: Option<&str>, transaction_type: &str,
+        &self,
+        org_id: Uuid,
+        card_id: Uuid,
+        program_id: Uuid,
+        transaction_reference: &str,
+        posting_date: chrono::NaiveDate,
+        transaction_date: chrono::NaiveDate,
+        merchant_name: &str,
+        merchant_category: Option<&str>,
+        merchant_category_code: Option<&str>,
+        amount: &str,
+        currency_code: &str,
+        original_amount: Option<&str>,
+        original_currency: Option<&str>,
+        exchange_rate: Option<&str>,
+        transaction_type: &str,
     ) -> AtlasResult<CorporateCardTransaction>;
 
     async fn get_transaction(&self, id: Uuid) -> AtlasResult<Option<CorporateCardTransaction>>;
     async fn get_transaction_by_ref(
-        &self, org_id: Uuid, reference: &str,
+        &self,
+        org_id: Uuid,
+        reference: &str,
     ) -> AtlasResult<Option<CorporateCardTransaction>>;
     async fn list_transactions(
-        &self, org_id: Uuid, card_id: Option<Uuid>, status: Option<&str>,
-        date_from: Option<chrono::NaiveDate>, date_to: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        card_id: Option<Uuid>,
+        status: Option<&str>,
+        date_from: Option<chrono::NaiveDate>,
+        date_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Vec<CorporateCardTransaction>>;
     async fn update_transaction_match(
-        &self, id: Uuid, expense_report_id: Option<Uuid>,
-        expense_line_id: Option<Uuid>, status: &str,
-        matched_by: Option<Uuid>, match_confidence: Option<&str>,
+        &self,
+        id: Uuid,
+        expense_report_id: Option<Uuid>,
+        expense_line_id: Option<Uuid>,
+        status: &str,
+        matched_by: Option<Uuid>,
+        match_confidence: Option<&str>,
     ) -> AtlasResult<CorporateCardTransaction>;
     async fn update_transaction_dispute(
-        &self, id: Uuid, reason: Option<&str>,
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
         dispute_date: Option<chrono::NaiveDate>,
-        resolution: Option<&str>, status: &str,
+        resolution: Option<&str>,
+        status: &str,
     ) -> AtlasResult<CorporateCardTransaction>;
 
     // ── Statements ──────────────────────────────────────────────────────
     async fn create_statement(
-        &self, org_id: Uuid, program_id: Uuid, statement_number: &str,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        statement_number: &str,
         statement_date: chrono::NaiveDate,
-        billing_period_start: chrono::NaiveDate, billing_period_end: chrono::NaiveDate,
-        opening_balance: &str, closing_balance: &str,
-        total_charges: &str, total_credits: &str, total_payments: &str,
-        total_fees: &str, total_interest: &str,
-        payment_due_date: Option<chrono::NaiveDate>, minimum_payment: &str,
+        billing_period_start: chrono::NaiveDate,
+        billing_period_end: chrono::NaiveDate,
+        opening_balance: &str,
+        closing_balance: &str,
+        total_charges: &str,
+        total_credits: &str,
+        total_payments: &str,
+        total_fees: &str,
+        total_interest: &str,
+        payment_due_date: Option<chrono::NaiveDate>,
+        minimum_payment: &str,
         imported_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardStatement>;
 
     async fn get_statement(&self, id: Uuid) -> AtlasResult<Option<CorporateCardStatement>>;
     async fn list_statements(
-        &self, org_id: Uuid, program_id: Option<Uuid>, status: Option<&str>,
+        &self,
+        org_id: Uuid,
+        program_id: Option<Uuid>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<CorporateCardStatement>>;
     async fn update_statement_counts(
-        &self, id: Uuid, total: i32, matched: i32, unmatched: i32,
+        &self,
+        id: Uuid,
+        total: i32,
+        matched: i32,
+        unmatched: i32,
     ) -> AtlasResult<()>;
     async fn update_statement_status(
-        &self, id: Uuid, status: &str, payment_reference: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        payment_reference: Option<&str>,
     ) -> AtlasResult<CorporateCardStatement>;
 
     // ── Limit Overrides ─────────────────────────────────────────────────
     async fn create_limit_override(
-        &self, org_id: Uuid, card_id: Uuid, override_type: &str,
-        original_value: &str, new_value: &str, reason: &str,
-        effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        card_id: Uuid,
+        override_type: &str,
+        original_value: &str,
+        new_value: &str,
+        reason: &str,
+        effective_from: chrono::NaiveDate,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardLimitOverride>;
 
-    async fn get_limit_override(&self, id: Uuid) -> AtlasResult<Option<CorporateCardLimitOverride>>;
+    async fn get_limit_override(&self, id: Uuid)
+        -> AtlasResult<Option<CorporateCardLimitOverride>>;
     async fn list_limit_overrides(
-        &self, card_id: Option<Uuid>, status: Option<&str>,
+        &self,
+        card_id: Option<Uuid>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<CorporateCardLimitOverride>>;
     async fn update_limit_override_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardLimitOverride>;
 
     // ── Dashboard ───────────────────────────────────────────────────────
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<CorporateCardDashboardSummary>;
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<CorporateCardDashboardSummary>;
 }
 
 // ============================================================================
@@ -137,7 +236,7 @@ pub struct PostgresCorporateCardRepository {
 }
 
 impl PostgresCorporateCardRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -145,7 +244,10 @@ impl PostgresCorporateCardRepository {
 
 fn get_numeric(row: &sqlx::postgres::PgRow, col: &str) -> String {
     row.try_get::<String, _>(col)
-        .or_else(|_| row.try_get::<&str, _>(col).map(std::string::ToString::to_string))
+        .or_else(|_| {
+            row.try_get::<&str, _>(col)
+                .map(std::string::ToString::to_string)
+        })
         .unwrap_or_else(|_| "0.00".to_string())
 }
 
@@ -302,13 +404,25 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     // ── Card Programmes ─────────────────────────────────────────────────
 
     async fn create_program(
-        &self, org_id: Uuid, program_code: &str, name: &str, description: Option<&str>,
-        issuer_bank: &str, card_network: &str, card_type: &str, currency_code: &str,
-        default_single_purchase_limit: &str, default_monthly_limit: &str,
-        default_cash_limit: &str, default_atm_limit: &str,
-        allow_cash_withdrawal: bool, allow_international: bool,
-        auto_deactivate_on_termination: bool, expense_matching_method: &str,
-        billing_cycle_day: i32, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_code: &str,
+        name: &str,
+        description: Option<&str>,
+        issuer_bank: &str,
+        card_network: &str,
+        card_type: &str,
+        currency_code: &str,
+        default_single_purchase_limit: &str,
+        default_monthly_limit: &str,
+        default_cash_limit: &str,
+        default_atm_limit: &str,
+        allow_cash_withdrawal: bool,
+        allow_international: bool,
+        auto_deactivate_on_termination: bool,
+        expense_matching_method: &str,
+        billing_cycle_day: i32,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardProgram> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.corporate_card_programs
@@ -324,19 +438,35 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                     $13,$14,$15,$16,$17,$18)
             RETURNING *",
         )
-        .bind(org_id).bind(program_code).bind(name).bind(description)
-        .bind(issuer_bank).bind(card_network).bind(card_type).bind(currency_code)
-        .bind(default_single_purchase_limit).bind(default_monthly_limit)
-        .bind(default_cash_limit).bind(default_atm_limit)
-        .bind(allow_cash_withdrawal).bind(allow_international)
-        .bind(auto_deactivate_on_termination).bind(expense_matching_method)
-        .bind(billing_cycle_day).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(program_code)
+        .bind(name)
+        .bind(description)
+        .bind(issuer_bank)
+        .bind(card_network)
+        .bind(card_type)
+        .bind(currency_code)
+        .bind(default_single_purchase_limit)
+        .bind(default_monthly_limit)
+        .bind(default_cash_limit)
+        .bind(default_atm_limit)
+        .bind(allow_cash_withdrawal)
+        .bind(allow_international)
+        .bind(auto_deactivate_on_termination)
+        .bind(expense_matching_method)
+        .bind(billing_cycle_day)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_program(&row))
     }
 
-    async fn get_program(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<CorporateCardProgram>> {
+    async fn get_program(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<CorporateCardProgram>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.corporate_card_programs WHERE organization_id=$1 AND program_code=$2",
         )
@@ -347,16 +477,19 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     }
 
     async fn get_program_by_id(&self, id: Uuid) -> AtlasResult<Option<CorporateCardProgram>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.corporate_card_programs WHERE id=$1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.corporate_card_programs WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_program(&r)))
     }
 
-    async fn list_programs(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<CorporateCardProgram>> {
+    async fn list_programs(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<CorporateCardProgram>> {
         let rows = if active_only {
             sqlx::query(
                 "SELECT * FROM _atlas.corporate_card_programs WHERE organization_id=$1 AND is_active=true ORDER BY program_code",
@@ -375,14 +508,26 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     // ── Cards ───────────────────────────────────────────────────────────
 
     async fn create_card(
-        &self, org_id: Uuid, program_id: Uuid, card_number_masked: &str,
-        cardholder_name: &str, cardholder_id: Uuid, cardholder_email: Option<&str>,
-        department_id: Option<Uuid>, department_name: Option<&str>,
-        status: &str, issue_date: chrono::NaiveDate, expiry_date: chrono::NaiveDate,
-        single_purchase_limit: &str, monthly_limit: &str,
-        cash_limit: &str, atm_limit: &str,
-        gl_liability_account: Option<&str>, gl_expense_account: Option<&str>,
-        cost_center: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        card_number_masked: &str,
+        cardholder_name: &str,
+        cardholder_id: Uuid,
+        cardholder_email: Option<&str>,
+        department_id: Option<Uuid>,
+        department_name: Option<&str>,
+        status: &str,
+        issue_date: chrono::NaiveDate,
+        expiry_date: chrono::NaiveDate,
+        single_purchase_limit: &str,
+        monthly_limit: &str,
+        cash_limit: &str,
+        atm_limit: &str,
+        gl_liability_account: Option<&str>,
+        gl_expense_account: Option<&str>,
+        cost_center: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCard> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.corporate_cards
@@ -398,27 +543,45 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                     $16,$17,$18,$19)
             RETURNING *",
         )
-        .bind(org_id).bind(program_id).bind(card_number_masked)
-        .bind(cardholder_name).bind(cardholder_id).bind(cardholder_email)
-        .bind(department_id).bind(department_name).bind(status)
-        .bind(issue_date).bind(expiry_date)
-        .bind(single_purchase_limit).bind(monthly_limit)
-        .bind(cash_limit).bind(atm_limit)
-        .bind(gl_liability_account).bind(gl_expense_account).bind(cost_center)
+        .bind(org_id)
+        .bind(program_id)
+        .bind(card_number_masked)
+        .bind(cardholder_name)
+        .bind(cardholder_id)
+        .bind(cardholder_email)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(status)
+        .bind(issue_date)
+        .bind(expiry_date)
+        .bind(single_purchase_limit)
+        .bind(monthly_limit)
+        .bind(cash_limit)
+        .bind(atm_limit)
+        .bind(gl_liability_account)
+        .bind(gl_expense_account)
+        .bind(cost_center)
         .bind(created_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_card(&row))
     }
 
     async fn get_card(&self, id: Uuid) -> AtlasResult<Option<CorporateCard>> {
         let row = sqlx::query("SELECT * FROM _atlas.corporate_cards WHERE id=$1")
-            .bind(id).fetch_optional(&self.pool).await
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_card(&r)))
     }
 
-    async fn get_card_by_masked_number(&self, org_id: Uuid, masked: &str) -> AtlasResult<Option<CorporateCard>> {
+    async fn get_card_by_masked_number(
+        &self,
+        org_id: Uuid,
+        masked: &str,
+    ) -> AtlasResult<Option<CorporateCard>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.corporate_cards WHERE organization_id=$1 AND card_number_masked=$2",
         )
@@ -429,8 +592,11 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     }
 
     async fn list_cards(
-        &self, org_id: Uuid, program_id: Option<Uuid>,
-        cardholder_id: Option<Uuid>, status: Option<&str>,
+        &self,
+        org_id: Uuid,
+        program_id: Option<Uuid>,
+        cardholder_id: Option<Uuid>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<CorporateCard>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.corporate_cards
@@ -440,8 +606,12 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
               AND ($4::text IS NULL OR status=$4)
             ORDER BY cardholder_name",
         )
-        .bind(org_id).bind(program_id).bind(cardholder_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(program_id)
+        .bind(cardholder_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_card).collect())
     }
@@ -450,15 +620,21 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         let row = sqlx::query(
             "UPDATE _atlas.corporate_cards SET status=$2, updated_at=now() WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(status)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_card(&row))
     }
 
     async fn update_card_limits(
-        &self, id: Uuid, single_purchase: &str, monthly: &str,
-        cash: &str, atm: &str,
+        &self,
+        id: Uuid,
+        single_purchase: &str,
+        monthly: &str,
+        cash: &str,
+        atm: &str,
     ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.corporate_cards
@@ -466,8 +642,13 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                 cash_limit=$4, atm_limit=$5, updated_at=now()
             WHERE id=$1",
         )
-        .bind(id).bind(single_purchase).bind(monthly).bind(cash).bind(atm)
-        .execute(&self.pool).await
+        .bind(id)
+        .bind(single_purchase)
+        .bind(monthly)
+        .bind(cash)
+        .bind(atm)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -479,8 +660,11 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                 current_balance=$3, updated_at=now()
             WHERE id=$1",
         )
-        .bind(id).bind(amount).bind(balance)
-        .execute(&self.pool).await
+        .bind(id)
+        .bind(amount)
+        .bind(balance)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
@@ -488,13 +672,22 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     // ── Transactions ────────────────────────────────────────────────────
 
     async fn create_transaction(
-        &self, org_id: Uuid, card_id: Uuid, program_id: Uuid,
-        transaction_reference: &str, posting_date: chrono::NaiveDate,
-        transaction_date: chrono::NaiveDate, merchant_name: &str,
-        merchant_category: Option<&str>, merchant_category_code: Option<&str>,
-        amount: &str, currency_code: &str,
-        original_amount: Option<&str>, original_currency: Option<&str>,
-        exchange_rate: Option<&str>, transaction_type: &str,
+        &self,
+        org_id: Uuid,
+        card_id: Uuid,
+        program_id: Uuid,
+        transaction_reference: &str,
+        posting_date: chrono::NaiveDate,
+        transaction_date: chrono::NaiveDate,
+        merchant_name: &str,
+        merchant_category: Option<&str>,
+        merchant_category_code: Option<&str>,
+        amount: &str,
+        currency_code: &str,
+        original_amount: Option<&str>,
+        original_currency: Option<&str>,
+        exchange_rate: Option<&str>,
+        transaction_type: &str,
     ) -> AtlasResult<CorporateCardTransaction> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.corporate_card_transactions
@@ -509,28 +702,40 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                     $12,$13,$14,$15)
             RETURNING *",
         )
-        .bind(org_id).bind(card_id).bind(program_id).bind(transaction_reference)
-        .bind(posting_date).bind(transaction_date).bind(merchant_name)
-        .bind(merchant_category).bind(merchant_category_code)
-        .bind(amount).bind(currency_code)
-        .bind(original_amount).bind(original_currency).bind(exchange_rate)
+        .bind(org_id)
+        .bind(card_id)
+        .bind(program_id)
+        .bind(transaction_reference)
+        .bind(posting_date)
+        .bind(transaction_date)
+        .bind(merchant_name)
+        .bind(merchant_category)
+        .bind(merchant_category_code)
+        .bind(amount)
+        .bind(currency_code)
+        .bind(original_amount)
+        .bind(original_currency)
+        .bind(exchange_rate)
         .bind(transaction_type)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_transaction(&row))
     }
 
     async fn get_transaction(&self, id: Uuid) -> AtlasResult<Option<CorporateCardTransaction>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.corporate_card_transactions WHERE id=$1",
-        )
-        .bind(id).fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.corporate_card_transactions WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_transaction(&r)))
     }
 
     async fn get_transaction_by_ref(
-        &self, org_id: Uuid, reference: &str,
+        &self,
+        org_id: Uuid,
+        reference: &str,
     ) -> AtlasResult<Option<CorporateCardTransaction>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.corporate_card_transactions WHERE organization_id=$1 AND transaction_reference=$2",
@@ -542,8 +747,12 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     }
 
     async fn list_transactions(
-        &self, org_id: Uuid, card_id: Option<Uuid>, status: Option<&str>,
-        date_from: Option<chrono::NaiveDate>, date_to: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        card_id: Option<Uuid>,
+        status: Option<&str>,
+        date_from: Option<chrono::NaiveDate>,
+        date_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Vec<CorporateCardTransaction>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.corporate_card_transactions
@@ -554,16 +763,25 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
               AND ($5::date IS NULL OR transaction_date <= $5)
             ORDER BY transaction_date DESC, created_at DESC",
         )
-        .bind(org_id).bind(card_id).bind(status).bind(date_from).bind(date_to)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(card_id)
+        .bind(status)
+        .bind(date_from)
+        .bind(date_to)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_transaction).collect())
     }
 
     async fn update_transaction_match(
-        &self, id: Uuid, expense_report_id: Option<Uuid>,
-        expense_line_id: Option<Uuid>, status: &str,
-        matched_by: Option<Uuid>, match_confidence: Option<&str>,
+        &self,
+        id: Uuid,
+        expense_report_id: Option<Uuid>,
+        expense_line_id: Option<Uuid>,
+        status: &str,
+        matched_by: Option<Uuid>,
+        match_confidence: Option<&str>,
     ) -> AtlasResult<CorporateCardTransaction> {
         let row = sqlx::query(
             r"UPDATE _atlas.corporate_card_transactions
@@ -581,9 +799,12 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     }
 
     async fn update_transaction_dispute(
-        &self, id: Uuid, reason: Option<&str>,
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
         dispute_date: Option<chrono::NaiveDate>,
-        resolution: Option<&str>, status: &str,
+        resolution: Option<&str>,
+        status: &str,
     ) -> AtlasResult<CorporateCardTransaction> {
         let row = sqlx::query(
             r"UPDATE _atlas.corporate_card_transactions
@@ -591,8 +812,13 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                 status=$5, updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(reason).bind(dispute_date).bind(resolution).bind(status)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(reason)
+        .bind(dispute_date)
+        .bind(resolution)
+        .bind(status)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_transaction(&row))
     }
@@ -600,13 +826,22 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     // ── Statements ──────────────────────────────────────────────────────
 
     async fn create_statement(
-        &self, org_id: Uuid, program_id: Uuid, statement_number: &str,
+        &self,
+        org_id: Uuid,
+        program_id: Uuid,
+        statement_number: &str,
         statement_date: chrono::NaiveDate,
-        billing_period_start: chrono::NaiveDate, billing_period_end: chrono::NaiveDate,
-        opening_balance: &str, closing_balance: &str,
-        total_charges: &str, total_credits: &str, total_payments: &str,
-        total_fees: &str, total_interest: &str,
-        payment_due_date: Option<chrono::NaiveDate>, minimum_payment: &str,
+        billing_period_start: chrono::NaiveDate,
+        billing_period_end: chrono::NaiveDate,
+        opening_balance: &str,
+        closing_balance: &str,
+        total_charges: &str,
+        total_credits: &str,
+        total_payments: &str,
+        total_fees: &str,
+        total_interest: &str,
+        payment_due_date: Option<chrono::NaiveDate>,
+        minimum_payment: &str,
         imported_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardStatement> {
         let row = sqlx::query(
@@ -624,28 +859,42 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                     $14,$15,$16)
             RETURNING *",
         )
-        .bind(org_id).bind(program_id).bind(statement_number).bind(statement_date)
-        .bind(billing_period_start).bind(billing_period_end)
-        .bind(opening_balance).bind(closing_balance)
-        .bind(total_charges).bind(total_credits).bind(total_payments)
-        .bind(total_fees).bind(total_interest)
-        .bind(payment_due_date).bind(minimum_payment).bind(imported_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(program_id)
+        .bind(statement_number)
+        .bind(statement_date)
+        .bind(billing_period_start)
+        .bind(billing_period_end)
+        .bind(opening_balance)
+        .bind(closing_balance)
+        .bind(total_charges)
+        .bind(total_credits)
+        .bind(total_payments)
+        .bind(total_fees)
+        .bind(total_interest)
+        .bind(payment_due_date)
+        .bind(minimum_payment)
+        .bind(imported_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_statement(&row))
     }
 
     async fn get_statement(&self, id: Uuid) -> AtlasResult<Option<CorporateCardStatement>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.corporate_card_statements WHERE id=$1",
-        )
-        .bind(id).fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.corporate_card_statements WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_statement(&r)))
     }
 
     async fn list_statements(
-        &self, org_id: Uuid, program_id: Option<Uuid>, status: Option<&str>,
+        &self,
+        org_id: Uuid,
+        program_id: Option<Uuid>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<CorporateCardStatement>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.corporate_card_statements
@@ -654,14 +903,21 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
               AND ($3::text IS NULL OR status=$3)
             ORDER BY statement_date DESC",
         )
-        .bind(org_id).bind(program_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(program_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_statement).collect())
     }
 
     async fn update_statement_counts(
-        &self, id: Uuid, total: i32, matched: i32, unmatched: i32,
+        &self,
+        id: Uuid,
+        total: i32,
+        matched: i32,
+        unmatched: i32,
     ) -> AtlasResult<()> {
         sqlx::query(
             r"UPDATE _atlas.corporate_card_statements
@@ -669,14 +925,21 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                 unmatched_transaction_count=$4, updated_at=now()
             WHERE id=$1",
         )
-        .bind(id).bind(total).bind(matched).bind(unmatched)
-        .execute(&self.pool).await
+        .bind(id)
+        .bind(total)
+        .bind(matched)
+        .bind(unmatched)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn update_statement_status(
-        &self, id: Uuid, status: &str, payment_reference: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        payment_reference: Option<&str>,
     ) -> AtlasResult<CorporateCardStatement> {
         let row = sqlx::query(
             r"UPDATE _atlas.corporate_card_statements
@@ -685,8 +948,11 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                 updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(status).bind(payment_reference)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .bind(payment_reference)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_statement(&row))
     }
@@ -694,9 +960,15 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
     // ── Limit Overrides ─────────────────────────────────────────────────
 
     async fn create_limit_override(
-        &self, org_id: Uuid, card_id: Uuid, override_type: &str,
-        original_value: &str, new_value: &str, reason: &str,
-        effective_from: chrono::NaiveDate, effective_to: Option<chrono::NaiveDate>,
+        &self,
+        org_id: Uuid,
+        card_id: Uuid,
+        override_type: &str,
+        original_value: &str,
+        new_value: &str,
+        reason: &str,
+        effective_from: chrono::NaiveDate,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardLimitOverride> {
         let row = sqlx::query(
@@ -707,25 +979,37 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
             RETURNING *",
         )
-        .bind(org_id).bind(card_id).bind(override_type)
-        .bind(original_value).bind(new_value).bind(reason)
-        .bind(effective_from).bind(effective_to).bind(created_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(card_id)
+        .bind(override_type)
+        .bind(original_value)
+        .bind(new_value)
+        .bind(reason)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_limit_override(&row))
     }
 
-    async fn get_limit_override(&self, id: Uuid) -> AtlasResult<Option<CorporateCardLimitOverride>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.corporate_card_limit_overrides WHERE id=$1",
-        )
-        .bind(id).fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+    async fn get_limit_override(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<CorporateCardLimitOverride>> {
+        let row = sqlx::query("SELECT * FROM _atlas.corporate_card_limit_overrides WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_limit_override(&r)))
     }
 
     async fn list_limit_overrides(
-        &self, card_id: Option<Uuid>, status: Option<&str>,
+        &self,
+        card_id: Option<Uuid>,
+        status: Option<&str>,
     ) -> AtlasResult<Vec<CorporateCardLimitOverride>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.corporate_card_limit_overrides
@@ -733,14 +1017,19 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
               AND ($2::text IS NULL OR status=$2)
             ORDER BY created_at DESC",
         )
-        .bind(card_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(card_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_limit_override).collect())
     }
 
     async fn update_limit_override_status(
-        &self, id: Uuid, status: &str, approved_by: Option<Uuid>,
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
     ) -> AtlasResult<CorporateCardLimitOverride> {
         let row = sqlx::query(
             r"UPDATE _atlas.corporate_card_limit_overrides
@@ -758,7 +1047,10 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
 
     // ── Dashboard ───────────────────────────────────────────────────────
 
-    async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<CorporateCardDashboardSummary> {
+    async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<CorporateCardDashboardSummary> {
         let card_stats = sqlx::query(
             r"SELECT
                 COUNT(*) FILTER (WHERE status = 'active') as active_cards,
@@ -770,7 +1062,9 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let active_cards: i64 = card_stats.try_get("active_cards").unwrap_or(0);
-        let current_spend: serde_json::Value = card_stats.try_get("current_spend").unwrap_or(serde_json::json!(0));
+        let current_spend: serde_json::Value = card_stats
+            .try_get("current_spend")
+            .unwrap_or(serde_json::json!(0));
 
         let txn_stats = sqlx::query(
             r"SELECT
@@ -778,7 +1072,9 @@ impl CorporateCardRepository for PostgresCorporateCardRepository {
                 COUNT(*) FILTER (WHERE status = 'disputed') as disputed
             FROM _atlas.corporate_card_transactions WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let unmatched: i64 = txn_stats.try_get("unmatched").unwrap_or(0);

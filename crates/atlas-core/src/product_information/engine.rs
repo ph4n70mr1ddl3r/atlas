@@ -3,40 +3,56 @@
 //! Core business logic for the Oracle Fusion Product Hub module.
 //! Manages the complete product lifecycle from creation through obsolescence.
 
-use atlas_shared::{
-    ProductItem, PimCategory, PimCategoryAssignment, PimCrossReference,
-    PimNewItemRequest, PimItemTemplate, PimDashboard,
-    AtlasError, AtlasResult,
-};
 use super::ProductInformationRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, PimCategory, PimCategoryAssignment, PimCrossReference, PimDashboard,
+    PimItemTemplate, PimNewItemRequest, ProductItem,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid item types for product items
 const VALID_ITEM_TYPES: &[&str] = &[
-    "finished_good", "subassembly", "component", "service", "supply", "expense",
+    "finished_good",
+    "subassembly",
+    "component",
+    "service",
+    "supply",
+    "expense",
 ];
 
 /// Valid item statuses
 const VALID_ITEM_STATUSES: &[&str] = &[
-    "draft", "active", "obsolete", "inactive", "pending_approval",
+    "draft",
+    "active",
+    "obsolete",
+    "inactive",
+    "pending_approval",
 ];
 
 /// Valid lifecycle phases
 const VALID_LIFECYCLE_PHASES: &[&str] = &[
-    "concept", "design", "prototype", "production", "phase_out", "obsolete",
+    "concept",
+    "design",
+    "prototype",
+    "production",
+    "phase_out",
+    "obsolete",
 ];
 
 /// Valid NIR statuses
 const VALID_NIR_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "rejected", "implemented", "cancelled",
+    "draft",
+    "submitted",
+    "approved",
+    "rejected",
+    "implemented",
+    "cancelled",
 ];
 
 /// Valid NIR priorities
-const VALID_NIR_PRIORITIES: &[&str] = &[
-    "low", "medium", "high", "critical",
-];
+const VALID_NIR_PRIORITIES: &[&str] = &["low", "medium", "high", "critical"];
 
 /// Valid cross-reference types
 const VALID_XREF_TYPES: &[&str] = &[
@@ -94,36 +110,53 @@ impl ProductInformationEngine {
     ) -> AtlasResult<ProductItem> {
         // Validate item number
         if item_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Item number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Item number is required".to_string(),
+            ));
         }
         if item_number.len() > 100 {
-            return Err(AtlasError::ValidationFailed("Item number must be at most 100 characters".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Item number must be at most 100 characters".to_string(),
+            ));
         }
 
         // Validate item name
         if item_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Item name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Item name is required".to_string(),
+            ));
         }
 
         // Validate item type
         if !VALID_ITEM_TYPES.contains(&item_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid item_type '{}'. Must be one of: {}", item_type, VALID_ITEM_TYPES.join(", ")
+                "Invalid item_type '{}'. Must be one of: {}",
+                item_type,
+                VALID_ITEM_TYPES.join(", ")
             )));
         }
 
         // Validate UOM
         if primary_uom_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Primary UOM code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Primary UOM code is required".to_string(),
+            ));
         }
 
         // Validate currency
         if currency_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Currency code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
         }
 
         // Check uniqueness of item number within org
-        if self.repository.get_item_by_number(org_id, item_number).await?.is_some() {
+        if self
+            .repository
+            .get_item_by_number(org_id, item_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Item number '{item_number}' already exists"
             )));
@@ -132,9 +165,9 @@ impl ProductInformationEngine {
         // Validate template exists if specified
         if let Some(tid) = template_id {
             if self.repository.get_template(tid).await?.is_none() {
-                return Err(AtlasError::EntityNotFound(
-                    format!("Item template {tid} not found")
-                ));
+                return Err(AtlasError::EntityNotFound(format!(
+                    "Item template {tid} not found"
+                )));
             }
         }
 
@@ -142,32 +175,61 @@ impl ProductInformationEngine {
         if let Some(lp) = list_price {
             if let Ok(val) = lp.parse::<f64>() {
                 if val < 0.0 {
-                    return Err(AtlasError::ValidationFailed("List price cannot be negative".to_string()));
+                    return Err(AtlasError::ValidationFailed(
+                        "List price cannot be negative".to_string(),
+                    ));
                 }
             }
         }
         if let Some(cp) = cost_price {
             if let Ok(val) = cp.parse::<f64>() {
                 if val < 0.0 {
-                    return Err(AtlasError::ValidationFailed("Cost price cannot be negative".to_string()));
+                    return Err(AtlasError::ValidationFailed(
+                        "Cost price cannot be negative".to_string(),
+                    ));
                 }
             }
         }
 
         info!("Creating product item '{}' for org {}", item_number, org_id);
 
-        self.repository.create_item(
-            org_id, item_number, item_name, description, long_description,
-            item_type, "draft", "concept", primary_uom_code, secondary_uom_code,
-            weight, weight_uom, volume, volume_uom,
-            hazmat_flag, lot_control_flag, serial_control_flag, shelf_life_days,
-            min_order_quantity, max_order_quantity, lead_time_days,
-            list_price, cost_price, currency_code,
-            inventory_item_flag, purchasable_flag, sellable_flag,
-            stock_enabled_flag, invoice_enabled_flag,
-            default_buyer_id, default_supplier_id, template_id,
-            created_by,
-        ).await
+        self.repository
+            .create_item(
+                org_id,
+                item_number,
+                item_name,
+                description,
+                long_description,
+                item_type,
+                "draft",
+                "concept",
+                primary_uom_code,
+                secondary_uom_code,
+                weight,
+                weight_uom,
+                volume,
+                volume_uom,
+                hazmat_flag,
+                lot_control_flag,
+                serial_control_flag,
+                shelf_life_days,
+                min_order_quantity,
+                max_order_quantity,
+                lead_time_days,
+                list_price,
+                cost_price,
+                currency_code,
+                inventory_item_flag,
+                purchasable_flag,
+                sellable_flag,
+                stock_enabled_flag,
+                invoice_enabled_flag,
+                default_buyer_id,
+                default_supplier_id,
+                template_id,
+                created_by,
+            )
+            .await
     }
 
     /// Get an item by ID
@@ -176,8 +238,14 @@ impl ProductInformationEngine {
     }
 
     /// Get an item by its item number
-    pub async fn get_item_by_number(&self, org_id: Uuid, item_number: &str) -> AtlasResult<Option<ProductItem>> {
-        self.repository.get_item_by_number(org_id, item_number).await
+    pub async fn get_item_by_number(
+        &self,
+        org_id: Uuid,
+        item_number: &str,
+    ) -> AtlasResult<Option<ProductItem>> {
+        self.repository
+            .get_item_by_number(org_id, item_number)
+            .await
     }
 
     /// List items with optional filtering
@@ -191,46 +259,56 @@ impl ProductInformationEngine {
         if let Some(s) = status {
             if !VALID_ITEM_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_ITEM_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_ITEM_STATUSES.join(", ")
                 )));
             }
         }
         if let Some(t) = item_type {
             if !VALID_ITEM_TYPES.contains(&t) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid item_type '{}'. Must be one of: {}", t, VALID_ITEM_TYPES.join(", ")
+                    "Invalid item_type '{}'. Must be one of: {}",
+                    t,
+                    VALID_ITEM_TYPES.join(", ")
                 )));
             }
         }
-        self.repository.list_items(org_id, status, item_type, category_id).await
+        self.repository
+            .list_items(org_id, status, item_type, category_id)
+            .await
     }
 
     /// Update item status with lifecycle transition validation
-    pub async fn update_item_status(
-        &self,
-        id: Uuid,
-        new_status: &str,
-    ) -> AtlasResult<ProductItem> {
+    pub async fn update_item_status(&self, id: Uuid, new_status: &str) -> AtlasResult<ProductItem> {
         if !VALID_ITEM_STATUSES.contains(&new_status) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid status '{}'. Must be one of: {}", new_status, VALID_ITEM_STATUSES.join(", ")
+                "Invalid status '{}'. Must be one of: {}",
+                new_status,
+                VALID_ITEM_STATUSES.join(", ")
             )));
         }
 
-        let item = self.repository.get_item(id).await?
+        let item = self
+            .repository
+            .get_item(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {id} not found")))?;
 
         // Validate status transition
         let valid_transition = matches!(
             (item.status.as_str(), new_status),
-            ("draft" | "pending_approval" | "inactive", "active") |
-("draft", "pending_approval" | "inactive") | ("pending_approval", "draft") |
-("active" | "obsolete", "inactive") | ("active" | "inactive", "obsolete")
+            ("draft" | "pending_approval" | "inactive", "active")
+                | ("draft", "pending_approval" | "inactive")
+                | ("pending_approval", "draft")
+                | ("active" | "obsolete", "inactive")
+                | ("active" | "inactive", "obsolete")
         );
 
         if !valid_transition {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot transition item from '{}' to '{}'", item.status, new_status
+                "Cannot transition item from '{}' to '{}'",
+                item.status, new_status
             )));
         }
 
@@ -241,9 +319,22 @@ impl ProductInformationEngine {
             ""
         };
 
-        info!("Updating item {} status from '{}' to '{}'", item.item_number, item.status, new_status);
+        info!(
+            "Updating item {} status from '{}' to '{}'",
+            item.item_number, item.status, new_status
+        );
 
-        self.repository.update_item_status(id, new_status, if new_phase.is_empty() { None } else { Some(new_phase) }).await
+        self.repository
+            .update_item_status(
+                id,
+                new_status,
+                if new_phase.is_empty() {
+                    None
+                } else {
+                    Some(new_phase)
+                },
+            )
+            .await
     }
 
     /// Update item lifecycle phase
@@ -254,18 +345,25 @@ impl ProductInformationEngine {
     ) -> AtlasResult<ProductItem> {
         if !VALID_LIFECYCLE_PHASES.contains(&new_phase) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid lifecycle_phase '{}'. Must be one of: {}", new_phase, VALID_LIFECYCLE_PHASES.join(", ")
+                "Invalid lifecycle_phase '{}'. Must be one of: {}",
+                new_phase,
+                VALID_LIFECYCLE_PHASES.join(", ")
             )));
         }
 
-        let item = self.repository.get_item(id).await?
+        let item = self
+            .repository
+            .get_item(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {id} not found")))?;
 
         // Validate lifecycle transition (forward-only through defined phases)
-        let current_idx = VALID_LIFECYCLE_PHASES.iter()
+        let current_idx = VALID_LIFECYCLE_PHASES
+            .iter()
             .position(|&p| p == item.lifecycle_phase)
             .unwrap_or(0);
-        let new_idx = VALID_LIFECYCLE_PHASES.iter()
+        let new_idx = VALID_LIFECYCLE_PHASES
+            .iter()
             .position(|&p| p == new_phase)
             .unwrap_or(0);
 
@@ -276,19 +374,25 @@ impl ProductInformationEngine {
             )));
         }
 
-        info!("Updating item {} lifecycle from '{}' to '{}'", item.item_number, item.lifecycle_phase, new_phase);
+        info!(
+            "Updating item {} lifecycle from '{}' to '{}'",
+            item.item_number, item.lifecycle_phase, new_phase
+        );
 
         self.repository.update_item_lifecycle(id, new_phase).await
     }
 
     /// Delete an item (soft delete - sets to inactive)
     pub async fn delete_item(&self, id: Uuid) -> AtlasResult<()> {
-        let item = self.repository.get_item(id).await?
+        let item = self
+            .repository
+            .get_item(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {id} not found")))?;
 
         if item.status == "active" {
             return Err(AtlasError::ValidationFailed(
-                "Cannot delete an active item. Set to inactive or obsolete first.".to_string()
+                "Cannot delete an active item. Set to inactive or obsolete first.".to_string(),
             ));
         }
 
@@ -311,14 +415,23 @@ impl ProductInformationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimCategory> {
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Category code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Category code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Category name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Category name is required".to_string(),
+            ));
         }
 
         // Check code uniqueness
-        if self.repository.get_category_by_code(org_id, code).await?.is_some() {
+        if self
+            .repository
+            .get_category_by_code(org_id, code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Category code '{code}' already exists"
             )));
@@ -326,13 +439,16 @@ impl ProductInformationEngine {
 
         // Validate parent exists if specified
         let level_number = if let Some(parent_id) = parent_category_id {
-            let parent = self.repository.get_category(parent_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(
-                    format!("Parent category {parent_id} not found")
-                ))?;
+            let parent = self
+                .repository
+                .get_category(parent_id)
+                .await?
+                .ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Parent category {parent_id} not found"))
+                })?;
             if parent.organization_id != org_id {
                 return Err(AtlasError::ValidationFailed(
-                    "Parent category must belong to the same organization".to_string()
+                    "Parent category must belong to the same organization".to_string(),
                 ));
             }
             parent.level_number + 1
@@ -342,10 +458,17 @@ impl ProductInformationEngine {
 
         info!("Creating item category '{}' for org {}", code, org_id);
 
-        self.repository.create_category(
-            org_id, code, name, description, parent_category_id,
-            level_number, created_by,
-        ).await
+        self.repository
+            .create_category(
+                org_id,
+                code,
+                name,
+                description,
+                parent_category_id,
+                level_number,
+                created_by,
+            )
+            .await
     }
 
     /// Get a category by ID
@@ -364,13 +487,17 @@ impl ProductInformationEngine {
 
     /// Delete a category
     pub async fn delete_category(&self, id: Uuid) -> AtlasResult<()> {
-        let cat = self.repository.get_category(id).await?
+        let cat = self
+            .repository
+            .get_category(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Category {id} not found")))?;
 
         if cat.item_count > 0 {
-            return Err(AtlasError::ValidationFailed(
-                format!("Cannot delete category '{}' - it has {} items assigned", cat.code, cat.item_count)
-            ));
+            return Err(AtlasError::ValidationFailed(format!(
+                "Cannot delete category '{}' - it has {} items assigned",
+                cat.code, cat.item_count
+            )));
         }
 
         info!("Deleting item category {}", cat.code);
@@ -391,38 +518,59 @@ impl ProductInformationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimCategoryAssignment> {
         // Validate item exists
-        let item = self.repository.get_item(item_id).await?
+        let item = self
+            .repository
+            .get_item(item_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {item_id} not found")))?;
         if item.organization_id != org_id {
-            return Err(AtlasError::ValidationFailed("Item does not belong to this organization".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Item does not belong to this organization".to_string(),
+            ));
         }
 
         // Validate category exists
-        let category = self.repository.get_category(category_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Category {category_id} not found")))?;
+        let category = self
+            .repository
+            .get_category(category_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Category {category_id} not found"))
+            })?;
         if category.organization_id != org_id {
-            return Err(AtlasError::ValidationFailed("Category does not belong to this organization".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Category does not belong to this organization".to_string(),
+            ));
         }
 
         // If primary, check if already has a primary assignment
         if is_primary {
-            let existing = self.repository.get_primary_category_assignment(item_id).await?;
+            let existing = self
+                .repository
+                .get_primary_category_assignment(item_id)
+                .await?;
             if existing.is_some() {
                 return Err(AtlasError::Conflict(
-                    "Item already has a primary category assignment. Remove it first.".to_string()
+                    "Item already has a primary category assignment. Remove it first.".to_string(),
                 ));
             }
         }
 
-        info!("Assigning item {} to category {}", item.item_number, category.code);
+        info!(
+            "Assigning item {} to category {}",
+            item.item_number, category.code
+        );
 
-        self.repository.assign_item_category(
-            org_id, item_id, category_id, is_primary, created_by,
-        ).await
+        self.repository
+            .assign_item_category(org_id, item_id, category_id, is_primary, created_by)
+            .await
     }
 
     /// List category assignments for an item
-    pub async fn list_item_categories(&self, item_id: Uuid) -> AtlasResult<Vec<PimCategoryAssignment>> {
+    pub async fn list_item_categories(
+        &self,
+        item_id: Uuid,
+    ) -> AtlasResult<Vec<PimCategoryAssignment>> {
         self.repository.list_item_categories(item_id).await
     }
 
@@ -450,50 +598,78 @@ impl ProductInformationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimCrossReference> {
         // Validate item exists
-        let item = self.repository.get_item(item_id).await?
+        let item = self
+            .repository
+            .get_item(item_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Item {item_id} not found")))?;
         if item.organization_id != org_id {
-            return Err(AtlasError::ValidationFailed("Item does not belong to this organization".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Item does not belong to this organization".to_string(),
+            ));
         }
 
         // Validate cross-reference type
         if !VALID_XREF_TYPES.contains(&cross_reference_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid cross_reference_type '{}'. Must be one of: {}",
-                cross_reference_type, VALID_XREF_TYPES.join(", ")
+                cross_reference_type,
+                VALID_XREF_TYPES.join(", ")
             )));
         }
 
         if cross_reference_value.is_empty() {
-            return Err(AtlasError::ValidationFailed("Cross-reference value is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Cross-reference value is required".to_string(),
+            ));
         }
 
         // Validate effective dates
         if let (Some(from), Some(to)) = (effective_from, effective_to) {
             if to < from {
                 return Err(AtlasError::ValidationFailed(
-                    "effective_to must be after effective_from".to_string()
+                    "effective_to must be after effective_from".to_string(),
                 ));
             }
         }
 
         // Check uniqueness of type+value within org
-        if self.repository.get_cross_reference_by_value(org_id, cross_reference_type, cross_reference_value).await?.is_some() {
+        if self
+            .repository
+            .get_cross_reference_by_value(org_id, cross_reference_type, cross_reference_value)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Cross-reference of type '{cross_reference_type}' with value '{cross_reference_value}' already exists"
             )));
         }
 
-        info!("Creating cross-reference '{}' for item {}", cross_reference_value, item.item_number);
+        info!(
+            "Creating cross-reference '{}' for item {}",
+            cross_reference_value, item.item_number
+        );
 
-        self.repository.create_cross_reference(
-            org_id, item_id, cross_reference_type, cross_reference_value,
-            description, source_system, effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_cross_reference(
+                org_id,
+                item_id,
+                cross_reference_type,
+                cross_reference_value,
+                description,
+                source_system,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// List cross-references for an item
-    pub async fn list_cross_references(&self, item_id: Uuid) -> AtlasResult<Vec<PimCrossReference>> {
+    pub async fn list_cross_references(
+        &self,
+        item_id: Uuid,
+    ) -> AtlasResult<Vec<PimCrossReference>> {
         self.repository.list_cross_references(item_id).await
     }
 
@@ -503,7 +679,9 @@ impl ProductInformationEngine {
         org_id: Uuid,
         xref_type: Option<&str>,
     ) -> AtlasResult<Vec<PimCrossReference>> {
-        self.repository.list_all_cross_references(org_id, xref_type).await
+        self.repository
+            .list_all_cross_references(org_id, xref_type)
+            .await
     }
 
     /// Delete a cross-reference
@@ -534,19 +712,30 @@ impl ProductInformationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimItemTemplate> {
         if code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Template code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Template code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Template name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Template name is required".to_string(),
+            ));
         }
         if !VALID_ITEM_TYPES.contains(&item_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid item_type '{}'. Must be one of: {}", item_type, VALID_ITEM_TYPES.join(", ")
+                "Invalid item_type '{}'. Must be one of: {}",
+                item_type,
+                VALID_ITEM_TYPES.join(", ")
             )));
         }
 
         // Check code uniqueness
-        if self.repository.get_template_by_code(org_id, code).await?.is_some() {
+        if self
+            .repository
+            .get_template_by_code(org_id, code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Template code '{code}' already exists"
             )));
@@ -555,21 +744,31 @@ impl ProductInformationEngine {
         // Validate default category if specified
         if let Some(cat_id) = default_category_id {
             if self.repository.get_category(cat_id).await?.is_none() {
-                return Err(AtlasError::EntityNotFound(
-                    format!("Default category {cat_id} not found")
-                ));
+                return Err(AtlasError::EntityNotFound(format!(
+                    "Default category {cat_id} not found"
+                )));
             }
         }
 
         info!("Creating item template '{}' for org {}", code, org_id);
 
-        self.repository.create_template(
-            org_id, code, name, description, item_type,
-            default_uom_code, default_category_id,
-            default_inventory_flag, default_purchasable_flag,
-            default_sellable_flag, default_stock_enabled_flag,
-            attribute_defaults, created_by,
-        ).await
+        self.repository
+            .create_template(
+                org_id,
+                code,
+                name,
+                description,
+                item_type,
+                default_uom_code,
+                default_category_id,
+                default_inventory_flag,
+                default_purchasable_flag,
+                default_sellable_flag,
+                default_stock_enabled_flag,
+                attribute_defaults,
+                created_by,
+            )
+            .await
     }
 
     /// Get a template by ID
@@ -610,22 +809,34 @@ impl ProductInformationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PimNewItemRequest> {
         if title.is_empty() {
-            return Err(AtlasError::ValidationFailed("NIR title is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "NIR title is required".to_string(),
+            ));
         }
         if !VALID_ITEM_TYPES.contains(&item_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid item_type '{}'. Must be one of: {}", item_type, VALID_ITEM_TYPES.join(", ")
+                "Invalid item_type '{}'. Must be one of: {}",
+                item_type,
+                VALID_ITEM_TYPES.join(", ")
             )));
         }
         if !VALID_NIR_PRIORITIES.contains(&priority) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid priority '{}'. Must be one of: {}", priority, VALID_NIR_PRIORITIES.join(", ")
+                "Invalid priority '{}'. Must be one of: {}",
+                priority,
+                VALID_NIR_PRIORITIES.join(", ")
             )));
         }
 
         // Check requested_item_number uniqueness if provided
         if let Some(req_num) = requested_item_number {
-            if !req_num.is_empty() && self.repository.get_item_by_number(org_id, req_num).await?.is_some() {
+            if !req_num.is_empty()
+                && self
+                    .repository
+                    .get_item_by_number(org_id, req_num)
+                    .await?
+                    .is_some()
+            {
                 return Err(AtlasError::Conflict(format!(
                     "Item number '{req_num}' already exists"
                 )));
@@ -635,23 +846,39 @@ impl ProductInformationEngine {
         // Validate category if specified
         if let Some(cat_id) = requested_category_id {
             if self.repository.get_category(cat_id).await?.is_none() {
-                return Err(AtlasError::EntityNotFound(
-                    format!("Requested category {cat_id} not found")
-                ));
+                return Err(AtlasError::EntityNotFound(format!(
+                    "Requested category {cat_id} not found"
+                )));
             }
         }
 
         // Generate request number
         let request_number = format!("NIR-{}", chrono::Utc::now().format("%Y%m%d%H%M%S%f"));
 
-        info!("Creating New Item Request '{}' for org {}", request_number, org_id);
+        info!(
+            "Creating New Item Request '{}' for org {}",
+            request_number, org_id
+        );
 
-        self.repository.create_new_item_request(
-            org_id, &request_number, title, description, item_type,
-            priority, "draft", requested_item_number, requested_item_name,
-            requested_category_id, justification, target_launch_date,
-            estimated_cost, currency_code, created_by,
-        ).await
+        self.repository
+            .create_new_item_request(
+                org_id,
+                &request_number,
+                title,
+                description,
+                item_type,
+                priority,
+                "draft",
+                requested_item_number,
+                requested_item_name,
+                requested_category_id,
+                justification,
+                target_launch_date,
+                estimated_cost,
+                currency_code,
+                created_by,
+            )
+            .await
     }
 
     /// Get a NIR by ID
@@ -668,7 +895,9 @@ impl ProductInformationEngine {
         if let Some(s) = status {
             if !VALID_NIR_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid NIR status '{}'. Must be one of: {}", s, VALID_NIR_STATUSES.join(", ")
+                    "Invalid NIR status '{}'. Must be one of: {}",
+                    s,
+                    VALID_NIR_STATUSES.join(", ")
                 )));
             }
         }
@@ -677,17 +906,23 @@ impl ProductInformationEngine {
 
     /// Submit a NIR for approval
     pub async fn submit_new_item_request(&self, id: Uuid) -> AtlasResult<PimNewItemRequest> {
-        let nir = self.repository.get_new_item_request(id).await?
+        let nir = self
+            .repository
+            .get_new_item_request(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {id} not found")))?;
 
         if nir.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot submit NIR in '{}' status. Must be 'draft'.", nir.status
+                "Cannot submit NIR in '{}' status. Must be 'draft'.",
+                nir.status
             )));
         }
 
         info!("Submitting NIR {} for approval", nir.request_number);
-        self.repository.update_nir_status(id, "submitted", None, None, None).await
+        self.repository
+            .update_nir_status(id, "submitted", None, None, None)
+            .await
     }
 
     /// Approve a NIR
@@ -696,19 +931,23 @@ impl ProductInformationEngine {
         id: Uuid,
         approved_by: Option<Uuid>,
     ) -> AtlasResult<PimNewItemRequest> {
-        let nir = self.repository.get_new_item_request(id).await?
+        let nir = self
+            .repository
+            .get_new_item_request(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {id} not found")))?;
 
         if nir.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot approve NIR in '{}' status. Must be 'submitted'.", nir.status
+                "Cannot approve NIR in '{}' status. Must be 'submitted'.",
+                nir.status
             )));
         }
 
         info!("Approving NIR {}", nir.request_number);
-        self.repository.update_nir_status(
-            id, "approved", approved_by, Some(chrono::Utc::now()), None,
-        ).await
+        self.repository
+            .update_nir_status(id, "approved", approved_by, Some(chrono::Utc::now()), None)
+            .await
     }
 
     /// Reject a NIR
@@ -717,85 +956,122 @@ impl ProductInformationEngine {
         id: Uuid,
         rejection_reason: Option<&str>,
     ) -> AtlasResult<PimNewItemRequest> {
-        let nir = self.repository.get_new_item_request(id).await?
+        let nir = self
+            .repository
+            .get_new_item_request(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {id} not found")))?;
 
         if nir.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot reject NIR in '{}' status. Must be 'submitted'.", nir.status
+                "Cannot reject NIR in '{}' status. Must be 'submitted'.",
+                nir.status
             )));
         }
 
         info!("Rejecting NIR {}", nir.request_number);
-        self.repository.update_nir_status(
-            id, "rejected", None, None, rejection_reason,
-        ).await
+        self.repository
+            .update_nir_status(id, "rejected", None, None, rejection_reason)
+            .await
     }
 
     /// Implement an approved NIR — creates the actual product item
     pub async fn implement_new_item_request(&self, id: Uuid) -> AtlasResult<ProductItem> {
-        let nir = self.repository.get_new_item_request(id).await?
+        let nir = self
+            .repository
+            .get_new_item_request(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {id} not found")))?;
 
         if nir.status != "approved" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot implement NIR in '{}' status. Must be 'approved'.", nir.status
+                "Cannot implement NIR in '{}' status. Must be 'approved'.",
+                nir.status
             )));
         }
 
         // Create the item from NIR data
-        let item_number = nir.requested_item_number.as_deref()
+        let item_number = nir
+            .requested_item_number
+            .as_deref()
             .unwrap_or(&nir.request_number);
-        let item_name = nir.requested_item_name.as_deref()
-            .unwrap_or(&nir.title);
+        let item_name = nir.requested_item_name.as_deref().unwrap_or(&nir.title);
 
-        let item = self.create_item(
-            nir.organization_id,
-            item_number,
-            item_name,
-            nir.description.as_deref(),
-            None,
-            &nir.item_type,
-            "EA", // default UOM
-            None,
-            None, None, None, None,
-            false, false, false, None,
-            None, None, None,
-            nir.estimated_cost.as_deref(), None,
-            &nir.currency_code,
-            true, true, true, true, true,
-            None, None, None,
-            nir.created_by,
-        ).await?;
+        let item = self
+            .create_item(
+                nir.organization_id,
+                item_number,
+                item_name,
+                nir.description.as_deref(),
+                None,
+                &nir.item_type,
+                "EA", // default UOM
+                None,
+                None,
+                None,
+                None,
+                None,
+                false,
+                false,
+                false,
+                None,
+                None,
+                None,
+                None,
+                nir.estimated_cost.as_deref(),
+                None,
+                &nir.currency_code,
+                true,
+                true,
+                true,
+                true,
+                true,
+                None,
+                None,
+                None,
+                nir.created_by,
+            )
+            .await?;
 
         // Assign to requested category if provided
         if let Some(cat_id) = nir.requested_category_id {
-            let _ = self.assign_item_category(
-                nir.organization_id, item.id, cat_id, true, nir.created_by,
-            ).await;
+            let _ = self
+                .assign_item_category(nir.organization_id, item.id, cat_id, true, nir.created_by)
+                .await;
         }
 
         // Update NIR status
-        self.repository.update_nir_implemented(id, item.id, Some(chrono::Utc::now())).await?;
+        self.repository
+            .update_nir_implemented(id, item.id, Some(chrono::Utc::now()))
+            .await?;
 
-        info!("Implemented NIR {} as item {}", nir.request_number, item.item_number);
+        info!(
+            "Implemented NIR {} as item {}",
+            nir.request_number, item.item_number
+        );
 
         Ok(item)
     }
 
     /// Cancel a NIR
     pub async fn cancel_new_item_request(&self, id: Uuid) -> AtlasResult<PimNewItemRequest> {
-        let nir = self.repository.get_new_item_request(id).await?
+        let nir = self
+            .repository
+            .get_new_item_request(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("NIR {id} not found")))?;
 
         if nir.status != "draft" && nir.status != "submitted" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot cancel NIR in '{}' status. Only draft or submitted NIRs can be cancelled.", nir.status
+                "Cannot cancel NIR in '{}' status. Only draft or submitted NIRs can be cancelled.",
+                nir.status
             )));
         }
 
         info!("Cancelling NIR {}", nir.request_number);
-        self.repository.update_nir_status(id, "cancelled", None, None, None).await
+        self.repository
+            .update_nir_status(id, "cancelled", None, None, None)
+            .await
     }
 
     // ========================================================================
@@ -914,11 +1190,16 @@ mod tests {
         // Invalid: can't go from active back to draft
         let is_valid = matches!(
             ("active", "draft"),
-            ("draft", "active") | ("draft", "pending_approval") | ("draft", "inactive") |
-            ("pending_approval", "active") | ("pending_approval", "draft") |
-            ("active", "inactive") | ("active", "obsolete") |
-            ("inactive", "active") | ("inactive", "obsolete") |
-            ("obsolete", "inactive")
+            ("draft", "active")
+                | ("draft", "pending_approval")
+                | ("draft", "inactive")
+                | ("pending_approval", "active")
+                | ("pending_approval", "draft")
+                | ("active", "inactive")
+                | ("active", "obsolete")
+                | ("inactive", "active")
+                | ("inactive", "obsolete")
+                | ("obsolete", "inactive")
         );
         assert!(!is_valid, "Expected active -> draft to be invalid");
     }
@@ -960,14 +1241,20 @@ mod tests {
         for i in 0..phases.len() - 1 {
             let current_idx = i;
             let new_idx = i + 1;
-            assert!(new_idx >= current_idx, "Forward transition should be allowed");
+            assert!(
+                new_idx >= current_idx,
+                "Forward transition should be allowed"
+            );
         }
 
         // Verify backward transitions are not allowed
         for i in 1..phases.len() {
             let current_idx = i;
             let new_idx = i - 1;
-            assert!(new_idx < current_idx, "Backward transition should be rejected");
+            assert!(
+                new_idx < current_idx,
+                "Backward transition should be rejected"
+            );
         }
     }
 

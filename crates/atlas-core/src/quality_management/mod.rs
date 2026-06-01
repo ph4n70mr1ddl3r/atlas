@@ -11,4 +11,4 @@ mod engine;
 mod repository;
 
 pub use engine::QualityManagementEngine;
-pub use repository::{QualityManagementRepository, PostgresQualityManagementRepository};
+pub use repository::{PostgresQualityManagementRepository, QualityManagementRepository};

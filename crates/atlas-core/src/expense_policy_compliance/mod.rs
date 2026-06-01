@@ -6,8 +6,10 @@
 //!
 //! Oracle Fusion equivalent: Expenses > Policies > Expense Policy Compliance
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ExpensePolicyComplianceEngine;
-pub use repository::{ExpensePolicyComplianceRepository, PostgresExpensePolicyComplianceRepository};
+pub use repository::{
+    ExpensePolicyComplianceRepository, PostgresExpensePolicyComplianceRepository,
+};

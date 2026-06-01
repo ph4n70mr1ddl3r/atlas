@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion Cloud equivalent: Trade Management > Rebates
 
-use atlas_shared::{
-    RebateAgreement, RebateTier, RebateTransaction, RebateAccrual,
-    RebateSettlement, RebateSettlementLine, RebateDashboard,
-    AtlasError, AtlasResult,
-};
 use super::RebateManagementRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, RebateAccrual, RebateAgreement, RebateDashboard, RebateSettlement,
+    RebateSettlementLine, RebateTier, RebateTransaction,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -29,65 +28,47 @@ const VALID_DIRECTIONS: &[&str] = &["receivable", "payable"];
 const VALID_PARTNER_TYPES: &[&str] = &["supplier", "customer"];
 
 #[allow(dead_code)]
-const VALID_AGREEMENT_STATUSES: &[&str] = &[
-    "draft", "active", "on_hold", "expired", "terminated",
-];
+const VALID_AGREEMENT_STATUSES: &[&str] = &["draft", "active", "on_hold", "expired", "terminated"];
 
 #[allow(dead_code)]
-const VALID_CALC_METHODS: &[&str] = &[
-    "flat_rate", "tiered", "cumulative",
-];
+const VALID_CALC_METHODS: &[&str] = &["flat_rate", "tiered", "cumulative"];
 
 #[allow(dead_code)]
-const VALID_SETTLEMENT_FREQUENCIES: &[&str] = &[
-    "monthly", "quarterly", "annually", "at_end",
-];
+const VALID_SETTLEMENT_FREQUENCIES: &[&str] = &["monthly", "quarterly", "annually", "at_end"];
 
 #[allow(dead_code)]
-const VALID_RATE_TYPES: &[&str] = &[
-    "percentage", "fixed_per_unit", "fixed_amount",
-];
+const VALID_RATE_TYPES: &[&str] = &["percentage", "fixed_per_unit", "fixed_amount"];
 
 #[allow(dead_code)]
-const VALID_TXN_STATUSES: &[&str] = &[
-    "eligible", "accrued", "settled", "excluded", "disputed",
-];
+const VALID_TXN_STATUSES: &[&str] = &["eligible", "accrued", "settled", "excluded", "disputed"];
 
 #[allow(dead_code)]
-const VALID_SOURCE_TYPES: &[&str] = &[
-    "sales_order", "purchase_order", "invoice", "manual",
-];
+const VALID_SOURCE_TYPES: &[&str] = &["sales_order", "purchase_order", "invoice", "manual"];
 
 #[allow(dead_code)]
-const VALID_ACCRUAL_STATUSES: &[&str] = &[
-    "draft", "posted", "reversed", "settled",
-];
+const VALID_ACCRUAL_STATUSES: &[&str] = &["draft", "posted", "reversed", "settled"];
 
 #[allow(dead_code)]
-const VALID_SETTLEMENT_STATUSES: &[&str] = &[
-    "pending", "approved", "paid", "cancelled", "disputed",
-];
+const VALID_SETTLEMENT_STATUSES: &[&str] =
+    &["pending", "approved", "paid", "cancelled", "disputed"];
 
 #[allow(dead_code)]
-const VALID_SETTLEMENT_TYPES: &[&str] = &[
-    "payment", "credit_memo", "offset",
-];
+const VALID_SETTLEMENT_TYPES: &[&str] = &["payment", "credit_memo", "offset"];
 
 #[allow(dead_code)]
-const VALID_PAYMENT_METHODS: &[&str] = &[
-    "check", "wire", "ach", "credit_note",
-];
+const VALID_PAYMENT_METHODS: &[&str] = &["check", "wire", "ach", "credit_note"];
 
 /// Helper to validate a value against allowed set
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
-        return Err(AtlasError::ValidationFailed(format!(
-            "{field} is required"
-        )));
+        return Err(AtlasError::ValidationFailed(format!("{field} is required")));
     }
     if !allowed.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field, value, allowed.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field,
+            value,
+            allowed.join(", ")
         )));
     }
     Ok(())
@@ -142,10 +123,14 @@ impl RebateManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RebateAgreement> {
         if agreement_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Agreement number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Agreement number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Agreement name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Agreement name is required".to_string(),
+            ));
         }
         validate_enum("rebate_type", rebate_type, VALID_REBATE_TYPES)?;
         validate_enum("direction", direction, VALID_DIRECTIONS)?;
@@ -160,34 +145,60 @@ impl RebateManagementEngine {
             ));
         }
         if currency_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Currency code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".to_string(),
+            ));
         }
 
-        if self.repository.get_agreement_by_number(org_id, agreement_number).await?.is_some() {
+        if self
+            .repository
+            .get_agreement_by_number(org_id, agreement_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Rebate agreement '{agreement_number}' already exists"
             )));
         }
 
-        info!("Creating rebate agreement '{}' ({}) for org {} [type={}, direction={}]",
-              agreement_number, name, org_id, rebate_type, direction);
+        info!(
+            "Creating rebate agreement '{}' ({}) for org {} [type={}, direction={}]",
+            agreement_number, name, org_id, rebate_type, direction
+        );
 
-        self.repository.create_agreement(
-            org_id, agreement_number, name, description,
-            rebate_type, direction, partner_type,
-            partner_id, partner_name, partner_number,
-            product_category, product_id, product_name,
-            uom, currency_code, start_date, end_date,
-            calculation_method,
-            accrual_account, liability_account, expense_account,
-            payment_terms, settlement_frequency,
-            minimum_amount.unwrap_or(0.0),
-            maximum_amount,
-            auto_accrue.unwrap_or(true),
-            requires_approval.unwrap_or(true),
-            notes,
-            created_by,
-        ).await
+        self.repository
+            .create_agreement(
+                org_id,
+                agreement_number,
+                name,
+                description,
+                rebate_type,
+                direction,
+                partner_type,
+                partner_id,
+                partner_name,
+                partner_number,
+                product_category,
+                product_id,
+                product_name,
+                uom,
+                currency_code,
+                start_date,
+                end_date,
+                calculation_method,
+                accrual_account,
+                liability_account,
+                expense_account,
+                payment_terms,
+                settlement_frequency,
+                minimum_amount.unwrap_or(0.0),
+                maximum_amount,
+                auto_accrue.unwrap_or(true),
+                requires_approval.unwrap_or(true),
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get an agreement by ID
@@ -196,8 +207,14 @@ impl RebateManagementEngine {
     }
 
     /// Get an agreement by number
-    pub async fn get_agreement_by_number(&self, org_id: Uuid, agreement_number: &str) -> AtlasResult<Option<RebateAgreement>> {
-        self.repository.get_agreement_by_number(org_id, agreement_number).await
+    pub async fn get_agreement_by_number(
+        &self,
+        org_id: Uuid,
+        agreement_number: &str,
+    ) -> AtlasResult<Option<RebateAgreement>> {
+        self.repository
+            .get_agreement_by_number(org_id, agreement_number)
+            .await
     }
 
     /// List agreements with optional filters
@@ -208,7 +225,9 @@ impl RebateManagementEngine {
         rebate_type: Option<&str>,
         partner_type: Option<&str>,
     ) -> AtlasResult<Vec<RebateAgreement>> {
-        self.repository.list_agreements(org_id, status, rebate_type, partner_type).await
+        self.repository
+            .list_agreements(org_id, status, rebate_type, partner_type)
+            .await
     }
 
     /// Activate a rebate agreement
@@ -226,13 +245,20 @@ impl RebateManagementEngine {
     /// Terminate an agreement
     pub async fn terminate_agreement(&self, id: Uuid) -> AtlasResult<RebateAgreement> {
         info!("Terminating rebate agreement {}", id);
-        self.repository.update_agreement_status(id, "terminated").await
+        self.repository
+            .update_agreement_status(id, "terminated")
+            .await
     }
 
     /// Delete an agreement by number (only drafts)
     pub async fn delete_agreement(&self, org_id: Uuid, agreement_number: &str) -> AtlasResult<()> {
-        info!("Deleting rebate agreement '{}' for org {}", agreement_number, org_id);
-        self.repository.delete_agreement(org_id, agreement_number).await
+        info!(
+            "Deleting rebate agreement '{}' for org {}",
+            agreement_number, org_id
+        );
+        self.repository
+            .delete_agreement(org_id, agreement_number)
+            .await
     }
 
     // ========================================================================
@@ -272,18 +298,30 @@ impl RebateManagementEngine {
         }
 
         // Verify agreement exists
-        self.repository.get_agreement(agreement_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Rebate agreement {agreement_id} not found"
-            )))?;
+        self.repository
+            .get_agreement(agreement_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Rebate agreement {agreement_id} not found"))
+            })?;
 
-        info!("Creating tier {} for agreement {} [from={}, to={:?}, rate={}, type={}]",
-              tier_number, agreement_id, from_value, to_value, rebate_rate, rate_type);
+        info!(
+            "Creating tier {} for agreement {} [from={}, to={:?}, rate={}, type={}]",
+            tier_number, agreement_id, from_value, to_value, rebate_rate, rate_type
+        );
 
-        self.repository.create_tier(
-            org_id, agreement_id, tier_number,
-            from_value, to_value, rebate_rate, rate_type, description,
-        ).await
+        self.repository
+            .create_tier(
+                org_id,
+                agreement_id,
+                tier_number,
+                from_value,
+                to_value,
+                rebate_rate,
+                rate_type,
+                description,
+            )
+            .await
     }
 
     /// List tiers for an agreement
@@ -320,7 +358,9 @@ impl RebateManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RebateTransaction> {
         if transaction_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Transaction number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Transaction number is required".to_string(),
+            ));
         }
         if let Some(st) = source_type {
             validate_enum("source_type", st, VALID_SOURCE_TYPES)?;
@@ -332,40 +372,66 @@ impl RebateManagementEngine {
         }
 
         // Verify agreement exists and is active
-        let agreement = self.repository.get_agreement(agreement_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Rebate agreement {agreement_id} not found"
-            )))?;
+        let agreement = self
+            .repository
+            .get_agreement(agreement_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Rebate agreement {agreement_id} not found"))
+            })?;
 
         if agreement.status != "active" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Agreement is not active (status: {})", agreement.status
+                "Agreement is not active (status: {})",
+                agreement.status
             )));
         }
 
-        if self.repository.get_transaction_by_number(org_id, transaction_number).await?.is_some() {
+        if self
+            .repository
+            .get_transaction_by_number(org_id, transaction_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Rebate transaction '{transaction_number}' already exists"
             )));
         }
 
         // Calculate applicable rate and rebate amount based on tiers
-        let (applicable_rate, tier_id, rebate_amount) = self.calculate_rebate(
-            agreement_id, transaction_amount, quantity, &agreement.calculation_method,
-        ).await?;
+        let (applicable_rate, tier_id, rebate_amount) = self
+            .calculate_rebate(
+                agreement_id,
+                transaction_amount,
+                quantity,
+                &agreement.calculation_method,
+            )
+            .await?;
 
         info!("Creating rebate transaction '{}' for agreement {} [amount={}, rate={:.4}, rebate={:.2}]",
               transaction_number, agreement_id, transaction_amount, applicable_rate, rebate_amount);
 
-        self.repository.create_transaction(
-            org_id, agreement_id, transaction_number,
-            source_type, source_id, source_number,
-            transaction_date, product_id, product_name,
-            quantity, unit_price, transaction_amount,
-            currency_code.unwrap_or(&agreement.currency_code),
-            applicable_rate, rebate_amount,
-            tier_id, created_by,
-        ).await
+        self.repository
+            .create_transaction(
+                org_id,
+                agreement_id,
+                transaction_number,
+                source_type,
+                source_id,
+                source_number,
+                transaction_date,
+                product_id,
+                product_name,
+                quantity,
+                unit_price,
+                transaction_amount,
+                currency_code.unwrap_or(&agreement.currency_code),
+                applicable_rate,
+                rebate_amount,
+                tier_id,
+                created_by,
+            )
+            .await
     }
 
     /// Get a transaction by ID
@@ -379,20 +445,38 @@ impl RebateManagementEngine {
         agreement_id: Uuid,
         status: Option<&str>,
     ) -> AtlasResult<Vec<RebateTransaction>> {
-        self.repository.list_transactions(agreement_id, status).await
+        self.repository
+            .list_transactions(agreement_id, status)
+            .await
     }
 
     /// Update transaction status
-    pub async fn update_transaction_status(&self, id: Uuid, status: &str, reason: Option<&str>) -> AtlasResult<RebateTransaction> {
+    pub async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        reason: Option<&str>,
+    ) -> AtlasResult<RebateTransaction> {
         validate_enum("transaction status", status, VALID_TXN_STATUSES)?;
         info!("Updating rebate transaction {} status to {}", id, status);
-        self.repository.update_transaction_status(id, status, reason).await
+        self.repository
+            .update_transaction_status(id, status, reason)
+            .await
     }
 
     /// Delete a transaction by number
-    pub async fn delete_transaction(&self, org_id: Uuid, transaction_number: &str) -> AtlasResult<()> {
-        info!("Deleting rebate transaction '{}' for org {}", transaction_number, org_id);
-        self.repository.delete_transaction(org_id, transaction_number).await
+    pub async fn delete_transaction(
+        &self,
+        org_id: Uuid,
+        transaction_number: &str,
+    ) -> AtlasResult<()> {
+        info!(
+            "Deleting rebate transaction '{}' for org {}",
+            transaction_number, org_id
+        );
+        self.repository
+            .delete_transaction(org_id, transaction_number)
+            .await
     }
 
     // ========================================================================
@@ -412,46 +496,79 @@ impl RebateManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RebateAccrual> {
         if accrual_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Accrual number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Accrual number is required".to_string(),
+            ));
         }
 
         // Verify agreement exists
-        let agreement = self.repository.get_agreement(agreement_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Rebate agreement {agreement_id} not found"
-            )))?;
+        let agreement = self
+            .repository
+            .get_agreement(agreement_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Rebate agreement {agreement_id} not found"))
+            })?;
 
         // Sum up eligible transactions for this agreement
-        let transactions = self.repository.list_transactions(agreement_id, Some("eligible")).await?;
+        let transactions = self
+            .repository
+            .list_transactions(agreement_id, Some("eligible"))
+            .await?;
         let accumulated_amount: f64 = transactions.iter().map(|t| t.transaction_amount).sum();
         let accumulated_quantity: f64 = transactions.iter().map(|t| t.quantity).sum();
 
         // Calculate applicable rate
-        let (applicable_rate, tier_id, accrued_amount) = self.calculate_rebate(
-            agreement_id, accumulated_amount, accumulated_quantity, &agreement.calculation_method,
-        ).await?;
+        let (applicable_rate, tier_id, accrued_amount) = self
+            .calculate_rebate(
+                agreement_id,
+                accumulated_amount,
+                accumulated_quantity,
+                &agreement.calculation_method,
+            )
+            .await?;
 
-        if self.repository.get_accrual_by_number(org_id, accrual_number).await?.is_some() {
+        if self
+            .repository
+            .get_accrual_by_number(org_id, accrual_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Rebate accrual '{accrual_number}' already exists"
             )));
         }
 
-        info!("Creating rebate accrual '{}' for agreement {} [accumulated={}, accrued={:.2}]",
-              accrual_number, agreement_id, accumulated_amount, accrued_amount);
+        info!(
+            "Creating rebate accrual '{}' for agreement {} [accumulated={}, accrued={:.2}]",
+            accrual_number, agreement_id, accumulated_amount, accrued_amount
+        );
 
-        let accrual = self.repository.create_accrual(
-            org_id, agreement_id, accrual_number,
-            accrual_date, accrual_period,
-            accumulated_quantity, accumulated_amount,
-            tier_id, applicable_rate, accrued_amount,
-            &agreement.currency_code,
-            notes, created_by,
-        ).await?;
+        let accrual = self
+            .repository
+            .create_accrual(
+                org_id,
+                agreement_id,
+                accrual_number,
+                accrual_date,
+                accrual_period,
+                accumulated_quantity,
+                accumulated_amount,
+                tier_id,
+                applicable_rate,
+                accrued_amount,
+                &agreement.currency_code,
+                notes,
+                created_by,
+            )
+            .await?;
 
         // Mark transactions as accrued
         for txn in &transactions {
-            self.repository.update_transaction_status(txn.id, "accrued", None).await.ok();
+            self.repository
+                .update_transaction_status(txn.id, "accrued", None)
+                .await
+                .ok();
         }
 
         Ok(accrual)
@@ -485,7 +602,10 @@ impl RebateManagementEngine {
 
     /// Delete an accrual by number
     pub async fn delete_accrual(&self, org_id: Uuid, accrual_number: &str) -> AtlasResult<()> {
-        info!("Deleting rebate accrual '{}' for org {}", accrual_number, org_id);
+        info!(
+            "Deleting rebate accrual '{}' for org {}",
+            accrual_number, org_id
+        );
         self.repository.delete_accrual(org_id, accrual_number).await
     }
 
@@ -509,7 +629,9 @@ impl RebateManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RebateSettlement> {
         if settlement_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Settlement number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Settlement number is required".to_string(),
+            ));
         }
         validate_enum("settlement_type", settlement_type, VALID_SETTLEMENT_TYPES)?;
         if let Some(pm) = payment_method {
@@ -517,43 +639,79 @@ impl RebateManagementEngine {
         }
 
         // Verify agreement exists
-        let agreement = self.repository.get_agreement(agreement_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Rebate agreement {agreement_id} not found"
-            )))?;
+        let agreement = self
+            .repository
+            .get_agreement(agreement_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Rebate agreement {agreement_id} not found"))
+            })?;
 
         // Sum up accrued transactions
-        let transactions = self.repository.list_transactions(agreement_id, Some("accrued")).await?;
+        let transactions = self
+            .repository
+            .list_transactions(agreement_id, Some("accrued"))
+            .await?;
         let total_qualifying_amount: f64 = transactions.iter().map(|t| t.transaction_amount).sum();
         let total_qualifying_quantity: f64 = transactions.iter().map(|t| t.quantity).sum();
 
-        let (applicable_rate, tier_id, settlement_amount) = self.calculate_rebate(
-            agreement_id, total_qualifying_amount, total_qualifying_quantity, &agreement.calculation_method,
-        ).await?;
+        let (applicable_rate, tier_id, settlement_amount) = self
+            .calculate_rebate(
+                agreement_id,
+                total_qualifying_amount,
+                total_qualifying_quantity,
+                &agreement.calculation_method,
+            )
+            .await?;
 
-        if self.repository.get_settlement_by_number(org_id, settlement_number).await?.is_some() {
+        if self
+            .repository
+            .get_settlement_by_number(org_id, settlement_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Rebate settlement '{settlement_number}' already exists"
             )));
         }
 
-        info!("Creating rebate settlement '{}' for agreement {} [qualifying={}, settlement={:.2}]",
-              settlement_number, agreement_id, total_qualifying_amount, settlement_amount);
+        info!(
+            "Creating rebate settlement '{}' for agreement {} [qualifying={}, settlement={:.2}]",
+            settlement_number, agreement_id, total_qualifying_amount, settlement_amount
+        );
 
-        let settlement = self.repository.create_settlement(
-            org_id, agreement_id, settlement_number,
-            settlement_date, settlement_period_from, settlement_period_to,
-            total_qualifying_amount, total_qualifying_quantity,
-            tier_id, applicable_rate, settlement_amount,
-            &agreement.currency_code,
-            settlement_type, payment_method,
-            notes, created_by,
-        ).await?;
+        let settlement = self
+            .repository
+            .create_settlement(
+                org_id,
+                agreement_id,
+                settlement_number,
+                settlement_date,
+                settlement_period_from,
+                settlement_period_to,
+                total_qualifying_amount,
+                total_qualifying_quantity,
+                tier_id,
+                applicable_rate,
+                settlement_amount,
+                &agreement.currency_code,
+                settlement_type,
+                payment_method,
+                notes,
+                created_by,
+            )
+            .await?;
 
         // Mark transactions as settled and create settlement lines
         for txn in &transactions {
-            self.repository.update_transaction_status(txn.id, "settled", None).await.ok();
-            self.repository.create_settlement_line(settlement.id, txn.id, txn.rebate_amount).await.ok();
+            self.repository
+                .update_transaction_status(txn.id, "settled", None)
+                .await
+                .ok();
+            self.repository
+                .create_settlement_line(settlement.id, txn.id, txn.rebate_amount)
+                .await
+                .ok();
         }
 
         Ok(settlement)
@@ -574,7 +732,11 @@ impl RebateManagementEngine {
     }
 
     /// Approve a settlement
-    pub async fn approve_settlement(&self, id: Uuid, approved_by: Uuid) -> AtlasResult<RebateSettlement> {
+    pub async fn approve_settlement(
+        &self,
+        id: Uuid,
+        approved_by: Uuid,
+    ) -> AtlasResult<RebateSettlement> {
         info!("Approving rebate settlement {} by {}", id, approved_by);
         self.repository.approve_settlement(id, approved_by).await
     }
@@ -582,7 +744,9 @@ impl RebateManagementEngine {
     /// Cancel a settlement
     pub async fn cancel_settlement(&self, id: Uuid) -> AtlasResult<RebateSettlement> {
         info!("Cancelling rebate settlement {}", id);
-        self.repository.update_settlement_status(id, "cancelled").await
+        self.repository
+            .update_settlement_status(id, "cancelled")
+            .await
     }
 
     /// Mark a settlement as paid
@@ -592,9 +756,18 @@ impl RebateManagementEngine {
     }
 
     /// Delete a settlement by number
-    pub async fn delete_settlement(&self, org_id: Uuid, settlement_number: &str) -> AtlasResult<()> {
-        info!("Deleting rebate settlement '{}' for org {}", settlement_number, org_id);
-        self.repository.delete_settlement(org_id, settlement_number).await
+    pub async fn delete_settlement(
+        &self,
+        org_id: Uuid,
+        settlement_number: &str,
+    ) -> AtlasResult<()> {
+        info!(
+            "Deleting rebate settlement '{}' for org {}",
+            settlement_number, org_id
+        );
+        self.repository
+            .delete_settlement(org_id, settlement_number)
+            .await
     }
 
     // ========================================================================
@@ -602,7 +775,10 @@ impl RebateManagementEngine {
     // ========================================================================
 
     /// List settlement lines
-    pub async fn list_settlement_lines(&self, settlement_id: Uuid) -> AtlasResult<Vec<RebateSettlementLine>> {
+    pub async fn list_settlement_lines(
+        &self,
+        settlement_id: Uuid,
+    ) -> AtlasResult<Vec<RebateSettlementLine>> {
         self.repository.list_settlement_lines(settlement_id).await
     }
 

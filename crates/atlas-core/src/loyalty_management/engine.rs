@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion Cloud equivalent: CX > Loyalty Management
 
-use atlas_shared::{
-    LoyaltyProgram, LoyaltyTier, LoyaltyMember, LoyaltyPointTransaction,
-    LoyaltyReward, LoyaltyRedemption, LoyaltyDashboard,
-    AtlasError, AtlasResult,
-};
 use super::LoyaltyManagementRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, LoyaltyDashboard, LoyaltyMember, LoyaltyPointTransaction,
+    LoyaltyProgram, LoyaltyRedemption, LoyaltyReward, LoyaltyTier,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -37,37 +36,53 @@ const VALID_MEMBER_STATUSES: &[&str] = &["active", "inactive", "suspended", "clo
 
 #[allow(dead_code)]
 const VALID_TXN_TYPES: &[&str] = &[
-    "accrual", "redemption", "adjustment", "expiration",
-    "transfer_in", "transfer_out", "bonus", "reversal",
+    "accrual",
+    "redemption",
+    "adjustment",
+    "expiration",
+    "transfer_in",
+    "transfer_out",
+    "bonus",
+    "reversal",
 ];
 #[allow(dead_code)]
 const VALID_TXN_STATUSES: &[&str] = &["posted", "pending", "reversed", "cancelled"];
 #[allow(dead_code)]
 const VALID_SOURCE_TYPES: &[&str] = &[
-    "sales_order", "purchase", "manual", "promotion", "signup_bonus",
-    "referral", "social", "tier_upgrade",
+    "sales_order",
+    "purchase",
+    "manual",
+    "promotion",
+    "signup_bonus",
+    "referral",
+    "social",
+    "tier_upgrade",
 ];
 
 #[allow(dead_code)]
 const VALID_REWARD_TYPES: &[&str] = &[
-    "merchandise", "discount", "voucher", "experience",
-    "cashback", "free_product", "upgrade",
+    "merchandise",
+    "discount",
+    "voucher",
+    "experience",
+    "cashback",
+    "free_product",
+    "upgrade",
 ];
 #[allow(dead_code)]
-const VALID_REDEMPTION_STATUSES: &[&str] = &[
-    "pending", "fulfilled", "cancelled", "expired",
-];
+const VALID_REDEMPTION_STATUSES: &[&str] = &["pending", "fulfilled", "cancelled", "expired"];
 
 /// Helper to validate a value against allowed set
 fn validate_enum(field: &str, value: &str, allowed: &[&str]) -> AtlasResult<()> {
     if value.is_empty() {
-        return Err(AtlasError::ValidationFailed(format!(
-            "{field} is required"
-        )));
+        return Err(AtlasError::ValidationFailed(format!("{field} is required")));
     }
     if !allowed.contains(&value) {
         return Err(AtlasError::ValidationFailed(format!(
-            "Invalid {} '{}'. Must be one of: {}", field, value, allowed.join(", ")
+            "Invalid {} '{}'. Must be one of: {}",
+            field,
+            value,
+            allowed.join(", ")
         )));
     }
     Ok(())
@@ -116,10 +131,14 @@ impl LoyaltyManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyProgram> {
         if program_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Program number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Program number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Program name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Program name is required".to_string(),
+            ));
         }
         validate_enum("program_type", program_type, VALID_PROGRAM_TYPES)?;
         if let Some(et) = enrollment_type {
@@ -149,36 +168,49 @@ impl LoyaltyManagementEngine {
             }
         }
 
-        if self.repository.get_program_by_number(org_id, program_number).await?.is_some() {
+        if self
+            .repository
+            .get_program_by_number(org_id, program_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Loyalty program '{program_number}' already exists"
             )));
         }
 
-        info!("Creating loyalty program '{}' ({}) for org {} [type={}]",
-              program_number, name, org_id, program_type);
+        info!(
+            "Creating loyalty program '{}' ({}) for org {} [type={}]",
+            program_number, name, org_id, program_type
+        );
 
-        self.repository.create_program(
-            org_id, program_number, name, description,
-            program_type,
-            currency_code.unwrap_or("PTS"),
-            points_name.unwrap_or("Points"),
-            enrollment_type.unwrap_or("open"),
-            start_date, end_date,
-            accrual_rate.unwrap_or(1.0),
-            accrual_basis.unwrap_or("amount"),
-            minimum_accrual_amount.unwrap_or(0.0),
-            rounding_method.unwrap_or("round"),
-            points_expiry_days,
-            tier_qualification_period.unwrap_or("yearly"),
-            auto_upgrade.unwrap_or(true),
-            auto_downgrade.unwrap_or(false),
-            max_points_per_member,
-            allow_point_transfer.unwrap_or(false),
-            allow_redemption.unwrap_or(true),
-            notes,
-            created_by,
-        ).await
+        self.repository
+            .create_program(
+                org_id,
+                program_number,
+                name,
+                description,
+                program_type,
+                currency_code.unwrap_or("PTS"),
+                points_name.unwrap_or("Points"),
+                enrollment_type.unwrap_or("open"),
+                start_date,
+                end_date,
+                accrual_rate.unwrap_or(1.0),
+                accrual_basis.unwrap_or("amount"),
+                minimum_accrual_amount.unwrap_or(0.0),
+                rounding_method.unwrap_or("round"),
+                points_expiry_days,
+                tier_qualification_period.unwrap_or("yearly"),
+                auto_upgrade.unwrap_or(true),
+                auto_downgrade.unwrap_or(false),
+                max_points_per_member,
+                allow_point_transfer.unwrap_or(false),
+                allow_redemption.unwrap_or(true),
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a program by ID
@@ -187,8 +219,14 @@ impl LoyaltyManagementEngine {
     }
 
     /// Get a program by number
-    pub async fn get_program_by_number(&self, org_id: Uuid, program_number: &str) -> AtlasResult<Option<LoyaltyProgram>> {
-        self.repository.get_program_by_number(org_id, program_number).await
+    pub async fn get_program_by_number(
+        &self,
+        org_id: Uuid,
+        program_number: &str,
+    ) -> AtlasResult<Option<LoyaltyProgram>> {
+        self.repository
+            .get_program_by_number(org_id, program_number)
+            .await
     }
 
     /// List programs with optional filters
@@ -198,7 +236,9 @@ impl LoyaltyManagementEngine {
         status: Option<&str>,
         program_type: Option<&str>,
     ) -> AtlasResult<Vec<LoyaltyProgram>> {
-        self.repository.list_programs(org_id, status, program_type).await
+        self.repository
+            .list_programs(org_id, status, program_type)
+            .await
     }
 
     /// Activate a program
@@ -221,7 +261,10 @@ impl LoyaltyManagementEngine {
 
     /// Delete a program (only drafts)
     pub async fn delete_program(&self, org_id: Uuid, program_number: &str) -> AtlasResult<()> {
-        info!("Deleting loyalty program '{}' for org {}", program_number, org_id);
+        info!(
+            "Deleting loyalty program '{}' for org {}",
+            program_number, org_id
+        );
         self.repository.delete_program(org_id, program_number).await
     }
 
@@ -247,10 +290,14 @@ impl LoyaltyManagementEngine {
         is_default: Option<bool>,
     ) -> AtlasResult<LoyaltyTier> {
         if tier_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Tier code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Tier code is required".to_string(),
+            ));
         }
         if tier_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Tier name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Tier name is required".to_string(),
+            ));
         }
         if minimum_points < 0.0 {
             return Err(AtlasError::ValidationFailed(
@@ -266,23 +313,34 @@ impl LoyaltyManagementEngine {
         }
 
         // Verify program exists
-        self.repository.get_program(program_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty program {program_id} not found"
-            )))?;
+        self.repository
+            .get_program(program_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Loyalty program {program_id} not found"))
+            })?;
 
-        info!("Creating tier '{}' ({}) for program {} [min={}, max={:?}]",
-              tier_code, tier_name, program_id, minimum_points, maximum_points);
+        info!(
+            "Creating tier '{}' ({}) for program {} [min={}, max={:?}]",
+            tier_code, tier_name, program_id, minimum_points, maximum_points
+        );
 
-        self.repository.create_tier(
-            org_id, program_id, tier_code, tier_name, tier_level,
-            minimum_points, maximum_points,
-            accrual_bonus_percentage.unwrap_or(0.0),
-            benefits.unwrap_or(""),
-            color.unwrap_or(""),
-            icon.unwrap_or(""),
-            is_default.unwrap_or(false),
-        ).await
+        self.repository
+            .create_tier(
+                org_id,
+                program_id,
+                tier_code,
+                tier_name,
+                tier_level,
+                minimum_points,
+                maximum_points,
+                accrual_bonus_percentage.unwrap_or(0.0),
+                benefits.unwrap_or(""),
+                color.unwrap_or(""),
+                icon.unwrap_or(""),
+                is_default.unwrap_or(false),
+            )
+            .await
     }
 
     /// List tiers for a program
@@ -313,25 +371,38 @@ impl LoyaltyManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyMember> {
         if member_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Member number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Member number is required".to_string(),
+            ));
         }
         if customer_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Customer name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Customer name is required".to_string(),
+            ));
         }
 
         // Verify program exists and is active
-        let program = self.repository.get_program(program_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty program {program_id} not found"
-            )))?;
+        let program = self
+            .repository
+            .get_program(program_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Loyalty program {program_id} not found"))
+            })?;
 
         if program.status != "active" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Program is not active (status: {})", program.status
+                "Program is not active (status: {})",
+                program.status
             )));
         }
 
-        if self.repository.get_member_by_number(org_id, member_number).await?.is_some() {
+        if self
+            .repository
+            .get_member_by_number(org_id, member_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Loyalty member '{member_number}' already exists"
             )));
@@ -339,26 +410,37 @@ impl LoyaltyManagementEngine {
 
         // Find the default tier
         let tiers = self.repository.list_tiers(program_id).await?;
-        let default_tier = tiers.iter().find(|t| t.is_default)
+        let default_tier = tiers
+            .iter()
+            .find(|t| t.is_default)
             .or_else(|| tiers.first());
         let (tier_id, tier_code) = match default_tier {
             Some(t) => (Some(t.id), t.tier_code.clone()),
             None => (None, String::new()),
         };
 
-        info!("Enrolling member '{}' ({}) into program {} [tier={:?}]",
-              member_number, customer_name, program_id, tier_code);
+        info!(
+            "Enrolling member '{}' ({}) into program {} [tier={:?}]",
+            member_number, customer_name, program_id, tier_code
+        );
 
         let today = chrono::Utc::now().date_naive();
 
-        self.repository.create_member(
-            org_id, program_id, member_number,
-            customer_id, customer_name,
-            customer_email.unwrap_or(""),
-            tier_id, &tier_code,
-            today, notes,
-            created_by,
-        ).await
+        self.repository
+            .create_member(
+                org_id,
+                program_id,
+                member_number,
+                customer_id,
+                customer_name,
+                customer_email.unwrap_or(""),
+                tier_id,
+                &tier_code,
+                today,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a member by ID
@@ -367,8 +449,14 @@ impl LoyaltyManagementEngine {
     }
 
     /// Get a member by number
-    pub async fn get_member_by_number(&self, org_id: Uuid, member_number: &str) -> AtlasResult<Option<LoyaltyMember>> {
-        self.repository.get_member_by_number(org_id, member_number).await
+    pub async fn get_member_by_number(
+        &self,
+        org_id: Uuid,
+        member_number: &str,
+    ) -> AtlasResult<Option<LoyaltyMember>> {
+        self.repository
+            .get_member_by_number(org_id, member_number)
+            .await
     }
 
     /// List members with optional filters
@@ -400,7 +488,10 @@ impl LoyaltyManagementEngine {
 
     /// Delete a member by number
     pub async fn delete_member(&self, org_id: Uuid, member_number: &str) -> AtlasResult<()> {
-        info!("Deleting loyalty member '{}' for org {}", member_number, org_id);
+        info!(
+            "Deleting loyalty member '{}' for org {}",
+            member_number, org_id
+        );
         self.repository.delete_member(org_id, member_number).await
     }
 
@@ -425,33 +516,43 @@ impl LoyaltyManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyPointTransaction> {
         if transaction_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Transaction number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Transaction number is required".to_string(),
+            ));
         }
         if let Some(st) = source_type {
             validate_enum("source_type", st, VALID_SOURCE_TYPES)?;
         }
 
         // Verify member exists and is active
-        let member = self.repository.get_member(member_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty member {member_id} not found"
-            )))?;
+        let member = self
+            .repository
+            .get_member(member_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Loyalty member {member_id} not found"))
+            })?;
 
         if member.status != "active" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Member is not active (status: {})", member.status
+                "Member is not active (status: {})",
+                member.status
             )));
         }
 
         // Verify program exists and get accrual rate
-        let program = self.repository.get_program(program_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty program {program_id} not found"
-            )))?;
+        let program = self
+            .repository
+            .get_program(program_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Loyalty program {program_id} not found"))
+            })?;
 
         if program.status != "active" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Program is not active (status: {})", program.status
+                "Program is not active (status: {})",
+                program.status
             )));
         }
 
@@ -459,18 +560,21 @@ impl LoyaltyManagementEngine {
         let ref_amt = reference_amount.unwrap_or(0.0);
         if ref_amt < program.minimum_accrual_amount {
             return Err(AtlasError::ValidationFailed(format!(
-                "Reference amount {} is below minimum accrual amount {}", 
+                "Reference amount {} is below minimum accrual amount {}",
                 ref_amt, program.minimum_accrual_amount
             )));
         }
 
-        let base_points = self.calculate_points(ref_amt, program.accrual_rate, &program.rounding_method);
+        let base_points =
+            self.calculate_points(ref_amt, program.accrual_rate, &program.rounding_method);
 
         // Calculate tier bonus
         let tier_bonus = if let Some(ref tier_id) = member.tier_id {
             let tiers = self.repository.list_tiers(program_id).await?;
             let tier = tiers.iter().find(|t| t.id == *tier_id);
-            tier.map_or(0.0, |t| (base_points * t.accrual_bonus_percentage / 100.0).floor())
+            tier.map_or(0.0, |t| {
+                (base_points * t.accrual_bonus_percentage / 100.0).floor()
+            })
         } else {
             0.0
         };
@@ -492,7 +596,12 @@ impl LoyaltyManagementEngine {
             }
         }
 
-        if self.repository.get_transaction_by_number(org_id, transaction_number).await?.is_some() {
+        if self
+            .repository
+            .get_transaction_by_number(org_id, transaction_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Point transaction '{transaction_number}' already exists"
             )));
@@ -504,33 +613,55 @@ impl LoyaltyManagementEngine {
             today + chrono::Duration::days(i64::from(days))
         });
 
-        info!("Accruing {:.0} points (+{:.0} bonus) to member {} [txn={}]",
-              base_points, tier_bonus, member_id, transaction_number);
+        info!(
+            "Accruing {:.0} points (+{:.0} bonus) to member {} [txn={}]",
+            base_points, tier_bonus, member_id, transaction_number
+        );
 
-        let txn = self.repository.create_transaction(
-            org_id, program_id, member_id, transaction_number,
-            "accrual", total_points,
-            source_type.unwrap_or("manual"), source_id, source_number.unwrap_or(""),
-            description.unwrap_or(""),
-            reference_amount, reference_currency.unwrap_or("USD"),
-            tier_bonus, 0.0, // promo bonus
-            expiry_date,
-            "posted",
-            created_by,
-        ).await?;
+        let txn = self
+            .repository
+            .create_transaction(
+                org_id,
+                program_id,
+                member_id,
+                transaction_number,
+                "accrual",
+                total_points,
+                source_type.unwrap_or("manual"),
+                source_id,
+                source_number.unwrap_or(""),
+                description.unwrap_or(""),
+                reference_amount,
+                reference_currency.unwrap_or("USD"),
+                tier_bonus,
+                0.0, // promo bonus
+                expiry_date,
+                "posted",
+                created_by,
+            )
+            .await?;
 
         // Update member points
-        self.repository.update_member_points(
-            member_id,
-            member.current_points + total_points,
-            member.lifetime_points + total_points,
-        ).await?;
+        self.repository
+            .update_member_points(
+                member_id,
+                member.current_points + total_points,
+                member.lifetime_points + total_points,
+            )
+            .await?;
 
         // Check for tier upgrade
         if program.auto_upgrade {
-            let updated_member = self.repository.get_member(member_id).await?
-                .ok_or_else(|| AtlasError::EntityNotFound(format!("Member {member_id} not found")))?;
-            let _ = self.evaluate_tier_upgrade(member_id, program_id, updated_member.lifetime_points).await;
+            let updated_member = self
+                .repository
+                .get_member(member_id)
+                .await?
+                .ok_or_else(|| {
+                    AtlasError::EntityNotFound(format!("Member {member_id} not found"))
+                })?;
+            let _ = self
+                .evaluate_tier_upgrade(member_id, program_id, updated_member.lifetime_points)
+                .await;
         }
 
         Ok(txn)
@@ -548,20 +679,28 @@ impl LoyaltyManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyPointTransaction> {
         if transaction_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Transaction number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Transaction number is required".to_string(),
+            ));
         }
         if points == 0.0 {
-            return Err(AtlasError::ValidationFailed("Points cannot be zero for adjustment".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Points cannot be zero for adjustment".to_string(),
+            ));
         }
 
-        let member = self.repository.get_member(member_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty member {member_id} not found"
-            )))?;
+        let member = self
+            .repository
+            .get_member(member_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Loyalty member {member_id} not found"))
+            })?;
 
         if member.status != "active" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Member is not active (status: {})", member.status
+                "Member is not active (status: {})",
+                member.status
             )));
         }
 
@@ -572,41 +711,75 @@ impl LoyaltyManagementEngine {
             ));
         }
 
-        if self.repository.get_transaction_by_number(org_id, transaction_number).await?.is_some() {
+        if self
+            .repository
+            .get_transaction_by_number(org_id, transaction_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Point transaction '{transaction_number}' already exists"
             )));
         }
 
-        info!("Adjusting {:.0} points for member {} [txn={}]",
-              points, member_id, transaction_number);
+        info!(
+            "Adjusting {:.0} points for member {} [txn={}]",
+            points, member_id, transaction_number
+        );
 
-        let txn = self.repository.create_transaction(
-            org_id, program_id, member_id, transaction_number,
-            "adjustment", points,
-            "manual", None, "",
-            description.unwrap_or("Manual adjustment"),
-            None, "USD", 0.0, 0.0, None, "posted",
-            created_by,
-        ).await?;
+        let txn = self
+            .repository
+            .create_transaction(
+                org_id,
+                program_id,
+                member_id,
+                transaction_number,
+                "adjustment",
+                points,
+                "manual",
+                None,
+                "",
+                description.unwrap_or("Manual adjustment"),
+                None,
+                "USD",
+                0.0,
+                0.0,
+                None,
+                "posted",
+                created_by,
+            )
+            .await?;
 
         let new_current = member.current_points + points;
-        let new_lifetime = if points > 0.0 { member.lifetime_points + points } else { member.lifetime_points };
-        self.repository.update_member_points(member_id, new_current, new_lifetime).await?;
+        let new_lifetime = if points > 0.0 {
+            member.lifetime_points + points
+        } else {
+            member.lifetime_points
+        };
+        self.repository
+            .update_member_points(member_id, new_current, new_lifetime)
+            .await?;
 
         Ok(txn)
     }
 
     /// Reverse a transaction
-    pub async fn reverse_transaction(&self, id: Uuid, reason: &str) -> AtlasResult<LoyaltyPointTransaction> {
+    pub async fn reverse_transaction(
+        &self,
+        id: Uuid,
+        reason: &str,
+    ) -> AtlasResult<LoyaltyPointTransaction> {
         if reason.is_empty() {
-            return Err(AtlasError::ValidationFailed("Reversal reason is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Reversal reason is required".to_string(),
+            ));
         }
 
-        let txn = self.repository.get_transaction(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Transaction {id} not found"
-            )))?;
+        let txn = self
+            .repository
+            .get_transaction(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transaction {id} not found")))?;
 
         if txn.status != "posted" {
             return Err(AtlasError::ValidationFailed(
@@ -616,13 +789,21 @@ impl LoyaltyManagementEngine {
 
         info!("Reversing transaction {} [reason={}]", id, reason);
 
-        let reversed = self.repository.update_transaction_status(id, "reversed", reason).await?;
+        let reversed = self
+            .repository
+            .update_transaction_status(id, "reversed", reason)
+            .await?;
 
         // Adjust member points
-        let member = self.repository.get_member(txn.member_id).await?
+        let member = self
+            .repository
+            .get_member(txn.member_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Member not found".to_string()))?;
         let new_current = member.current_points - txn.points;
-        self.repository.update_member_points(txn.member_id, new_current, member.lifetime_points).await?;
+        self.repository
+            .update_member_points(txn.member_id, new_current, member.lifetime_points)
+            .await?;
 
         Ok(reversed)
     }
@@ -642,9 +823,18 @@ impl LoyaltyManagementEngine {
     }
 
     /// Delete a transaction by number
-    pub async fn delete_transaction(&self, org_id: Uuid, transaction_number: &str) -> AtlasResult<()> {
-        info!("Deleting point transaction '{}' for org {}", transaction_number, org_id);
-        self.repository.delete_transaction(org_id, transaction_number).await
+    pub async fn delete_transaction(
+        &self,
+        org_id: Uuid,
+        transaction_number: &str,
+    ) -> AtlasResult<()> {
+        info!(
+            "Deleting point transaction '{}' for org {}",
+            transaction_number, org_id
+        );
+        self.repository
+            .delete_transaction(org_id, transaction_number)
+            .await
     }
 
     // ========================================================================
@@ -674,10 +864,14 @@ impl LoyaltyManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyReward> {
         if reward_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Reward code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Reward code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Reward name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Reward name is required".to_string(),
+            ));
         }
         validate_enum("reward_type", reward_type, VALID_REWARD_TYPES)?;
         if points_required <= 0.0 {
@@ -687,31 +881,51 @@ impl LoyaltyManagementEngine {
         }
 
         // Verify program exists
-        self.repository.get_program(program_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty program {program_id} not found"
-            )))?;
+        self.repository
+            .get_program(program_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Loyalty program {program_id} not found"))
+            })?;
 
-        if self.repository.get_reward_by_code(org_id, reward_code).await?.is_some() {
+        if self
+            .repository
+            .get_reward_by_code(org_id, reward_code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Reward '{reward_code}' already exists"
             )));
         }
 
-        info!("Creating reward '{}' ({}) for program {} [points={}]",
-              reward_code, name, program_id, points_required);
+        info!(
+            "Creating reward '{}' ({}) for program {} [points={}]",
+            reward_code, name, program_id, points_required
+        );
 
-        self.repository.create_reward(
-            org_id, program_id, reward_code, name, description,
-            reward_type, points_required,
-            cash_value.unwrap_or(0.0),
-            currency_code.unwrap_or("USD"),
-            tier_restriction.unwrap_or(""),
-            quantity_available, max_per_member,
-            image_url.unwrap_or(""),
-            true, start_date, end_date,
-            notes, created_by,
-        ).await
+        self.repository
+            .create_reward(
+                org_id,
+                program_id,
+                reward_code,
+                name,
+                description,
+                reward_type,
+                points_required,
+                cash_value.unwrap_or(0.0),
+                currency_code.unwrap_or("USD"),
+                tier_restriction.unwrap_or(""),
+                quantity_available,
+                max_per_member,
+                image_url.unwrap_or(""),
+                true,
+                start_date,
+                end_date,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a reward by ID
@@ -757,40 +971,52 @@ impl LoyaltyManagementEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LoyaltyRedemption> {
         if redemption_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Redemption number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Redemption number is required".to_string(),
+            ));
         }
 
         let qty = quantity.unwrap_or(1);
         if qty <= 0 {
-            return Err(AtlasError::ValidationFailed("Quantity must be positive".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Quantity must be positive".to_string(),
+            ));
         }
 
         // Verify member
-        let member = self.repository.get_member(member_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Loyalty member {member_id} not found"
-            )))?;
+        let member = self
+            .repository
+            .get_member(member_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Loyalty member {member_id} not found"))
+            })?;
 
         if member.status != "active" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Member is not active (status: {})", member.status
+                "Member is not active (status: {})",
+                member.status
             )));
         }
 
         // Verify reward
-        let reward = self.repository.get_reward(reward_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Reward {reward_id} not found"
-            )))?;
+        let reward = self
+            .repository
+            .get_reward(reward_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Reward {reward_id} not found")))?;
 
         if !reward.is_active {
-            return Err(AtlasError::ValidationFailed("Reward is not active".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Reward is not active".to_string(),
+            ));
         }
 
         // Check tier restriction
         if !reward.tier_restriction.is_empty() && reward.tier_restriction != member.tier_code {
             return Err(AtlasError::ValidationFailed(format!(
-                "Reward requires tier '{}', member has '{}'", reward.tier_restriction, member.tier_code
+                "Reward requires tier '{}', member has '{}'",
+                reward.tier_restriction, member.tier_code
             )));
         }
 
@@ -799,7 +1025,8 @@ impl LoyaltyManagementEngine {
         // Check sufficient points
         if member.current_points < points_needed {
             return Err(AtlasError::ValidationFailed(format!(
-                "Insufficient points (has {:.0}, needs {:.0})", member.current_points, points_needed
+                "Insufficient points (has {:.0}, needs {:.0})",
+                member.current_points, points_needed
             )));
         }
 
@@ -814,52 +1041,91 @@ impl LoyaltyManagementEngine {
 
         // Check max per member
         if let Some(max) = reward.max_per_member {
-            let member_redemptions = self.repository.count_member_redemptions(member_id, reward_id).await?;
+            let member_redemptions = self
+                .repository
+                .count_member_redemptions(member_id, reward_id)
+                .await?;
             if member_redemptions + qty > max {
-                return Err(AtlasError::ValidationFailed(
-                    format!("Exceeds max per member ({max})")
-                ));
+                return Err(AtlasError::ValidationFailed(format!(
+                    "Exceeds max per member ({max})"
+                )));
             }
         }
 
         // Check uniqueness
-        if self.repository.get_redemption_by_number(org_id, redemption_number).await?.is_some() {
+        if self
+            .repository
+            .get_redemption_by_number(org_id, redemption_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Redemption '{redemption_number}' already exists"
             )));
         }
 
-        info!("Redeeming reward '{}' for member {} [points={:.0}, qty={}]",
-              reward.reward_code, member_id, points_needed, qty);
+        info!(
+            "Redeeming reward '{}' for member {} [points={:.0}, qty={}]",
+            reward.reward_code, member_id, points_needed, qty
+        );
 
         // Create redemption
-        let redemption = self.repository.create_redemption(
-            org_id, program_id, member_id, reward_id,
-            redemption_number, points_needed, qty,
-            "pending", notes, created_by,
-        ).await?;
+        let redemption = self
+            .repository
+            .create_redemption(
+                org_id,
+                program_id,
+                member_id,
+                reward_id,
+                redemption_number,
+                points_needed,
+                qty,
+                "pending",
+                notes,
+                created_by,
+            )
+            .await?;
 
         // Deduct points
-        self.repository.update_member_points(
-            member_id,
-            member.current_points - points_needed,
-            member.lifetime_points,
-        ).await?;
-        self.repository.update_member_redeemed(member_id, member.redeemed_points + points_needed).await?;
+        self.repository
+            .update_member_points(
+                member_id,
+                member.current_points - points_needed,
+                member.lifetime_points,
+            )
+            .await?;
+        self.repository
+            .update_member_redeemed(member_id, member.redeemed_points + points_needed)
+            .await?;
 
         // Update reward claimed count
-        self.repository.update_reward_claimed(reward_id, reward.quantity_claimed + qty).await?;
+        self.repository
+            .update_reward_claimed(reward_id, reward.quantity_claimed + qty)
+            .await?;
 
         // Create redemption point transaction
-        let _ = self.repository.create_transaction(
-            org_id, program_id, member_id,
-            &format!("RD-{redemption_number}"),
-            "redemption", -points_needed,
-            "manual", Some(reward_id), &reward.reward_code,
-            &format!("Redemption: {}", reward.name),
-            Some(points_needed), "PTS", 0.0, 0.0, None, "posted",
-            created_by,
-        ).await;
+        let _ = self
+            .repository
+            .create_transaction(
+                org_id,
+                program_id,
+                member_id,
+                &format!("RD-{redemption_number}"),
+                "redemption",
+                -points_needed,
+                "manual",
+                Some(reward_id),
+                &reward.reward_code,
+                &format!("Redemption: {}", reward.name),
+                Some(points_needed),
+                "PTS",
+                0.0,
+                0.0,
+                None,
+                "posted",
+                created_by,
+            )
+            .await;
 
         Ok(redemption)
     }
@@ -885,15 +1151,22 @@ impl LoyaltyManagementEngine {
     }
 
     /// Cancel a redemption (refunds points)
-    pub async fn cancel_redemption(&self, id: Uuid, reason: &str) -> AtlasResult<LoyaltyRedemption> {
+    pub async fn cancel_redemption(
+        &self,
+        id: Uuid,
+        reason: &str,
+    ) -> AtlasResult<LoyaltyRedemption> {
         if reason.is_empty() {
-            return Err(AtlasError::ValidationFailed("Cancellation reason is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Cancellation reason is required".to_string(),
+            ));
         }
 
-        let redemption = self.repository.get_redemption(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!(
-                "Redemption {id} not found"
-            )))?;
+        let redemption = self
+            .repository
+            .get_redemption(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Redemption {id} not found")))?;
 
         if redemption.status != "pending" {
             return Err(AtlasError::ValidationFailed(
@@ -906,24 +1179,33 @@ impl LoyaltyManagementEngine {
         let cancelled = self.repository.cancel_redemption(id, reason).await?;
 
         // Refund points to member
-        let member = self.repository.get_member(redemption.member_id).await?
+        let member = self
+            .repository
+            .get_member(redemption.member_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Member not found".to_string()))?;
-        self.repository.update_member_points(
-            redemption.member_id,
-            member.current_points + redemption.points_spent,
-            member.lifetime_points,
-        ).await?;
-        self.repository.update_member_redeemed(
-            redemption.member_id,
-            (member.redeemed_points - redemption.points_spent).max(0.0),
-        ).await?;
+        self.repository
+            .update_member_points(
+                redemption.member_id,
+                member.current_points + redemption.points_spent,
+                member.lifetime_points,
+            )
+            .await?;
+        self.repository
+            .update_member_redeemed(
+                redemption.member_id,
+                (member.redeemed_points - redemption.points_spent).max(0.0),
+            )
+            .await?;
 
         // Update reward claimed count
         if let Some(reward) = self.repository.get_reward(redemption.reward_id).await? {
-            self.repository.update_reward_claimed(
-                redemption.reward_id,
-                (reward.quantity_claimed - redemption.quantity).max(0),
-            ).await?;
+            self.repository
+                .update_reward_claimed(
+                    redemption.reward_id,
+                    (reward.quantity_claimed - redemption.quantity).max(0),
+                )
+                .await?;
         }
 
         Ok(cancelled)
@@ -965,7 +1247,8 @@ impl LoyaltyManagementEngine {
         }
 
         // Find the highest tier the member qualifies for
-        let qualified_tier = tiers.iter()
+        let qualified_tier = tiers
+            .iter()
             .filter(|t| lifetime_points >= t.minimum_points)
             .max_by_key(|t| t.tier_level);
 
@@ -973,15 +1256,23 @@ impl LoyaltyManagementEngine {
             let member = self.repository.get_member(member_id).await?;
             if let Some(m) = member {
                 if m.tier_id != Some(tier.id) {
-                    info!("Upgrading member {} to tier '{}' ({})", member_id, tier.tier_code, tier.tier_name);
-                    self.repository.update_member_tier(member_id, tier.id, &tier.tier_code).await?;
+                    info!(
+                        "Upgrading member {} to tier '{}' ({})",
+                        member_id, tier.tier_code, tier.tier_name
+                    );
+                    self.repository
+                        .update_member_tier(member_id, tier.id, &tier.tier_code)
+                        .await?;
 
                     // Calculate points remaining to next tier
-                    let next_tier = tiers.iter()
+                    let next_tier = tiers
+                        .iter()
                         .filter(|t| t.tier_level > tier.tier_level)
                         .min_by_key(|t| t.tier_level);
                     let remaining = next_tier.map(|t| t.minimum_points - lifetime_points);
-                    self.repository.update_member_next_tier_remaining(member_id, remaining).await?;
+                    self.repository
+                        .update_member_next_tier_remaining(member_id, remaining)
+                        .await?;
                 }
             }
         }

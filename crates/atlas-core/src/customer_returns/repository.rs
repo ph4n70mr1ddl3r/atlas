@@ -3,11 +3,10 @@
 //! `PostgreSQL` storage for return reason codes, RMAs, return lines,
 //! and credit memos.
 
-use atlas_shared::{
-    ReturnReason, ReturnAuthorization, ReturnLine, CreditMemo,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, CreditMemo, ReturnAuthorization, ReturnLine, ReturnReason,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -29,8 +28,16 @@ pub trait CustomerReturnsRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReturnReason>;
 
-    async fn get_return_reason(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ReturnReason>>;
-    async fn list_return_reasons(&self, org_id: Uuid, return_type: Option<&str>) -> AtlasResult<Vec<ReturnReason>>;
+    async fn get_return_reason(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ReturnReason>>;
+    async fn list_return_reasons(
+        &self,
+        org_id: Uuid,
+        return_type: Option<&str>,
+    ) -> AtlasResult<Vec<ReturnReason>>;
     async fn delete_return_reason(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Return Authorizations (RMAs)
@@ -57,7 +64,11 @@ pub trait CustomerReturnsRepository: Send + Sync {
     ) -> AtlasResult<ReturnAuthorization>;
 
     async fn get_rma(&self, id: Uuid) -> AtlasResult<Option<ReturnAuthorization>>;
-    async fn get_rma_by_number(&self, org_id: Uuid, rma_number: &str) -> AtlasResult<Option<ReturnAuthorization>>;
+    async fn get_rma_by_number(
+        &self,
+        org_id: Uuid,
+        rma_number: &str,
+    ) -> AtlasResult<Option<ReturnAuthorization>>;
     async fn list_rmas(
         &self,
         org_id: Uuid,
@@ -149,18 +160,18 @@ pub trait CustomerReturnsRepository: Send + Sync {
     ) -> AtlasResult<CreditMemo>;
 
     async fn get_credit_memo(&self, id: Uuid) -> AtlasResult<Option<CreditMemo>>;
-    async fn get_credit_memo_by_number(&self, org_id: Uuid, credit_memo_number: &str) -> AtlasResult<Option<CreditMemo>>;
+    async fn get_credit_memo_by_number(
+        &self,
+        org_id: Uuid,
+        credit_memo_number: &str,
+    ) -> AtlasResult<Option<CreditMemo>>;
     async fn list_credit_memos(
         &self,
         org_id: Uuid,
         customer_id: Option<Uuid>,
         status: Option<&str>,
     ) -> AtlasResult<Vec<CreditMemo>>;
-    async fn update_credit_memo_status(
-        &self,
-        id: Uuid,
-        status: &str,
-    ) -> AtlasResult<CreditMemo>;
+    async fn update_credit_memo_status(&self, id: Uuid, status: &str) -> AtlasResult<CreditMemo>;
 }
 
 /// `PostgreSQL` implementation
@@ -169,7 +180,7 @@ pub struct PostgresCustomerReturnsRepository {
 }
 
 impl PostgresCustomerReturnsRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -193,9 +204,15 @@ impl PostgresCustomerReturnsRepository {
     }
 
     fn row_to_rma(&self, row: &sqlx::postgres::PgRow) -> ReturnAuthorization {
-        let total_qty: serde_json::Value = row.try_get("total_quantity").unwrap_or(serde_json::json!("0"));
-        let total_amt: serde_json::Value = row.try_get("total_amount").unwrap_or(serde_json::json!("0"));
-        let total_credit: serde_json::Value = row.try_get("total_credit_amount").unwrap_or(serde_json::json!("0"));
+        let total_qty: serde_json::Value = row
+            .try_get("total_quantity")
+            .unwrap_or(serde_json::json!("0"));
+        let total_amt: serde_json::Value = row
+            .try_get("total_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let total_credit: serde_json::Value = row
+            .try_get("total_credit_amount")
+            .unwrap_or(serde_json::json!("0"));
 
         ReturnAuthorization {
             id: row.get("id"),
@@ -233,12 +250,23 @@ impl PostgresCustomerReturnsRepository {
     }
 
     fn row_to_return_line(&self, row: &sqlx::postgres::PgRow) -> ReturnLine {
-        let orig_qty: serde_json::Value = row.try_get("original_quantity").unwrap_or(serde_json::json!("0"));
-        let ret_qty: serde_json::Value = row.try_get("return_quantity").unwrap_or(serde_json::json!("0"));
-        let unit_price: serde_json::Value = row.try_get("unit_price").unwrap_or(serde_json::json!("0"));
-        let ret_amt: serde_json::Value = row.try_get("return_amount").unwrap_or(serde_json::json!("0"));
-        let cr_amt: serde_json::Value = row.try_get("credit_amount").unwrap_or(serde_json::json!("0"));
-        let recv_qty: serde_json::Value = row.try_get("received_quantity").unwrap_or(serde_json::json!("0"));
+        let orig_qty: serde_json::Value = row
+            .try_get("original_quantity")
+            .unwrap_or(serde_json::json!("0"));
+        let ret_qty: serde_json::Value = row
+            .try_get("return_quantity")
+            .unwrap_or(serde_json::json!("0"));
+        let unit_price: serde_json::Value =
+            row.try_get("unit_price").unwrap_or(serde_json::json!("0"));
+        let ret_amt: serde_json::Value = row
+            .try_get("return_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let cr_amt: serde_json::Value = row
+            .try_get("credit_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let recv_qty: serde_json::Value = row
+            .try_get("received_quantity")
+            .unwrap_or(serde_json::json!("0"));
 
         ReturnLine {
             id: row.get("id"),
@@ -274,8 +302,12 @@ impl PostgresCustomerReturnsRepository {
 
     fn row_to_credit_memo(&self, row: &sqlx::postgres::PgRow) -> CreditMemo {
         let amount: serde_json::Value = row.try_get("amount").unwrap_or(serde_json::json!("0"));
-        let applied: serde_json::Value = row.try_get("applied_amount").unwrap_or(serde_json::json!("0"));
-        let remaining: serde_json::Value = row.try_get("remaining_amount").unwrap_or(serde_json::json!("0"));
+        let applied: serde_json::Value = row
+            .try_get("applied_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let remaining: serde_json::Value = row
+            .try_get("remaining_amount")
+            .unwrap_or(serde_json::json!("0"));
 
         CreditMemo {
             id: row.get("id"),
@@ -335,8 +367,14 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(return_type)
-        .bind(default_disposition).bind(requires_approval).bind(credit_issued_automatically)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(return_type)
+        .bind(default_disposition)
+        .bind(requires_approval)
+        .bind(credit_issued_automatically)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -345,7 +383,11 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         Ok(self.row_to_return_reason(&row))
     }
 
-    async fn get_return_reason(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ReturnReason>> {
+    async fn get_return_reason(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ReturnReason>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.return_reasons WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -356,7 +398,11 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         Ok(row.map(|r| self.row_to_return_reason(&r)))
     }
 
-    async fn list_return_reasons(&self, org_id: Uuid, return_type: Option<&str>) -> AtlasResult<Vec<ReturnReason>> {
+    async fn list_return_reasons(
+        &self,
+        org_id: Uuid,
+        return_type: Option<&str>,
+    ) -> AtlasResult<Vec<ReturnReason>> {
         let rows = match return_type {
             Some(rt) => sqlx::query(
                 "SELECT * FROM _atlas.return_reasons WHERE organization_id = $1 AND return_type = $2 AND is_active = true ORDER BY code"
@@ -420,12 +466,24 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(rma_number).bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(return_type).bind(reason_code).bind(reason_name)
-        .bind(original_order_number).bind(original_order_id)
-        .bind(customer_contact).bind(customer_email).bind(customer_phone)
-        .bind(return_date).bind(expected_receipt_date)
-        .bind(currency_code).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(rma_number)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(return_type)
+        .bind(reason_code)
+        .bind(reason_name)
+        .bind(original_order_number)
+        .bind(original_order_id)
+        .bind(customer_contact)
+        .bind(customer_email)
+        .bind(customer_phone)
+        .bind(return_date)
+        .bind(expected_receipt_date)
+        .bind(currency_code)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -434,17 +492,19 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
     }
 
     async fn get_rma(&self, id: Uuid) -> AtlasResult<Option<ReturnAuthorization>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.return_authorizations WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.return_authorizations WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_rma(&r)))
     }
 
-    async fn get_rma_by_number(&self, org_id: Uuid, rma_number: &str) -> AtlasResult<Option<ReturnAuthorization>> {
+    async fn get_rma_by_number(
+        &self,
+        org_id: Uuid,
+        rma_number: &str,
+    ) -> AtlasResult<Option<ReturnAuthorization>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.return_authorizations WHERE organization_id = $1 AND rma_number = $2"
         )
@@ -462,9 +522,8 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         customer_id: Option<Uuid>,
         return_type: Option<&str>,
     ) -> AtlasResult<Vec<ReturnAuthorization>> {
-        let mut query = String::from(
-            "SELECT * FROM _atlas.return_authorizations WHERE organization_id = $1"
-        );
+        let mut query =
+            String::from("SELECT * FROM _atlas.return_authorizations WHERE organization_id = $1");
         let mut bind_idx = 2;
 
         let status_val;
@@ -500,7 +559,9 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             q = q.bind(&return_type_val);
         }
 
-        let rows = q.fetch_all(&self.pool).await
+        let rows = q
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| self.row_to_rma(r)).collect())
     }
@@ -543,7 +604,10 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(total_quantity).bind(total_amount).bind(total_credit_amount)
+        .bind(id)
+        .bind(total_quantity)
+        .bind(total_amount)
+        .bind(total_credit_amount)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -563,7 +627,9 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(credit_memo_id).bind(credit_memo_number)
+        .bind(id)
+        .bind(credit_memo_id)
+        .bind(credit_memo_number)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -608,10 +674,25 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(rma_id).bind(line_number).bind(item_id).bind(item_code).bind(item_description)
-        .bind(original_line_id).bind(original_quantity).bind(return_quantity).bind(unit_price)
-        .bind(return_amount).bind(credit_amount).bind(reason_code).bind(disposition)
-        .bind(lot_number).bind(serial_number).bind(condition).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(rma_id)
+        .bind(line_number)
+        .bind(item_id)
+        .bind(item_code)
+        .bind(item_description)
+        .bind(original_line_id)
+        .bind(original_quantity)
+        .bind(return_quantity)
+        .bind(unit_price)
+        .bind(return_amount)
+        .bind(credit_amount)
+        .bind(reason_code)
+        .bind(disposition)
+        .bind(lot_number)
+        .bind(serial_number)
+        .bind(condition)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -620,24 +701,21 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
     }
 
     async fn get_return_line(&self, id: Uuid) -> AtlasResult<Option<ReturnLine>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.return_lines WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.return_lines WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_return_line(&r)))
     }
 
     async fn list_return_lines_by_rma(&self, rma_id: Uuid) -> AtlasResult<Vec<ReturnLine>> {
-        let rows = sqlx::query(
-            "SELECT * FROM _atlas.return_lines WHERE rma_id = $1 ORDER BY line_number"
-        )
-        .bind(rma_id)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let rows =
+            sqlx::query("SELECT * FROM _atlas.return_lines WHERE rma_id = $1 ORDER BY line_number")
+                .bind(rma_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(|r| self.row_to_return_line(r)).collect())
     }
 
@@ -655,7 +733,9 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(received_quantity).bind(received_date)
+        .bind(id)
+        .bind(received_quantity)
+        .bind(received_date)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -697,7 +777,8 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(credit_status)
+        .bind(id)
+        .bind(credit_status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -733,9 +814,18 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(credit_memo_number).bind(rma_id).bind(rma_number)
-        .bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(amount).bind(currency_code).bind(gl_account_code).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(credit_memo_number)
+        .bind(rma_id)
+        .bind(rma_number)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(amount)
+        .bind(currency_code)
+        .bind(gl_account_code)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -744,17 +834,19 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
     }
 
     async fn get_credit_memo(&self, id: Uuid) -> AtlasResult<Option<CreditMemo>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.credit_memos WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.credit_memos WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_credit_memo(&r)))
     }
 
-    async fn get_credit_memo_by_number(&self, org_id: Uuid, credit_memo_number: &str) -> AtlasResult<Option<CreditMemo>> {
+    async fn get_credit_memo_by_number(
+        &self,
+        org_id: Uuid,
+        credit_memo_number: &str,
+    ) -> AtlasResult<Option<CreditMemo>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.credit_memos WHERE organization_id = $1 AND credit_memo_number = $2"
         )
@@ -797,17 +889,18 @@ impl CustomerReturnsRepository for PostgresCustomerReturnsRepository {
         Ok(rows.iter().map(|r| self.row_to_credit_memo(r)).collect())
     }
 
-    async fn update_credit_memo_status(
-        &self,
-        id: Uuid,
-        status: &str,
-    ) -> AtlasResult<CreditMemo> {
-        let issued_at_expr = if status == "issued" { "CASE WHEN issue_date IS NULL THEN CURRENT_DATE ELSE issue_date END" } else { "issue_date" };
+    async fn update_credit_memo_status(&self, id: Uuid, status: &str) -> AtlasResult<CreditMemo> {
+        let issued_at_expr = if status == "issued" {
+            "CASE WHEN issue_date IS NULL THEN CURRENT_DATE ELSE issue_date END"
+        } else {
+            "issue_date"
+        };
         let query_str = format!(
             r"UPDATE _atlas.credit_memos SET status = $2, issue_date = {issued_at_expr}, updated_at = now() WHERE id = $1 RETURNING *"
         );
         let row = sqlx::query(&query_str)
-            .bind(id).bind(status)
+            .bind(id)
+            .bind(status)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

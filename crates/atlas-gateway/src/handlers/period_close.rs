@@ -4,18 +4,17 @@
 //! API endpoints for managing accounting calendars, periods,
 //! subledger close status, and the period close checklist.
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Calendar Management
@@ -36,9 +35,15 @@ pub struct CreateCalendarRequest {
     pub current_fiscal_year: Option<i32>,
 }
 
-fn default_monthly() -> String { "monthly".to_string() }
-const fn default_one() -> i32 { 1 }
-const fn default_twelve() -> i32 { 12 }
+fn default_monthly() -> String {
+    "monthly".to_string()
+}
+const fn default_one() -> i32 {
+    1
+}
+const fn default_twelve() -> i32 {
+    12
+}
 
 #[derive(Debug, Deserialize)]
 pub struct GeneratePeriodsRequest {
@@ -51,12 +56,12 @@ pub async fn create_calendar(
     claims: Extension<Claims>,
     Json(payload): Json<CreateCalendarRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let calendar = state.financials.period_close_engine
+    let calendar = state
+        .financials
+        .period_close_engine
         .create_calendar(
             org_id,
             &payload.name,
@@ -78,7 +83,10 @@ pub async fn create_calendar(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(calendar))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(calendar)),
+    ))
 }
 
 /// List accounting calendars
@@ -86,13 +94,17 @@ pub async fn list_calendars(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let calendars = state.financials.period_close_engine
+    let calendars = state
+        .financials
+        .period_close_engine
         .list_calendars(org_id)
         .await
-        .map_err(|e| { error!("List calendars error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("List calendars error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({ "data": calendars })))
 }
@@ -103,13 +115,17 @@ pub async fn get_calendar(
     Path(id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let calendar = state.financials.period_close_engine
+    let calendar = state
+        .financials
+        .period_close_engine
         .get_calendar(id)
         .await
-        .map_err(|e| { error!("Get calendar error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
+        .map_err(|e| {
+            error!("Get calendar error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
     Ok(Json(crate::handlers::records::to_json_or_null(calendar)))
@@ -121,13 +137,17 @@ pub async fn delete_calendar(
     Path(id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.financials.period_close_engine
+    state
+        .financials
+        .period_close_engine
         .delete_calendar(id)
         .await
-        .map_err(|e| { error!("Delete calendar error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("Delete calendar error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -148,10 +168,11 @@ pub async fn generate_periods(
     claims: Extension<Claims>,
     Json(payload): Json<GeneratePeriodsRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let periods = state.financials.period_close_engine
+    let periods = state
+        .financials
+        .period_close_engine
         .generate_periods(org_id, calendar_id, payload.fiscal_year)
         .await
         .map_err(|e| {
@@ -159,12 +180,19 @@ pub async fn generate_periods(
             match e {
                 atlas_shared::AtlasError::EntityNotFound(_) => StatusCode::NOT_FOUND,
                 atlas_shared::AtlasError::Forbidden(_) => StatusCode::FORBIDDEN,
-                atlas_shared::AtlasError::DatabaseError(msg) if msg.contains("duplicate") || msg.contains("unique") => StatusCode::CONFLICT,
+                atlas_shared::AtlasError::DatabaseError(msg)
+                    if msg.contains("duplicate") || msg.contains("unique") =>
+                {
+                    StatusCode::CONFLICT
+                }
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::json!({ "data": periods }))))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::json!({ "data": periods })),
+    ))
 }
 
 /// List periods for a calendar
@@ -174,13 +202,17 @@ pub async fn list_periods(
     claims: Extension<Claims>,
     Query(params): Query<ListPeriodsParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let periods = state.financials.period_close_engine
+    let periods = state
+        .financials
+        .period_close_engine
         .list_periods(org_id, calendar_id, params.fiscal_year)
         .await
-        .map_err(|e| { error!("List periods error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("List periods error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({ "data": periods })))
 }
@@ -191,13 +223,17 @@ pub async fn get_period(
     Path(period_id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.financials.period_close_engine
+    let period = state
+        .financials
+        .period_close_engine
         .get_period(period_id)
         .await
-        .map_err(|e| { error!("Get period error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
+        .map_err(|e| {
+            error!("Get period error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
     Ok(Json(crate::handlers::records::to_json_or_null(period)))
@@ -224,10 +260,11 @@ pub async fn open_period(
     claims: Extension<Claims>,
     Json(_payload): Json<PeriodStatusChangeRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.financials.period_close_engine
+    let period = state
+        .financials
+        .period_close_engine
         .open_period(period_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -249,10 +286,11 @@ pub async fn pending_close_period(
     claims: Extension<Claims>,
     Json(_payload): Json<PeriodStatusChangeRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.financials.period_close_engine
+    let period = state
+        .financials
+        .period_close_engine
         .pending_close_period(period_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -274,10 +312,11 @@ pub async fn close_period(
     claims: Extension<Claims>,
     Json(payload): Json<PeriodStatusChangeRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.financials.period_close_engine
+    let period = state
+        .financials
+        .period_close_engine
         .close_period(period_id, Some(user_id), payload.force)
         .await
         .map_err(|e| {
@@ -299,10 +338,11 @@ pub async fn permanently_close_period(
     claims: Extension<Claims>,
     Json(_payload): Json<PeriodStatusChangeRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.financials.period_close_engine
+    let period = state
+        .financials
+        .period_close_engine
         .permanently_close_period(period_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -324,10 +364,11 @@ pub async fn reopen_period(
     claims: Extension<Claims>,
     Json(_payload): Json<PeriodStatusChangeRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.financials.period_close_engine
+    let period = state
+        .financials
+        .period_close_engine
         .reopen_period(period_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -359,10 +400,11 @@ pub async fn update_subledger_status(
     claims: Extension<Claims>,
     Json(payload): Json<UpdateSubledgerRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let period = state.financials.period_close_engine
+    let period = state
+        .financials
+        .period_close_engine
         .update_subledger_status(period_id, &payload.subledger, &payload.status)
         .await
         .map_err(|e| {
@@ -401,14 +443,16 @@ pub async fn create_checklist_item(
     claims: Extension<Claims>,
     Json(payload): Json<CreateChecklistItemRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let due_date = payload.due_date
+    let due_date = payload
+        .due_date
         .as_deref()
         .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok());
 
-    let item = state.financials.period_close_engine
+    let item = state
+        .financials
+        .period_close_engine
         .add_checklist_item(
             org_id,
             period_id,
@@ -431,7 +475,10 @@ pub async fn create_checklist_item(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(item))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(item)),
+    ))
 }
 
 /// List checklist items for a period
@@ -440,13 +487,17 @@ pub async fn list_checklist_items(
     Path(period_id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let items = state.financials.period_close_engine
+    let items = state
+        .financials
+        .period_close_engine
         .list_checklist_items(period_id)
         .await
-        .map_err(|e| { error!("List checklist items error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("List checklist items error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({ "data": items })))
 }
@@ -463,12 +514,17 @@ pub async fn update_checklist_item(
     claims: Extension<Claims>,
     Json(payload): Json<UpdateChecklistItemRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let completed_by = if payload.status == "completed" { Some(user_id) } else { None };
+    let completed_by = if payload.status == "completed" {
+        Some(user_id)
+    } else {
+        None
+    };
 
-    let item = state.financials.period_close_engine
+    let item = state
+        .financials
+        .period_close_engine
         .update_checklist_item(item_id, &payload.status, completed_by)
         .await
         .map_err(|e| {
@@ -489,13 +545,17 @@ pub async fn delete_checklist_item(
     Path((_period_id, item_id)): Path<(Uuid, Uuid)>,
     claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.financials.period_close_engine
+    state
+        .financials
+        .period_close_engine
         .delete_checklist_item(item_id)
         .await
-        .map_err(|e| { error!("Delete checklist item error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("Delete checklist item error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -519,22 +579,25 @@ pub async fn grant_period_exception(
     claims: Extension<Claims>,
     Json(payload): Json<GrantExceptionRequest>,
 ) -> Result<StatusCode, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let granted_by = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let granted_by = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let valid_until = payload.valid_until
+    let valid_until = payload
+        .valid_until
         .as_deref()
         .and_then(|d| chrono::DateTime::parse_from_rfc3339(d).ok())
         .map(|dt| dt.to_utc());
 
-    state.financials.period_close_engine
+    state
+        .financials
+        .period_close_engine
         .grant_exception(
             org_id,
             period_id,
             payload.user_id,
-            payload.allowed_actions.unwrap_or_else(|| vec!["post".to_string()]),
+            payload
+                .allowed_actions
+                .unwrap_or_else(|| vec!["post".to_string()]),
             payload.reason.as_deref(),
             Some(granted_by),
             valid_until,
@@ -554,10 +617,11 @@ pub async fn revoke_period_exception(
     Path((period_id, user_id)): Path<(Uuid, Uuid)>,
     claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.financials.period_close_engine
+    state
+        .financials
+        .period_close_engine
         .revoke_exception(period_id, user_id)
         .await
         .map_err(|e| {
@@ -584,10 +648,11 @@ pub async fn get_close_summary(
     claims: Extension<Claims>,
     Query(params): Query<CloseSummaryParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let summary = state.financials.period_close_engine
+    let summary = state
+        .financials
+        .period_close_engine
         .get_close_summary(org_id, calendar_id, params.fiscal_year)
         .await
         .map_err(|e| {
@@ -618,15 +683,15 @@ pub async fn check_posting_allowed(
     claims: Extension<Claims>,
     Query(params): Query<CheckPostingParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let date = chrono::NaiveDate::parse_from_str(&params.date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    match state.financials.period_close_engine
+    match state
+        .financials
+        .period_close_engine
         .check_posting_allowed(org_id, calendar_id, date, Some(user_id))
         .await
     {

@@ -20,19 +20,11 @@ pub enum FieldType {
         pattern: Option<String>,
     },
     /// Fixed string (UUIDs, codes)
-    FixedString {
-        length: usize,
-    },
+    FixedString { length: usize },
     /// Integer with optional bounds
-    Integer {
-        min: Option<i64>,
-        max: Option<i64>,
-    },
+    Integer { min: Option<i64>, max: Option<i64> },
     /// Decimal number with precision
-    Decimal {
-        precision: u8,
-        scale: u8,
-    },
+    Decimal { precision: u8, scale: u8 },
     /// Boolean true/false
     Boolean,
     /// Date only
@@ -45,19 +37,11 @@ pub enum FieldType {
         field: Option<String>,
     },
     /// One-to-many relationship
-    OneToMany {
-        entity: String,
-        foreign_key: String,
-    },
+    OneToMany { entity: String, foreign_key: String },
     /// One-to-one relationship
-    OneToOne {
-        entity: String,
-        foreign_key: String,
-    },
+    OneToOne { entity: String, foreign_key: String },
     /// Enum with allowed values
-    Enum {
-        values: Vec<String>,
-    },
+    Enum { values: Vec<String> },
     /// Computed field with formula
     Computed {
         formula: String,
@@ -66,9 +50,7 @@ pub enum FieldType {
     /// File attachment
     Attachment,
     /// Currency with code
-    Currency {
-        code: String,
-    },
+    Currency { code: String },
     /// Rich HTML text
     RichText,
     /// Flexible JSON
@@ -85,7 +67,10 @@ pub enum FieldType {
 
 impl Default for FieldType {
     fn default() -> Self {
-        Self::String { max_length: None, pattern: None }
+        Self::String {
+            max_length: None,
+            pattern: None,
+        }
     }
 }
 
@@ -111,7 +96,7 @@ pub struct FieldDefinition {
 }
 
 impl FieldDefinition {
-    #[must_use] 
+    #[must_use]
     pub fn new(name: &str, label: &str, field_type: FieldType) -> Self {
         Self {
             id: None,
@@ -207,7 +192,9 @@ pub struct EntityDefinition {
     pub metadata: serde_json::Value,
 }
 
-pub const fn default_true() -> bool { true }
+pub const fn default_true() -> bool {
+    true
+}
 
 /// Index definition for an entity
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -301,19 +288,41 @@ pub enum GuardDefinition {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ActionDefinition {
-    SetField { field: String, value: serde_json::Value },
-    SendNotification { template: String, recipients: Option<String> },
-    InvokeWebhook { url: String, method: String },
-    InvokeAction { service: String, action: String },
-    AssignRole { role: String, user_field: Option<String> },
-    UpdateRelated { entity: String, filter: String, changes: serde_json::Value },
-    CreateRecord { entity: String, values: serde_json::Value },
+    SetField {
+        field: String,
+        value: serde_json::Value,
+    },
+    SendNotification {
+        template: String,
+        recipients: Option<String>,
+    },
+    InvokeWebhook {
+        url: String,
+        method: String,
+    },
+    InvokeAction {
+        service: String,
+        action: String,
+    },
+    AssignRole {
+        role: String,
+        user_field: Option<String>,
+    },
+    UpdateRelated {
+        entity: String,
+        filter: String,
+        changes: serde_json::Value,
+    },
+    CreateRecord {
+        entity: String,
+        values: serde_json::Value,
+    },
 }
 
 impl ActionDefinition {
     /// Returns a handler lookup key if this action maps to a registered handler.
     /// `InvokeAction` uses "service.action" as the key; other variants return None.
-    #[must_use] 
+    #[must_use]
     pub const fn handler_name(&self) -> Option<&str> {
         match self {
             Self::InvokeAction { service: _, action } => {
@@ -339,7 +348,12 @@ pub struct SecurityPolicy {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "effect", rename_all = "snake_case")]
 pub enum SecurityRule {
-    Allow { actions: Vec<String>, condition: Option<String> },
-    Deny { actions: Vec<String>, condition: Option<String> },
+    Allow {
+        actions: Vec<String>,
+        condition: Option<String>,
+    },
+    Deny {
+        actions: Vec<String>,
+        condition: Option<String>,
+    },
 }
-

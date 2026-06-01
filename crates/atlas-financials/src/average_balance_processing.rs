@@ -1,8 +1,8 @@
+use chrono::NaiveDate;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
-use rust_decimal::Decimal;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AverageBalanceBook {
@@ -53,7 +53,10 @@ impl AverageBalanceProcessingService {
         period_type: String,
     ) -> Result<AverageBalanceBook, String> {
         let mut books = self.books.write().unwrap();
-        if books.iter().any(|b| b.organization_id == organization_id && b.book_code == code) {
+        if books
+            .iter()
+            .any(|b| b.organization_id == organization_id && b.book_code == code)
+        {
             return Err("Book with this code already exists".to_string());
         }
 
@@ -113,15 +116,24 @@ mod tests {
     fn test_create_book_and_run_calculation() {
         let service = AverageBalanceProcessingService::new();
         let org_id = Uuid::new_v4();
-        
-        let book = service.create_book(org_id, "CORP_ADB".to_string(), "Corp Average Balance".to_string(), "daily".to_string()).unwrap();
-        
+
+        let book = service
+            .create_book(
+                org_id,
+                "CORP_ADB".to_string(),
+                "Corp Average Balance".to_string(),
+                "daily".to_string(),
+            )
+            .unwrap();
+
         let start = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         let end = NaiveDate::from_ymd_opt(2026, 1, 3).unwrap();
         let account_id = Uuid::new_v4();
-        
+
         let balances = vec![dec!(100), dec!(200), dec!(150)];
-        let calc = service.run_calculation(book.id, account_id, start, end, &balances).unwrap();
+        let calc = service
+            .run_calculation(book.id, account_id, start, end, &balances)
+            .unwrap();
 
         assert_eq!(calc.average_balance, dec!(150));
         assert_eq!(calc.peak_balance, dec!(200));

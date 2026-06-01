@@ -4,18 +4,17 @@
 //! API endpoints for bank accounts, statements, auto-matching,
 //! manual matching, and reconciliation summaries.
 
+use crate::handlers::auth::Claims;
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 // ============================================================================
 // Bank Account Management
@@ -36,8 +35,12 @@ pub struct CreateBankAccountRequest {
     pub account_type: String,
 }
 
-fn default_currency_usd() -> String { "USD".to_string() }
-fn default_checking() -> String { "checking".to_string() }
+fn default_currency_usd() -> String {
+    "USD".to_string()
+}
+fn default_checking() -> String {
+    "checking".to_string()
+}
 
 /// Create a bank account
 pub async fn create_bank_account(
@@ -45,12 +48,12 @@ pub async fn create_bank_account(
     claims: Extension<Claims>,
     Json(payload): Json<CreateBankAccountRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let account = state.financials.reconciliation_engine
+    let account = state
+        .financials
+        .reconciliation_engine
         .create_bank_account(
             org_id,
             &payload.account_number,
@@ -74,7 +77,10 @@ pub async fn create_bank_account(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(account))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(account)),
+    ))
 }
 
 /// List bank accounts
@@ -82,13 +88,17 @@ pub async fn list_bank_accounts(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let accounts = state.financials.reconciliation_engine
+    let accounts = state
+        .financials
+        .reconciliation_engine
         .list_bank_accounts(org_id)
         .await
-        .map_err(|e| { error!("List bank accounts error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("List bank accounts error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({ "data": accounts })))
 }
@@ -99,13 +109,17 @@ pub async fn get_bank_account(
     Path(id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let account = state.financials.reconciliation_engine
+    let account = state
+        .financials
+        .reconciliation_engine
         .get_bank_account(id)
         .await
-        .map_err(|e| { error!("Get bank account error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
+        .map_err(|e| {
+            error!("Get bank account error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
     Ok(Json(crate::handlers::records::to_json_or_null(account)))
@@ -117,13 +131,17 @@ pub async fn delete_bank_account(
     Path(id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.financials.reconciliation_engine
+    state
+        .financials
+        .reconciliation_engine
         .delete_bank_account(id)
         .await
-        .map_err(|e| { error!("Delete bank account error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("Delete bank account error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -163,10 +181,8 @@ pub async fn create_bank_statement(
     claims: Extension<Claims>,
     Json(payload): Json<CreateBankStatementRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let statement_date = chrono::NaiveDate::parse_from_str(&payload.statement_date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -175,7 +191,9 @@ pub async fn create_bank_statement(
     let end_date = chrono::NaiveDate::parse_from_str(&payload.end_date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let statement = state.financials.reconciliation_engine
+    let statement = state
+        .financials
+        .reconciliation_engine
         .create_bank_statement(
             org_id,
             payload.bank_account_id,
@@ -205,7 +223,9 @@ pub async fn create_bank_statement(
             let tx_date = chrono::NaiveDate::parse_from_str(&line.transaction_date, "%Y-%m-%d")
                 .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-            state.financials.reconciliation_engine
+            state
+                .financials
+                .reconciliation_engine
                 .add_statement_line(
                     org_id,
                     statement.id,
@@ -227,7 +247,10 @@ pub async fn create_bank_statement(
         }
     }
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(statement))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(statement)),
+    ))
 }
 
 /// List bank statements for an account
@@ -236,13 +259,17 @@ pub async fn list_bank_statements(
     Path(bank_account_id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let statements = state.financials.reconciliation_engine
+    let statements = state
+        .financials
+        .reconciliation_engine
         .list_bank_statements(org_id, bank_account_id)
         .await
-        .map_err(|e| { error!("List bank statements error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("List bank statements error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({ "data": statements })))
 }
@@ -253,13 +280,17 @@ pub async fn get_bank_statement(
     Path(statement_id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let statement = state.financials.reconciliation_engine
+    let statement = state
+        .financials
+        .reconciliation_engine
         .get_bank_statement(statement_id)
         .await
-        .map_err(|e| { error!("Get bank statement error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?
+        .map_err(|e| {
+            error!("Get bank statement error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
     Ok(Json(crate::handlers::records::to_json_or_null(statement)))
@@ -271,13 +302,17 @@ pub async fn list_statement_lines(
     Path(statement_id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let lines = state.financials.reconciliation_engine
+    let lines = state
+        .financials
+        .reconciliation_engine
         .list_statement_lines(statement_id)
         .await
-        .map_err(|e| { error!("List statement lines error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("List statement lines error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({ "data": lines })))
 }
@@ -307,15 +342,15 @@ pub async fn create_system_transaction(
     claims: Extension<Claims>,
     Json(payload): Json<CreateSystemTransactionRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let tx_date = chrono::NaiveDate::parse_from_str(&payload.transaction_date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let txn = state.financials.reconciliation_engine
+    let txn = state
+        .financials
+        .reconciliation_engine
         .create_system_transaction(
             org_id,
             payload.bank_account_id,
@@ -340,7 +375,10 @@ pub async fn create_system_transaction(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(txn))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(txn)),
+    ))
 }
 
 /// List unreconciled system transactions for a bank account
@@ -349,13 +387,17 @@ pub async fn list_unreconciled_transactions(
     Path(bank_account_id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let transactions = state.financials.reconciliation_engine
+    let transactions = state
+        .financials
+        .reconciliation_engine
         .list_unreconciled_transactions(org_id, bank_account_id)
         .await
-        .map_err(|e| { error!("List unreconciled transactions error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("List unreconciled transactions error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({ "data": transactions })))
 }
@@ -370,12 +412,12 @@ pub async fn auto_match_statement(
     Path(statement_id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let result = state.financials.reconciliation_engine
+    let result = state
+        .financials
+        .reconciliation_engine
         .auto_match(org_id, statement_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -407,12 +449,12 @@ pub async fn manual_match(
     claims: Extension<Claims>,
     Json(payload): Json<ManualMatchRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let match_record = state.financials.reconciliation_engine
+    let match_record = state
+        .financials
+        .reconciliation_engine
         .manual_match(
             org_id,
             statement_id,
@@ -430,7 +472,9 @@ pub async fn manual_match(
             }
         })?;
 
-    Ok(Json(crate::handlers::records::to_json_or_null(match_record)))
+    Ok(Json(crate::handlers::records::to_json_or_null(
+        match_record,
+    )))
 }
 
 /// Unmatch a previously matched pair
@@ -439,10 +483,11 @@ pub async fn unmatch(
     Path(match_id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let match_record = state.financials.reconciliation_engine
+    let match_record = state
+        .financials
+        .reconciliation_engine
         .unmatch(match_id, Some(user_id))
         .await
         .map_err(|e| {
@@ -454,7 +499,9 @@ pub async fn unmatch(
             }
         })?;
 
-    Ok(Json(crate::handlers::records::to_json_or_null(match_record)))
+    Ok(Json(crate::handlers::records::to_json_or_null(
+        match_record,
+    )))
 }
 
 /// List matches for a statement
@@ -463,13 +510,17 @@ pub async fn list_matches(
     Path(statement_id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let matches = state.financials.reconciliation_engine
+    let matches = state
+        .financials
+        .reconciliation_engine
         .list_matches(statement_id)
         .await
-        .map_err(|e| { error!("List matches error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("List matches error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({ "data": matches })))
 }
@@ -491,15 +542,16 @@ pub async fn get_reconciliation_summary(
     claims: Extension<Claims>,
     Query(params): Query<GetSummaryParams>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let period_start = chrono::NaiveDate::parse_from_str(&params.period_start, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
     let period_end = chrono::NaiveDate::parse_from_str(&params.period_end, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let summary = state.financials.reconciliation_engine
+    let summary = state
+        .financials
+        .reconciliation_engine
         .get_reconciliation_summary(org_id, params.bank_account_id, period_start, period_end)
         .await
         .map_err(|e| {
@@ -515,13 +567,17 @@ pub async fn list_reconciliation_summaries(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let summaries = state.financials.reconciliation_engine
+    let summaries = state
+        .financials
+        .reconciliation_engine
         .list_reconciliation_summaries(org_id)
         .await
-        .map_err(|e| { error!("List reconciliation summaries error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("List reconciliation summaries error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({ "data": summaries })))
 }
@@ -542,8 +598,12 @@ pub struct CreateMatchingRuleRequest {
     pub stop_on_match: bool,
 }
 
-const fn default_priority() -> i32 { 100 }
-const fn default_true() -> bool { true }
+const fn default_priority() -> i32 {
+    100
+}
+const fn default_true() -> bool {
+    true
+}
 
 /// Create a matching rule
 pub async fn create_matching_rule(
@@ -551,12 +611,12 @@ pub async fn create_matching_rule(
     claims: Extension<Claims>,
     Json(payload): Json<CreateMatchingRuleRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let rule = state.financials.reconciliation_engine
+    let rule = state
+        .financials
+        .reconciliation_engine
         .create_matching_rule(
             org_id,
             &payload.name,
@@ -576,7 +636,10 @@ pub async fn create_matching_rule(
             }
         })?;
 
-    Ok((StatusCode::CREATED, Json(crate::handlers::records::to_json_or_null(rule))))
+    Ok((
+        StatusCode::CREATED,
+        Json(crate::handlers::records::to_json_or_null(rule)),
+    ))
 }
 
 /// List matching rules
@@ -584,13 +647,17 @@ pub async fn list_matching_rules(
     State(state): State<Arc<AppState>>,
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let rules = state.financials.reconciliation_engine
+    let rules = state
+        .financials
+        .reconciliation_engine
         .list_matching_rules(org_id)
         .await
-        .map_err(|e| { error!("List matching rules error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("List matching rules error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(serde_json::json!({ "data": rules })))
 }
@@ -601,13 +668,17 @@ pub async fn delete_matching_rule(
     Path(id): Path<Uuid>,
     claims: Extension<Claims>,
 ) -> Result<StatusCode, StatusCode> {
-    let _org_id = Uuid::parse_str(&claims.org_id)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.financials.reconciliation_engine
+    state
+        .financials
+        .reconciliation_engine
         .delete_matching_rule(id)
         .await
-        .map_err(|e| { error!("Delete matching rule error: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+        .map_err(|e| {
+            error!("Delete matching rule error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(StatusCode::NO_CONTENT)
 }

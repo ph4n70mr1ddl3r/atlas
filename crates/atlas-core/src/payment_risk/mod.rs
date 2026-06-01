@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Payables > Payment Risk
 
-pub mod repository;
 pub mod engine;
+pub mod repository;
 
 pub use engine::PaymentRiskEngine;
 pub use repository::{PaymentRiskRepository, PostgresPaymentRiskRepository};

@@ -60,9 +60,14 @@ impl DataAccessSetService {
         accounting_calendar: String,
     ) -> Result<DataAccessSet, String> {
         let mut sets = self.sets.write().unwrap();
-        
-        if sets.iter().any(|s| s.organization_id == organization_id && s.name == name) {
-            return Err("Data access set with this name already exists for the organization".to_string());
+
+        if sets
+            .iter()
+            .any(|s| s.organization_id == organization_id && s.name == name)
+        {
+            return Err(
+                "Data access set with this name already exists for the organization".to_string(),
+            );
         }
 
         let set = DataAccessSet {
@@ -95,7 +100,9 @@ impl DataAccessSetService {
         }
 
         if !all_segment_values && specific_segment_value.is_none() {
-            return Err("Must provide specific_segment_value when all_segment_values is false".to_string());
+            return Err(
+                "Must provide specific_segment_value when all_segment_values is false".to_string(),
+            );
         }
 
         let sets = self.sets.read().unwrap();
@@ -128,8 +135,10 @@ impl DataAccessSetService {
         require_write: bool,
     ) -> bool {
         let details = self.details.read().unwrap();
-        for detail in details.iter().filter(|d| d.data_access_set_id == data_access_set_id && d.is_active) {
-            
+        for detail in details
+            .iter()
+            .filter(|d| d.data_access_set_id == data_access_set_id && d.is_active)
+        {
             // Note: For full accuracy, ledger_set_id would need to resolve to ledger_ids.
             // In this implementation, we simply check ledger_id direct matches.
             if detail.ledger_id == Some(target_ledger_id) {
@@ -142,7 +151,8 @@ impl DataAccessSetService {
                 let value_ok = if detail.all_segment_values {
                     true
                 } else {
-                    target_segment_value.is_some() && detail.specific_segment_value.as_deref() == target_segment_value
+                    target_segment_value.is_some()
+                        && detail.specific_segment_value.as_deref() == target_segment_value
                 };
 
                 if level_ok && value_ok {
@@ -162,7 +172,7 @@ mod tests {
     fn test_create_data_access_set() {
         let service = DataAccessSetService::new();
         let org_id = Uuid::new_v4();
-        
+
         let result = service.create_data_access_set(
             org_id,
             "US Primary Set".to_string(),
@@ -180,10 +190,24 @@ mod tests {
     fn test_duplicate_data_access_set() {
         let service = DataAccessSetService::new();
         let org_id = Uuid::new_v4();
-        
-        service.create_data_access_set(org_id, "Set A".to_string(), None, "COA".to_string(), "CAL".to_string()).unwrap();
-        
-        let result = service.create_data_access_set(org_id, "Set A".to_string(), None, "COA".to_string(), "CAL".to_string());
+
+        service
+            .create_data_access_set(
+                org_id,
+                "Set A".to_string(),
+                None,
+                "COA".to_string(),
+                "CAL".to_string(),
+            )
+            .unwrap();
+
+        let result = service.create_data_access_set(
+            org_id,
+            "Set A".to_string(),
+            None,
+            "COA".to_string(),
+            "CAL".to_string(),
+        );
         assert!(result.is_err());
     }
 
@@ -191,19 +215,51 @@ mod tests {
     fn test_add_access_detail_validation() {
         let service = DataAccessSetService::new();
         let org_id = Uuid::new_v4();
-        
-        let set = service.create_data_access_set(org_id, "Set".to_string(), None, "COA".to_string(), "CAL".to_string()).unwrap();
+
+        let set = service
+            .create_data_access_set(
+                org_id,
+                "Set".to_string(),
+                None,
+                "COA".to_string(),
+                "CAL".to_string(),
+            )
+            .unwrap();
 
         // Error: neither ledger nor ledger_set
-        let result = service.add_access_detail(org_id, set.id, None, None, AccessLevel::ReadOnly, true, None);
+        let result = service.add_access_detail(
+            org_id,
+            set.id,
+            None,
+            None,
+            AccessLevel::ReadOnly,
+            true,
+            None,
+        );
         assert!(result.is_err());
 
         // Error: specific segment value missing
-        let result = service.add_access_detail(org_id, set.id, Some(Uuid::new_v4()), None, AccessLevel::ReadOnly, false, None);
+        let result = service.add_access_detail(
+            org_id,
+            set.id,
+            Some(Uuid::new_v4()),
+            None,
+            AccessLevel::ReadOnly,
+            false,
+            None,
+        );
         assert!(result.is_err());
 
         // Success
-        let result = service.add_access_detail(org_id, set.id, Some(Uuid::new_v4()), None, AccessLevel::ReadOnly, false, Some("101".to_string()));
+        let result = service.add_access_detail(
+            org_id,
+            set.id,
+            Some(Uuid::new_v4()),
+            None,
+            AccessLevel::ReadOnly,
+            false,
+            Some("101".to_string()),
+        );
         assert!(result.is_ok());
     }
 
@@ -212,22 +268,32 @@ mod tests {
         let service = DataAccessSetService::new();
         let org_id = Uuid::new_v4();
         let ledger_id = Uuid::new_v4();
-        
-        let set = service.create_data_access_set(org_id, "Set".to_string(), None, "COA".to_string(), "CAL".to_string()).unwrap();
 
-        service.add_access_detail(
-            org_id,
-            set.id,
-            Some(ledger_id),
-            None,
-            AccessLevel::ReadOnly, // Only read
-            false,
-            Some("101".to_string()),
-        ).unwrap();
+        let set = service
+            .create_data_access_set(
+                org_id,
+                "Set".to_string(),
+                None,
+                "COA".to_string(),
+                "CAL".to_string(),
+            )
+            .unwrap();
+
+        service
+            .add_access_detail(
+                org_id,
+                set.id,
+                Some(ledger_id),
+                None,
+                AccessLevel::ReadOnly, // Only read
+                false,
+                Some("101".to_string()),
+            )
+            .unwrap();
 
         // Read access to correct segment -> true
         assert!(service.has_ledger_access(set.id, ledger_id, Some("101"), false));
-        
+
         // Write access to correct segment -> false (it is read only)
         assert!(!service.has_ledger_access(set.id, ledger_id, Some("101"), true));
 

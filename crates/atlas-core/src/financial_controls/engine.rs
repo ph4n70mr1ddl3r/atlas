@@ -5,44 +5,52 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Advanced Controls
 
-use atlas_shared::{
-    ControlMonitorRule, ControlViolation, FinancialControlsDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::FinancialControlsRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ControlMonitorRule, ControlViolation,
+    FinancialControlsDashboardSummary,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid categories for control rules
 const VALID_CATEGORIES: &[&str] = &[
-    "transaction", "access", "master_data", "period_close", "master_record",
+    "transaction",
+    "access",
+    "master_data",
+    "period_close",
+    "master_record",
 ];
 
 /// Valid risk levels
-const VALID_RISK_LEVELS: &[&str] = &[
-    "critical", "high", "medium", "low",
-];
+const VALID_RISK_LEVELS: &[&str] = &["critical", "high", "medium", "low"];
 
 /// Valid control types
 const VALID_CONTROL_TYPES: &[&str] = &[
-    "threshold", "pattern", "frequency", "segregation", "approval", "custom",
+    "threshold",
+    "pattern",
+    "frequency",
+    "segregation",
+    "approval",
+    "custom",
 ];
 
 /// Valid check schedules
-const VALID_CHECK_SCHEDULES: &[&str] = &[
-    "realtime", "daily", "weekly", "monthly",
-];
+const VALID_CHECK_SCHEDULES: &[&str] = &["realtime", "daily", "weekly", "monthly"];
 
 /// Valid violation statuses
 const VALID_VIOLATION_STATUSES: &[&str] = &[
-    "open", "under_review", "resolved", "false_positive", "escalated", "waived",
+    "open",
+    "under_review",
+    "resolved",
+    "false_positive",
+    "escalated",
+    "waived",
 ];
 
 /// Valid action types
-const VALID_ACTION_TYPES: &[&str] = &[
-    "alert", "block", "escalate", "review",
-];
+const VALID_ACTION_TYPES: &[&str] = &["alert", "block", "escalate", "review"];
 
 /// Advanced Financial Controls Engine
 pub struct FinancialControlsEngine {
@@ -86,22 +94,30 @@ impl FinancialControlsEngine {
         }
         if !VALID_CATEGORIES.contains(&category) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid category '{}'. Must be one of: {}", category, VALID_CATEGORIES.join(", ")
+                "Invalid category '{}'. Must be one of: {}",
+                category,
+                VALID_CATEGORIES.join(", ")
             )));
         }
         if !VALID_RISK_LEVELS.contains(&risk_level) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid risk_level '{}'. Must be one of: {}", risk_level, VALID_RISK_LEVELS.join(", ")
+                "Invalid risk_level '{}'. Must be one of: {}",
+                risk_level,
+                VALID_RISK_LEVELS.join(", ")
             )));
         }
         if !VALID_CONTROL_TYPES.contains(&control_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid control_type '{}'. Must be one of: {}", control_type, VALID_CONTROL_TYPES.join(", ")
+                "Invalid control_type '{}'. Must be one of: {}",
+                control_type,
+                VALID_CONTROL_TYPES.join(", ")
             )));
         }
         if !VALID_CHECK_SCHEDULES.contains(&check_schedule) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid check_schedule '{}'. Must be one of: {}", check_schedule, VALID_CHECK_SCHEDULES.join(", ")
+                "Invalid check_schedule '{}'. Must be one of: {}",
+                check_schedule,
+                VALID_CHECK_SCHEDULES.join(", ")
             )));
         }
         if target_entity.is_empty() {
@@ -116,7 +132,9 @@ impl FinancialControlsEngine {
                 if let Some(action_str) = action.as_str() {
                     if !VALID_ACTION_TYPES.contains(&action_str) {
                         return Err(AtlasError::ValidationFailed(format!(
-                            "Invalid action '{}'. Must be one of: {}", action_str, VALID_ACTION_TYPES.join(", ")
+                            "Invalid action '{}'. Must be one of: {}",
+                            action_str,
+                            VALID_ACTION_TYPES.join(", ")
                         )));
                     }
                 }
@@ -132,23 +150,45 @@ impl FinancialControlsEngine {
 
         // Check uniqueness
         if self.repository.get_rule(org_id, code).await?.is_some() {
-            return Err(AtlasError::Conflict(
-                format!("Control rule code '{code}' already exists")
-            ));
+            return Err(AtlasError::Conflict(format!(
+                "Control rule code '{code}' already exists"
+            )));
         }
 
-        info!("Creating control rule {} ({}/{}) for org {}", code, category, risk_level, org_id);
+        info!(
+            "Creating control rule {} ({}/{}) for org {}",
+            code, category, risk_level, org_id
+        );
 
-        self.repository.create_rule(
-            org_id, code, name, description, category, risk_level, control_type,
-            conditions, threshold_value, target_entity, target_fields,
-            actions, auto_resolve, check_schedule, effective_from, effective_to,
-            created_by,
-        ).await
+        self.repository
+            .create_rule(
+                org_id,
+                code,
+                name,
+                description,
+                category,
+                risk_level,
+                control_type,
+                conditions,
+                threshold_value,
+                target_entity,
+                target_fields,
+                actions,
+                auto_resolve,
+                check_schedule,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a rule by code
-    pub async fn get_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ControlMonitorRule>> {
+    pub async fn get_rule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ControlMonitorRule>> {
         self.repository.get_rule(org_id, code).await
     }
 
@@ -162,26 +202,34 @@ impl FinancialControlsEngine {
         if let Some(c) = category {
             if !VALID_CATEGORIES.contains(&c) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid category '{}'. Must be one of: {}", c, VALID_CATEGORIES.join(", ")
+                    "Invalid category '{}'. Must be one of: {}",
+                    c,
+                    VALID_CATEGORIES.join(", ")
                 )));
             }
         }
         if let Some(r) = risk_level {
             if !VALID_RISK_LEVELS.contains(&r) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid risk_level '{}'. Must be one of: {}", r, VALID_RISK_LEVELS.join(", ")
+                    "Invalid risk_level '{}'. Must be one of: {}",
+                    r,
+                    VALID_RISK_LEVELS.join(", ")
                 )));
             }
         }
-        self.repository.list_rules(org_id, category, risk_level).await
+        self.repository
+            .list_rules(org_id, category, risk_level)
+            .await
     }
 
     /// Delete a rule
     pub async fn delete_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
-        self.repository.get_rule(org_id, code).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Control rule '{code}' not found")
-            ))?;
+        self.repository
+            .get_rule(org_id, code)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Control rule '{code}' not found"))
+            })?;
 
         self.repository.delete_rule(org_id, code).await
     }
@@ -218,9 +266,15 @@ impl FinancialControlsEngine {
             };
 
             if violated {
-                let violation = self.create_violation_from_rule(
-                    org_id, rule, entity_type, Some(entity_id), transaction_data,
-                ).await?;
+                let violation = self
+                    .create_violation_from_rule(
+                        org_id,
+                        rule,
+                        entity_type,
+                        Some(entity_id),
+                        transaction_data,
+                    )
+                    .await?;
                 violations.push(violation);
             }
         }
@@ -241,7 +295,9 @@ impl FinancialControlsEngine {
 
         let description = format!(
             "Control rule '{}' ({}) violated for {} {}",
-            rule.name, rule.code, entity_type,
+            rule.name,
+            rule.code,
+            entity_type,
             entity_id.map(|id| id.to_string()).unwrap_or_default()
         );
 
@@ -254,27 +310,47 @@ impl FinancialControlsEngine {
             "conditions": rule.conditions,
         });
 
-        info!("Creating violation {} for rule {} ({})", violation_number, rule.code, rule.risk_level);
+        info!(
+            "Creating violation {} for rule {} ({})",
+            violation_number, rule.code, rule.risk_level
+        );
 
-        let violation = self.repository.create_violation(
-            org_id, rule.id, Some(&rule.code), Some(&rule.name),
-            &violation_number, entity_type, entity_id,
-            &description, findings, &rule.risk_level, "open",
-            serde_json::json!({}),
-        ).await?;
+        let violation = self
+            .repository
+            .create_violation(
+                org_id,
+                rule.id,
+                Some(&rule.code),
+                Some(&rule.name),
+                &violation_number,
+                entity_type,
+                entity_id,
+                &description,
+                findings,
+                &rule.risk_level,
+                "open",
+                serde_json::json!({}),
+            )
+            .await?;
 
         // Update rule stats
         let new_total = rule.total_violations + 1;
-        self.repository.update_rule_stats(
-            rule.id, new_total, rule.total_resolved, Some(chrono::Utc::now()),
-        ).await?;
+        self.repository
+            .update_rule_stats(
+                rule.id,
+                new_total,
+                rule.total_resolved,
+                Some(chrono::Utc::now()),
+            )
+            .await?;
 
         Ok(violation)
     }
 
     /// Evaluate a threshold-based control rule
     fn evaluate_threshold_rule(&self, rule: &ControlMonitorRule, data: &serde_json::Value) -> bool {
-        let threshold: f64 = rule.threshold_value
+        let threshold: f64 = rule
+            .threshold_value
             .as_ref()
             .and_then(|v| v.parse::<f64>().ok())
             .unwrap_or(0.0);
@@ -286,7 +362,9 @@ impl FinancialControlsEngine {
                     if let Some(value) = data.get(field_name) {
                         if let Some(num) = value.as_f64() {
                             // Check if the value exceeds the threshold
-                            if let Some(comparison) = rule.conditions.get("comparison").and_then(|v| v.as_str()) {
+                            if let Some(comparison) =
+                                rule.conditions.get("comparison").and_then(|v| v.as_str())
+                            {
                                 match comparison {
                                     "greater_than" if num > threshold => return true,
                                     "less_than" if num < threshold => return true,
@@ -316,13 +394,13 @@ impl FinancialControlsEngine {
                 if let Some(actual) = data.get(field) {
                     match expected {
                         serde_json::Value::String(s)
-                            if actual.as_str().unwrap_or("") != s.as_str() => {
-                                return false;
-                            }
-                        serde_json::Value::Bool(b)
-                            if actual.as_bool().unwrap_or(false) != *b => {
-                                return false;
-                            }
+                            if actual.as_str().unwrap_or("") != s.as_str() =>
+                        {
+                            return false;
+                        }
+                        serde_json::Value::Bool(b) if actual.as_bool().unwrap_or(false) != *b => {
+                            return false;
+                        }
                         _ => {}
                     }
                 } else {
@@ -339,7 +417,8 @@ impl FinancialControlsEngine {
         // For frequency checks, look at a count field in the data
         if let Some(count_field) = rule.conditions.get("count_field").and_then(|v| v.as_str()) {
             if let Some(count) = data.get(count_field).and_then(serde_json::Value::as_i64) {
-                let threshold: i64 = rule.threshold_value
+                let threshold: i64 = rule
+                    .threshold_value
                     .as_ref()
                     .and_then(|v| v.parse::<i64>().ok())
                     .unwrap_or(0);
@@ -350,18 +429,29 @@ impl FinancialControlsEngine {
     }
 
     /// Evaluate a segregation-of-duties control rule
-    fn evaluate_segregation_rule(&self, rule: &ControlMonitorRule, data: &serde_json::Value) -> bool {
+    fn evaluate_segregation_rule(
+        &self,
+        rule: &ControlMonitorRule,
+        data: &serde_json::Value,
+    ) -> bool {
         // Check if same user appears in multiple conflicting fields
-        if let Some(conflicting_fields) = rule.conditions.get("conflicting_fields").and_then(|v| v.as_array()) {
-            let user_ids: Vec<Option<String>> = conflicting_fields.iter()
+        if let Some(conflicting_fields) = rule
+            .conditions
+            .get("conflicting_fields")
+            .and_then(|v| v.as_array())
+        {
+            let user_ids: Vec<Option<String>> = conflicting_fields
+                .iter()
                 .filter_map(|f| f.as_str())
-                .map(|field| data.get(field).and_then(|v| v.as_str()).map(std::string::ToString::to_string))
+                .map(|field| {
+                    data.get(field)
+                        .and_then(|v| v.as_str())
+                        .map(std::string::ToString::to_string)
+                })
                 .collect();
 
             // Check for any duplicates (same user in multiple conflicting roles)
-            let non_none: Vec<&str> = user_ids.iter()
-                .filter_map(|opt| opt.as_deref())
-                .collect();
+            let non_none: Vec<&str> = user_ids.iter().filter_map(|opt| opt.as_deref()).collect();
 
             for (i, id) in non_none.iter().enumerate() {
                 for (j, other) in non_none.iter().enumerate() {
@@ -377,14 +467,14 @@ impl FinancialControlsEngine {
     /// Evaluate an approval-based control rule
     fn evaluate_approval_rule(&self, rule: &ControlMonitorRule, data: &serde_json::Value) -> bool {
         // Check if the approval chain has issues
-        let requires_approval = rule.conditions.get("requires_approval")
+        let requires_approval = rule
+            .conditions
+            .get("requires_approval")
             .and_then(serde_json::Value::as_bool)
             .unwrap_or(false);
 
         if requires_approval {
-            let has_approval = data.get("approved_by")
-                .and_then(|v| v.as_str())
-                .is_some();
+            let has_approval = data.get("approved_by").and_then(|v| v.as_str()).is_some();
 
             if !has_approval {
                 return true; // Missing required approval
@@ -414,18 +504,24 @@ impl FinancialControlsEngine {
         if let Some(s) = status {
             if !VALID_VIOLATION_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_VIOLATION_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_VIOLATION_STATUSES.join(", ")
                 )));
             }
         }
         if let Some(r) = risk_level {
             if !VALID_RISK_LEVELS.contains(&r) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid risk_level '{}'. Must be one of: {}", r, VALID_RISK_LEVELS.join(", ")
+                    "Invalid risk_level '{}'. Must be one of: {}",
+                    r,
+                    VALID_RISK_LEVELS.join(", ")
                 )));
             }
         }
-        self.repository.list_violations(org_id, status, risk_level, rule_id, assigned_to).await
+        self.repository
+            .list_violations(org_id, status, risk_level, rule_id, assigned_to)
+            .await
     }
 
     /// Assign a violation to a reviewer
@@ -435,22 +531,35 @@ impl FinancialControlsEngine {
         assigned_to: Uuid,
         assigned_to_name: &str,
     ) -> AtlasResult<ControlViolation> {
-        let violation = self.repository.get_violation(violation_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Violation {violation_id} not found")
-            ))?;
+        let violation = self
+            .repository
+            .get_violation(violation_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Violation {violation_id} not found"))
+            })?;
 
         if violation.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot assign violation in '{}' status. Must be 'open'.", violation.status
+                "Cannot assign violation in '{}' status. Must be 'open'.",
+                violation.status
             )));
         }
 
-        info!("Assigning violation {} to {}", violation.violation_number, assigned_to_name);
-        self.repository.update_violation_status(
-            violation_id, "under_review", Some(assigned_to),
-            Some(assigned_to_name), None, None,
-        ).await
+        info!(
+            "Assigning violation {} to {}",
+            violation.violation_number, assigned_to_name
+        );
+        self.repository
+            .update_violation_status(
+                violation_id,
+                "under_review",
+                Some(assigned_to),
+                Some(assigned_to_name),
+                None,
+                None,
+            )
+            .await
     }
 
     /// Resolve a violation
@@ -460,14 +569,21 @@ impl FinancialControlsEngine {
         resolution_notes: &str,
         resolved_by: Uuid,
     ) -> AtlasResult<ControlViolation> {
-        let violation = self.repository.get_violation(violation_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Violation {violation_id} not found")
-            ))?;
+        let violation = self
+            .repository
+            .get_violation(violation_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Violation {violation_id} not found"))
+            })?;
 
-        if violation.status != "open" && violation.status != "under_review" && violation.status != "escalated" {
+        if violation.status != "open"
+            && violation.status != "under_review"
+            && violation.status != "escalated"
+        {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot resolve violation in '{}' status.", violation.status
+                "Cannot resolve violation in '{}' status.",
+                violation.status
             )));
         }
         if resolution_notes.is_empty() {
@@ -476,11 +592,20 @@ impl FinancialControlsEngine {
             ));
         }
 
-        info!("Resolving violation {} by {}", violation.violation_number, resolved_by);
-        self.repository.update_violation_status(
-            violation_id, "resolved", None, None,
-            Some(resolution_notes), Some(resolved_by),
-        ).await
+        info!(
+            "Resolving violation {} by {}",
+            violation.violation_number, resolved_by
+        );
+        self.repository
+            .update_violation_status(
+                violation_id,
+                "resolved",
+                None,
+                None,
+                Some(resolution_notes),
+                Some(resolved_by),
+            )
+            .await
     }
 
     /// Mark a violation as a false positive
@@ -490,22 +615,35 @@ impl FinancialControlsEngine {
         resolution_notes: &str,
         resolved_by: Uuid,
     ) -> AtlasResult<ControlViolation> {
-        let violation = self.repository.get_violation(violation_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Violation {violation_id} not found")
-            ))?;
+        let violation = self
+            .repository
+            .get_violation(violation_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Violation {violation_id} not found"))
+            })?;
 
         if violation.status != "open" && violation.status != "under_review" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot mark violation as false positive in '{}' status.", violation.status
+                "Cannot mark violation as false positive in '{}' status.",
+                violation.status
             )));
         }
 
-        info!("Marking violation {} as false positive", violation.violation_number);
-        self.repository.update_violation_status(
-            violation_id, "false_positive", None, None,
-            Some(resolution_notes), Some(resolved_by),
-        ).await
+        info!(
+            "Marking violation {} as false positive",
+            violation.violation_number
+        );
+        self.repository
+            .update_violation_status(
+                violation_id,
+                "false_positive",
+                None,
+                None,
+                Some(resolution_notes),
+                Some(resolved_by),
+            )
+            .await
     }
 
     /// Escalate a violation
@@ -514,19 +652,28 @@ impl FinancialControlsEngine {
         violation_id: Uuid,
         escalated_to: Uuid,
     ) -> AtlasResult<ControlViolation> {
-        let violation = self.repository.get_violation(violation_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Violation {violation_id} not found")
-            ))?;
+        let violation = self
+            .repository
+            .get_violation(violation_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Violation {violation_id} not found"))
+            })?;
 
         if violation.status != "open" && violation.status != "under_review" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot escalate violation in '{}' status.", violation.status
+                "Cannot escalate violation in '{}' status.",
+                violation.status
             )));
         }
 
-        info!("Escalating violation {} to {}", violation.violation_number, escalated_to);
-        self.repository.escalate_violation(violation_id, Some(escalated_to), Some(chrono::Utc::now())).await
+        info!(
+            "Escalating violation {} to {}",
+            violation.violation_number, escalated_to
+        );
+        self.repository
+            .escalate_violation(violation_id, Some(escalated_to), Some(chrono::Utc::now()))
+            .await
     }
 
     /// Waive a violation
@@ -536,22 +683,35 @@ impl FinancialControlsEngine {
         resolution_notes: &str,
         resolved_by: Uuid,
     ) -> AtlasResult<ControlViolation> {
-        let violation = self.repository.get_violation(violation_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Violation {violation_id} not found")
-            ))?;
+        let violation = self
+            .repository
+            .get_violation(violation_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Violation {violation_id} not found"))
+            })?;
 
-        if violation.status != "open" && violation.status != "under_review" && violation.status != "escalated" {
+        if violation.status != "open"
+            && violation.status != "under_review"
+            && violation.status != "escalated"
+        {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot waive violation in '{}' status.", violation.status
+                "Cannot waive violation in '{}' status.",
+                violation.status
             )));
         }
 
         info!("Waiving violation {}", violation.violation_number);
-        self.repository.update_violation_status(
-            violation_id, "waived", None, None,
-            Some(resolution_notes), Some(resolved_by),
-        ).await
+        self.repository
+            .update_violation_status(
+                violation_id,
+                "waived",
+                None,
+                None,
+                Some(resolution_notes),
+                Some(resolved_by),
+            )
+            .await
     }
 
     // ========================================================================
@@ -559,7 +719,10 @@ impl FinancialControlsEngine {
     // ========================================================================
 
     /// Get the financial controls dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<FinancialControlsDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<FinancialControlsDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 }
@@ -741,19 +904,28 @@ mod tests {
         };
 
         // All conditions match
-        assert!(engine.evaluate_pattern_rule(&rule, &serde_json::json!({
-            "country": "HIGH_RISK", "is_new_vendor": true, "amount": 5000.0
-        })));
+        assert!(engine.evaluate_pattern_rule(
+            &rule,
+            &serde_json::json!({
+                "country": "HIGH_RISK", "is_new_vendor": true, "amount": 5000.0
+            })
+        ));
 
         // Missing condition
-        assert!(!engine.evaluate_pattern_rule(&rule, &serde_json::json!({
-            "country": "HIGH_RISK", "amount": 5000.0
-        })));
+        assert!(!engine.evaluate_pattern_rule(
+            &rule,
+            &serde_json::json!({
+                "country": "HIGH_RISK", "amount": 5000.0
+            })
+        ));
 
         // Non-matching condition
-        assert!(!engine.evaluate_pattern_rule(&rule, &serde_json::json!({
-            "country": "SAFE", "is_new_vendor": true
-        })));
+        assert!(!engine.evaluate_pattern_rule(
+            &rule,
+            &serde_json::json!({
+                "country": "SAFE", "is_new_vendor": true
+            })
+        ));
     }
 
     #[test]
@@ -790,14 +962,20 @@ mod tests {
         };
 
         // Same user in both roles - violation
-        assert!(engine.evaluate_segregation_rule(&rule, &serde_json::json!({
-            "preparer_id": "user-123", "approver_id": "user-123"
-        })));
+        assert!(engine.evaluate_segregation_rule(
+            &rule,
+            &serde_json::json!({
+                "preparer_id": "user-123", "approver_id": "user-123"
+            })
+        ));
 
         // Different users - no violation
-        assert!(!engine.evaluate_segregation_rule(&rule, &serde_json::json!({
-            "preparer_id": "user-123", "approver_id": "user-456"
-        })));
+        assert!(!engine.evaluate_segregation_rule(
+            &rule,
+            &serde_json::json!({
+                "preparer_id": "user-123", "approver_id": "user-456"
+            })
+        ));
     }
 
     #[test]
@@ -834,14 +1012,20 @@ mod tests {
         };
 
         // No approval - violation
-        assert!(engine.evaluate_approval_rule(&rule, &serde_json::json!({
-            "amount": 50000.0
-        })));
+        assert!(engine.evaluate_approval_rule(
+            &rule,
+            &serde_json::json!({
+                "amount": 50000.0
+            })
+        ));
 
         // Has approval - no violation
-        assert!(!engine.evaluate_approval_rule(&rule, &serde_json::json!({
-            "amount": 50000.0, "approved_by": "manager-001"
-        })));
+        assert!(!engine.evaluate_approval_rule(
+            &rule,
+            &serde_json::json!({
+                "amount": 50000.0, "approved_by": "manager-001"
+            })
+        ));
     }
 
     #[test]
@@ -878,14 +1062,20 @@ mod tests {
         };
 
         // Over frequency threshold - violation
-        assert!(engine.evaluate_frequency_rule(&rule, &serde_json::json!({
-            "transaction_count": 10
-        })));
+        assert!(engine.evaluate_frequency_rule(
+            &rule,
+            &serde_json::json!({
+                "transaction_count": 10
+            })
+        ));
 
         // Under threshold - no violation
-        assert!(!engine.evaluate_frequency_rule(&rule, &serde_json::json!({
-            "transaction_count": 3
-        })));
+        assert!(!engine.evaluate_frequency_rule(
+            &rule,
+            &serde_json::json!({
+                "transaction_count": 3
+            })
+        ));
     }
 
     fn create_test_engine() -> FinancialControlsEngine {

@@ -1196,7 +1196,7 @@ pub struct PromoMgmtPromotion {
     pub name: String,
     pub description: Option<String>,
     pub promotion_type: String, // trade, consumer, channel, co_op
-    pub status: String,        // draft, active, on_hold, completed, cancelled
+    pub status: String,         // draft, active, on_hold, completed, cancelled
     pub start_date: chrono::NaiveDate,
     pub end_date: chrono::NaiveDate,
     pub customer_id: Option<Uuid>,
@@ -1223,9 +1223,9 @@ pub struct PromoMgmtOffer {
     pub id: Uuid,
     pub organization_id: Uuid,
     pub promotion_id: Uuid,
-    pub offer_type: String,       // discount, buy_get, bundle, free_item, rebate
+    pub offer_type: String, // discount, buy_get, bundle, free_item, rebate
     pub description: Option<String>,
-    pub discount_type: String,    // percentage, fixed_amount, fixed_price
+    pub discount_type: String, // percentage, fixed_amount, fixed_price
     pub discount_value: String,
     pub buy_quantity: Option<i32>,
     pub get_quantity: Option<i32>,
@@ -1244,7 +1244,7 @@ pub struct PromoMgmtFund {
     pub id: Uuid,
     pub organization_id: Uuid,
     pub promotion_id: Uuid,
-    pub fund_type: String,        // marketing_development, cooperative, trade_spend, display
+    pub fund_type: String, // marketing_development, cooperative, trade_spend, display
     pub allocated_amount: String,
     pub committed_amount: String,
     pub spent_amount: String,
@@ -1263,8 +1263,8 @@ pub struct PromoMgmtClaim {
     pub organization_id: Uuid,
     pub promotion_id: Uuid,
     pub claim_number: String,
-    pub claim_type: String,       // accrual, settlement, deduction, lump_sum
-    pub status: String,           // submitted, under_review, approved, rejected, paid
+    pub claim_type: String, // accrual, settlement, deduction, lump_sum
+    pub status: String,     // submitted, under_review, approved, rejected, paid
     pub amount: String,
     pub approved_amount: Option<String>,
     pub paid_amount: Option<String>,
@@ -1480,4 +1480,3 @@ pub struct LoyaltyDashboard {
     pub top_members: serde_json::Value,
     pub recent_transactions: serde_json::Value,
 }
-

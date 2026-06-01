@@ -6,13 +6,11 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: General Ledger > Journals > Recurring Journals
 
-use atlas_shared::{
-    RecurringJournalSchedule, RecurringJournalScheduleLine,
-    RecurringJournalGeneration, RecurringJournalGenerationLine,
-    RecurringJournalDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::RecurringJournalRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, RecurringJournalDashboardSummary, RecurringJournalGeneration,
+    RecurringJournalGenerationLine, RecurringJournalSchedule, RecurringJournalScheduleLine,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -37,7 +35,12 @@ pub(crate) struct GenerationLineData {
 
 /// Valid recurrence types
 const VALID_RECURRENCE_TYPES: &[&str] = &[
-    "daily", "weekly", "monthly", "quarterly", "semi_annual", "annual",
+    "daily",
+    "weekly",
+    "monthly",
+    "quarterly",
+    "semi_annual",
+    "annual",
 ];
 
 /// Valid journal types
@@ -68,11 +71,21 @@ fn calculate_next_date(current: chrono::NaiveDate, recurrence: &str) -> chrono::
     match recurrence {
         "daily" => current + chrono::Duration::days(1),
         "weekly" => current + chrono::Duration::weeks(1),
-        "monthly" => current.checked_add_months(chrono::Months::new(1)).unwrap_or(current),
-        "quarterly" => current.checked_add_months(chrono::Months::new(3)).unwrap_or(current),
-        "semi_annual" => current.checked_add_months(chrono::Months::new(6)).unwrap_or(current),
-        "annual" => current.checked_add_months(chrono::Months::new(12)).unwrap_or(current),
-        _ => current.checked_add_months(chrono::Months::new(1)).unwrap_or(current),
+        "monthly" => current
+            .checked_add_months(chrono::Months::new(1))
+            .unwrap_or(current),
+        "quarterly" => current
+            .checked_add_months(chrono::Months::new(3))
+            .unwrap_or(current),
+        "semi_annual" => current
+            .checked_add_months(chrono::Months::new(6))
+            .unwrap_or(current),
+        "annual" => current
+            .checked_add_months(chrono::Months::new(12))
+            .unwrap_or(current),
+        _ => current
+            .checked_add_months(chrono::Months::new(1))
+            .unwrap_or(current),
     }
 }
 
@@ -111,10 +124,14 @@ impl RecurringJournalEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RecurringJournalSchedule> {
         if schedule_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Schedule number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Schedule number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Schedule name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Schedule name is required".to_string(),
+            ));
         }
         if !VALID_RECURRENCE_TYPES.contains(&recurrence_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -132,9 +149,11 @@ impl RecurringJournalEngine {
         }
         if journal_type == "incremental" {
             if let Some(pct) = incremental_percent {
-                let val: f64 = pct.parse().map_err(|_| AtlasError::ValidationFailed(
-                    "Incremental percent must be a valid number".to_string(),
-                ))?;
+                let val: f64 = pct.parse().map_err(|_| {
+                    AtlasError::ValidationFailed(
+                        "Incremental percent must be a valid number".to_string(),
+                    )
+                })?;
                 if !(-100.0..=1000.0).contains(&val) {
                     return Err(AtlasError::ValidationFailed(
                         "Incremental percent must be between -100 and 1000".to_string(),
@@ -186,17 +205,28 @@ impl RecurringJournalEngine {
     }
 
     /// Get a schedule by number
-    pub async fn get_schedule(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<Option<RecurringJournalSchedule>> {
+    pub async fn get_schedule(
+        &self,
+        org_id: Uuid,
+        schedule_number: &str,
+    ) -> AtlasResult<Option<RecurringJournalSchedule>> {
         self.repository.get_schedule(org_id, schedule_number).await
     }
 
     /// Get a schedule by ID
-    pub async fn get_schedule_by_id(&self, id: Uuid) -> AtlasResult<Option<RecurringJournalSchedule>> {
+    pub async fn get_schedule_by_id(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<RecurringJournalSchedule>> {
         self.repository.get_schedule_by_id(id).await
     }
 
     /// List schedules with optional status filter
-    pub async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<RecurringJournalSchedule>> {
+    pub async fn list_schedules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<RecurringJournalSchedule>> {
         if let Some(s) = status {
             if !VALID_SCHEDULE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
@@ -210,12 +240,18 @@ impl RecurringJournalEngine {
     }
 
     /// Activate a draft schedule
-    pub async fn activate_schedule(&self, schedule_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<RecurringJournalSchedule> {
+    pub async fn activate_schedule(
+        &self,
+        schedule_id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<RecurringJournalSchedule> {
         let schedule = self
             .repository
             .get_schedule_by_id(schedule_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
         if schedule.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -228,17 +264,20 @@ impl RecurringJournalEngine {
         let lines = self.repository.list_schedule_lines(schedule_id).await?;
         if lines.is_empty() {
             return Err(AtlasError::ValidationFailed(
-                "Cannot activate schedule without template lines. Add at least one line.".to_string(),
+                "Cannot activate schedule without template lines. Add at least one line."
+                    .to_string(),
             ));
         }
 
         // Validate balanced (total debits == total credits) for standard and incremental types
         if schedule.journal_type != "skeleton" {
-            let total_debits: f64 = lines.iter()
+            let total_debits: f64 = lines
+                .iter()
                 .filter(|l| l.line_type == "debit")
                 .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
                 .sum();
-            let total_credits: f64 = lines.iter()
+            let total_credits: f64 = lines
+                .iter()
                 .filter(|l| l.line_type == "credit")
                 .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
                 .sum();
@@ -250,19 +289,27 @@ impl RecurringJournalEngine {
             }
         }
 
-        info!("Activated recurring journal schedule {}", schedule.schedule_number);
+        info!(
+            "Activated recurring journal schedule {}",
+            schedule.schedule_number
+        );
         self.repository
             .update_schedule_status(schedule_id, "active", approved_by)
             .await
     }
 
     /// Deactivate an active schedule
-    pub async fn deactivate_schedule(&self, schedule_id: Uuid) -> AtlasResult<RecurringJournalSchedule> {
+    pub async fn deactivate_schedule(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<RecurringJournalSchedule> {
         let schedule = self
             .repository
             .get_schedule_by_id(schedule_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
         if schedule.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -271,7 +318,10 @@ impl RecurringJournalEngine {
             )));
         }
 
-        info!("Deactivated recurring journal schedule {}", schedule.schedule_number);
+        info!(
+            "Deactivated recurring journal schedule {}",
+            schedule.schedule_number
+        );
         self.repository
             .update_schedule_status(schedule_id, "inactive", None)
             .await
@@ -283,7 +333,9 @@ impl RecurringJournalEngine {
             .repository
             .get_schedule(org_id, schedule_number)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_number} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_number} not found"))
+            })?;
 
         if schedule.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -292,7 +344,9 @@ impl RecurringJournalEngine {
         }
 
         info!("Deleted recurring journal schedule {}", schedule_number);
-        self.repository.delete_schedule(org_id, schedule_number).await
+        self.repository
+            .delete_schedule(org_id, schedule_number)
+            .await
     }
 
     // ========================================================================
@@ -323,14 +377,18 @@ impl RecurringJournalEngine {
             )));
         }
         if account_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Account code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Account code is required".to_string(),
+            ));
         }
 
         let schedule = self
             .repository
             .get_schedule_by_id(schedule_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
         if schedule.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -338,11 +396,13 @@ impl RecurringJournalEngine {
             ));
         }
 
-        let amt: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amt: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
         if amt < 0.0 {
-            return Err(AtlasError::ValidationFailed("Amount cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Amount cannot be negative".to_string(),
+            ));
         }
 
         // Get next line number
@@ -374,7 +434,10 @@ impl RecurringJournalEngine {
     }
 
     /// List template lines for a schedule
-    pub async fn list_schedule_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<RecurringJournalScheduleLine>> {
+    pub async fn list_schedule_lines(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<RecurringJournalScheduleLine>> {
         self.repository.list_schedule_lines(schedule_id).await
     }
 
@@ -399,7 +462,9 @@ impl RecurringJournalEngine {
             .repository
             .get_schedule_by_id(schedule_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
         if schedule.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -432,19 +497,24 @@ impl RecurringJournalEngine {
         }
 
         // Calculate line amounts based on journal type
-        let gen_lines = self.calculate_generation_lines(
-            &schedule, &lines, override_amounts, generation_date,
-        )?;
+        let gen_lines =
+            self.calculate_generation_lines(&schedule, &lines, override_amounts, generation_date)?;
 
         // Get next generation number
-        let gen_number = self.repository.get_latest_generation_number(schedule_id).await? + 1;
+        let gen_number = self
+            .repository
+            .get_latest_generation_number(schedule_id)
+            .await?
+            + 1;
 
         // Calculate totals
-        let total_debit: f64 = gen_lines.iter()
+        let total_debit: f64 = gen_lines
+            .iter()
             .filter(|l| l.line_type == "debit")
             .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let total_credit: f64 = gen_lines.iter()
+        let total_credit: f64 = gen_lines
+            .iter()
             .filter(|l| l.line_type == "credit")
             .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
             .sum();
@@ -452,46 +522,73 @@ impl RecurringJournalEngine {
         let period_name = generation_date.format("%Y-%m").to_string();
 
         // Create generation record
-        let generation = self.repository.create_generation(
-            schedule.organization_id,
-            schedule_id,
-            gen_number,
-            generation_date,
-            Some(&period_name),
-            &format!("{total_debit:.2}"),
-            &format!("{total_credit:.2}"),
-            gen_lines.len() as i32,
-            generated_by,
-        ).await?;
+        let generation = self
+            .repository
+            .create_generation(
+                schedule.organization_id,
+                schedule_id,
+                gen_number,
+                generation_date,
+                Some(&period_name),
+                &format!("{total_debit:.2}"),
+                &format!("{total_credit:.2}"),
+                gen_lines.len() as i32,
+                generated_by,
+            )
+            .await?;
 
         // Create generation lines
         for (idx, line) in gen_lines.iter().enumerate() {
-            self.repository.create_generation_line(
-                schedule.organization_id,
-                generation.id,
-                if line.schedule_line_id == Uuid::nil() { None } else { Some(line.schedule_line_id) },
-                idx as i32 + 1,
-                &line.line_type,
-                &line.account_code,
-                if line.account_name.is_empty() { None } else { Some(&line.account_name) },
-                if line.description.is_empty() { None } else { Some(&line.description) },
-                &line.amount,
-                &schedule.currency_code,
-                if line.tax_code.is_empty() { None } else { Some(&line.tax_code) },
-                if line.cost_center.is_empty() { None } else { Some(&line.cost_center) },
-                line.department_id,
-                line.project_id,
-            ).await?;
+            self.repository
+                .create_generation_line(
+                    schedule.organization_id,
+                    generation.id,
+                    if line.schedule_line_id == Uuid::nil() {
+                        None
+                    } else {
+                        Some(line.schedule_line_id)
+                    },
+                    idx as i32 + 1,
+                    &line.line_type,
+                    &line.account_code,
+                    if line.account_name.is_empty() {
+                        None
+                    } else {
+                        Some(&line.account_name)
+                    },
+                    if line.description.is_empty() {
+                        None
+                    } else {
+                        Some(&line.description)
+                    },
+                    &line.amount,
+                    &schedule.currency_code,
+                    if line.tax_code.is_empty() {
+                        None
+                    } else {
+                        Some(&line.tax_code)
+                    },
+                    if line.cost_center.is_empty() {
+                        None
+                    } else {
+                        Some(&line.cost_center)
+                    },
+                    line.department_id,
+                    line.project_id,
+                )
+                .await?;
         }
 
         // Update schedule generation info
         let next_gen = calculate_next_date(generation_date, &schedule.recurrence_type);
-        self.repository.update_schedule_generation_info(
-            schedule_id,
-            generation_date,
-            Some(next_gen),
-            schedule.total_generations + 1,
-        ).await?;
+        self.repository
+            .update_schedule_generation_info(
+                schedule_id,
+                generation_date,
+                Some(next_gen),
+                schedule.total_generations + 1,
+            )
+            .await?;
 
         info!(
             "Generated recurring journal #{} for schedule {} (debit: {:.2}, credit: {:.2})",
@@ -502,22 +599,33 @@ impl RecurringJournalEngine {
     }
 
     /// Get a generation by ID
-    pub async fn get_generation(&self, id: Uuid) -> AtlasResult<Option<RecurringJournalGeneration>> {
+    pub async fn get_generation(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<RecurringJournalGeneration>> {
         self.repository.get_generation(id).await
     }
 
     /// List generations for a schedule
-    pub async fn list_generations(&self, schedule_id: Uuid) -> AtlasResult<Vec<RecurringJournalGeneration>> {
+    pub async fn list_generations(
+        &self,
+        schedule_id: Uuid,
+    ) -> AtlasResult<Vec<RecurringJournalGeneration>> {
         self.repository.list_generations(schedule_id).await
     }
 
     /// Post a generated journal
-    pub async fn post_generation(&self, generation_id: Uuid) -> AtlasResult<RecurringJournalGeneration> {
+    pub async fn post_generation(
+        &self,
+        generation_id: Uuid,
+    ) -> AtlasResult<RecurringJournalGeneration> {
         let gen = self
             .repository
             .get_generation(generation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Generation {generation_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Generation {generation_id} not found"))
+            })?;
 
         if gen.status != "generated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -526,19 +634,33 @@ impl RecurringJournalEngine {
             )));
         }
 
-        info!("Posted recurring journal generation #{}", gen.generation_number);
+        info!(
+            "Posted recurring journal generation #{}",
+            gen.generation_number
+        );
         self.repository
-            .update_generation_status(generation_id, "posted", Some(chrono::Utc::now()), None, None)
+            .update_generation_status(
+                generation_id,
+                "posted",
+                Some(chrono::Utc::now()),
+                None,
+                None,
+            )
             .await
     }
 
     /// Reverse a posted generation
-    pub async fn reverse_generation(&self, generation_id: Uuid) -> AtlasResult<RecurringJournalGeneration> {
+    pub async fn reverse_generation(
+        &self,
+        generation_id: Uuid,
+    ) -> AtlasResult<RecurringJournalGeneration> {
         let gen = self
             .repository
             .get_generation(generation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Generation {generation_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Generation {generation_id} not found"))
+            })?;
 
         if gen.status != "posted" {
             return Err(AtlasError::WorkflowError(format!(
@@ -547,19 +669,33 @@ impl RecurringJournalEngine {
             )));
         }
 
-        info!("Reversed recurring journal generation #{}", gen.generation_number);
+        info!(
+            "Reversed recurring journal generation #{}",
+            gen.generation_number
+        );
         self.repository
-            .update_generation_status(generation_id, "reversed", None, Some(chrono::Utc::now()), Some(Uuid::new_v4()))
+            .update_generation_status(
+                generation_id,
+                "reversed",
+                None,
+                Some(chrono::Utc::now()),
+                Some(Uuid::new_v4()),
+            )
             .await
     }
 
     /// Cancel a generated (unposted) journal
-    pub async fn cancel_generation(&self, generation_id: Uuid) -> AtlasResult<RecurringJournalGeneration> {
+    pub async fn cancel_generation(
+        &self,
+        generation_id: Uuid,
+    ) -> AtlasResult<RecurringJournalGeneration> {
         let gen = self
             .repository
             .get_generation(generation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Generation {generation_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Generation {generation_id} not found"))
+            })?;
 
         if gen.status != "generated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -568,14 +704,20 @@ impl RecurringJournalEngine {
             )));
         }
 
-        info!("Cancelled recurring journal generation #{}", gen.generation_number);
+        info!(
+            "Cancelled recurring journal generation #{}",
+            gen.generation_number
+        );
         self.repository
             .update_generation_status(generation_id, "cancelled", None, None, None)
             .await
     }
 
     /// List generation lines
-    pub async fn list_generation_lines(&self, generation_id: Uuid) -> AtlasResult<Vec<RecurringJournalGenerationLine>> {
+    pub async fn list_generation_lines(
+        &self,
+        generation_id: Uuid,
+    ) -> AtlasResult<Vec<RecurringJournalGenerationLine>> {
         self.repository.list_generation_lines(generation_id).await
     }
 
@@ -584,7 +726,10 @@ impl RecurringJournalEngine {
     // ========================================================================
 
     /// Get recurring journal dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<RecurringJournalDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<RecurringJournalDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 
@@ -610,8 +755,10 @@ impl RecurringJournalEngine {
                     "skeleton" => {
                         // For skeleton, look for override amount by line number
                         if let Some(ref overrides) = override_amounts {
-                            overrides.iter()
-                                .find(|(num, _)| *num == line.line_number).map_or_else(|| "0.00".to_string(), |(_, amt)| amt.clone())
+                            overrides
+                                .iter()
+                                .find(|(num, _)| *num == line.line_number)
+                                .map_or_else(|| "0.00".to_string(), |(_, amt)| amt.clone())
                         } else {
                             "0.00".to_string()
                         }
@@ -619,7 +766,8 @@ impl RecurringJournalEngine {
                     "incremental" => {
                         // For incremental, increase amount by incremental_percent each generation
                         let base: f64 = line.amount.parse().unwrap_or(0.0);
-                        let pct: f64 = schedule.incremental_percent
+                        let pct: f64 = schedule
+                            .incremental_percent
                             .as_ref()
                             .and_then(|p| p.parse().ok())
                             .unwrap_or(0.0);
@@ -648,11 +796,13 @@ impl RecurringJournalEngine {
 
         // Validate balanced for non-skeleton types
         if schedule.journal_type != "skeleton" {
-            let total_debits: f64 = result.iter()
+            let total_debits: f64 = result
+                .iter()
                 .filter(|l| l.line_type == "debit")
                 .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
                 .sum();
-            let total_credits: f64 = result.iter()
+            let total_credits: f64 = result
+                .iter()
                 .filter(|l| l.line_type == "credit")
                 .map(|l| l.amount.parse::<f64>().unwrap_or(0.0))
                 .sum();

@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Project Billing, Project Invoices, Billing Events
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ProjectBillingEngine;
-pub use repository::{ProjectBillingRepository, PostgresProjectBillingRepository};
+pub use repository::{PostgresProjectBillingRepository, ProjectBillingRepository};

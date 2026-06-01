@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: SCM > Product Management > Configurator
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ProductConfiguratorEngine;
-pub use repository::{ProductConfiguratorRepository, PostgresProductConfiguratorRepository};
+pub use repository::{PostgresProductConfiguratorRepository, ProductConfiguratorRepository};

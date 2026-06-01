@@ -9,11 +9,10 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Cash Management > Bank Transfers
 
-use atlas_shared::{
-    BankTransferType, BankAccountTransfer, BankTransferDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::BankAccountTransferRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, BankAccountTransfer, BankTransferDashboardSummary, BankTransferType,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -25,8 +24,14 @@ const VALID_SETTLEMENT_METHODS: &[&str] = &["immediate", "scheduled", "batch"];
 /// Valid transfer statuses
 #[allow(dead_code)]
 const VALID_TRANSFER_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "in_transit", "completed",
-    "cancelled", "reversed", "failed",
+    "draft",
+    "submitted",
+    "approved",
+    "in_transit",
+    "completed",
+    "cancelled",
+    "reversed",
+    "failed",
 ];
 
 /// Valid priorities
@@ -66,13 +71,17 @@ impl BankAccountTransferEngine {
         }
         if !VALID_SETTLEMENT_METHODS.contains(&settlement_method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid settlement_method '{}'. Must be one of: {}", settlement_method, VALID_SETTLEMENT_METHODS.join(", ")
+                "Invalid settlement_method '{}'. Must be one of: {}",
+                settlement_method,
+                VALID_SETTLEMENT_METHODS.join(", ")
             )));
         }
         if let Some(threshold) = approval_threshold {
-            let t: f64 = threshold.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Approval threshold must be a valid number".to_string(),
-            ))?;
+            let t: f64 = threshold.parse().map_err(|_| {
+                AtlasError::ValidationFailed(
+                    "Approval threshold must be a valid number".to_string(),
+                )
+            })?;
             if t < 0.0 {
                 return Err(AtlasError::ValidationFailed(
                     "Approval threshold must be non-negative".to_string(),
@@ -81,10 +90,18 @@ impl BankAccountTransferEngine {
         }
 
         info!("Creating bank transfer type '{}'", code);
-        self.repository.create_transfer_type(
-            org_id, code, name, description, settlement_method,
-            requires_approval, approval_threshold, created_by,
-        ).await
+        self.repository
+            .create_transfer_type(
+                org_id,
+                code,
+                name,
+                description,
+                settlement_method,
+                requires_approval,
+                approval_threshold,
+                created_by,
+            )
+            .await
     }
 
     /// List transfer types
@@ -126,9 +143,9 @@ impl BankAccountTransferEngine {
             ));
         }
 
-        let amt: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amt: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
         if amt <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Transfer amount must be positive".to_string(),
@@ -137,32 +154,56 @@ impl BankAccountTransferEngine {
 
         if !VALID_PRIORITIES.contains(&priority) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid priority '{}'. Must be one of: {}", priority, VALID_PRIORITIES.join(", ")
+                "Invalid priority '{}'. Must be one of: {}",
+                priority,
+                VALID_PRIORITIES.join(", ")
             )));
         }
 
         let transfer_number = format!("TRF-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
         // Calculate transferred amount if cross-currency
-        let transferred_amount = if let (Some(rate), Some(_to_curr)) = (exchange_rate, to_currency) {
+        let transferred_amount = if let (Some(rate), Some(_to_curr)) = (exchange_rate, to_currency)
+        {
             let rate: f64 = rate.parse().unwrap_or(1.0);
             Some(format!("{:.2}", amt * rate))
         } else {
             None
         };
 
-        info!("Creating bank transfer {} for {:.2} {}", transfer_number, amt, currency_code);
+        info!(
+            "Creating bank transfer {} for {:.2} {}",
+            transfer_number, amt, currency_code
+        );
 
-        self.repository.create_transfer(
-            org_id, &transfer_number, transfer_type_id,
-            from_bank_account_id, from_bank_account_number, from_bank_name,
-            to_bank_account_id, to_bank_account_number, to_bank_name,
-            amount, currency_code, exchange_rate, from_currency, to_currency,
-            transferred_amount.as_deref(),
-            transfer_date, value_date, None, // settlement_date
-            reference_number, description, purpose,
-            "draft", priority, created_by,
-        ).await
+        self.repository
+            .create_transfer(
+                org_id,
+                &transfer_number,
+                transfer_type_id,
+                from_bank_account_id,
+                from_bank_account_number,
+                from_bank_name,
+                to_bank_account_id,
+                to_bank_account_number,
+                to_bank_name,
+                amount,
+                currency_code,
+                exchange_rate,
+                from_currency,
+                to_currency,
+                transferred_amount.as_deref(),
+                transfer_date,
+                value_date,
+                None, // settlement_date
+                reference_number,
+                description,
+                purpose,
+                "draft",
+                priority,
+                created_by,
+            )
+            .await
     }
 
     /// Get transfer by ID
@@ -171,11 +212,17 @@ impl BankAccountTransferEngine {
     }
 
     /// List transfers
-    pub async fn list_transfers(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<BankAccountTransfer>> {
+    pub async fn list_transfers(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<BankAccountTransfer>> {
         if let Some(s) = status {
             if !VALID_TRANSFER_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_TRANSFER_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_TRANSFER_STATUSES.join(", ")
                 )));
             }
         }
@@ -187,92 +234,165 @@ impl BankAccountTransferEngine {
     // ========================================================================
 
     /// Submit a draft transfer
-    pub async fn submit_transfer(&self, transfer_id: Uuid, submitted_by: Option<Uuid>) -> AtlasResult<BankAccountTransfer> {
-        let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found")))?;
+    pub async fn submit_transfer(
+        &self,
+        transfer_id: Uuid,
+        submitted_by: Option<Uuid>,
+    ) -> AtlasResult<BankAccountTransfer> {
+        let transfer = self
+            .repository
+            .get_transfer(transfer_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found"))
+            })?;
 
         if transfer.status != "draft" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot submit transfer in '{}' status. Must be 'draft'.", transfer.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot submit transfer in '{}' status. Must be 'draft'.",
+                transfer.status
+            )));
         }
 
         info!("Submitting bank transfer {}", transfer.transfer_number);
-        self.repository.update_transfer_status(
-            transfer_id, "submitted", submitted_by, None, None, None, None,
-        ).await
+        self.repository
+            .update_transfer_status(
+                transfer_id,
+                "submitted",
+                submitted_by,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
     }
 
     /// Approve a submitted transfer
-    pub async fn approve_transfer(&self, transfer_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<BankAccountTransfer> {
-        let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found")))?;
+    pub async fn approve_transfer(
+        &self,
+        transfer_id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<BankAccountTransfer> {
+        let transfer = self
+            .repository
+            .get_transfer(transfer_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found"))
+            })?;
 
         if transfer.status != "submitted" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve transfer in '{}' status. Must be 'submitted'.", transfer.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve transfer in '{}' status. Must be 'submitted'.",
+                transfer.status
+            )));
         }
 
         info!("Approving bank transfer {}", transfer.transfer_number);
-        self.repository.update_transfer_status(
-            transfer_id, "approved", None, approved_by, None, None, None,
-        ).await
+        self.repository
+            .update_transfer_status(transfer_id, "approved", None, approved_by, None, None, None)
+            .await
     }
 
     /// Mark transfer as in transit
     pub async fn mark_in_transit(&self, transfer_id: Uuid) -> AtlasResult<BankAccountTransfer> {
-        let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found")))?;
+        let transfer = self
+            .repository
+            .get_transfer(transfer_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found"))
+            })?;
 
         if transfer.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot mark in-transit from '{}' status. Must be 'approved'.", transfer.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot mark in-transit from '{}' status. Must be 'approved'.",
+                transfer.status
+            )));
         }
 
         info!("Bank transfer {} in transit", transfer.transfer_number);
-        self.repository.update_transfer_status(
-            transfer_id, "in_transit", None, None, None, None, None,
-        ).await
+        self.repository
+            .update_transfer_status(transfer_id, "in_transit", None, None, None, None, None)
+            .await
     }
 
     /// Complete a transfer
-    pub async fn complete_transfer(&self, transfer_id: Uuid, completed_by: Option<Uuid>) -> AtlasResult<BankAccountTransfer> {
-        let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found")))?;
+    pub async fn complete_transfer(
+        &self,
+        transfer_id: Uuid,
+        completed_by: Option<Uuid>,
+    ) -> AtlasResult<BankAccountTransfer> {
+        let transfer = self
+            .repository
+            .get_transfer(transfer_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found"))
+            })?;
 
         if transfer.status != "in_transit" && transfer.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot complete transfer in '{}' status. Must be 'in_transit' or 'approved'.", transfer.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot complete transfer in '{}' status. Must be 'in_transit' or 'approved'.",
+                transfer.status
+            )));
         }
 
         info!("Completing bank transfer {}", transfer.transfer_number);
-        self.repository.update_transfer_status(
-            transfer_id, "completed", None, None, completed_by, None, None,
-        ).await
+        self.repository
+            .update_transfer_status(
+                transfer_id,
+                "completed",
+                None,
+                None,
+                completed_by,
+                None,
+                None,
+            )
+            .await
     }
 
     /// Cancel a transfer
-    pub async fn cancel_transfer(&self, transfer_id: Uuid, cancelled_by: Option<Uuid>, reason: Option<&str>) -> AtlasResult<BankAccountTransfer> {
-        let transfer = self.repository.get_transfer(transfer_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found")))?;
+    pub async fn cancel_transfer(
+        &self,
+        transfer_id: Uuid,
+        cancelled_by: Option<Uuid>,
+        reason: Option<&str>,
+    ) -> AtlasResult<BankAccountTransfer> {
+        let transfer = self
+            .repository
+            .get_transfer(transfer_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Transfer {transfer_id} not found"))
+            })?;
 
-        if transfer.status != "draft" && transfer.status != "submitted" && transfer.status != "approved" {
+        if transfer.status != "draft"
+            && transfer.status != "submitted"
+            && transfer.status != "approved"
+        {
             return Err(AtlasError::WorkflowError(
                 format!("Cannot cancel transfer in '{}' status. Must be 'draft', 'submitted', or 'approved'.", transfer.status)
             ));
         }
 
         info!("Cancelling bank transfer {}", transfer.transfer_number);
-        self.repository.update_transfer_status(
-            transfer_id, "cancelled", None, None, None, cancelled_by, reason,
-        ).await
+        self.repository
+            .update_transfer_status(
+                transfer_id,
+                "cancelled",
+                None,
+                None,
+                None,
+                cancelled_by,
+                reason,
+            )
+            .await
     }
 
     /// Calculate cross-currency transfer amount
-    #[must_use] 
+    #[must_use]
     pub fn calculate_cross_currency_amount(amount: f64, exchange_rate: f64) -> f64 {
         amount * exchange_rate
     }

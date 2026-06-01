@@ -12,8 +12,8 @@
 //! Oracle Fusion equivalent: Maintenance Management > Work Orders,
 //! Preventive Maintenance, Asset Definition, Maintenance Dashboard
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::EnterpriseAssetManagementEngine;
 pub use repository::{AssetManagementRepository, PostgresAssetManagementRepository};

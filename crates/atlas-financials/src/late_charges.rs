@@ -1,4 +1,4 @@
-use atlas_shared::{AtlasResult, AtlasError, RecordId};
+use atlas_shared::{AtlasError, AtlasResult, RecordId};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 
@@ -59,9 +59,10 @@ impl LateChargesService {
             }
 
             let days_overdue = (calculation_date - invoice.due_date).num_days();
-            
+
             // simple interest: outstanding_amount * daily_rate * days_overdue
-            let mut charge_amount = invoice.outstanding_amount * daily_rate * Decimal::from(days_overdue);
+            let mut charge_amount =
+                invoice.outstanding_amount * daily_rate * Decimal::from(days_overdue);
             charge_amount = charge_amount.round_dp(2);
 
             if charge_amount < minimum_charge {
@@ -116,19 +117,16 @@ mod tests {
         let annual_rate = dec!(0.10); // 10% annual
         let minimum_charge = dec!(5.00);
 
-        let charges = service.calculate_late_charges(
-            &invoices,
-            annual_rate,
-            calculation_date,
-            minimum_charge,
-        ).unwrap();
+        let charges = service
+            .calculate_late_charges(&invoices, annual_rate, calculation_date, minimum_charge)
+            .unwrap();
 
         assert_eq!(charges.len(), 2);
-        
+
         let daily_rate = dec!(0.10) / dec!(365);
-        
+
         let expected_charge_1 = (dec!(1000.00) * daily_rate * dec!(31)).round_dp(2);
-        
+
         assert_eq!(charges[0].invoice_id, invoice1_id);
         assert_eq!(charges[0].days_overdue, 31);
         assert_eq!(charges[0].charge_amount, expected_charge_1);
@@ -144,20 +142,15 @@ mod tests {
         let calculation_date = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap();
         let invoice1_id = Uuid::new_v4();
 
-        let invoices = vec![
-            OverdueInvoice {
-                invoice_id: invoice1_id,
-                due_date: NaiveDate::from_ymd_opt(2023, 1, 10).unwrap(), // Not overdue yet
-                outstanding_amount: dec!(1000.00),
-            },
-        ];
+        let invoices = vec![OverdueInvoice {
+            invoice_id: invoice1_id,
+            due_date: NaiveDate::from_ymd_opt(2023, 1, 10).unwrap(), // Not overdue yet
+            outstanding_amount: dec!(1000.00),
+        }];
 
-        let charges = service.calculate_late_charges(
-            &invoices,
-            dec!(0.10),
-            calculation_date,
-            dec!(5.00),
-        ).unwrap();
+        let charges = service
+            .calculate_late_charges(&invoices, dec!(0.10), calculation_date, dec!(5.00))
+            .unwrap();
 
         assert_eq!(charges.len(), 0);
     }
@@ -168,12 +161,8 @@ mod tests {
         let calculation_date = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap();
         let invoices = vec![];
 
-        let res = service.calculate_late_charges(
-            &invoices,
-            dec!(0.10),
-            calculation_date,
-            dec!(-5.00),
-        );
+        let res =
+            service.calculate_late_charges(&invoices, dec!(0.10), calculation_date, dec!(-5.00));
 
         assert!(res.is_err());
         if let Err(AtlasError::ValidationFailed(msg)) = res {

@@ -2,12 +2,11 @@
 //!
 //! `PostgreSQL` storage for AR transactions, receipts, credit memos, and adjustments.
 
-use atlas_shared::{
-    ArTransaction, ArTransactionLine, ArReceipt, ArCreditMemo, ArAdjustment,
-    ArAgingSummary, ArAgingByCustomer,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    ArAdjustment, ArAgingByCustomer, ArAgingSummary, ArCreditMemo, ArReceipt, ArTransaction,
+    ArTransactionLine, AtlasError, AtlasResult,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -39,12 +38,45 @@ pub trait AccountsReceivableRepository: Send + Sync {
     ) -> AtlasResult<ArTransaction>;
 
     async fn get_transaction(&self, id: Uuid) -> AtlasResult<Option<ArTransaction>>;
-    async fn get_transaction_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<ArTransaction>>;
-    async fn list_transactions(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>, transaction_type: Option<&str>) -> AtlasResult<Vec<ArTransaction>>;
-    async fn update_transaction_status(&self, id: Uuid, status: &str, posted_by: Option<Uuid>, reason: Option<&str>) -> AtlasResult<ArTransaction>;
-    async fn update_transaction_amounts(&self, id: Uuid, amount_due_remaining: &str, amount_applied: Option<&str>, status: &str) -> AtlasResult<ArTransaction>;
-    async fn update_transaction_adjusted(&self, id: Uuid, amount_adjusted: &str) -> AtlasResult<ArTransaction>;
-    async fn update_transaction_totals(&self, id: Uuid, entered_amount: &str, tax_amount: &str, total_amount: &str, amount_due_original: &str) -> AtlasResult<ArTransaction>;
+    async fn get_transaction_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<ArTransaction>>;
+    async fn list_transactions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+        transaction_type: Option<&str>,
+    ) -> AtlasResult<Vec<ArTransaction>>;
+    async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        posted_by: Option<Uuid>,
+        reason: Option<&str>,
+    ) -> AtlasResult<ArTransaction>;
+    async fn update_transaction_amounts(
+        &self,
+        id: Uuid,
+        amount_due_remaining: &str,
+        amount_applied: Option<&str>,
+        status: &str,
+    ) -> AtlasResult<ArTransaction>;
+    async fn update_transaction_adjusted(
+        &self,
+        id: Uuid,
+        amount_adjusted: &str,
+    ) -> AtlasResult<ArTransaction>;
+    async fn update_transaction_totals(
+        &self,
+        id: Uuid,
+        entered_amount: &str,
+        tax_amount: &str,
+        total_amount: &str,
+        amount_due_original: &str,
+    ) -> AtlasResult<ArTransaction>;
 
     // Transaction Lines
     async fn create_transaction_line(
@@ -65,7 +97,10 @@ pub trait AccountsReceivableRepository: Send + Sync {
         revenue_account: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArTransactionLine>;
-    async fn list_transaction_lines(&self, transaction_id: Uuid) -> AtlasResult<Vec<ArTransactionLine>>;
+    async fn list_transaction_lines(
+        &self,
+        transaction_id: Uuid,
+    ) -> AtlasResult<Vec<ArTransactionLine>>;
 
     // Receipts
     async fn create_receipt(
@@ -87,7 +122,12 @@ pub trait AccountsReceivableRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArReceipt>;
     async fn get_receipt(&self, id: Uuid) -> AtlasResult<Option<ArReceipt>>;
-    async fn list_receipts(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<ArReceipt>>;
+    async fn list_receipts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ArReceipt>>;
     async fn update_receipt_status(&self, id: Uuid, status: &str) -> AtlasResult<ArReceipt>;
 
     // Credit Memos
@@ -110,7 +150,12 @@ pub trait AccountsReceivableRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArCreditMemo>;
     async fn get_credit_memo(&self, id: Uuid) -> AtlasResult<Option<ArCreditMemo>>;
-    async fn list_credit_memos(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<ArCreditMemo>>;
+    async fn list_credit_memos(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ArCreditMemo>>;
     async fn update_credit_memo_status(&self, id: Uuid, status: &str) -> AtlasResult<ArCreditMemo>;
 
     // Adjustments
@@ -134,12 +179,30 @@ pub trait AccountsReceivableRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ArAdjustment>;
     async fn get_adjustment(&self, id: Uuid) -> AtlasResult<Option<ArAdjustment>>;
-    async fn list_adjustments(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<ArAdjustment>>;
-    async fn update_adjustment_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<ArAdjustment>;
+    async fn list_adjustments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ArAdjustment>>;
+    async fn update_adjustment_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<ArAdjustment>;
 
     // Aging
-    async fn get_aging_summary(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<ArAgingSummary>;
-    async fn get_aging_by_customer(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<ArAgingByCustomer>>;
+    async fn get_aging_summary(
+        &self,
+        org_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<ArAgingSummary>;
+    async fn get_aging_by_customer(
+        &self,
+        org_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<ArAgingByCustomer>>;
 }
 
 /// `PostgreSQL` implementation
@@ -148,7 +211,7 @@ pub struct PostgresAccountsReceivableRepository {
 }
 
 impl PostgresAccountsReceivableRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -194,12 +257,25 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(transaction_number).bind(transaction_type).bind(transaction_date)
-        .bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(currency_code).bind(entered_amount).bind(tax_amount).bind(total_amount)
-        .bind(payment_terms).bind(due_date).bind(gl_date)
-        .bind(reference_number).bind(purchase_order).bind(sales_rep)
-        .bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(transaction_number)
+        .bind(transaction_type)
+        .bind(transaction_date)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(currency_code)
+        .bind(entered_amount)
+        .bind(tax_amount)
+        .bind(total_amount)
+        .bind(payment_terms)
+        .bind(due_date)
+        .bind(gl_date)
+        .bind(reference_number)
+        .bind(purchase_order)
+        .bind(sales_rep)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -216,7 +292,11 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         Ok(row.map(|r| row_to_transaction(&r)))
     }
 
-    async fn get_transaction_by_number(&self, org_id: Uuid, number: &str) -> AtlasResult<Option<ArTransaction>> {
+    async fn get_transaction_by_number(
+        &self,
+        org_id: Uuid,
+        number: &str,
+    ) -> AtlasResult<Option<ArTransaction>> {
         let row = sqlx::query("SELECT * FROM _atlas.ar_transactions WHERE organization_id = $1 AND transaction_number = $2")
             .bind(org_id).bind(number)
             .fetch_optional(&self.pool)
@@ -225,7 +305,13 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         Ok(row.map(|r| row_to_transaction(&r)))
     }
 
-    async fn list_transactions(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>, transaction_type: Option<&str>) -> AtlasResult<Vec<ArTransaction>> {
+    async fn list_transactions(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+        transaction_type: Option<&str>,
+    ) -> AtlasResult<Vec<ArTransaction>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.ar_transactions
@@ -236,14 +322,23 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             ORDER BY transaction_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(customer_id).bind(transaction_type)
+        .bind(org_id)
+        .bind(status)
+        .bind(customer_id)
+        .bind(transaction_type)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_transaction).collect())
     }
 
-    async fn update_transaction_status(&self, id: Uuid, status: &str, _posted_by: Option<Uuid>, reason: Option<&str>) -> AtlasResult<ArTransaction> {
+    async fn update_transaction_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        _posted_by: Option<Uuid>,
+        reason: Option<&str>,
+    ) -> AtlasResult<ArTransaction> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.ar_transactions
@@ -254,14 +349,22 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(reason)
+        .bind(id)
+        .bind(status)
+        .bind(reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_transaction(&row))
     }
 
-    async fn update_transaction_amounts(&self, id: Uuid, amount_due_remaining: &str, amount_applied: Option<&str>, status: &str) -> AtlasResult<ArTransaction> {
+    async fn update_transaction_amounts(
+        &self,
+        id: Uuid,
+        amount_due_remaining: &str,
+        amount_applied: Option<&str>,
+        status: &str,
+    ) -> AtlasResult<ArTransaction> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.ar_transactions
@@ -273,14 +376,21 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(amount_due_remaining).bind(amount_applied).bind(status)
+        .bind(id)
+        .bind(amount_due_remaining)
+        .bind(amount_applied)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_transaction(&row))
     }
 
-    async fn update_transaction_adjusted(&self, id: Uuid, amount_adjusted: &str) -> AtlasResult<ArTransaction> {
+    async fn update_transaction_adjusted(
+        &self,
+        id: Uuid,
+        amount_adjusted: &str,
+    ) -> AtlasResult<ArTransaction> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.ar_transactions
@@ -290,14 +400,22 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(amount_adjusted)
+        .bind(id)
+        .bind(amount_adjusted)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_transaction(&row))
     }
 
-    async fn update_transaction_totals(&self, id: Uuid, entered_amount: &str, tax_amount: &str, total_amount: &str, amount_due_original: &str) -> AtlasResult<ArTransaction> {
+    async fn update_transaction_totals(
+        &self,
+        id: Uuid,
+        entered_amount: &str,
+        tax_amount: &str,
+        total_amount: &str,
+        amount_due_original: &str,
+    ) -> AtlasResult<ArTransaction> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.ar_transactions
@@ -311,7 +429,11 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(entered_amount).bind(tax_amount).bind(total_amount).bind(amount_due_original)
+        .bind(id)
+        .bind(entered_amount)
+        .bind(tax_amount)
+        .bind(total_amount)
+        .bind(amount_due_original)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -348,10 +470,21 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(transaction_id).bind(line_number).bind(line_type)
-        .bind(description).bind(item_code).bind(item_description).bind(unit_of_measure)
-        .bind(quantity).bind(unit_price).bind(line_amount).bind(tax_amount)
-        .bind(tax_code).bind(revenue_account).bind(created_by)
+        .bind(org_id)
+        .bind(transaction_id)
+        .bind(line_number)
+        .bind(line_type)
+        .bind(description)
+        .bind(item_code)
+        .bind(item_description)
+        .bind(unit_of_measure)
+        .bind(quantity)
+        .bind(unit_price)
+        .bind(line_amount)
+        .bind(tax_amount)
+        .bind(tax_code)
+        .bind(revenue_account)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -359,7 +492,10 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         Ok(row_to_transaction_line(&row))
     }
 
-    async fn list_transaction_lines(&self, transaction_id: Uuid) -> AtlasResult<Vec<ArTransactionLine>> {
+    async fn list_transaction_lines(
+        &self,
+        transaction_id: Uuid,
+    ) -> AtlasResult<Vec<ArTransactionLine>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.ar_transaction_lines WHERE transaction_id = $1 ORDER BY line_number"
         )
@@ -399,9 +535,21 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(receipt_number).bind(receipt_date).bind(receipt_type).bind(receipt_method)
-        .bind(amount).bind(currency_code).bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(reference_number).bind(bank_account_name).bind(check_number).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(receipt_number)
+        .bind(receipt_date)
+        .bind(receipt_type)
+        .bind(receipt_method)
+        .bind(amount)
+        .bind(currency_code)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(reference_number)
+        .bind(bank_account_name)
+        .bind(check_number)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -418,7 +566,12 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         Ok(row.map(|r| row_to_receipt(&r)))
     }
 
-    async fn list_receipts(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<ArReceipt>> {
+    async fn list_receipts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ArReceipt>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.ar_receipts
@@ -428,7 +581,9 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             ORDER BY receipt_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(customer_id)
+        .bind(org_id)
+        .bind(status)
+        .bind(customer_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -444,7 +599,8 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status)
+        .bind(id)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -482,10 +638,21 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(credit_memo_number).bind(customer_id).bind(customer_number).bind(customer_name)
-        .bind(transaction_id).bind(transaction_number).bind(credit_memo_date)
-        .bind(reason_code).bind(reason_description).bind(amount).bind(tax_amount).bind(total_amount)
-        .bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(credit_memo_number)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(customer_name)
+        .bind(transaction_id)
+        .bind(transaction_number)
+        .bind(credit_memo_date)
+        .bind(reason_code)
+        .bind(reason_description)
+        .bind(amount)
+        .bind(tax_amount)
+        .bind(total_amount)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -502,7 +669,12 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         Ok(row.map(|r| row_to_credit_memo(&r)))
     }
 
-    async fn list_credit_memos(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<ArCreditMemo>> {
+    async fn list_credit_memos(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ArCreditMemo>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.ar_credit_memos
@@ -512,7 +684,9 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             ORDER BY credit_memo_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(customer_id)
+        .bind(org_id)
+        .bind(status)
+        .bind(customer_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -528,7 +702,8 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status)
+        .bind(id)
+        .bind(status)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -566,10 +741,22 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(adjustment_number).bind(transaction_id).bind(transaction_number)
-        .bind(customer_id).bind(customer_number).bind(adjustment_date).bind(gl_date)
-        .bind(adjustment_type).bind(amount).bind(receivable_account).bind(adjustment_account)
-        .bind(reason_code).bind(reason_description).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(adjustment_number)
+        .bind(transaction_id)
+        .bind(transaction_number)
+        .bind(customer_id)
+        .bind(customer_number)
+        .bind(adjustment_date)
+        .bind(gl_date)
+        .bind(adjustment_type)
+        .bind(amount)
+        .bind(receivable_account)
+        .bind(adjustment_account)
+        .bind(reason_code)
+        .bind(reason_description)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -586,7 +773,12 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         Ok(row.map(|r| row_to_adjustment(&r)))
     }
 
-    async fn list_adjustments(&self, org_id: Uuid, status: Option<&str>, customer_id: Option<Uuid>) -> AtlasResult<Vec<ArAdjustment>> {
+    async fn list_adjustments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        customer_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ArAdjustment>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.ar_adjustments
@@ -596,14 +788,21 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             ORDER BY adjustment_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(customer_id)
+        .bind(org_id)
+        .bind(status)
+        .bind(customer_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_adjustment).collect())
     }
 
-    async fn update_adjustment_status(&self, id: Uuid, status: &str, approved_by: Option<Uuid>) -> AtlasResult<ArAdjustment> {
+    async fn update_adjustment_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<ArAdjustment> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.ar_adjustments
@@ -612,14 +811,20 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_adjustment(&row))
     }
 
-    async fn get_aging_summary(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<ArAgingSummary> {
+    async fn get_aging_summary(
+        &self,
+        org_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<ArAgingSummary> {
         let rows = sqlx::query(
             r"
             SELECT
@@ -645,19 +850,43 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         Ok(ArAgingSummary {
             organization_id: org_id,
             as_of_date,
-            total_outstanding: format!("{:.2}", rows.try_get::<f64, _>("total_outstanding").unwrap_or(0.0)),
-            total_overdue: format!("{:.2}", rows.try_get::<f64, _>("total_overdue").unwrap_or(0.0)),
-            aging_current: format!("{:.2}", rows.try_get::<f64, _>("aging_current").unwrap_or(0.0)),
+            total_outstanding: format!(
+                "{:.2}",
+                rows.try_get::<f64, _>("total_outstanding").unwrap_or(0.0)
+            ),
+            total_overdue: format!(
+                "{:.2}",
+                rows.try_get::<f64, _>("total_overdue").unwrap_or(0.0)
+            ),
+            aging_current: format!(
+                "{:.2}",
+                rows.try_get::<f64, _>("aging_current").unwrap_or(0.0)
+            ),
             aging_1_30: format!("{:.2}", rows.try_get::<f64, _>("aging_1_30").unwrap_or(0.0)),
-            aging_31_60: format!("{:.2}", rows.try_get::<f64, _>("aging_31_60").unwrap_or(0.0)),
-            aging_61_90: format!("{:.2}", rows.try_get::<f64, _>("aging_61_90").unwrap_or(0.0)),
-            aging_91_plus: format!("{:.2}", rows.try_get::<f64, _>("aging_91_plus").unwrap_or(0.0)),
+            aging_31_60: format!(
+                "{:.2}",
+                rows.try_get::<f64, _>("aging_31_60").unwrap_or(0.0)
+            ),
+            aging_61_90: format!(
+                "{:.2}",
+                rows.try_get::<f64, _>("aging_61_90").unwrap_or(0.0)
+            ),
+            aging_91_plus: format!(
+                "{:.2}",
+                rows.try_get::<f64, _>("aging_91_plus").unwrap_or(0.0)
+            ),
             customer_count: rows.try_get::<i64, _>("customer_count").unwrap_or(0) as i32,
-            overdue_customer_count: rows.try_get::<i64, _>("overdue_customer_count").unwrap_or(0) as i32,
+            overdue_customer_count: rows
+                .try_get::<i64, _>("overdue_customer_count")
+                .unwrap_or(0) as i32,
         })
     }
 
-    async fn get_aging_by_customer(&self, org_id: Uuid, as_of_date: chrono::NaiveDate) -> AtlasResult<Vec<ArAgingByCustomer>> {
+    async fn get_aging_by_customer(
+        &self,
+        org_id: Uuid,
+        as_of_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<ArAgingByCustomer>> {
         let rows = sqlx::query(
             r"
             SELECT customer_id,
@@ -682,18 +911,33 @@ impl AccountsReceivableRepository for PostgresAccountsReceivableRepository {
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         use sqlx::Row;
-        Ok(rows.iter().map(|r| ArAgingByCustomer {
-            customer_id: r.get("customer_id"),
-            customer_name: r.try_get::<String, _>("customer_name").unwrap_or_default(),
-            customer_number: r.try_get::<Option<String>, _>("customer_number").ok().flatten(),
-            total_outstanding: format!("{:.2}", r.try_get::<f64, _>("total_outstanding").unwrap_or(0.0)),
-            current_amount: format!("{:.2}", r.try_get::<f64, _>("current_amount").unwrap_or(0.0)),
-            aging_1_30: format!("{:.2}", r.try_get::<f64, _>("aging_1_30").unwrap_or(0.0)),
-            aging_31_60: format!("{:.2}", r.try_get::<f64, _>("aging_31_60").unwrap_or(0.0)),
-            aging_61_90: format!("{:.2}", r.try_get::<f64, _>("aging_61_90").unwrap_or(0.0)),
-            aging_91_plus: format!("{:.2}", r.try_get::<f64, _>("aging_91_plus").unwrap_or(0.0)),
-            invoice_count: r.try_get::<i64, _>("invoice_count").unwrap_or(0) as i32,
-        }).collect())
+        Ok(rows
+            .iter()
+            .map(|r| ArAgingByCustomer {
+                customer_id: r.get("customer_id"),
+                customer_name: r.try_get::<String, _>("customer_name").unwrap_or_default(),
+                customer_number: r
+                    .try_get::<Option<String>, _>("customer_number")
+                    .ok()
+                    .flatten(),
+                total_outstanding: format!(
+                    "{:.2}",
+                    r.try_get::<f64, _>("total_outstanding").unwrap_or(0.0)
+                ),
+                current_amount: format!(
+                    "{:.2}",
+                    r.try_get::<f64, _>("current_amount").unwrap_or(0.0)
+                ),
+                aging_1_30: format!("{:.2}", r.try_get::<f64, _>("aging_1_30").unwrap_or(0.0)),
+                aging_31_60: format!("{:.2}", r.try_get::<f64, _>("aging_31_60").unwrap_or(0.0)),
+                aging_61_90: format!("{:.2}", r.try_get::<f64, _>("aging_61_90").unwrap_or(0.0)),
+                aging_91_plus: format!(
+                    "{:.2}",
+                    r.try_get::<f64, _>("aging_91_plus").unwrap_or(0.0)
+                ),
+                invoice_count: r.try_get::<i64, _>("invoice_count").unwrap_or(0) as i32,
+            })
+            .collect())
     }
 }
 

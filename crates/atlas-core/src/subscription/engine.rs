@@ -10,12 +10,12 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Subscription Management
 
-use atlas_shared::{
-    SubscriptionProduct, SubscriptionPriceTier, Subscription, SubscriptionAmendment,
-    SubscriptionBillingLine, SubscriptionRevenueLine, SubscriptionDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::SubscriptionRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, Subscription, SubscriptionAmendment, SubscriptionBillingLine,
+    SubscriptionDashboardSummary, SubscriptionPriceTier, SubscriptionProduct,
+    SubscriptionRevenueLine,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -26,19 +26,31 @@ const VALID_PRODUCT_TYPES: &[&str] = &["service", "software", "physical", "bundl
 
 /// Valid billing frequencies
 #[allow(dead_code)]
-const VALID_BILLING_FREQUENCIES: &[&str] = &["monthly", "quarterly", "semi_annual", "annual", "one_time"];
+const VALID_BILLING_FREQUENCIES: &[&str] =
+    &["monthly", "quarterly", "semi_annual", "annual", "one_time"];
 
 /// Valid subscription statuses
 #[allow(dead_code)]
 const VALID_SUBSCRIPTION_STATUSES: &[&str] = &[
-    "draft", "active", "suspended", "cancelled", "expired", "renewed",
+    "draft",
+    "active",
+    "suspended",
+    "cancelled",
+    "expired",
+    "renewed",
 ];
 
 /// Valid amendment types
 #[allow(dead_code)]
 const VALID_AMENDMENT_TYPES: &[&str] = &[
-    "price_change", "quantity_change", "upgrade", "downgrade",
-    "renewal", "cancellation", "suspension", "reactivation",
+    "price_change",
+    "quantity_change",
+    "upgrade",
+    "downgrade",
+    "renewal",
+    "cancellation",
+    "suspension",
+    "reactivation",
 ];
 
 /// Valid amendment statuses
@@ -108,10 +120,14 @@ impl SubscriptionEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SubscriptionProduct> {
         if product_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Product code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Product code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Product name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Product name is required".to_string(),
+            ));
         }
         if !VALID_PRODUCT_TYPES.contains(&product_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -139,9 +155,9 @@ impl SubscriptionEngine {
                 "Default duration must be positive".to_string(),
             ));
         }
-        let setup: f64 = setup_fee.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Setup fee must be a valid number".to_string(),
-        ))?;
+        let setup: f64 = setup_fee.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Setup fee must be a valid number".to_string())
+        })?;
         if setup < 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Setup fee cannot be negative".to_string(),
@@ -172,12 +188,20 @@ impl SubscriptionEngine {
     }
 
     /// Get a product by code
-    pub async fn get_product(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<SubscriptionProduct>> {
+    pub async fn get_product(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<SubscriptionProduct>> {
         self.repository.get_product(org_id, code).await
     }
 
     /// List products
-    pub async fn list_products(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<SubscriptionProduct>> {
+    pub async fn list_products(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<SubscriptionProduct>> {
         self.repository.list_products(org_id, active_only).await
     }
 
@@ -211,22 +235,26 @@ impl SubscriptionEngine {
             .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Product {product_id} not found")))?;
 
-        let min_q: f64 = min_quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Min quantity must be a valid number".to_string(),
-        ))?;
-        let price: f64 = unit_price.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Unit price must be a valid number".to_string(),
-        ))?;
+        let min_q: f64 = min_quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Min quantity must be a valid number".to_string())
+        })?;
+        let price: f64 = unit_price.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Unit price must be a valid number".to_string())
+        })?;
         if price < 0.0 {
-            return Err(AtlasError::ValidationFailed("Unit price cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Unit price cannot be negative".to_string(),
+            ));
         }
         if min_q < 0.0 {
-            return Err(AtlasError::ValidationFailed("Min quantity cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Min quantity cannot be negative".to_string(),
+            ));
         }
         if let Some(max) = max_quantity {
-            let max_q: f64 = max.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Max quantity must be a valid number".to_string(),
-            ))?;
+            let max_q: f64 = max.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Max quantity must be a valid number".to_string())
+            })?;
             if max_q < min_q {
                 return Err(AtlasError::ValidationFailed(
                     "Max quantity cannot be less than min quantity".to_string(),
@@ -322,9 +350,9 @@ impl SubscriptionEngine {
             ));
         }
 
-        let quantity_val: f64 = quantity.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Quantity must be a valid number".to_string(),
-        ))?;
+        let quantity_val: f64 = quantity.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Quantity must be a valid number".to_string())
+        })?;
         if quantity_val <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Quantity must be positive".to_string(),
@@ -366,7 +394,8 @@ impl SubscriptionEngine {
         let discount: f64 = discount_percent.parse().unwrap_or(0.0);
         let effective_price = unit_price * (1.0 - discount / 100.0);
         let recurring_amount = effective_price * quantity_val;
-        let total_periods = (f64::from(duration_months) / f64::from(months_per_period(freq))).ceil() as i32;
+        let total_periods =
+            (f64::from(duration_months) / f64::from(months_per_period(freq))).ceil() as i32;
         let total_contract_value = recurring_amount * f64::from(total_periods);
         let setup: f64 = product.setup_fee.parse().unwrap_or(0.0);
 
@@ -374,20 +403,14 @@ impl SubscriptionEngine {
             .checked_add_months(chrono::Months::new(duration_months as u32))
             .ok_or_else(|| AtlasError::ValidationFailed("Invalid date range".to_string()))?;
 
-        let renewal_date = if is_auto_renew {
-            Some(end_date)
-        } else {
-            None
-        };
+        let renewal_date = if is_auto_renew { Some(end_date) } else { None };
 
         let billing_day = billing_day_of_month.unwrap_or(1);
         let sub_number = format!("SUB-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
 
         info!(
             "Creating subscription {} for customer {} (product: {})",
-            sub_number,
-            customer_id,
-            product.product_code
+            sub_number, customer_id, product.product_code
         );
 
         let subscription = self
@@ -420,9 +443,9 @@ impl SubscriptionEngine {
                 "0",
                 duration_months,
                 is_auto_renew,
-                None,  // cancellation_date
-                None,  // cancellation_reason
-                None,  // suspension_reason
+                None, // cancellation_date
+                None, // cancellation_reason
+                None, // suspension_reason
                 sales_rep_id,
                 sales_rep_name,
                 gl_revenue_account,
@@ -445,7 +468,9 @@ impl SubscriptionEngine {
         org_id: Uuid,
         number: &str,
     ) -> AtlasResult<Option<Subscription>> {
-        self.repository.get_subscription_by_number(org_id, number).await
+        self.repository
+            .get_subscription_by_number(org_id, number)
+            .await
     }
 
     /// List subscriptions with optional filters
@@ -476,7 +501,9 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Subscription {sub_id} not found"))
+            })?;
 
         if sub.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -489,7 +516,8 @@ impl SubscriptionEngine {
         let billing_lines = self.generate_billing_schedule(&sub)?;
         let mut inserted_billing_lines = Vec::with_capacity(billing_lines.len());
         for line in &billing_lines {
-            let inserted = self.repository
+            let inserted = self
+                .repository
                 .create_billing_line(
                     line.organization_id,
                     line.subscription_id,
@@ -524,8 +552,12 @@ impl SubscriptionEngine {
                 .await?;
         }
 
-        info!("Activated subscription {} with {} billing periods and {} revenue periods", 
-              sub.subscription_number, billing_lines.len(), revenue_lines.len());
+        info!(
+            "Activated subscription {} with {} billing periods and {} revenue periods",
+            sub.subscription_number,
+            billing_lines.len(),
+            revenue_lines.len()
+        );
 
         self.repository
             .update_subscription_status(sub_id, "active", None, None, None)
@@ -542,7 +574,9 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Subscription {sub_id} not found"))
+            })?;
 
         if sub.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -551,7 +585,11 @@ impl SubscriptionEngine {
             )));
         }
 
-        info!("Suspended subscription {} ({})", sub.subscription_number, reason.unwrap_or("No reason provided"));
+        info!(
+            "Suspended subscription {} ({})",
+            sub.subscription_number,
+            reason.unwrap_or("No reason provided")
+        );
         self.repository
             .update_subscription_status(sub_id, "suspended", None, None, reason)
             .await
@@ -563,7 +601,9 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Subscription {sub_id} not found"))
+            })?;
 
         if sub.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -589,7 +629,9 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Subscription {sub_id} not found"))
+            })?;
 
         if sub.status != "active" && sub.status != "suspended" {
             return Err(AtlasError::WorkflowError(format!(
@@ -604,13 +646,7 @@ impl SubscriptionEngine {
         );
 
         self.repository
-            .update_subscription_status(
-                sub_id,
-                "cancelled",
-                Some(cancellation_date),
-                reason,
-                None,
-            )
+            .update_subscription_status(sub_id, "cancelled", Some(cancellation_date), reason, None)
             .await
     }
 
@@ -625,7 +661,9 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Subscription {sub_id} not found"))
+            })?;
 
         if sub.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -638,9 +676,15 @@ impl SubscriptionEngine {
         let current_end = sub.end_date.unwrap_or(sub.start_date);
         let new_end = current_end
             .checked_add_months(chrono::Months::new(duration as u32))
-            .ok_or_else(|| AtlasError::ValidationFailed("Invalid date range for renewal".to_string()))?;
+            .ok_or_else(|| {
+                AtlasError::ValidationFailed("Invalid date range for renewal".to_string())
+            })?;
 
-        let new_renewal_date = if sub.is_auto_renew { Some(new_end) } else { None };
+        let new_renewal_date = if sub.is_auto_renew {
+            Some(new_end)
+        } else {
+            None
+        };
 
         // Create amendment for the renewal
         let amendment_number = format!("AMD-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
@@ -674,14 +718,11 @@ impl SubscriptionEngine {
             .await?;
 
         // Generate new billing and revenue schedules for the renewal period
-        let renewal_billing = self.generate_billing_schedule_from(
-            &sub,
-            current_end,
-            new_end,
-        )?;
+        let renewal_billing = self.generate_billing_schedule_from(&sub, current_end, new_end)?;
         let mut inserted_renewal_billing = Vec::with_capacity(renewal_billing.len());
         for line in &renewal_billing {
-            let inserted = self.repository
+            let inserted = self
+                .repository
                 .create_billing_line(
                     line.organization_id,
                     line.subscription_id,
@@ -751,7 +792,9 @@ impl SubscriptionEngine {
             .repository
             .get_subscription(sub_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Subscription {sub_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Subscription {sub_id} not found"))
+            })?;
 
         if sub.status != "active" {
             return Err(AtlasError::WorkflowError(format!(
@@ -808,7 +851,11 @@ impl SubscriptionEngine {
     }
 
     /// Apply a draft amendment
-    pub async fn apply_amendment(&self, amendment_id: Uuid, applied_by: Option<Uuid>) -> AtlasResult<SubscriptionAmendment> {
+    pub async fn apply_amendment(
+        &self,
+        amendment_id: Uuid,
+        applied_by: Option<Uuid>,
+    ) -> AtlasResult<SubscriptionAmendment> {
         let amendment = self
             .repository
             .get_amendment(amendment_id)
@@ -825,7 +872,9 @@ impl SubscriptionEngine {
         }
 
         // Update the subscription with amendment changes
-        if let (Some(new_qty), Some(new_price)) = (&amendment.new_quantity, &amendment.new_unit_price) {
+        if let (Some(new_qty), Some(new_price)) =
+            (&amendment.new_quantity, &amendment.new_unit_price)
+        {
             let q: f64 = new_qty.parse().unwrap_or(0.0);
             let p: f64 = new_price.parse().unwrap_or(0.0);
             let recurring = q * p;
@@ -874,7 +923,10 @@ impl SubscriptionEngine {
                 .await?;
         }
 
-        info!("Applied amendment {} to subscription", amendment.amendment_number);
+        info!(
+            "Applied amendment {} to subscription",
+            amendment.amendment_number
+        );
 
         self.repository
             .update_amendment_status(amendment_id, "applied", applied_by)
@@ -905,7 +957,10 @@ impl SubscriptionEngine {
     }
 
     /// List amendments for a subscription
-    pub async fn list_amendments(&self, subscription_id: Uuid) -> AtlasResult<Vec<SubscriptionAmendment>> {
+    pub async fn list_amendments(
+        &self,
+        subscription_id: Uuid,
+    ) -> AtlasResult<Vec<SubscriptionAmendment>> {
         self.repository.list_amendments(subscription_id).await
     }
 
@@ -930,7 +985,10 @@ impl SubscriptionEngine {
     }
 
     /// Recognize revenue for a specific period
-    pub async fn recognize_revenue(&self, revenue_line_id: Uuid) -> AtlasResult<SubscriptionRevenueLine> {
+    pub async fn recognize_revenue(
+        &self,
+        revenue_line_id: Uuid,
+    ) -> AtlasResult<SubscriptionRevenueLine> {
         let line = self
             .repository
             .get_revenue_line(revenue_line_id)
@@ -957,7 +1015,10 @@ impl SubscriptionEngine {
     // ========================================================================
 
     /// Get subscription dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<SubscriptionDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<SubscriptionDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 
@@ -1007,9 +1068,7 @@ impl SubscriptionEngine {
                 updated_at: chrono::Utc::now(),
             });
 
-            period_start = period_end
-                .succ_opt()
-                .unwrap_or(period_start);
+            period_start = period_end.succ_opt().unwrap_or(period_start);
         }
 
         Ok(lines)
@@ -1143,10 +1202,13 @@ impl SubscriptionEngine {
         billing_day: i32,
     ) -> chrono::NaiveDate {
         let month: u32 = period_start.format("%m").to_string().parse().unwrap_or(1);
-        let year: i32 = period_start.format("%Y").to_string().parse().unwrap_or(2024);
+        let year: i32 = period_start
+            .format("%Y")
+            .to_string()
+            .parse()
+            .unwrap_or(2024);
         let day = std::cmp::min(billing_day, 28);
-        chrono::NaiveDate::from_ymd_opt(year, month, day as u32)
-            .unwrap_or(period_start)
+        chrono::NaiveDate::from_ymd_opt(year, month, day as u32).unwrap_or(period_start)
     }
 
     /// Calculate proration credit/charge for a mid-period change
@@ -1302,8 +1364,14 @@ mod tests {
         let lines = engine.generate_billing_schedule(&sub).unwrap();
         assert_eq!(lines.len(), 12, "Expected 12 monthly billing lines");
         assert_eq!(lines[0].amount, "100.00");
-        assert_eq!(lines[0].billing_date, chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap());
-        assert_eq!(lines[11].billing_date, chrono::NaiveDate::from_ymd_opt(2024, 12, 1).unwrap());
+        assert_eq!(
+            lines[0].billing_date,
+            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
+        );
+        assert_eq!(
+            lines[11].billing_date,
+            chrono::NaiveDate::from_ymd_opt(2024, 12, 1).unwrap()
+        );
     }
 
     #[test]
@@ -1531,7 +1599,10 @@ mod tests {
         let revenue = engine.generate_revenue_schedule(&sub, &billing).unwrap();
 
         assert_eq!(revenue.len(), 4, "Expected 4 quarterly revenue lines");
-        let total: f64 = revenue.iter().map(|r| r.revenue_amount.parse::<f64>().unwrap()).sum();
+        let total: f64 = revenue
+            .iter()
+            .map(|r| r.revenue_amount.parse::<f64>().unwrap())
+            .sum();
         assert!(
             (total - 900.0).abs() < 0.01,
             "Total revenue should be ~900.00, got {:.2}",
@@ -1595,7 +1666,12 @@ mod tests {
             .unwrap();
 
         // Charge should be greater than credit (upgrade)
-        assert!(charge > credit, "Upgrade: charge ({:.2}) should be > credit ({:.2})", charge, credit);
+        assert!(
+            charge > credit,
+            "Upgrade: charge ({:.2}) should be > credit ({:.2})",
+            charge,
+            credit
+        );
         assert!(credit >= 0.0, "Credit should be non-negative");
         assert!(charge >= 0.0, "Charge should be non-negative");
     }
@@ -1660,10 +1736,8 @@ mod tests {
     #[test]
     fn test_calculate_billing_date() {
         let engine = SubscriptionEngine::new(Arc::new(crate::MockSubscriptionRepository));
-        let date = engine.calculate_billing_date(
-            chrono::NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(),
-            15,
-        );
+        let date =
+            engine.calculate_billing_date(chrono::NaiveDate::from_ymd_opt(2024, 3, 1).unwrap(), 15);
         assert_eq!(date, chrono::NaiveDate::from_ymd_opt(2024, 3, 15).unwrap());
     }
 
@@ -1671,10 +1745,8 @@ mod tests {
     fn test_calculate_billing_date_clamp() {
         let engine = SubscriptionEngine::new(Arc::new(crate::MockSubscriptionRepository));
         // Day 31 should be clamped to 28 (safest approach for February)
-        let date = engine.calculate_billing_date(
-            chrono::NaiveDate::from_ymd_opt(2024, 2, 1).unwrap(),
-            31,
-        );
+        let date =
+            engine.calculate_billing_date(chrono::NaiveDate::from_ymd_opt(2024, 2, 1).unwrap(), 31);
         assert_eq!(date, chrono::NaiveDate::from_ymd_opt(2024, 2, 28).unwrap());
     }
 }

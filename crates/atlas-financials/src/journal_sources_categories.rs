@@ -54,14 +54,22 @@ impl JournalSetupService {
         action_if_unbalanced: String,
     ) -> Result<JournalSource, String> {
         let mut sources = self.sources.write().unwrap();
-        
-        if sources.iter().any(|s| s.organization_id == organization_id && s.name == name) {
-            return Err("Journal source with this name already exists for the organization".to_string());
+
+        if sources
+            .iter()
+            .any(|s| s.organization_id == organization_id && s.name == name)
+        {
+            return Err(
+                "Journal source with this name already exists for the organization".to_string(),
+            );
         }
 
         let valid_actions = ["error", "warning", "post_to_suspense"];
         if !valid_actions.contains(&action_if_unbalanced.as_str()) {
-            return Err("Invalid action_if_unbalanced. Must be error, warning, or post_to_suspense".to_string());
+            return Err(
+                "Invalid action_if_unbalanced. Must be error, warning, or post_to_suspense"
+                    .to_string(),
+            );
         }
 
         let source = JournalSource {
@@ -87,9 +95,14 @@ impl JournalSetupService {
         description: Option<String>,
     ) -> Result<JournalCategory, String> {
         let mut categories = self.categories.write().unwrap();
-        
-        if categories.iter().any(|c| c.organization_id == organization_id && c.name == name) {
-            return Err("Journal category with this name already exists for the organization".to_string());
+
+        if categories
+            .iter()
+            .any(|c| c.organization_id == organization_id && c.name == name)
+        {
+            return Err(
+                "Journal category with this name already exists for the organization".to_string(),
+            );
         }
 
         let category = JournalCategory {
@@ -106,7 +119,10 @@ impl JournalSetupService {
 
     pub fn get_source_by_name(&self, organization_id: Uuid, name: &str) -> Option<JournalSource> {
         let sources = self.sources.read().unwrap();
-        sources.iter().find(|s| s.organization_id == organization_id && s.name == name).cloned()
+        sources
+            .iter()
+            .find(|s| s.organization_id == organization_id && s.name == name)
+            .cloned()
     }
 }
 
@@ -118,7 +134,7 @@ mod tests {
     fn test_create_journal_source() {
         let service = JournalSetupService::new();
         let org_id = Uuid::new_v4();
-        
+
         let result = service.create_journal_source(
             org_id,
             "Payables".to_string(),
@@ -139,10 +155,28 @@ mod tests {
     fn test_duplicate_journal_source() {
         let service = JournalSetupService::new();
         let org_id = Uuid::new_v4();
-        
-        service.create_journal_source(org_id, "Manual".to_string(), None, false, false, false, "error".to_string()).unwrap();
-        
-        let result = service.create_journal_source(org_id, "Manual".to_string(), None, false, false, false, "error".to_string());
+
+        service
+            .create_journal_source(
+                org_id,
+                "Manual".to_string(),
+                None,
+                false,
+                false,
+                false,
+                "error".to_string(),
+            )
+            .unwrap();
+
+        let result = service.create_journal_source(
+            org_id,
+            "Manual".to_string(),
+            None,
+            false,
+            false,
+            false,
+            "error".to_string(),
+        );
         assert!(result.is_err());
     }
 
@@ -150,7 +184,7 @@ mod tests {
     fn test_invalid_action_if_unbalanced() {
         let service = JournalSetupService::new();
         let org_id = Uuid::new_v4();
-        
+
         let result = service.create_journal_source(
             org_id,
             "Receivables".to_string(),
@@ -162,14 +196,17 @@ mod tests {
         );
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Invalid action_if_unbalanced. Must be error, warning, or post_to_suspense");
+        assert_eq!(
+            result.unwrap_err(),
+            "Invalid action_if_unbalanced. Must be error, warning, or post_to_suspense"
+        );
     }
 
     #[test]
     fn test_create_journal_category() {
         let service = JournalSetupService::new();
         let org_id = Uuid::new_v4();
-        
+
         let result = service.create_journal_category(
             org_id,
             "Accrual".to_string(),
@@ -185,9 +222,11 @@ mod tests {
     fn test_duplicate_journal_category() {
         let service = JournalSetupService::new();
         let org_id = Uuid::new_v4();
-        
-        service.create_journal_category(org_id, "Accrual".to_string(), None).unwrap();
-        
+
+        service
+            .create_journal_category(org_id, "Accrual".to_string(), None)
+            .unwrap();
+
         let result = service.create_journal_category(org_id, "Accrual".to_string(), None);
         assert!(result.is_err());
     }

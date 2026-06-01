@@ -6,41 +6,40 @@
 //!
 //! Oracle Fusion Cloud HCM equivalent: Global Payroll
 
-use atlas_shared::{
-    PayrollDefinition, PayrollElement, PayrollElementEntry,
-    PayrollRun, PaySlip, PaySlipLine, PayrollDashboard,
-    AtlasError, AtlasResult,
-};
 use super::PayrollRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, PaySlip, PaySlipLine, PayrollDashboard, PayrollDefinition,
+    PayrollElement, PayrollElementEntry, PayrollRun,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid pay frequencies
-const VALID_PAY_FREQUENCIES: &[&str] = &[
-    "weekly", "biweekly", "semimonthly", "monthly",
-];
+const VALID_PAY_FREQUENCIES: &[&str] = &["weekly", "biweekly", "semimonthly", "monthly"];
 
 /// Valid element types
-const VALID_ELEMENT_TYPES: &[&str] = &[
-    "earning", "deduction",
-];
+const VALID_ELEMENT_TYPES: &[&str] = &["earning", "deduction"];
 
 /// Valid element categories
 const VALID_ELEMENT_CATEGORIES: &[&str] = &[
-    "salary", "hourly", "overtime", "bonus", "commission",
-    "benefit", "tax", "retirement", "garnishment", "other",
+    "salary",
+    "hourly",
+    "overtime",
+    "bonus",
+    "commission",
+    "benefit",
+    "tax",
+    "retirement",
+    "garnishment",
+    "other",
 ];
 
 /// Valid calculation methods
-const VALID_CALC_METHODS: &[&str] = &[
-    "flat", "percentage", "hourly_rate", "formula",
-];
+const VALID_CALC_METHODS: &[&str] = &["flat", "percentage", "hourly_rate", "formula"];
 
 /// Valid payroll run statuses
-const VALID_RUN_STATUSES: &[&str] = &[
-    "open", "calculated", "confirmed", "paid", "reversed",
-];
+const VALID_RUN_STATUSES: &[&str] = &["open", "calculated", "confirmed", "paid", "reversed"];
 
 /// Payroll engine for managing payroll processing
 pub struct PayrollEngine {
@@ -78,7 +77,8 @@ impl PayrollEngine {
         if !VALID_PAY_FREQUENCIES.contains(&pay_frequency) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid pay_frequency '{}'. Must be one of: {}",
-                pay_frequency, VALID_PAY_FREQUENCIES.join(", ")
+                pay_frequency,
+                VALID_PAY_FREQUENCIES.join(", ")
             )));
         }
         if currency_code.is_empty() {
@@ -88,7 +88,12 @@ impl PayrollEngine {
         }
 
         // Check unique name within org
-        if self.repository.get_payroll_by_name(org_id, name).await?.is_some() {
+        if self
+            .repository
+            .get_payroll_by_name(org_id, name)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Payroll definition '{name}' already exists"
             )));
@@ -96,11 +101,20 @@ impl PayrollEngine {
 
         info!("Creating payroll definition '{}' for org {}", name, org_id);
 
-        self.repository.create_payroll(
-            org_id, name, description, pay_frequency, currency_code,
-            salary_expense_account, liability_account,
-            employer_tax_account, payment_account, created_by,
-        ).await
+        self.repository
+            .create_payroll(
+                org_id,
+                name,
+                description,
+                pay_frequency,
+                currency_code,
+                salary_expense_account,
+                liability_account,
+                employer_tax_account,
+                payment_account,
+                created_by,
+            )
+            .await
     }
 
     /// Get a payroll definition by ID
@@ -156,28 +170,33 @@ impl PayrollEngine {
         if !VALID_ELEMENT_TYPES.contains(&element_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid element_type '{}'. Must be one of: {}",
-                element_type, VALID_ELEMENT_TYPES.join(", ")
+                element_type,
+                VALID_ELEMENT_TYPES.join(", ")
             )));
         }
         if !VALID_ELEMENT_CATEGORIES.contains(&category) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid category '{}'. Must be one of: {}",
-                category, VALID_ELEMENT_CATEGORIES.join(", ")
+                category,
+                VALID_ELEMENT_CATEGORIES.join(", ")
             )));
         }
         if !VALID_CALC_METHODS.contains(&calculation_method) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid calculation_method '{}'. Must be one of: {}",
-                calculation_method, VALID_CALC_METHODS.join(", ")
+                calculation_method,
+                VALID_CALC_METHODS.join(", ")
             )));
         }
 
         // Validate calculation method compatibility
         if calculation_method == "percentage" {
             if let Some(val) = default_value {
-                let pct: f64 = val.parse().map_err(|_| AtlasError::ValidationFailed(
-                    "Percentage default_value must be a number".to_string(),
-                ))?;
+                let pct: f64 = val.parse().map_err(|_| {
+                    AtlasError::ValidationFailed(
+                        "Percentage default_value must be a number".to_string(),
+                    )
+                })?;
                 if !(0.0..=100.0).contains(&pct) {
                     return Err(AtlasError::ValidationFailed(
                         "Percentage must be between 0 and 100".to_string(),
@@ -190,13 +209,16 @@ impl PayrollEngine {
         if has_employer_contribution {
             if employer_contribution_rate.is_none() {
                 return Err(AtlasError::ValidationFailed(
-                    "Employer contribution rate is required when has_employer_contribution is true".to_string(),
+                    "Employer contribution rate is required when has_employer_contribution is true"
+                        .to_string(),
                 ));
             }
             if let Some(rate) = employer_contribution_rate {
-                let r: f64 = rate.parse().map_err(|_| AtlasError::ValidationFailed(
-                    "Employer contribution rate must be a number".to_string(),
-                ))?;
+                let r: f64 = rate.parse().map_err(|_| {
+                    AtlasError::ValidationFailed(
+                        "Employer contribution rate must be a number".to_string(),
+                    )
+                })?;
                 if r < 0.0 {
                     return Err(AtlasError::ValidationFailed(
                         "Employer contribution rate cannot be negative".to_string(),
@@ -215,7 +237,12 @@ impl PayrollEngine {
         }
 
         // Check unique code
-        if self.repository.get_element_by_code(org_id, code).await?.is_some() {
+        if self
+            .repository
+            .get_element_by_code(org_id, code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Element code '{code}' already exists"
             )));
@@ -228,15 +255,31 @@ impl PayrollEngine {
             ));
         }
 
-        info!("Creating payroll element '{}' ({}) for org {}", code, element_type, org_id);
+        info!(
+            "Creating payroll element '{}' ({}) for org {}",
+            code, element_type, org_id
+        );
 
-        self.repository.create_element(
-            org_id, code, name, description, element_type, category,
-            calculation_method, default_value, is_recurring,
-            has_employer_contribution, employer_contribution_rate,
-            gl_account_code, is_pretax, effective_from, effective_to,
-            created_by,
-        ).await
+        self.repository
+            .create_element(
+                org_id,
+                code,
+                name,
+                description,
+                element_type,
+                category,
+                calculation_method,
+                default_value,
+                is_recurring,
+                has_employer_contribution,
+                employer_contribution_rate,
+                gl_account_code,
+                is_pretax,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get an element by ID
@@ -245,12 +288,17 @@ impl PayrollEngine {
     }
 
     /// List elements, optionally filtered by type
-    pub async fn list_elements(&self, org_id: Uuid, element_type: Option<&str>) -> AtlasResult<Vec<PayrollElement>> {
+    pub async fn list_elements(
+        &self,
+        org_id: Uuid,
+        element_type: Option<&str>,
+    ) -> AtlasResult<Vec<PayrollElement>> {
         if let Some(et) = element_type {
             if !VALID_ELEMENT_TYPES.contains(&et) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid element_type filter '{}'. Must be one of: {}",
-                    et, VALID_ELEMENT_TYPES.join(", ")
+                    et,
+                    VALID_ELEMENT_TYPES.join(", ")
                 )));
             }
         }
@@ -280,10 +328,11 @@ impl PayrollEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PayrollElementEntry> {
         // Validate element exists
-        let element = self.repository.get_element(element_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Element {element_id} not found")
-            ))?;
+        let element = self
+            .repository
+            .get_element(element_id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound(format!("Element {element_id} not found")))?;
 
         if !element.is_active {
             return Err(AtlasError::ValidationFailed(
@@ -292,9 +341,9 @@ impl PayrollEngine {
         }
 
         // Validate value is numeric
-        let _: f64 = entry_value.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Entry value must be a valid number".to_string(),
-        ))?;
+        let _: f64 = entry_value.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Entry value must be a valid number".to_string())
+        })?;
 
         // Validate value is non-negative for earnings
         if element.element_type == "earning" {
@@ -315,18 +364,33 @@ impl PayrollEngine {
             }
         }
 
-        info!("Assigning element '{}' to employee {}", element.code, employee_id);
+        info!(
+            "Assigning element '{}' to employee {}",
+            element.code, employee_id
+        );
 
-        self.repository.create_entry(
-            org_id, employee_id, element_id,
-            &element.code, &element.name, &element.element_type,
-            entry_value, remaining_periods,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_entry(
+                org_id,
+                employee_id,
+                element_id,
+                &element.code,
+                &element.name,
+                &element.element_type,
+                entry_value,
+                remaining_periods,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get all element entries for an employee
-    pub async fn get_employee_entries(&self, employee_id: Uuid) -> AtlasResult<Vec<PayrollElementEntry>> {
+    pub async fn get_employee_entries(
+        &self,
+        employee_id: Uuid,
+    ) -> AtlasResult<Vec<PayrollElementEntry>> {
         self.repository.get_entries_by_employee(employee_id).await
     }
 
@@ -351,10 +415,13 @@ impl PayrollEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PayrollRun> {
         // Validate payroll exists
-        let payroll = self.repository.get_payroll(payroll_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payroll definition {payroll_id} not found")
-            ))?;
+        let payroll = self
+            .repository
+            .get_payroll(payroll_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Payroll definition {payroll_id} not found"))
+            })?;
 
         if !payroll.is_active {
             return Err(AtlasError::ValidationFailed(
@@ -377,12 +444,22 @@ impl PayrollEngine {
         // Generate run number
         let run_number = format!("PR-{}", chrono::Utc::now().format("%Y%m%d%H%M%S%f"));
 
-        info!("Creating payroll run {} for payroll {}", run_number, payroll.name);
+        info!(
+            "Creating payroll run {} for payroll {}",
+            run_number, payroll.name
+        );
 
-        self.repository.create_run(
-            org_id, payroll_id, &run_number,
-            period_start, period_end, pay_date, created_by,
-        ).await
+        self.repository
+            .create_run(
+                org_id,
+                payroll_id,
+                &run_number,
+                period_start,
+                period_end,
+                pay_date,
+                created_by,
+            )
+            .await
     }
 
     /// Get a payroll run by ID
@@ -391,12 +468,17 @@ impl PayrollEngine {
     }
 
     /// List payroll runs
-    pub async fn list_runs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PayrollRun>> {
+    pub async fn list_runs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PayrollRun>> {
         if let Some(s) = status {
             if !VALID_RUN_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_RUN_STATUSES.join(", ")
+                    s,
+                    VALID_RUN_STATUSES.join(", ")
                 )));
             }
         }
@@ -416,14 +498,15 @@ impl PayrollEngine {
         run_id: Uuid,
         employee_data: &[EmployeePayrollInput],
     ) -> AtlasResult<PayrollRun> {
-        let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payroll run {run_id} not found")
-            ))?;
+        let run =
+            self.repository.get_run(run_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Payroll run {run_id} not found"))
+            })?;
 
         if run.status != "open" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot calculate run in '{}' status. Must be 'open'.", run.status
+                "Cannot calculate run in '{}' status. Must be 'open'.",
+                run.status
             )));
         }
 
@@ -448,53 +531,66 @@ impl PayrollEngine {
             total_employer_cost += employer_cost;
 
             // Create pay slip
-            let slip = self.repository.create_pay_slip(
-                run.organization_id,
-                run_id,
-                emp.employee_id,
-                emp.employee_name.as_deref(),
-                &format!("{gross:.2}"),
-                &format!("{deductions:.2}"),
-                &format!("{net:.2}"),
-                &format!("{employer_cost:.2}"),
-                "USD",
-                emp.payment_method.as_deref(),
-                emp.bank_account_last4.as_deref(),
-            ).await?;
+            let slip = self
+                .repository
+                .create_pay_slip(
+                    run.organization_id,
+                    run_id,
+                    emp.employee_id,
+                    emp.employee_name.as_deref(),
+                    &format!("{gross:.2}"),
+                    &format!("{deductions:.2}"),
+                    &format!("{net:.2}"),
+                    &format!("{employer_cost:.2}"),
+                    "USD",
+                    emp.payment_method.as_deref(),
+                    emp.bank_account_last4.as_deref(),
+                )
+                .await?;
 
             // Create pay slip lines
             for line in lines {
-                self.repository.create_pay_slip_line(
-                    slip.id,
-                    &line.element_code,
-                    &line.element_name,
-                    &line.element_type,
-                    &line.category,
-                    line.hours_or_units.as_deref(),
-                    line.rate.as_deref(),
-                    &line.amount,
-                    line.is_pretax,
-                    line.is_employer,
-                    line.gl_account_code.as_deref(),
-                ).await?;
+                self.repository
+                    .create_pay_slip_line(
+                        slip.id,
+                        &line.element_code,
+                        &line.element_name,
+                        &line.element_type,
+                        &line.category,
+                        line.hours_or_units.as_deref(),
+                        line.rate.as_deref(),
+                        &line.amount,
+                        line.is_pretax,
+                        line.is_employer,
+                        line.gl_account_code.as_deref(),
+                    )
+                    .await?;
             }
         }
 
         // Update run totals
-        self.repository.update_run_totals(
-            run_id,
-            &format!("{total_gross:.2}"),
-            &format!("{total_deductions:.2}"),
-            &format!("{total_net:.2}"),
-            &format!("{total_employer_cost:.2}"),
-            employee_data.len() as i32,
-        ).await?;
+        self.repository
+            .update_run_totals(
+                run_id,
+                &format!("{total_gross:.2}"),
+                &format!("{total_deductions:.2}"),
+                &format!("{total_net:.2}"),
+                &format!("{total_employer_cost:.2}"),
+                employee_data.len() as i32,
+            )
+            .await?;
 
-        let run = self.repository.update_run_status(run_id, "calculated", None).await?;
+        let run = self
+            .repository
+            .update_run_status(run_id, "calculated", None)
+            .await?;
 
         info!(
             "Payroll run {} calculated: {} employees, gross={:.2}, net={:.2}",
-            run.run_number, employee_data.len(), total_gross, total_net
+            run.run_number,
+            employee_data.len(),
+            total_gross,
+            total_net
         );
 
         Ok(run)
@@ -502,53 +598,68 @@ impl PayrollEngine {
 
     /// Confirm a calculated payroll run
     pub async fn confirm_run(&self, run_id: Uuid, confirmed_by: Uuid) -> AtlasResult<PayrollRun> {
-        let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payroll run {run_id} not found")
-            ))?;
+        let run =
+            self.repository.get_run(run_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Payroll run {run_id} not found"))
+            })?;
 
         if run.status != "calculated" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot confirm run in '{}' status. Must be 'calculated'.", run.status
+                "Cannot confirm run in '{}' status. Must be 'calculated'.",
+                run.status
             )));
         }
 
-        info!("Confirming payroll run {} by {}", run.run_number, confirmed_by);
-        self.repository.update_run_status(run_id, "confirmed", Some(confirmed_by)).await
+        info!(
+            "Confirming payroll run {} by {}",
+            run.run_number, confirmed_by
+        );
+        self.repository
+            .update_run_status(run_id, "confirmed", Some(confirmed_by))
+            .await
     }
 
     /// Mark a confirmed run as paid
     pub async fn mark_paid(&self, run_id: Uuid, paid_by: Uuid) -> AtlasResult<PayrollRun> {
-        let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payroll run {run_id} not found")
-            ))?;
+        let run =
+            self.repository.get_run(run_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Payroll run {run_id} not found"))
+            })?;
 
         if run.status != "confirmed" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot mark run as paid in '{}' status. Must be 'confirmed'.", run.status
+                "Cannot mark run as paid in '{}' status. Must be 'confirmed'.",
+                run.status
             )));
         }
 
-        info!("Marking payroll run {} as paid by {}", run.run_number, paid_by);
-        self.repository.update_run_status(run_id, "paid", Some(paid_by)).await
+        info!(
+            "Marking payroll run {} as paid by {}",
+            run.run_number, paid_by
+        );
+        self.repository
+            .update_run_status(run_id, "paid", Some(paid_by))
+            .await
     }
 
     /// Reverse a payroll run
     pub async fn reverse_run(&self, run_id: Uuid) -> AtlasResult<PayrollRun> {
-        let run = self.repository.get_run(run_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Payroll run {run_id} not found")
-            ))?;
+        let run =
+            self.repository.get_run(run_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Payroll run {run_id} not found"))
+            })?;
 
         if run.status != "paid" && run.status != "confirmed" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot reverse run in '{}' status. Must be 'paid' or 'confirmed'.", run.status
+                "Cannot reverse run in '{}' status. Must be 'paid' or 'confirmed'.",
+                run.status
             )));
         }
 
         info!("Reversing payroll run {}", run.run_number);
-        self.repository.update_run_status(run_id, "reversed", None).await
+        self.repository
+            .update_run_status(run_id, "reversed", None)
+            .await
     }
 
     // ========================================================================
@@ -562,7 +673,9 @@ impl PayrollEngine {
 
     /// Get pay slips for an employee
     pub async fn get_employee_pay_slips(&self, employee_id: Uuid) -> AtlasResult<Vec<PaySlip>> {
-        self.repository.list_pay_slips_by_employee(employee_id).await
+        self.repository
+            .list_pay_slips_by_employee(employee_id)
+            .await
     }
 
     /// Get a single pay slip with its lines
@@ -637,7 +750,11 @@ impl PayrollEngine {
         }
 
         // Default gross from salary if no explicit salary earning
-        if annual_salary.is_some() && !entries.iter().any(|e| e.element_type == "earning" && e.category == "salary") {
+        if annual_salary.is_some()
+            && !entries
+                .iter()
+                .any(|e| e.element_type == "earning" && e.category == "salary")
+        {
             let salary_monthly = annual_salary.unwrap_or(0.0) / 12.0;
             gross += salary_monthly;
             lines.push(PaySlipLine {
@@ -658,9 +775,10 @@ impl PayrollEngine {
         }
 
         // 2. Calculate pretax deductions (reduce taxable income)
-        for entry in entries.iter().filter(|e| {
-            e.element_type == "deduction" && e.is_pretax && e.category != "tax"
-        }) {
+        for entry in entries
+            .iter()
+            .filter(|e| e.element_type == "deduction" && e.is_pretax && e.category != "tax")
+        {
             let amount = self.calculate_deduction_amount(entry, gross);
             pretax_deductions += amount;
 
@@ -706,9 +824,10 @@ impl PayrollEngine {
         let taxable_income = (gross - pretax_deductions).max(0.0);
 
         // 4. Calculate tax deductions (applied to taxable income)
-        for entry in entries.iter().filter(|e| {
-            e.element_type == "deduction" && e.category == "tax"
-        }) {
+        for entry in entries
+            .iter()
+            .filter(|e| e.element_type == "deduction" && e.category == "tax")
+        {
             let amount = match entry.calculation_method.as_str() {
                 "percentage" => entry.entry_value / 100.0 * taxable_income,
                 "flat" => entry.entry_value,
@@ -755,9 +874,10 @@ impl PayrollEngine {
         }
 
         // 5. Calculate post-tax deductions
-        for entry in entries.iter().filter(|e| {
-            e.element_type == "deduction" && !e.is_pretax && e.category != "tax"
-        }) {
+        for entry in entries
+            .iter()
+            .filter(|e| e.element_type == "deduction" && !e.is_pretax && e.category != "tax")
+        {
             let amount = self.calculate_deduction_amount(entry, gross);
             posttax_deductions += amount;
 
@@ -926,23 +1046,22 @@ mod tests {
     fn test_calculate_employee_pay_with_tax_deduction() {
         let engine = test_engine();
 
-        let entries = vec![
-            ElementEntryInput {
-                element_code: "FED_TAX".to_string(),
-                element_name: "Federal Income Tax".to_string(),
-                element_type: "deduction".to_string(),
-                category: "tax".to_string(),
-                calculation_method: "percentage".to_string(),
-                entry_value: 22.0, // 22%
-                hours_or_units: None,
-                is_pretax: false,
-                employer_contribution_rate: None,
-                gl_account_code: None,
-            },
-        ];
+        let entries = vec![ElementEntryInput {
+            element_code: "FED_TAX".to_string(),
+            element_name: "Federal Income Tax".to_string(),
+            element_type: "deduction".to_string(),
+            category: "tax".to_string(),
+            calculation_method: "percentage".to_string(),
+            entry_value: 22.0, // 22%
+            hours_or_units: None,
+            is_pretax: false,
+            employer_contribution_rate: None,
+            gl_account_code: None,
+        }];
 
-        let (gross, deductions, net, employer_cost, lines) =
-            engine.calculate_employee_pay(&entries, Some(120_000.0)).unwrap();
+        let (gross, deductions, net, employer_cost, lines) = engine
+            .calculate_employee_pay(&entries, Some(120_000.0))
+            .unwrap();
 
         // gross = 10000, tax = 22% of 10000 = 2200, net = 7800
         assert!((gross - 10_000.0).abs() < 0.01);
@@ -991,8 +1110,9 @@ mod tests {
             },
         ];
 
-        let (gross, deductions, net, employer_cost, lines) =
-            engine.calculate_employee_pay(&entries, Some(120_000.0)).unwrap();
+        let (gross, deductions, net, employer_cost, lines) = engine
+            .calculate_employee_pay(&entries, Some(120_000.0))
+            .unwrap();
 
         // gross = 10000
         // pretax 401k = 5% of 10000 = 500
@@ -1019,23 +1139,22 @@ mod tests {
     fn test_calculate_employee_pay_hourly_earning() {
         let engine = test_engine();
 
-        let entries = vec![
-            ElementEntryInput {
-                element_code: "OVERTIME".to_string(),
-                element_name: "Overtime Pay".to_string(),
-                element_type: "earning".to_string(),
-                category: "overtime".to_string(),
-                calculation_method: "hourly_rate".to_string(),
-                entry_value: 50.0, // $50/hour overtime rate
-                hours_or_units: Some(10.0), // 10 hours overtime
-                is_pretax: false,
-                employer_contribution_rate: None,
-                gl_account_code: None,
-            },
-        ];
+        let entries = vec![ElementEntryInput {
+            element_code: "OVERTIME".to_string(),
+            element_name: "Overtime Pay".to_string(),
+            element_type: "earning".to_string(),
+            category: "overtime".to_string(),
+            calculation_method: "hourly_rate".to_string(),
+            entry_value: 50.0,          // $50/hour overtime rate
+            hours_or_units: Some(10.0), // 10 hours overtime
+            is_pretax: false,
+            employer_contribution_rate: None,
+            gl_account_code: None,
+        }];
 
-        let (gross, deductions, net, employer_cost, lines) =
-            engine.calculate_employee_pay(&entries, Some(120_000.0)).unwrap();
+        let (gross, deductions, net, employer_cost, lines) = engine
+            .calculate_employee_pay(&entries, Some(120_000.0))
+            .unwrap();
 
         // salary = 10000, overtime = 10 * 50 = 500, gross = 10500
         assert!((gross - 10_500.0).abs() < 0.01);
@@ -1053,30 +1172,32 @@ mod tests {
     fn test_calculate_employee_pay_flat_deduction() {
         let engine = test_engine();
 
-        let entries = vec![
-            ElementEntryInput {
-                element_code: "HEALTH_INS".to_string(),
-                element_name: "Health Insurance".to_string(),
-                element_type: "deduction".to_string(),
-                category: "benefit".to_string(),
-                calculation_method: "flat".to_string(),
-                entry_value: 250.0, // $250 flat per pay period
-                hours_or_units: None,
-                is_pretax: false,
-                employer_contribution_rate: None,
-                gl_account_code: None,
-            },
-        ];
+        let entries = vec![ElementEntryInput {
+            element_code: "HEALTH_INS".to_string(),
+            element_name: "Health Insurance".to_string(),
+            element_type: "deduction".to_string(),
+            category: "benefit".to_string(),
+            calculation_method: "flat".to_string(),
+            entry_value: 250.0, // $250 flat per pay period
+            hours_or_units: None,
+            is_pretax: false,
+            employer_contribution_rate: None,
+            gl_account_code: None,
+        }];
 
-        let (gross, deductions, net, _employer_cost, lines) =
-            engine.calculate_employee_pay(&entries, Some(120_000.0)).unwrap();
+        let (gross, deductions, net, _employer_cost, lines) = engine
+            .calculate_employee_pay(&entries, Some(120_000.0))
+            .unwrap();
 
         // gross = 10000, deduction = 250 flat, net = 9750
         assert!((gross - 10_000.0).abs() < 0.01);
         assert!((deductions - 250.0).abs() < 0.01);
         assert!((net - 9_750.0).abs() < 0.01);
 
-        let ins_line = lines.iter().find(|l| l.element_code == "HEALTH_INS").unwrap();
+        let ins_line = lines
+            .iter()
+            .find(|l| l.element_code == "HEALTH_INS")
+            .unwrap();
         let ins_amount: f64 = ins_line.amount.parse().unwrap();
         assert!((ins_amount - 250.0).abs() < 0.01);
         assert!(!ins_line.is_pretax);
@@ -1169,8 +1290,9 @@ mod tests {
             },
         ];
 
-        let (gross, deductions, net, employer_cost, lines) =
-            engine.calculate_employee_pay(&entries, Some(120_000.0)).unwrap();
+        let (gross, deductions, net, employer_cost, lines) = engine
+            .calculate_employee_pay(&entries, Some(120_000.0))
+            .unwrap();
 
         // gross = salary(10000) + overtime(8*45=360) = 10360
         // pretax 401k = 6% of 10360 = 621.60
@@ -1192,11 +1314,15 @@ mod tests {
         assert_eq!(lines.len(), 8);
 
         // Verify earning lines
-        let earning_lines: Vec<_> = lines.iter().filter(|l| l.element_type == "earning").collect();
+        let earning_lines: Vec<_> = lines
+            .iter()
+            .filter(|l| l.element_type == "earning")
+            .collect();
         assert_eq!(earning_lines.len(), 2); // salary + overtime
 
         // Verify deduction lines (employee)
-        let emp_deduction_lines: Vec<_> = lines.iter()
+        let emp_deduction_lines: Vec<_> = lines
+            .iter()
             .filter(|l| l.element_type == "deduction" && !l.is_employer)
             .collect();
         assert_eq!(emp_deduction_lines.len(), 4); // 401k, fed_tax, state_tax, health
@@ -1238,8 +1364,9 @@ mod tests {
             },
         ];
 
-        let (gross, deductions, net, _employer_cost, _lines) =
-            engine.calculate_employee_pay(&entries, Some(120_000.0)).unwrap();
+        let (gross, deductions, net, _employer_cost, _lines) = engine
+            .calculate_employee_pay(&entries, Some(120_000.0))
+            .unwrap();
 
         // gross = 10000, mega_tax = 10000, extra = 5000, total_ded = 15000
         // net = max(0, 10000 - 15000) = 0
@@ -1252,23 +1379,22 @@ mod tests {
     fn test_employer_contribution_on_posttax_deduction() {
         let engine = test_engine();
 
-        let entries = vec![
-            ElementEntryInput {
-                element_code: "LIFE_INS".to_string(),
-                element_name: "Life Insurance".to_string(),
-                element_type: "deduction".to_string(),
-                category: "benefit".to_string(),
-                calculation_method: "flat".to_string(),
-                entry_value: 50.0,
-                hours_or_units: None,
-                is_pretax: false,
-                employer_contribution_rate: Some(100.0), // Employer pays 100% match
-                gl_account_code: None,
-            },
-        ];
+        let entries = vec![ElementEntryInput {
+            element_code: "LIFE_INS".to_string(),
+            element_name: "Life Insurance".to_string(),
+            element_type: "deduction".to_string(),
+            category: "benefit".to_string(),
+            calculation_method: "flat".to_string(),
+            entry_value: 50.0,
+            hours_or_units: None,
+            is_pretax: false,
+            employer_contribution_rate: Some(100.0), // Employer pays 100% match
+            gl_account_code: None,
+        }];
 
-        let (gross, deductions, net, employer_cost, _lines) =
-            engine.calculate_employee_pay(&entries, Some(120_000.0)).unwrap();
+        let (gross, deductions, net, employer_cost, _lines) = engine
+            .calculate_employee_pay(&entries, Some(120_000.0))
+            .unwrap();
 
         // gross = 10000, employee deduction = 50 flat, net = 9950
         // employer cost = 100% of 10000 = 10000
@@ -1295,7 +1421,9 @@ mod tests {
             gl_account_code: Some("5100".to_string()),
         }];
 
-        let (_, _, _, _, lines) = engine.calculate_employee_pay(&entries, Some(60_000.0)).unwrap();
+        let (_, _, _, _, lines) = engine
+            .calculate_employee_pay(&entries, Some(60_000.0))
+            .unwrap();
 
         let ot_line = lines.iter().find(|l| l.element_code == "OVERTIME").unwrap();
         assert_eq!(ot_line.category, "overtime");

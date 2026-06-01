@@ -117,9 +117,9 @@ mod tests {
     fn test_mapped_via_rule_hardware() {
         let mapping_set = get_sample_mapping_set();
         let trx_date = NaiveDate::from_ymd_opt(2025, 6, 1).unwrap();
-        
+
         let result = SlaMappingSetService::map_segment_value(&mapping_set, "HARDWARE", trx_date);
-        
+
         assert_eq!(result.status, "MAPPED_VIA_RULE");
         assert_eq!(result.mapped_value, Some("1200".to_string()));
     }
@@ -128,9 +128,9 @@ mod tests {
     fn test_mapped_via_rule_software_old_date() {
         let mapping_set = get_sample_mapping_set();
         let trx_date = NaiveDate::from_ymd_opt(2023, 5, 1).unwrap();
-        
+
         let result = SlaMappingSetService::map_segment_value(&mapping_set, "SOFTWARE", trx_date);
-        
+
         assert_eq!(result.status, "MAPPED_VIA_RULE");
         assert_eq!(result.mapped_value, Some("1300".to_string()));
     }
@@ -139,9 +139,9 @@ mod tests {
     fn test_mapped_via_rule_software_new_date() {
         let mapping_set = get_sample_mapping_set();
         let trx_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
-        
+
         let result = SlaMappingSetService::map_segment_value(&mapping_set, "SOFTWARE", trx_date);
-        
+
         assert_eq!(result.status, "MAPPED_VIA_RULE");
         assert_eq!(result.mapped_value, Some("1350".to_string()));
     }
@@ -150,10 +150,10 @@ mod tests {
     fn test_mapped_via_default_value() {
         let mapping_set = get_sample_mapping_set();
         let trx_date = NaiveDate::from_ymd_opt(2025, 6, 1).unwrap();
-        
+
         // Input "SERVICES" has no specific rule, should fallback to default "9999"
         let result = SlaMappingSetService::map_segment_value(&mapping_set, "SERVICES", trx_date);
-        
+
         assert_eq!(result.status, "MAPPED_VIA_DEFAULT");
         assert_eq!(result.mapped_value, Some("9999".to_string()));
     }
@@ -163,12 +163,12 @@ mod tests {
         let mut mapping_set = get_sample_mapping_set();
         mapping_set.use_default_value = false; // Turn off defaults
         mapping_set.default_output_value = None;
-        
+
         let trx_date = NaiveDate::from_ymd_opt(2025, 6, 1).unwrap();
-        
+
         // Input "SERVICES" has no specific rule, and no default allowed -> UNMAPPED
         let result = SlaMappingSetService::map_segment_value(&mapping_set, "SERVICES", trx_date);
-        
+
         assert_eq!(result.status, "UNMAPPED");
         assert_eq!(result.mapped_value, None);
     }

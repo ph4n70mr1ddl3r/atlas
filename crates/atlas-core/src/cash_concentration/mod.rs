@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Treasury > Cash Pooling > Cash Concentration
 
-pub mod repository;
 pub mod engine;
+pub mod repository;
 
 pub use engine::CashConcentrationEngine;
 pub use repository::{CashConcentrationRepository, PostgresCashConcentrationRepository};

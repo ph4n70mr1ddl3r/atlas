@@ -7,17 +7,17 @@
 //! for a specified date range.
 
 use axum::{
-    extract::{Path, Query, State, Extension},
-    Json,
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use serde::Deserialize;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::auth::Claims;
+use crate::AppState;
 use atlas_shared::CreateDelegationRuleRequest;
 
 // ============================================================================
@@ -44,10 +44,22 @@ pub async fn create_delegation_rule(
     Json(payload): Json<CreateDelegationRuleRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let delegator_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let delegator_id =
+        Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.approval_delegation_engine.create_rule(org_id, delegator_id, payload).await {
-        Ok(rule) => Ok((StatusCode::CREATED, Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null })))),
+    match state
+        .hcm
+        .approval_delegation_engine
+        .create_rule(org_id, delegator_id, payload)
+        .await
+    {
+        Ok(rule) => Ok((
+            StatusCode::CREATED,
+            Json(serde_json::to_value(rule).unwrap_or_else(|e| {
+                tracing::error!("Serialization error: {}", e);
+                serde_json::Value::Null
+            })),
+        )),
         Err(e) => {
             error!("Failed to create delegation rule: {}", e);
             Err(match e.status_code() {
@@ -67,7 +79,10 @@ pub async fn get_delegation_rule(
     let id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     match state.hcm.approval_delegation_engine.get_rule(id).await {
-        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(Some(rule)) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
             error!("Failed to get delegation rule {}: {}", id, e);
@@ -83,11 +98,16 @@ pub async fn list_delegation_rules(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.approval_delegation_engine.list_rules(
-        org_id,
-        params.status.as_deref(),
-    ).await {
-        Ok(rules) => Ok(Json(serde_json::to_value(rules).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .hcm
+        .approval_delegation_engine
+        .list_rules(org_id, params.status.as_deref())
+        .await
+    {
+        Ok(rules) => Ok(Json(serde_json::to_value(rules).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to list delegation rules: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -101,14 +121,19 @@ pub async fn list_my_delegation_rules(
     Query(params): Query<ListRulesQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let delegator_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let delegator_id =
+        Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.approval_delegation_engine.list_rules_for_delegator(
-        org_id,
-        delegator_id,
-        params.status.as_deref(),
-    ).await {
-        Ok(rules) => Ok(Json(serde_json::to_value(rules).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .hcm
+        .approval_delegation_engine
+        .list_rules_for_delegator(org_id, delegator_id, params.status.as_deref())
+        .await
+    {
+        Ok(rules) => Ok(Json(serde_json::to_value(rules).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to list my delegation rules: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -135,7 +160,11 @@ pub async fn cancel_delegation_rule(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Authorization: only the delegator or an admin can cancel
-    let rule = state.hcm.approval_delegation_engine.get_rule(id).await
+    let rule = state
+        .hcm
+        .approval_delegation_engine
+        .get_rule(id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
     let is_admin = claims.roles.contains(&"admin".to_string());
@@ -143,8 +172,16 @@ pub async fn cancel_delegation_rule(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    match state.hcm.approval_delegation_engine.cancel_rule(id, user_id, payload.reason.as_deref()).await {
-        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .hcm
+        .approval_delegation_engine
+        .cancel_rule(id, user_id, payload.reason.as_deref())
+        .await
+    {
+        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to cancel delegation rule {}: {}", id, e);
             Err(match e.status_code() {
@@ -165,7 +202,11 @@ pub async fn activate_delegation_rule(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Authorization: only the delegator or an admin can activate
-    let rule = state.hcm.approval_delegation_engine.get_rule(id).await
+    let rule = state
+        .hcm
+        .approval_delegation_engine
+        .get_rule(id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
     let is_admin = claims.roles.contains(&"admin".to_string());
@@ -174,7 +215,10 @@ pub async fn activate_delegation_rule(
     }
 
     match state.hcm.approval_delegation_engine.activate_rule(id).await {
-        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+        Ok(rule) => Ok(Json(serde_json::to_value(rule).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to activate delegation rule {}: {}", id, e);
             Err(match e.status_code() {
@@ -195,7 +239,11 @@ pub async fn delete_delegation_rule(
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Authorization: only the delegator or an admin can delete
-    let rule = state.hcm.approval_delegation_engine.get_rule(id).await
+    let rule = state
+        .hcm
+        .approval_delegation_engine
+        .get_rule(id)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
     let is_admin = claims.roles.contains(&"admin".to_string());
@@ -220,7 +268,12 @@ pub async fn process_scheduled_delegations(
     State(state): State<Arc<AppState>>,
     Extension(_claims): Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.hcm.approval_delegation_engine.process_scheduled_rules().await {
+    match state
+        .hcm
+        .approval_delegation_engine
+        .process_scheduled_rules()
+        .await
+    {
         Ok((activated, expired)) => Ok(Json(serde_json::json!({
             "activated": activated.len(),
             "expired": expired.len(),
@@ -246,10 +299,16 @@ pub async fn list_delegation_history(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.approval_delegation_engine.list_delegation_history(
-        org_id, user_id, params.limit,
-    ).await {
-        Ok(history) => Ok(Json(serde_json::to_value(history).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .hcm
+        .approval_delegation_engine
+        .list_delegation_history(org_id, user_id, params.limit)
+        .await
+    {
+        Ok(history) => Ok(Json(serde_json::to_value(history).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to list delegation history: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -267,8 +326,16 @@ pub async fn get_delegation_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.hcm.approval_delegation_engine.get_dashboard(org_id).await {
-        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| { tracing::error!("Serialization error: {}", e); serde_json::Value::Null }))),
+    match state
+        .hcm
+        .approval_delegation_engine
+        .get_dashboard(org_id)
+        .await
+    {
+        Ok(dashboard) => Ok(Json(serde_json::to_value(dashboard).unwrap_or_else(|e| {
+            tracing::error!("Serialization error: {}", e);
+            serde_json::Value::Null
+        }))),
         Err(e) => {
             error!("Failed to get delegation dashboard: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

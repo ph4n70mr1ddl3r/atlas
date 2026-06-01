@@ -360,8 +360,8 @@ pub struct WarehouseTask {
     pub warehouse_id: Uuid,
     pub task_number: String,
     pub task_type: String, // pick, pack, put_away, load, receive
-    pub status: String,   // pending, in_progress, completed, cancelled
-    pub priority: String, // low, medium, high, urgent
+    pub status: String,    // pending, in_progress, completed, cancelled
+    pub priority: String,  // low, medium, high, urgent
     pub source_document: Option<String>,
     pub source_document_id: Option<Uuid>,
     pub source_line_id: Option<Uuid>,
@@ -771,9 +771,9 @@ pub struct AssetDefinition {
     pub asset_number: String,
     pub name: String,
     pub description: String,
-    pub asset_group: String,            // equipment class (pump, motor, vehicle, hvac, etc.)
-    pub asset_criticality: String,      // low, medium, high, critical
-    pub asset_status: String,           // active, inactive, disposed, in_repair
+    pub asset_group: String, // equipment class (pump, motor, vehicle, hvac, etc.)
+    pub asset_criticality: String, // low, medium, high, critical
+    pub asset_status: String, // active, inactive, disposed, in_repair
     pub location_id: Option<Uuid>,
     pub location_name: String,
     pub parent_asset_id: Option<Uuid>,
@@ -784,7 +784,7 @@ pub struct AssetDefinition {
     pub warranty_expiry: Option<chrono::NaiveDate>,
     pub last_maintenance_date: Option<chrono::NaiveDate>,
     pub next_maintenance_date: Option<chrono::NaiveDate>,
-    pub meter_reading: Option<serde_json::Value>,  // {type, value, unit, last_read}
+    pub meter_reading: Option<serde_json::Value>, // {type, value, unit, last_read}
     pub metadata: serde_json::Value,
     pub created_by: Option<Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -799,9 +799,9 @@ pub struct MaintenanceWorkOrder {
     pub work_order_number: String,
     pub title: String,
     pub description: String,
-    pub work_order_type: String,        // corrective, preventive, emergency, inspection, project
-    pub priority: String,               // low, normal, high, urgent
-    pub status: String,                 // draft, approved, in_progress, completed, closed, cancelled
+    pub work_order_type: String, // corrective, preventive, emergency, inspection, project
+    pub priority: String,        // low, normal, high, urgent
+    pub status: String,          // draft, approved, in_progress, completed, closed, cancelled
     pub asset_id: Uuid,
     pub asset_number: String,
     pub asset_name: String,
@@ -820,8 +820,8 @@ pub struct MaintenanceWorkOrder {
     pub failure_code: String,
     pub cause_code: String,
     pub resolution_code: String,
-    pub materials: serde_json::Value,    // [{item, quantity, unit_cost}]
-    pub labor: serde_json::Value,        // [{person_id, name, hours, rate}]
+    pub materials: serde_json::Value, // [{item, quantity, unit_cost}]
+    pub labor: serde_json::Value,     // [{person_id, name, hours, rate}]
     pub completion_notes: String,
     pub approved_by: Option<Uuid>,
     pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -843,11 +843,11 @@ pub struct PreventiveMaintenanceSchedule {
     pub asset_id: Uuid,
     pub asset_number: String,
     pub asset_name: String,
-    pub schedule_type: String,          // time_based, meter_based, condition_based
-    pub frequency: String,              // daily, weekly, monthly, quarterly, semi_annual, annual
-    pub interval_value: i32,            // every N days/weeks/months/meters
-    pub interval_unit: String,          // days, weeks, months, hours, miles, cycles
-    pub meter_type: String,             // hours, miles, km, cycles (for meter-based)
+    pub schedule_type: String, // time_based, meter_based, condition_based
+    pub frequency: String,     // daily, weekly, monthly, quarterly, semi_annual, annual
+    pub interval_value: i32,   // every N days/weeks/months/meters
+    pub interval_unit: String, // days, weeks, months, hours, miles, cycles
+    pub meter_type: String,    // hours, miles, km, cycles (for meter-based)
     pub meter_threshold: Option<serde_json::Value>,
     pub work_order_template: Option<serde_json::Value>,
     pub estimated_duration_hours: f64,
@@ -855,9 +855,9 @@ pub struct PreventiveMaintenanceSchedule {
     pub next_due_date: Option<chrono::NaiveDate>,
     pub last_completed_date: Option<chrono::NaiveDate>,
     pub last_completed_wo: String,
-    pub auto_generate: bool,            // auto-generate work orders
-    pub lead_time_days: i32,            // days before due to generate WO
-    pub status: String,                 // active, inactive, completed
+    pub auto_generate: bool, // auto-generate work orders
+    pub lead_time_days: i32, // days before due to generate WO
+    pub status: String,      // active, inactive, completed
     pub effective_start: Option<chrono::NaiveDate>,
     pub effective_end: Option<chrono::NaiveDate>,
     pub metadata: serde_json::Value,
@@ -887,8 +887,8 @@ pub struct MaintenanceDashboard {
     pub avg_completion_days: f64,
     pub total_maintenance_cost: String,
     pub total_downtime_hours: f64,
-    pub mtbf_hours: f64,               // mean time between failures
-    pub mttr_hours: f64,               // mean time to repair
+    pub mtbf_hours: f64, // mean time between failures
+    pub mttr_hours: f64, // mean time to repair
     pub work_orders_by_priority: serde_json::Value,
     pub work_orders_by_type: serde_json::Value,
     pub assets_by_criticality: serde_json::Value,
@@ -1320,8 +1320,8 @@ pub struct RebateAgreement {
     pub agreement_number: String,
     pub name: String,
     pub description: String,
-    pub rebate_type: String, // supplier_rebate, customer_rebate
-    pub direction: String, // receivable, payable
+    pub rebate_type: String,  // supplier_rebate, customer_rebate
+    pub direction: String,    // receivable, payable
     pub partner_type: String, // supplier, customer
     pub partner_id: Option<Uuid>,
     pub partner_name: String,
@@ -1490,4 +1490,3 @@ pub struct RebateDashboard {
     pub top_rebate_agreements: serde_json::Value,
     pub recent_settlements: serde_json::Value,
 }
-

@@ -7,11 +7,11 @@
 mod engine;
 pub use engine::SuspenseAccountEngine;
 
-use atlas_shared::{AtlasError, AtlasResult};
 use async_trait::async_trait;
+use atlas_shared::{AtlasError, AtlasResult};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SuspenseAccountDefinition {
@@ -115,65 +115,265 @@ pub struct SuspenseDashboard {
 #[async_trait]
 pub trait SuspenseAccountRepository: Send + Sync {
     // Definitions
-    async fn create_definition(&self, org_id: Uuid, code: &str, name: &str, description: Option<&str>, balancing_segment: &str, suspense_account: &str, created_by: Option<Uuid>) -> AtlasResult<SuspenseAccountDefinition>;
+    async fn create_definition(
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        balancing_segment: &str,
+        suspense_account: &str,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<SuspenseAccountDefinition>;
     async fn get_definition(&self, id: Uuid) -> AtlasResult<Option<SuspenseAccountDefinition>>;
-    async fn get_definition_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<SuspenseAccountDefinition>>;
+    async fn get_definition_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<SuspenseAccountDefinition>>;
     async fn list_definitions(&self, org_id: Uuid) -> AtlasResult<Vec<SuspenseAccountDefinition>>;
-    async fn update_definition_status(&self, id: Uuid, enabled: bool, status: &str) -> AtlasResult<SuspenseAccountDefinition>;
+    async fn update_definition_status(
+        &self,
+        id: Uuid,
+        enabled: bool,
+        status: &str,
+    ) -> AtlasResult<SuspenseAccountDefinition>;
     async fn delete_definition(&self, id: Uuid) -> AtlasResult<()>;
 
     // Entries
-    async fn create_entry(&self, org_id: Uuid, definition_id: Uuid, journal_entry_id: Option<Uuid>, journal_batch_id: Option<Uuid>, balancing_segment_value: &str, suspense_account: &str, suspense_amount: &str, original_amount: Option<&str>, entry_type: &str, entry_date: chrono::NaiveDate, currency_code: &str, created_by: Option<Uuid>) -> AtlasResult<SuspenseEntry>;
+    async fn create_entry(
+        &self,
+        org_id: Uuid,
+        definition_id: Uuid,
+        journal_entry_id: Option<Uuid>,
+        journal_batch_id: Option<Uuid>,
+        balancing_segment_value: &str,
+        suspense_account: &str,
+        suspense_amount: &str,
+        original_amount: Option<&str>,
+        entry_type: &str,
+        entry_date: chrono::NaiveDate,
+        currency_code: &str,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<SuspenseEntry>;
     async fn get_entry(&self, id: Uuid) -> AtlasResult<Option<SuspenseEntry>>;
-    async fn list_entries(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SuspenseEntry>>;
-    async fn list_entries_by_definition(&self, definition_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SuspenseEntry>>;
-    async fn update_entry_status(&self, id: Uuid, status: &str, cleared_by_journal_id: Option<Uuid>, clearing_date: Option<chrono::NaiveDate>, resolution_notes: Option<&str>) -> AtlasResult<SuspenseEntry>;
+    async fn list_entries(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SuspenseEntry>>;
+    async fn list_entries_by_definition(
+        &self,
+        definition_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SuspenseEntry>>;
+    async fn update_entry_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        cleared_by_journal_id: Option<Uuid>,
+        clearing_date: Option<chrono::NaiveDate>,
+        resolution_notes: Option<&str>,
+    ) -> AtlasResult<SuspenseEntry>;
 
     // Clearing Batches
-    async fn create_clearing_batch(&self, org_id: Uuid, batch_number: &str, description: Option<&str>, clearing_date: chrono::NaiveDate, created_by: Option<Uuid>) -> AtlasResult<SuspenseClearingBatch>;
+    async fn create_clearing_batch(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+        description: Option<&str>,
+        clearing_date: chrono::NaiveDate,
+        created_by: Option<Uuid>,
+    ) -> AtlasResult<SuspenseClearingBatch>;
     async fn get_clearing_batch(&self, id: Uuid) -> AtlasResult<Option<SuspenseClearingBatch>>;
-    async fn get_clearing_batch_by_number(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<SuspenseClearingBatch>>;
-    async fn list_clearing_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<SuspenseClearingBatch>>;
-    async fn update_clearing_batch(&self, id: Uuid, status: &str, total_entries: i32, total_cleared_amount: &str) -> AtlasResult<SuspenseClearingBatch>;
+    async fn get_clearing_batch_by_number(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<SuspenseClearingBatch>>;
+    async fn list_clearing_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<SuspenseClearingBatch>>;
+    async fn update_clearing_batch(
+        &self,
+        id: Uuid,
+        status: &str,
+        total_entries: i32,
+        total_cleared_amount: &str,
+    ) -> AtlasResult<SuspenseClearingBatch>;
 
     // Clearing Lines
-    async fn create_clearing_line(&self, org_id: Uuid, batch_id: Uuid, entry_id: Uuid, clearing_account: &str, cleared_amount: &str, resolution_notes: Option<&str>) -> AtlasResult<SuspenseClearingLine>;
+    async fn create_clearing_line(
+        &self,
+        org_id: Uuid,
+        batch_id: Uuid,
+        entry_id: Uuid,
+        clearing_account: &str,
+        cleared_amount: &str,
+        resolution_notes: Option<&str>,
+    ) -> AtlasResult<SuspenseClearingLine>;
     async fn list_clearing_lines(&self, batch_id: Uuid) -> AtlasResult<Vec<SuspenseClearingLine>>;
 
     // Aging
-    async fn create_aging_snapshot(&self, org_id: Uuid, snapshot_date: chrono::NaiveDate) -> AtlasResult<SuspenseAgingSnapshot>;
+    async fn create_aging_snapshot(
+        &self,
+        org_id: Uuid,
+        snapshot_date: chrono::NaiveDate,
+    ) -> AtlasResult<SuspenseAgingSnapshot>;
 
     // Dashboard
     async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<SuspenseDashboard>;
 }
 
 #[allow(dead_code)]
-pub struct PostgresSuspenseAccountRepository { #[allow(dead_code)]
-    pool: PgPool }
-impl PostgresSuspenseAccountRepository { #[must_use] 
-pub const fn new(pool: PgPool) -> Self { Self { pool } } }
+pub struct PostgresSuspenseAccountRepository {
+    #[allow(dead_code)]
+    pool: PgPool,
+}
+impl PostgresSuspenseAccountRepository {
+    #[must_use]
+    pub const fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
 
 #[async_trait]
 impl SuspenseAccountRepository for PostgresSuspenseAccountRepository {
-    async fn create_definition(&self, _: Uuid, _: &str, _: &str, _: Option<&str>, _: &str, _: &str, _: Option<Uuid>) -> AtlasResult<SuspenseAccountDefinition> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_definition(&self, _: Uuid) -> AtlasResult<Option<SuspenseAccountDefinition>> { Ok(None) }
-    async fn get_definition_by_code(&self, _: Uuid, _: &str) -> AtlasResult<Option<SuspenseAccountDefinition>> { Ok(None) }
-    async fn list_definitions(&self, _: Uuid) -> AtlasResult<Vec<SuspenseAccountDefinition>> { Ok(vec![]) }
-    async fn update_definition_status(&self, _: Uuid, _: bool, _: &str) -> AtlasResult<SuspenseAccountDefinition> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn delete_definition(&self, _: Uuid) -> AtlasResult<()> { Ok(()) }
-    async fn create_entry(&self, _: Uuid, _: Uuid, _: Option<Uuid>, _: Option<Uuid>, _: &str, _: &str, _: &str, _: Option<&str>, _: &str, _: chrono::NaiveDate, _: &str, _: Option<Uuid>) -> AtlasResult<SuspenseEntry> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_entry(&self, _: Uuid) -> AtlasResult<Option<SuspenseEntry>> { Ok(None) }
-    async fn list_entries(&self, _: Uuid, _: Option<&str>) -> AtlasResult<Vec<SuspenseEntry>> { Ok(vec![]) }
-    async fn list_entries_by_definition(&self, _: Uuid, _: Option<&str>) -> AtlasResult<Vec<SuspenseEntry>> { Ok(vec![]) }
-    async fn update_entry_status(&self, _: Uuid, _: &str, _: Option<Uuid>, _: Option<chrono::NaiveDate>, _: Option<&str>) -> AtlasResult<SuspenseEntry> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn create_clearing_batch(&self, _: Uuid, _: &str, _: Option<&str>, _: chrono::NaiveDate, _: Option<Uuid>) -> AtlasResult<SuspenseClearingBatch> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn get_clearing_batch(&self, _: Uuid) -> AtlasResult<Option<SuspenseClearingBatch>> { Ok(None) }
-    async fn get_clearing_batch_by_number(&self, _: Uuid, _: &str) -> AtlasResult<Option<SuspenseClearingBatch>> { Ok(None) }
-    async fn list_clearing_batches(&self, _: Uuid, _: Option<&str>) -> AtlasResult<Vec<SuspenseClearingBatch>> { Ok(vec![]) }
-    async fn update_clearing_batch(&self, _: Uuid, _: &str, _: i32, _: &str) -> AtlasResult<SuspenseClearingBatch> { Err(AtlasError::EntityNotFound("Mock".into())) }
-    async fn create_clearing_line(&self, _: Uuid, _: Uuid, _: Uuid, _: &str, _: &str, _: Option<&str>) -> AtlasResult<SuspenseClearingLine> { Err(AtlasError::DatabaseError("Not implemented".into())) }
-    async fn list_clearing_lines(&self, _: Uuid) -> AtlasResult<Vec<SuspenseClearingLine>> { Ok(vec![]) }
-    async fn create_aging_snapshot(&self, _: Uuid, _: chrono::NaiveDate) -> AtlasResult<SuspenseAgingSnapshot> { Err(AtlasError::DatabaseError("Not implemented".into())) }
+    async fn create_definition(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+        _: &str,
+        _: &str,
+        _: Option<Uuid>,
+    ) -> AtlasResult<SuspenseAccountDefinition> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_definition(&self, _: Uuid) -> AtlasResult<Option<SuspenseAccountDefinition>> {
+        Ok(None)
+    }
+    async fn get_definition_by_code(
+        &self,
+        _: Uuid,
+        _: &str,
+    ) -> AtlasResult<Option<SuspenseAccountDefinition>> {
+        Ok(None)
+    }
+    async fn list_definitions(&self, _: Uuid) -> AtlasResult<Vec<SuspenseAccountDefinition>> {
+        Ok(vec![])
+    }
+    async fn update_definition_status(
+        &self,
+        _: Uuid,
+        _: bool,
+        _: &str,
+    ) -> AtlasResult<SuspenseAccountDefinition> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn delete_definition(&self, _: Uuid) -> AtlasResult<()> {
+        Ok(())
+    }
+    async fn create_entry(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: Option<Uuid>,
+        _: Option<Uuid>,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+        _: &str,
+        _: chrono::NaiveDate,
+        _: &str,
+        _: Option<Uuid>,
+    ) -> AtlasResult<SuspenseEntry> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_entry(&self, _: Uuid) -> AtlasResult<Option<SuspenseEntry>> {
+        Ok(None)
+    }
+    async fn list_entries(&self, _: Uuid, _: Option<&str>) -> AtlasResult<Vec<SuspenseEntry>> {
+        Ok(vec![])
+    }
+    async fn list_entries_by_definition(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+    ) -> AtlasResult<Vec<SuspenseEntry>> {
+        Ok(vec![])
+    }
+    async fn update_entry_status(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: Option<Uuid>,
+        _: Option<chrono::NaiveDate>,
+        _: Option<&str>,
+    ) -> AtlasResult<SuspenseEntry> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn create_clearing_batch(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: Option<&str>,
+        _: chrono::NaiveDate,
+        _: Option<Uuid>,
+    ) -> AtlasResult<SuspenseClearingBatch> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn get_clearing_batch(&self, _: Uuid) -> AtlasResult<Option<SuspenseClearingBatch>> {
+        Ok(None)
+    }
+    async fn get_clearing_batch_by_number(
+        &self,
+        _: Uuid,
+        _: &str,
+    ) -> AtlasResult<Option<SuspenseClearingBatch>> {
+        Ok(None)
+    }
+    async fn list_clearing_batches(
+        &self,
+        _: Uuid,
+        _: Option<&str>,
+    ) -> AtlasResult<Vec<SuspenseClearingBatch>> {
+        Ok(vec![])
+    }
+    async fn update_clearing_batch(
+        &self,
+        _: Uuid,
+        _: &str,
+        _: i32,
+        _: &str,
+    ) -> AtlasResult<SuspenseClearingBatch> {
+        Err(AtlasError::EntityNotFound("Mock".into()))
+    }
+    async fn create_clearing_line(
+        &self,
+        _: Uuid,
+        _: Uuid,
+        _: Uuid,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+    ) -> AtlasResult<SuspenseClearingLine> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
+    async fn list_clearing_lines(&self, _: Uuid) -> AtlasResult<Vec<SuspenseClearingLine>> {
+        Ok(vec![])
+    }
+    async fn create_aging_snapshot(
+        &self,
+        _: Uuid,
+        _: chrono::NaiveDate,
+    ) -> AtlasResult<SuspenseAgingSnapshot> {
+        Err(AtlasError::DatabaseError("Not implemented".into()))
+    }
     async fn get_dashboard(&self, _: Uuid) -> AtlasResult<SuspenseDashboard> {
         Ok(SuspenseDashboard {
             total_definitions: 0,

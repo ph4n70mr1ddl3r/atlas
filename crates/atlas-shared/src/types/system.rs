@@ -1,7 +1,7 @@
+use crate::types::*;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::types::*;
 // ============================================================================
 // Schema Metadata
 // ============================================================================
@@ -822,7 +822,9 @@ pub struct GlAllocationPoolRequest {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-pub fn default_pool_type() -> String { "cost_center".to_string() }
+pub fn default_pool_type() -> String {
+    "cost_center".to_string()
+}
 
 /// GL Allocation basis definition
 /// Oracle Fusion: General Ledger > Allocations > Allocation Bases
@@ -872,7 +874,9 @@ pub struct GlAllocationBasisRequest {
     pub effective_to: Option<chrono::NaiveDate>,
 }
 
-pub fn default_basis_type() -> String { "statistical".to_string() }
+pub fn default_basis_type() -> String {
+    "statistical".to_string()
+}
 
 /// GL Allocation basis detail (individual target's share of the basis)
 /// Oracle Fusion: General Ledger > Allocations > Basis Details
@@ -1009,8 +1013,12 @@ pub struct GlAllocationRuleRequest {
     pub target_lines: Option<Vec<GlAllocationTargetLineRequest>>,
 }
 
-pub fn default_gl_allocation_method() -> String { "proportional".to_string() }
-pub fn default_gl_offset_method() -> String { "same_account".to_string() }
+pub fn default_gl_allocation_method() -> String {
+    "proportional".to_string()
+}
+pub fn default_gl_offset_method() -> String {
+    "same_account".to_string()
+}
 
 /// Create/update GL allocation target line request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1406,7 +1414,7 @@ pub struct KpiDefinition {
     pub description: Option<String>,
     pub category: String,
     pub unit_of_measure: String,
-    pub direction: String,        // "higher_is_better", "lower_is_better", "target_range"
+    pub direction: String, // "higher_is_better", "lower_is_better", "target_range"
     pub target_value: String,
     pub warning_threshold: Option<String>,
     pub critical_threshold: Option<String>,
@@ -1863,7 +1871,6 @@ pub struct FinancialControlsDashboardSummary {
     pub avg_resolution_time_hours: Option<f64>,
 }
 
-
 // ============================================================================
 // Distribution Set Types (Oracle Fusion: Payables > Distribution Sets)
 // ============================================================================
@@ -1952,4 +1959,3 @@ pub struct DistributionSetDashboard {
     pub amount_sets: i32,
     pub avg_usage_per_set: Option<String>,
 }
-

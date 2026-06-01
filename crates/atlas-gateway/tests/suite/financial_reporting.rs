@@ -10,13 +10,14 @@
 //! - Dashboard summary
 //! - Validation edge cases
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
-async fn setup_financial_reporting_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
+async fn setup_financial_reporting_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router)
+{
     let state = build_test_state().await;
     cleanup_test_db(&state.db_pool).await;
     setup_test_db(&state.db_pool).await;
@@ -24,7 +25,12 @@ async fn setup_financial_reporting_test() -> (std::sync::Arc<atlas_gateway::AppS
     (state, app)
 }
 
-async fn create_test_template(app: &axum::Router, code: &str, name: &str, report_type: &str) -> serde_json::Value {
+async fn create_test_template(
+    app: &axum::Router,
+    code: &str,
+    name: &str,
+    report_type: &str,
+) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({
         "code": code,
@@ -38,16 +44,39 @@ async fn create_test_template(app: &axum::Router, code: &str, name: &str, report
         "showZeroAmounts": false,
         "segmentFilter": {},
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/financial-reporting/templates")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Failed to create template: status {}", r.status());
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Failed to create template: status {}",
+        r.status()
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
-async fn add_test_row(app: &axum::Router, template_id: &str, row_number: i32, line_type: &str, label: &str, account_from: Option<&str>) -> serde_json::Value {
+async fn add_test_row(
+    app: &axum::Router,
+    template_id: &str,
+    row_number: i32,
+    line_type: &str,
+    label: &str,
+    account_from: Option<&str>,
+) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let mut payload = json!({
         "rowNumber": row_number,
@@ -67,16 +96,38 @@ async fn add_test_row(app: &axum::Router, template_id: &str, row_number: i32, li
         payload["accountRangeTo"] = json!(acc);
     }
     let uri = format!("/api/v1/financial-reporting/templates/{}/rows", template_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Failed to add row: status {}", r.status());
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Failed to add row: status {}",
+        r.status()
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
-async fn add_test_column(app: &axum::Router, template_id: &str, col_number: i32, col_type: &str, label: &str) -> serde_json::Value {
+async fn add_test_column(
+    app: &axum::Router,
+    template_id: &str,
+    col_number: i32,
+    col_type: &str,
+    label: &str,
+) -> serde_json::Value {
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({
         "columnNumber": col_number,
@@ -87,13 +138,32 @@ async fn add_test_column(app: &axum::Router, template_id: &str, col_number: i32,
         "computeSourceColumns": [],
         "showColumn": true,
     });
-    let uri = format!("/api/v1/financial-reporting/templates/{}/columns", template_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Failed to add column: status {}", r.status());
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let uri = format!(
+        "/api/v1/financial-reporting/templates/{}/columns",
+        template_id
+    );
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Failed to add column: status {}",
+        r.status()
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -123,11 +193,22 @@ async fn test_list_templates() {
     create_test_template(&app, "IS-001", "Income Statement", "income_statement").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET").uri("/api/v1/financial-reporting/templates")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/financial-reporting/templates")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let templates: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(templates.as_array().unwrap().len() >= 2);
 }
@@ -140,12 +221,22 @@ async fn test_list_templates_filtered() {
     create_test_template(&app, "IS-001", "Income Statement", "income_statement").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/financial-reporting/templates?reportType=trial_balance")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/financial-reporting/templates?reportType=trial_balance")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let templates: serde_json::Value = serde_json::from_slice(&b).unwrap();
     let arr = templates.as_array().unwrap();
     assert!(arr.iter().all(|t| t["reportType"] == "trial_balance"));
@@ -158,12 +249,22 @@ async fn test_get_template() {
     create_test_template(&app, "TB-001", "Trial Balance", "trial_balance").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/financial-reporting/templates/TB-001")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/financial-reporting/templates/TB-001")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let template: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(template["code"], "TB-001");
 }
@@ -173,10 +274,18 @@ async fn test_get_template_not_found() {
     let (_state, app) = setup_financial_reporting_test().await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/financial-reporting/templates/NONEXISTENT")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/financial-reporting/templates/NONEXISTENT")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -187,17 +296,33 @@ async fn test_delete_template() {
     create_test_template(&app, "TB-DEL", "To Delete", "custom").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/financial-reporting/templates/TB-DEL")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/financial-reporting/templates/TB-DEL")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Verify it's gone
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/financial-reporting/templates/TB-DEL")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/financial-reporting/templates/TB-DEL")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -213,10 +338,19 @@ async fn test_create_template_invalid_report_type() {
         "currencyCode": "USD",
         "roundingOption": "none",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/financial-reporting/templates")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -232,10 +366,19 @@ async fn test_create_template_invalid_rounding() {
         "currencyCode": "USD",
         "roundingOption": "billions",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/financial-reporting/templates")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -273,11 +416,22 @@ async fn test_list_rows() {
 
     let (k, v) = auth_header(&admin_claims());
     let uri = format!("/api/v1/financial-reporting/templates/{}/rows", template_id);
-    let r = app.clone().oneshot(Request::builder().method("GET").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let rows: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(rows.as_array().unwrap().len(), 3);
 }
@@ -306,12 +460,26 @@ async fn test_list_columns() {
     add_test_column(&app, template_id, 2, "budget", "Budget").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let uri = format!("/api/v1/financial-reporting/templates/{}/columns", template_id);
-    let r = app.clone().oneshot(Request::builder().method("GET").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let uri = format!(
+        "/api/v1/financial-reporting/templates/{}/columns",
+        template_id
+    );
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cols: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(cols.as_array().unwrap().len(), 2);
 }
@@ -333,10 +501,19 @@ async fn test_data_row_requires_account_range() {
         "showLine": true,
     });
     let uri = format!("/api/v1/financial-reporting/templates/{}/rows", template_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -364,13 +541,23 @@ async fn test_generate_trial_balance() {
         "segmentFilter": {},
         "includeUnposted": false,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/templates/TB-GEN/generate")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates/TB-GEN/generate")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED, "Failed to generate report");
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let run: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(run["status"], "generated");
     assert!(run["runNumber"].as_str().unwrap().starts_with("FR-"));
@@ -386,11 +573,19 @@ async fn test_trial_balance_requires_as_of_date() {
     let payload = json!({
         "name": "Missing date",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/templates/TB-NODATE/generate")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates/TB-NODATE/generate")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -405,11 +600,19 @@ async fn test_income_statement_requires_period_range() {
         "name": "Missing periods",
         "asOfDate": "2024-12-31",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/templates/IS-NODATE/generate")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates/IS-NODATE/generate")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -425,11 +628,19 @@ async fn test_period_from_must_be_before_to() {
         "periodFrom": "2024-12-31",
         "periodTo": "2024-01-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/templates/IS-BAD/generate")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates/IS-BAD/generate")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -449,49 +660,96 @@ async fn test_report_lifecycle_generate_approve_publish_archive() {
     // Generate
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({ "asOfDate": "2024-12-31", "segmentFilter": {} });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/templates/TB-LC/generate")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates/TB-LC/generate")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
     let run: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     let run_id = run["id"].as_str().unwrap();
     assert_eq!(run["status"], "generated");
 
     // Approve
     let uri = format!("/api/v1/financial-reporting/runs/{}/approve", run_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let approved: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(approved["status"], "approved");
 
     // Publish
     let uri = format!("/api/v1/financial-reporting/runs/{}/publish", run_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let published: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(published["status"], "published");
 
     // Archive
     let uri = format!("/api/v1/financial-reporting/runs/{}/archive", run_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let archived: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(archived["status"], "archived");
 }
 
@@ -508,27 +766,56 @@ async fn test_cannot_approve_draft_report() {
 
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({ "asOfDate": "2024-12-31", "segmentFilter": {} });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/templates/TB-APP/generate")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates/TB-APP/generate")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let run: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     let run_id = run["id"].as_str().unwrap();
 
     // Approve first time - OK
     let uri = format!("/api/v1/financial-reporting/runs/{}/approve", run_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Try to approve again - should fail
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -546,35 +833,73 @@ async fn test_quick_trial_balance_template() {
         "name": "Quick Trial Balance",
         "currencyCode": "USD",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/quick/trial-balance")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/quick/trial-balance")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
     let template: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(template["reportType"], "trial_balance");
 
     // Verify rows and columns were created
     let template_id = template["id"].as_str().unwrap();
     let uri = format!("/api/v1/financial-reporting/templates/{}/rows", template_id);
-    let r = app.clone().oneshot(Request::builder().method("GET").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let rows: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(rows.as_array().unwrap().len() >= 2); // header + total
 
-    let uri = format!("/api/v1/financial-reporting/templates/{}/columns", template_id);
-    let r = app.clone().oneshot(Request::builder().method("GET").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let uri = format!(
+        "/api/v1/financial-reporting/templates/{}/columns",
+        template_id
+    );
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let cols: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(cols.as_array().unwrap().len() >= 3); // beginning, debit, credit, ending
 }
 
@@ -588,15 +913,26 @@ async fn test_quick_income_statement_template() {
         "name": "Quick Income Statement",
         "currencyCode": "USD",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/quick/income-statement")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/quick/income-statement")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
     let template: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(template["reportType"], "income_statement");
 }
 
@@ -610,15 +946,26 @@ async fn test_quick_balance_sheet_template() {
         "name": "Quick Balance Sheet",
         "currencyCode": "USD",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/quick/balance-sheet")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/quick/balance-sheet")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
     let template: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(template["reportType"], "balance_sheet");
 }
 
@@ -640,22 +987,41 @@ async fn test_list_runs() {
     // Generate two reports
     for _ in 0..2 {
         let payload = json!({ "asOfDate": "2024-12-31", "segmentFilter": {} });
-        let r = app.clone().oneshot(Request::builder().method("POST")
-            .uri("/api/v1/financial-reporting/templates/TB-LR/generate")
-            .header("Content-Type", "application/json").header(&k, &v)
-            .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-        ).await.unwrap();
+        let r = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/financial-reporting/templates/TB-LR/generate")
+                    .header("Content-Type", "application/json")
+                    .header(&k, &v)
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(r.status(), StatusCode::CREATED);
     }
 
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/financial-reporting/runs")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/financial-reporting/runs")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let runs: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(runs.as_array().unwrap().len() >= 2);
 }
 
@@ -671,25 +1037,48 @@ async fn test_get_run_results() {
 
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({ "asOfDate": "2024-12-31", "segmentFilter": {} });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/templates/TB-RES/generate")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates/TB-RES/generate")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     let run: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     let run_id = run["id"].as_str().unwrap();
 
     // Get results
     let uri = format!("/api/v1/financial-reporting/runs/{}/results", run_id);
-    let r = app.clone().oneshot(Request::builder().method("GET").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let results: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     // Should have 2 data rows × 1 column = 2 results
     assert!(results.as_array().unwrap().len() >= 2);
 }
@@ -705,20 +1094,39 @@ async fn test_list_runs_filtered_by_status() {
 
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({ "asOfDate": "2024-12-31", "segmentFilter": {} });
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/templates/TB-FS/generate")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates/TB-FS/generate")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/financial-reporting/runs?status=generated")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/financial-reporting/runs?status=generated")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let runs: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     let arr = runs.as_array().unwrap();
     assert!(arr.iter().all(|r| r["status"] == "generated"));
 }
@@ -735,14 +1143,25 @@ async fn test_financial_reporting_dashboard() {
     create_test_template(&app, "IS-DASH", "Dashboard IS", "income_statement").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/financial-reporting/dashboard")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/financial-reporting/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let summary: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(summary["templateCount"].as_i64().unwrap() >= 2);
     assert!(summary["activeTemplateCount"].as_i64().unwrap() >= 2);
 }
@@ -763,26 +1182,55 @@ async fn test_favourite_workflow() {
 
     // Add favourite
     let uri = format!("/api/v1/financial-reporting/favourites/{}", template_id);
-    let r = app.clone().oneshot(Request::builder().method("POST").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // List favourites
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/financial-reporting/favourites")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/financial-reporting/favourites")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
     let favs: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(favs.as_array().unwrap().len() >= 1);
 
     // Remove favourite
-    let r = app.clone().oneshot(Request::builder().method("DELETE").uri(&uri)
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&uri)
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 }
 
@@ -796,11 +1244,19 @@ async fn test_generate_from_nonexistent_template() {
 
     let (k, v) = auth_header(&admin_claims());
     let payload = json!({ "asOfDate": "2024-12-31" });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/templates/DOES_NOT_EXIST/generate")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates/DOES_NOT_EXIST/generate")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -820,14 +1276,25 @@ async fn test_generate_income_statement_with_valid_periods() {
         "periodTo": "2024-12-31",
         "segmentFilter": {},
     });
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri("/api/v1/financial-reporting/templates/IS-GEN/generate")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/financial-reporting/templates/IS-GEN/generate")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
     let run: serde_json::Value = serde_json::from_slice(
-        &axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap()
-    ).unwrap();
+        &axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(run["status"], "generated");
 }

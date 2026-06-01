@@ -10,11 +10,11 @@
 //! - Dashboard summary
 //! - Validation edge cases
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_project_billing_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -39,12 +39,28 @@ async fn create_test_schedule(
         "effectiveStart": "2024-01-01",
         "defaultMarkupPct": 0.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/schedules")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Failed to create schedule: status {}", r.status());
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/schedules")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Failed to create schedule: status {}",
+        r.status()
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -68,12 +84,28 @@ async fn create_test_billing_config(
         "retentionAmountCap": 0.0,
         "customerName": "Acme Corp",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/configs")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Failed to create billing config: status {}", r.status());
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/configs")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Failed to create billing config: status {}",
+        r.status()
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -94,12 +126,28 @@ async fn create_test_billing_event(
         "currencyCode": "USD",
         "completionPct": 0.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/events")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Failed to create billing event: status {}", r.status());
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/events")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Failed to create billing event: status {}",
+        r.status()
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -118,12 +166,28 @@ async fn create_test_invoice(
         "customerName": "Acme Corp",
         "lines": lines,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/invoices")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
-    assert_eq!(r.status(), StatusCode::CREATED, "Failed to create invoice: status {}", r.status());
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/invoices")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        r.status(),
+        StatusCode::CREATED,
+        "Failed to create invoice: status {}",
+        r.status()
+    );
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     serde_json::from_slice(&b).unwrap()
 }
 
@@ -152,7 +216,8 @@ fn test_invoice_line(bill_amount: f64, role: &str) -> serde_json::Value {
 async fn test_create_bill_rate_schedule() {
     let (_state, app) = setup_project_billing_test().await;
 
-    let schedule = create_test_schedule(&app, "BRS-001", "Standard Rate Schedule", "standard").await;
+    let schedule =
+        create_test_schedule(&app, "BRS-001", "Standard Rate Schedule", "standard").await;
 
     assert_eq!(schedule["schedule_number"], "BRS-001");
     assert_eq!(schedule["name"], "Standard Rate Schedule");
@@ -188,14 +253,23 @@ async fn test_list_schedules() {
     create_test_schedule(&app, "BRS-LIST-2", "Schedule 2", "overtime").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/project-billing/schedules")
-        .header(&k, &v)
-        .body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/project-billing/schedules")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(result["data"].as_array().unwrap().len() >= 2);
 }
@@ -211,22 +285,48 @@ async fn test_activate_and_deactivate_schedule() {
 
     // Activate
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/schedules/{}/activate", schedule_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/schedules/{}/activate",
+                    schedule_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let active: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(active["status"], "active");
 
     // Deactivate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/schedules/{}/deactivate", schedule_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/schedules/{}/deactivate",
+                    schedule_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let inactive: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(inactive["status"], "inactive");
 }
@@ -239,20 +339,41 @@ async fn test_delete_schedule() {
     create_test_schedule(&app, "BRS-DEL", "To Delete", "standard").await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("DELETE")
-        .uri("/api/v1/project-billing/schedules/number/BRS-DEL")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/v1/project-billing/schedules/number/BRS-DEL")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // Verify it's gone
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/project-billing/schedules")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/project-billing/schedules")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
-    let numbers: Vec<&str> = result["data"].as_array().unwrap().iter()
+    let numbers: Vec<&str> = result["data"]
+        .as_array()
+        .unwrap()
+        .iter()
         .filter_map(|s| s["schedule_number"].as_str())
         .collect();
     assert!(!numbers.contains(&"BRS-DEL"));
@@ -274,10 +395,19 @@ async fn test_duplicate_schedule_rejected() {
         "currencyCode": "USD",
         "effectiveStart": "2024-01-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/schedules")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/schedules")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -296,38 +426,79 @@ async fn test_add_rate_lines() {
     let (k, v) = auth_header(&admin_claims());
 
     // Add Senior Developer rate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/schedules/{}/rate-lines", schedule_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "roleName": "Senior Developer",
-            "billRate": 150.0,
-            "unitOfMeasure": "hours",
-            "effectiveStart": "2024-01-01",
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/schedules/{}/rate-lines",
+                    schedule_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "roleName": "Senior Developer",
+                        "billRate": 150.0,
+                        "unitOfMeasure": "hours",
+                        "effectiveStart": "2024-01-01",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
 
     // Add Project Manager rate
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/schedules/{}/rate-lines", schedule_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "roleName": "Project Manager",
-            "billRate": 175.0,
-            "unitOfMeasure": "hours",
-            "effectiveStart": "2024-01-01",
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/schedules/{}/rate-lines",
+                    schedule_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "roleName": "Project Manager",
+                        "billRate": 175.0,
+                        "unitOfMeasure": "hours",
+                        "effectiveStart": "2024-01-01",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
 
     // List lines
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/project-billing/schedules/{}/rate-lines", schedule_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/project-billing/schedules/{}/rate-lines",
+                    schedule_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let lines: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(lines["data"].as_array().unwrap().len(), 2);
 }
@@ -343,35 +514,73 @@ async fn test_find_rate_for_role() {
     let (k, v) = auth_header(&admin_claims());
 
     // Add a rate line
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/schedules/{}/rate-lines", schedule_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "roleName": "Architect",
-            "billRate": 200.0,
-            "unitOfMeasure": "hours",
-            "effectiveStart": "2024-01-01",
-            "effectiveEnd": "2024-12-31",
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/schedules/{}/rate-lines",
+                    schedule_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "roleName": "Architect",
+                        "billRate": 200.0,
+                        "unitOfMeasure": "hours",
+                        "effectiveStart": "2024-01-01",
+                        "effectiveEnd": "2024-12-31",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Find rate
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/project-billing/schedules/{}/find-rate/Architect?date=2024-06-15", schedule_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/project-billing/schedules/{}/find-rate/Architect?date=2024-06-15",
+                    schedule_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let rate: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(rate["role_name"], "Architect");
     let bill_rate: f64 = rate["bill_rate"].as_str().unwrap().parse().unwrap();
     assert!((bill_rate - 200.0).abs() < 0.01);
 
     // Find rate outside date range
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/project-billing/schedules/{}/find-rate/Architect?date=2025-06-15", schedule_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/project-billing/schedules/{}/find-rate/Architect?date=2025-06-15",
+                    schedule_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::NOT_FOUND);
 }
 
@@ -385,7 +594,8 @@ async fn test_create_billing_config() {
     let (_state, app) = setup_project_billing_test().await;
     let project_id = uuid::Uuid::new_v4().to_string();
 
-    let config = create_test_billing_config(&app, &project_id, "time_and_materials", 100000.0, 10.0).await;
+    let config =
+        create_test_billing_config(&app, &project_id, "time_and_materials", 100000.0, 10.0).await;
 
     assert_eq!(config["billing_method"], "time_and_materials");
     assert_eq!(config["status"], "draft");
@@ -416,10 +626,19 @@ async fn test_billing_config_methods() {
         "retentionPct": 5.0,
         "retentionAmountCap": 0.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/configs")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/configs")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CREATED);
 
     // Fixed Price
@@ -445,12 +664,25 @@ async fn test_activate_and_cancel_billing_config() {
 
     // Activate
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/configs/{}/activate", config_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/configs/{}/activate",
+                    config_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let active: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(active["status"], "active");
 
@@ -459,12 +691,25 @@ async fn test_activate_and_cancel_billing_config() {
     let config2 = create_test_billing_config(&app, &project_id2, "cost_plus", 75000.0, 5.0).await;
     let config2_id = config2["id"].as_str().unwrap();
 
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/configs/{}/cancel", config2_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/configs/{}/cancel",
+                    config2_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cancelled: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
@@ -478,12 +723,25 @@ async fn test_get_billing_config_by_project() {
     create_test_billing_config(&app, &project_id.to_string(), "fixed_price", 100000.0, 0.0).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/project-billing/configs/project/{}", project_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/project-billing/configs/project/{}",
+                    project_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let config: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(config["billing_method"], "fixed_price");
 }
@@ -509,10 +767,19 @@ async fn test_duplicate_billing_config_rejected() {
         "retentionPct": 0.0,
         "retentionAmountCap": 0.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/configs")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/configs")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::CONFLICT);
 }
 
@@ -541,16 +808,20 @@ async fn test_create_event_types() {
     let (_state, app) = setup_project_billing_test().await;
     let project_id = uuid::Uuid::new_v4().to_string();
 
-    let milestone = create_test_billing_event(&app, &project_id, "BE-MS", "milestone", 25000.0).await;
+    let milestone =
+        create_test_billing_event(&app, &project_id, "BE-MS", "milestone", 25000.0).await;
     assert_eq!(milestone["event_type"], "milestone");
 
-    let progress = create_test_billing_event(&app, &project_id, "BE-PRG", "progress", 15000.0).await;
+    let progress =
+        create_test_billing_event(&app, &project_id, "BE-PRG", "progress", 15000.0).await;
     assert_eq!(progress["event_type"], "progress");
 
-    let completion = create_test_billing_event(&app, &project_id, "BE-CMP", "completion", 50000.0).await;
+    let completion =
+        create_test_billing_event(&app, &project_id, "BE-CMP", "completion", 50000.0).await;
     assert_eq!(completion["event_type"], "completion");
 
-    let retention = create_test_billing_event(&app, &project_id, "BE-RET", "retention_release", 10000.0).await;
+    let retention =
+        create_test_billing_event(&app, &project_id, "BE-RET", "retention_release", 10000.0).await;
     assert_eq!(retention["event_type"], "retention_release");
 }
 
@@ -566,20 +837,40 @@ async fn test_complete_billing_event() {
 
     // Complete the event
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/events/{}/complete", event_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "actualDate": "2024-06-15",
-            "completionPct": 100.0,
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/events/{}/complete",
+                    event_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "actualDate": "2024-06-15",
+                        "completionPct": 100.0,
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let completed: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(completed["status"], "ready");
-    let pct: f64 = completed["completion_pct"].as_str().unwrap().parse().unwrap();
+    let pct: f64 = completed["completion_pct"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
     assert!((pct - 100.0).abs() < 0.01);
 }
 
@@ -593,13 +884,26 @@ async fn test_cancel_billing_event() {
     let event_id = event["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/events/{}/cancel", event_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/events/{}/cancel",
+                    event_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cancelled: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
@@ -616,13 +920,26 @@ async fn test_list_billing_events_by_project() {
     create_test_billing_event(&app, &project_b.to_string(), "BE-LB1", "milestone", 20000.0).await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/project-billing/events?project_id={}", project_a))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/project-billing/events?project_id={}",
+                    project_a
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(result["data"].as_array().unwrap().len(), 2);
 }
@@ -640,9 +957,14 @@ async fn test_create_invoice() {
     // Create billing config first
     create_test_billing_config(&app, &project_id, "time_and_materials", 100000.0, 10.0).await;
 
-    let invoice = create_test_invoice(&app, "INV-001", &project_id, "t_and_m", vec![
-        test_invoice_line(10000.0, "Senior Developer"),
-    ]).await;
+    let invoice = create_test_invoice(
+        &app,
+        "INV-001",
+        &project_id,
+        "t_and_m",
+        vec![test_invoice_line(10000.0, "Senior Developer")],
+    )
+    .await;
 
     assert_eq!(invoice["invoice_number"], "INV-001");
     assert_eq!(invoice["invoice_type"], "t_and_m");
@@ -658,17 +980,30 @@ async fn test_invoice_with_retention() {
     // 10% retention
     create_test_billing_config(&app, &project_id, "time_and_materials", 100000.0, 10.0).await;
 
-    let invoice = create_test_invoice(&app, "INV-RET", &project_id, "t_and_m", vec![
-        test_invoice_line(10000.0, "Senior Developer"),
-    ]).await;
+    let invoice = create_test_invoice(
+        &app,
+        "INV-RET",
+        &project_id,
+        "t_and_m",
+        vec![test_invoice_line(10000.0, "Senior Developer")],
+    )
+    .await;
 
     // Retention should be 10% of 10000 = 1000
     let retention: f64 = invoice["retention_held"].as_str().unwrap().parse().unwrap();
-    assert!((retention - 1000.0).abs() < 1.0, "Retention should be ~1000, got {}", retention);
+    assert!(
+        (retention - 1000.0).abs() < 1.0,
+        "Retention should be ~1000, got {}",
+        retention
+    );
 
     // Total = invoice_amount - retention
     let total: f64 = invoice["total_amount"].as_str().unwrap().parse().unwrap();
-    assert!((total - 9000.0).abs() < 1.0, "Total should be ~9000, got {}", total);
+    assert!(
+        (total - 9000.0).abs() < 1.0,
+        "Total should be ~9000, got {}",
+        total
+    );
 }
 
 #[tokio::test]
@@ -679,40 +1014,84 @@ async fn test_invoice_lifecycle_draft_to_posted() {
 
     create_test_billing_config(&app, &project_id, "fixed_price", 100000.0, 0.0).await;
 
-    let invoice = create_test_invoice(&app, "INV-LC", &project_id, "t_and_m", vec![
-        test_invoice_line(5000.0, "Developer"),
-    ]).await;
+    let invoice = create_test_invoice(
+        &app,
+        "INV-LC",
+        &project_id,
+        "t_and_m",
+        vec![test_invoice_line(5000.0, "Developer")],
+    )
+    .await;
     let invoice_id = invoice["id"].as_str().unwrap();
     assert_eq!(invoice["status"], "draft");
 
     // Submit
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/submit", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/submit",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let submitted: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(submitted["status"], "submitted");
 
     // Approve
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/approve", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/approve",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let approved: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(approved["status"], "approved");
 
     // Post to GL
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/post", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/post",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let posted: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(posted["status"], "posted");
     assert_eq!(posted["gl_posted_flag"], true);
@@ -726,28 +1105,60 @@ async fn test_reject_invoice() {
 
     create_test_billing_config(&app, &project_id, "fixed_price", 100000.0, 0.0).await;
 
-    let invoice = create_test_invoice(&app, "INV-REJ", &project_id, "t_and_m", vec![
-        test_invoice_line(5000.0, "Developer"),
-    ]).await;
+    let invoice = create_test_invoice(
+        &app,
+        "INV-REJ",
+        &project_id,
+        "t_and_m",
+        vec![test_invoice_line(5000.0, "Developer")],
+    )
+    .await;
     let invoice_id = invoice["id"].as_str().unwrap();
 
     // Submit
     let (k, v) = auth_header(&admin_claims());
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/submit", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/submit",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Reject
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/reject", invoice_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "reason": "Incorrect billing amount"
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/reject",
+                    invoice_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "reason": "Incorrect billing amount"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let rejected: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(rejected["status"], "rejected");
     assert_eq!(rejected["rejected_reason"], "Incorrect billing amount");
@@ -761,19 +1172,37 @@ async fn test_cancel_invoice() {
 
     create_test_billing_config(&app, &project_id, "fixed_price", 100000.0, 0.0).await;
 
-    let invoice = create_test_invoice(&app, "INV-CANC", &project_id, "t_and_m", vec![
-        test_invoice_line(5000.0, "Developer"),
-    ]).await;
+    let invoice = create_test_invoice(
+        &app,
+        "INV-CANC",
+        &project_id,
+        "t_and_m",
+        vec![test_invoice_line(5000.0, "Developer")],
+    )
+    .await;
     let invoice_id = invoice["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/cancel", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/cancel",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let cancelled: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(cancelled["status"], "cancelled");
 }
@@ -786,31 +1215,80 @@ async fn test_cannot_cancel_posted_invoice() {
 
     create_test_billing_config(&app, &project_id, "fixed_price", 100000.0, 0.0).await;
 
-    let invoice = create_test_invoice(&app, "INV-POST-CANC", &project_id, "t_and_m", vec![
-        test_invoice_line(5000.0, "Developer"),
-    ]).await;
+    let invoice = create_test_invoice(
+        &app,
+        "INV-POST-CANC",
+        &project_id,
+        "t_and_m",
+        vec![test_invoice_line(5000.0, "Developer")],
+    )
+    .await;
     let invoice_id = invoice["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
     // Submit → Approve → Post
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/submit", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/approve", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/post", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/submit",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/approve",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/post",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to cancel posted invoice
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/cancel", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/cancel",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -822,22 +1300,42 @@ async fn test_get_invoice_lines() {
 
     create_test_billing_config(&app, &project_id, "time_and_materials", 100000.0, 0.0).await;
 
-    let invoice = create_test_invoice(&app, "INV-LINES", &project_id, "t_and_m", vec![
-        test_invoice_line(5000.0, "Senior Developer"),
-        test_invoice_line(3000.0, "Junior Developer"),
-        test_invoice_line(2000.0, "QA Engineer"),
-    ]).await;
+    let invoice = create_test_invoice(
+        &app,
+        "INV-LINES",
+        &project_id,
+        "t_and_m",
+        vec![
+            test_invoice_line(5000.0, "Senior Developer"),
+            test_invoice_line(3000.0, "Junior Developer"),
+            test_invoice_line(2000.0, "QA Engineer"),
+        ],
+    )
+    .await;
     let invoice_id = invoice["id"].as_str().unwrap();
 
     // Get lines
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/lines", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/lines",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(result["data"].as_array().unwrap().len(), 3);
 }
@@ -849,27 +1347,69 @@ async fn test_list_invoices_by_project() {
     let project_a = uuid::Uuid::new_v4();
     let project_b = uuid::Uuid::new_v4();
 
-    create_test_billing_config(&app, &project_a.to_string(), "time_and_materials", 100000.0, 0.0).await;
-    create_test_billing_config(&app, &project_b.to_string(), "time_and_materials", 200000.0, 0.0).await;
+    create_test_billing_config(
+        &app,
+        &project_a.to_string(),
+        "time_and_materials",
+        100000.0,
+        0.0,
+    )
+    .await;
+    create_test_billing_config(
+        &app,
+        &project_b.to_string(),
+        "time_and_materials",
+        200000.0,
+        0.0,
+    )
+    .await;
 
-    create_test_invoice(&app, "INV-PA1", &project_a.to_string(), "t_and_m", vec![
-        test_invoice_line(5000.0, "Developer"),
-    ]).await;
-    create_test_invoice(&app, "INV-PA2", &project_a.to_string(), "t_and_m", vec![
-        test_invoice_line(3000.0, "Developer"),
-    ]).await;
-    create_test_invoice(&app, "INV-PB1", &project_b.to_string(), "t_and_m", vec![
-        test_invoice_line(10000.0, "Architect"),
-    ]).await;
+    create_test_invoice(
+        &app,
+        "INV-PA1",
+        &project_a.to_string(),
+        "t_and_m",
+        vec![test_invoice_line(5000.0, "Developer")],
+    )
+    .await;
+    create_test_invoice(
+        &app,
+        "INV-PA2",
+        &project_a.to_string(),
+        "t_and_m",
+        vec![test_invoice_line(3000.0, "Developer")],
+    )
+    .await;
+    create_test_invoice(
+        &app,
+        "INV-PB1",
+        &project_b.to_string(),
+        "t_and_m",
+        vec![test_invoice_line(10000.0, "Architect")],
+    )
+    .await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/project-billing/invoices?project_id={}", project_a))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices?project_id={}",
+                    project_a
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(result["data"].as_array().unwrap().len(), 2);
 }
@@ -891,10 +1431,19 @@ async fn test_cannot_create_schedule_with_invalid_type() {
         "currencyCode": "USD",
         "effectiveStart": "2024-01-01",
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/schedules")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/schedules")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -915,10 +1464,19 @@ async fn test_cannot_create_config_with_invalid_method() {
         "retentionPct": 0.0,
         "retentionAmountCap": 0.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/configs")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/configs")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -937,10 +1495,19 @@ async fn test_cannot_create_event_with_invalid_type() {
         "currencyCode": "USD",
         "completionPct": 0.0,
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/events")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/events")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -952,24 +1519,51 @@ async fn test_cannot_submit_non_draft_invoice() {
 
     create_test_billing_config(&app, &project_id, "fixed_price", 100000.0, 0.0).await;
 
-    let invoice = create_test_invoice(&app, "INV-NS", &project_id, "t_and_m", vec![
-        test_invoice_line(5000.0, "Developer"),
-    ]).await;
+    let invoice = create_test_invoice(
+        &app,
+        "INV-NS",
+        &project_id,
+        "t_and_m",
+        vec![test_invoice_line(5000.0, "Developer")],
+    )
+    .await;
     let invoice_id = invoice["id"].as_str().unwrap();
 
     let (k, v) = auth_header(&admin_claims());
 
     // Submit first
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/submit", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/submit",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to submit again
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/submit", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/submit",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -981,17 +1575,33 @@ async fn test_cannot_approve_non_submitted_invoice() {
 
     create_test_billing_config(&app, &project_id, "fixed_price", 100000.0, 0.0).await;
 
-    let invoice = create_test_invoice(&app, "INV-NA", &project_id, "t_and_m", vec![
-        test_invoice_line(5000.0, "Developer"),
-    ]).await;
+    let invoice = create_test_invoice(
+        &app,
+        "INV-NA",
+        &project_id,
+        "t_and_m",
+        vec![test_invoice_line(5000.0, "Developer")],
+    )
+    .await;
     let invoice_id = invoice["id"].as_str().unwrap();
 
     // Try to approve without submitting
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/approve", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/approve",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -1006,20 +1616,45 @@ async fn test_cannot_complete_non_planned_event() {
 
     // Cancel it first
     let (k, v) = auth_header(&admin_claims());
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/events/{}/cancel", event_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/events/{}/cancel",
+                    event_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Try to complete a cancelled event
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/events/{}/complete", event_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "actualDate": "2024-06-15",
-            "completionPct": 100.0,
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/events/{}/complete",
+                    event_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "actualDate": "2024-06-15",
+                        "completionPct": 100.0,
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -1035,10 +1670,19 @@ async fn test_cannot_create_invoice_without_lines() {
         "invoiceType": "t_and_m",
         "lines": [],
     });
-    let r = app.clone().oneshot(Request::builder().method("POST").uri("/api/v1/project-billing/invoices")
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&payload).unwrap())).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/project-billing/invoices")
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::BAD_REQUEST);
 }
 
@@ -1054,31 +1698,72 @@ async fn test_project_billing_dashboard() {
     let project_b = uuid::Uuid::new_v4();
 
     // Create billing configs
-    create_test_billing_config(&app, &project_a.to_string(), "time_and_materials", 100000.0, 10.0).await;
+    create_test_billing_config(
+        &app,
+        &project_a.to_string(),
+        "time_and_materials",
+        100000.0,
+        10.0,
+    )
+    .await;
     create_test_billing_config(&app, &project_b.to_string(), "fixed_price", 200000.0, 0.0).await;
 
     // Create invoices
-    create_test_invoice(&app, "INV-D1", &project_a.to_string(), "t_and_m", vec![
-        test_invoice_line(10000.0, "Developer"),
-    ]).await;
-    create_test_invoice(&app, "INV-D2", &project_b.to_string(), "t_and_m", vec![
-        test_invoice_line(25000.0, "Architect"),
-    ]).await;
+    create_test_invoice(
+        &app,
+        "INV-D1",
+        &project_a.to_string(),
+        "t_and_m",
+        vec![test_invoice_line(10000.0, "Developer")],
+    )
+    .await;
+    create_test_invoice(
+        &app,
+        "INV-D2",
+        &project_b.to_string(),
+        "t_and_m",
+        vec![test_invoice_line(25000.0, "Architect")],
+    )
+    .await;
 
     let (k, v) = auth_header(&admin_claims());
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/project-billing/dashboard")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/project-billing/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&b).unwrap();
 
     assert!(dashboard["total_projects_billable"].as_i64().unwrap() >= 2);
     assert!(dashboard["total_invoices"].as_i64().unwrap() >= 2);
-    assert!(dashboard["total_contract_value"].as_str().unwrap().parse::<f64>().unwrap() > 0.0);
-    assert!(dashboard["total_billed"].as_str().unwrap().parse::<f64>().unwrap() > 0.0);
+    assert!(
+        dashboard["total_contract_value"]
+            .as_str()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap()
+            > 0.0
+    );
+    assert!(
+        dashboard["total_billed"]
+            .as_str()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap()
+            > 0.0
+    );
 }
 
 // ============================================================================
@@ -1097,52 +1782,110 @@ async fn test_project_billing_full_lifecycle() {
 
     // 2. Add rate lines
     let (k, v) = auth_header(&admin_claims());
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/schedules/{}/rate-lines", schedule_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "roleName": "Consultant",
-            "billRate": 200.0,
-            "unitOfMeasure": "hours",
-            "effectiveStart": "2024-01-01",
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/schedules/{}/rate-lines",
+                    schedule_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "roleName": "Consultant",
+                        "billRate": 200.0,
+                        "unitOfMeasure": "hours",
+                        "effectiveStart": "2024-01-01",
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // 3. Activate schedule
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/schedules/{}/activate", schedule_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/schedules/{}/activate",
+                    schedule_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // 4. Create billing config with retention
-    let config = create_test_billing_config(&app, &project_id, "time_and_materials", 100000.0, 10.0).await;
+    let config =
+        create_test_billing_config(&app, &project_id, "time_and_materials", 100000.0, 10.0).await;
     let config_id = config["id"].as_str().unwrap();
 
     // 5. Activate billing config
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/configs/{}/activate", config_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/configs/{}/activate",
+                    config_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // 6. Create billing events
     let event1 = create_test_billing_event(&app, &project_id, "BE-LC1", "milestone", 25000.0).await;
     let event1_id = event1["id"].as_str().unwrap();
 
     // 7. Complete a billing event
-    let _ = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/events/{}/complete", event1_id))
-        .header("Content-Type", "application/json").header(&k, &v)
-        .body(Body::from(serde_json::to_string(&json!({
-            "actualDate": "2024-03-15",
-            "completionPct": 100.0,
-        })).unwrap())).unwrap()
-    ).await.unwrap();
+    let _ = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/events/{}/complete",
+                    event1_id
+                ))
+                .header("Content-Type", "application/json")
+                .header(&k, &v)
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "actualDate": "2024-03-15",
+                        "completionPct": 100.0,
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // 8. Create an invoice
-    let invoice = create_test_invoice(&app, "INV-LC1", &project_id, "t_and_m", vec![
-        test_invoice_line(10000.0, "Consultant"),
-        test_invoice_line(5000.0, "Analyst"),
-    ]).await;
+    let invoice = create_test_invoice(
+        &app,
+        "INV-LC1",
+        &project_id,
+        "t_and_m",
+        vec![
+            test_invoice_line(10000.0, "Consultant"),
+            test_invoice_line(5000.0, "Analyst"),
+        ],
+    )
+    .await;
     let invoice_id = invoice["id"].as_str().unwrap();
     assert_eq!(invoice["status"], "draft");
 
@@ -1151,46 +1894,104 @@ async fn test_project_billing_full_lifecycle() {
     assert!((retention - 1500.0).abs() < 1.0);
 
     // 9. Submit
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/submit", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/submit",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // 10. Approve
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/approve", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/approve",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 
     // 11. Post to GL
-    let r = app.clone().oneshot(Request::builder().method("POST")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/post", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/post",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let posted: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(posted["status"], "posted");
     assert_eq!(posted["gl_posted_flag"], true);
 
     // 12. Verify invoice lines
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri(&format!("/api/v1/project-billing/invoices/{}/lines", invoice_id))
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!(
+                    "/api/v1/project-billing/invoices/{}/lines",
+                    invoice_id
+                ))
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let lines_result: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert_eq!(lines_result["data"].as_array().unwrap().len(), 2);
 
     // 13. Verify dashboard reflects our work
-    let r = app.clone().oneshot(Request::builder().method("GET")
-        .uri("/api/v1/project-billing/dashboard")
-        .header(&k, &v).body(Body::empty()).unwrap()
-    ).await.unwrap();
+    let r = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/project-billing/dashboard")
+                .header(&k, &v)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
-    let b = axum::body::to_bytes(r.into_body(), usize::MAX).await.unwrap();
+    let b = axum::body::to_bytes(r.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let dashboard: serde_json::Value = serde_json::from_slice(&b).unwrap();
     assert!(dashboard["total_projects_billable"].as_i64().unwrap() >= 1);
     assert!(dashboard["posted_invoices"].as_i64().unwrap() >= 1);

@@ -6,11 +6,10 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Receivables > Billing > Balance Forward Billing
 
-use atlas_shared::{
-    CustomerStatement, CustomerStatementLine, CustomerStatementSummary,
-    AtlasError, AtlasResult,
-};
 use super::CustomerStatementRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, CustomerStatement, CustomerStatementLine, CustomerStatementSummary,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -20,13 +19,24 @@ const VALID_BILLING_CYCLES: &[&str] = &["monthly", "quarterly", "weekly", "custo
 
 /// Valid statement statuses
 const VALID_STATUSES: &[&str] = &[
-    "draft", "generated", "sent", "viewed", "archived", "cancelled",
+    "draft",
+    "generated",
+    "sent",
+    "viewed",
+    "archived",
+    "cancelled",
 ];
 
 /// Valid line types
 pub const VALID_LINE_TYPES: &[&str] = &[
-    "opening_balance", "invoice", "payment", "credit_memo",
-    "debit_memo", "adjustment", "finance_charge", "closing_balance",
+    "opening_balance",
+    "invoice",
+    "payment",
+    "credit_memo",
+    "debit_memo",
+    "adjustment",
+    "finance_charge",
+    "closing_balance",
 ];
 
 /// Valid delivery methods
@@ -34,7 +44,7 @@ const VALID_DELIVERY_METHODS: &[&str] = &["email", "print", "xml", "edi"];
 
 /// Calculate the closing balance from opening balance and activity.
 /// closing = opening + charges - payments - credits + adjustments
-#[must_use] 
+#[must_use]
 pub fn calculate_closing_balance(
     opening_balance: f64,
     total_charges: f64,
@@ -46,7 +56,7 @@ pub fn calculate_closing_balance(
 }
 
 /// Calculate the amount due (positive closing balance, or zero).
-#[must_use] 
+#[must_use]
 pub const fn calculate_amount_due(closing_balance: f64) -> f64 {
     closing_balance.max(0.0)
 }
@@ -85,7 +95,7 @@ pub fn compute_running_balances(
 
 /// Compute aging breakdown from a reference date and a list of (`due_date`, amount) pairs.
 /// Returns (current, `aging_1_30`, `aging_31_60`, `aging_61_90`, `aging_91_120`, `aging_121_plus`).
-#[must_use] 
+#[must_use]
 pub fn compute_aging_breakdown(
     reference_date: chrono::NaiveDate,
     items: &[(chrono::NaiveDate, f64)], // (due_date, outstanding_amount)
@@ -117,7 +127,14 @@ pub fn compute_aging_breakdown(
         }
     }
 
-    (aging_current, aging_1_30, aging_31_60, aging_61_90, aging_91_120, aging_121_plus)
+    (
+        aging_current,
+        aging_1_30,
+        aging_31_60,
+        aging_61_90,
+        aging_91_120,
+        aging_121_plus,
+    )
 }
 
 /// Customer Statement Engine
@@ -166,7 +183,8 @@ impl CustomerStatementEngine {
         if !VALID_BILLING_CYCLES.contains(&billing_cycle) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid billing cycle '{}'. Must be one of: {}",
-                billing_cycle, VALID_BILLING_CYCLES.join(", ")
+                billing_cycle,
+                VALID_BILLING_CYCLES.join(", ")
             )));
         }
         if billing_period_from >= billing_period_to {
@@ -178,26 +196,27 @@ impl CustomerStatementEngine {
             if !VALID_DELIVERY_METHODS.contains(&dm) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid delivery method '{}'. Must be one of: {}",
-                    dm, VALID_DELIVERY_METHODS.join(", ")
+                    dm,
+                    VALID_DELIVERY_METHODS.join(", ")
                 )));
             }
         }
 
-        let ob: f64 = opening_balance.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Opening balance must be a valid number".to_string(),
-        ))?;
-        let charges: f64 = total_charges.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Total charges must be a valid number".to_string(),
-        ))?;
-        let payments: f64 = total_payments.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Total payments must be a valid number".to_string(),
-        ))?;
-        let credits: f64 = total_credits.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Total credits must be a valid number".to_string(),
-        ))?;
-        let adjustments: f64 = total_adjustments.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Total adjustments must be a valid number".to_string(),
-        ))?;
+        let ob: f64 = opening_balance.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Opening balance must be a valid number".to_string())
+        })?;
+        let charges: f64 = total_charges.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Total charges must be a valid number".to_string())
+        })?;
+        let payments: f64 = total_payments.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Total payments must be a valid number".to_string())
+        })?;
+        let credits: f64 = total_credits.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Total credits must be a valid number".to_string())
+        })?;
+        let adjustments: f64 = total_adjustments.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Total adjustments must be a valid number".to_string())
+        })?;
 
         let closing = calculate_closing_balance(ob, charges, payments, credits, adjustments);
         let amount_due = calculate_amount_due(closing);
@@ -211,16 +230,38 @@ impl CustomerStatementEngine {
             statement_number, customer_id, org_id
         );
 
-        self.repository.create_statement(
-            org_id, &statement_number, customer_id, customer_number, customer_name,
-            statement_date, billing_period_from, billing_period_to, billing_cycle,
-            opening_balance, total_charges, total_payments, total_credits, total_adjustments,
-            &format!("{closing:.2}"),
-            &format!("{amount_due:.2}"),
-            aging_current, aging_1_30, aging_31_60, aging_61_90, aging_91_120, aging_121_plus,
-            currency_code, delivery_method, delivery_email,
-            previous_statement_id, notes, created_by,
-        ).await
+        self.repository
+            .create_statement(
+                org_id,
+                &statement_number,
+                customer_id,
+                customer_number,
+                customer_name,
+                statement_date,
+                billing_period_from,
+                billing_period_to,
+                billing_cycle,
+                opening_balance,
+                total_charges,
+                total_payments,
+                total_credits,
+                total_adjustments,
+                &format!("{closing:.2}"),
+                &format!("{amount_due:.2}"),
+                aging_current,
+                aging_1_30,
+                aging_31_60,
+                aging_61_90,
+                aging_91_120,
+                aging_121_plus,
+                currency_code,
+                delivery_method,
+                delivery_email,
+                previous_statement_id,
+                notes,
+                created_by,
+            )
+            .await
     }
 
     /// Get a statement by ID
@@ -234,7 +275,9 @@ impl CustomerStatementEngine {
         org_id: Uuid,
         statement_number: &str,
     ) -> AtlasResult<Option<CustomerStatement>> {
-        self.repository.get_statement_by_number(org_id, statement_number).await
+        self.repository
+            .get_statement_by_number(org_id, statement_number)
+            .await
     }
 
     /// List statements with optional filters
@@ -249,7 +292,8 @@ impl CustomerStatementEngine {
             if !VALID_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_STATUSES.join(", ")
+                    s,
+                    VALID_STATUSES.join(", ")
                 )));
             }
         }
@@ -257,11 +301,14 @@ impl CustomerStatementEngine {
             if !VALID_BILLING_CYCLES.contains(&bc) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid billing cycle '{}'. Must be one of: {}",
-                    bc, VALID_BILLING_CYCLES.join(", ")
+                    bc,
+                    VALID_BILLING_CYCLES.join(", ")
                 )));
             }
         }
-        self.repository.list_statements(org_id, customer_id, status, billing_cycle).await
+        self.repository
+            .list_statements(org_id, customer_id, status, billing_cycle)
+            .await
     }
 
     // ========================================================================
@@ -270,10 +317,9 @@ impl CustomerStatementEngine {
 
     /// Generate a statement (transition from draft to generated)
     pub async fn generate_statement(&self, id: Uuid) -> AtlasResult<CustomerStatement> {
-        let stmt = self.repository.get_statement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {id} not found")
-            ))?;
+        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Customer statement {id} not found"))
+        })?;
 
         if stmt.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -283,15 +329,16 @@ impl CustomerStatementEngine {
         }
 
         info!("Generating customer statement {}", stmt.statement_number);
-        self.repository.update_statement_status(id, "generated").await
+        self.repository
+            .update_statement_status(id, "generated")
+            .await
     }
 
     /// Mark a statement as sent
     pub async fn send_statement(&self, id: Uuid) -> AtlasResult<CustomerStatement> {
-        let stmt = self.repository.get_statement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {id} not found")
-            ))?;
+        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Customer statement {id} not found"))
+        })?;
 
         if stmt.status != "generated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -306,10 +353,9 @@ impl CustomerStatementEngine {
 
     /// Mark a statement as viewed
     pub async fn mark_viewed(&self, id: Uuid) -> AtlasResult<CustomerStatement> {
-        let stmt = self.repository.get_statement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {id} not found")
-            ))?;
+        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Customer statement {id} not found"))
+        })?;
 
         if stmt.status != "sent" {
             return Err(AtlasError::WorkflowError(format!(
@@ -318,16 +364,18 @@ impl CustomerStatementEngine {
             )));
         }
 
-        info!("Marking customer statement {} as viewed", stmt.statement_number);
+        info!(
+            "Marking customer statement {} as viewed",
+            stmt.statement_number
+        );
         self.repository.update_statement_status(id, "viewed").await
     }
 
     /// Archive a statement
     pub async fn archive_statement(&self, id: Uuid) -> AtlasResult<CustomerStatement> {
-        let stmt = self.repository.get_statement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {id} not found")
-            ))?;
+        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Customer statement {id} not found"))
+        })?;
 
         if stmt.status != "viewed" && stmt.status != "sent" && stmt.status != "generated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -337,15 +385,20 @@ impl CustomerStatementEngine {
         }
 
         info!("Archiving customer statement {}", stmt.statement_number);
-        self.repository.update_statement_status(id, "archived").await
+        self.repository
+            .update_statement_status(id, "archived")
+            .await
     }
 
     /// Cancel a statement (only if draft)
-    pub async fn cancel_statement(&self, id: Uuid, reason: Option<&str>) -> AtlasResult<CustomerStatement> {
-        let stmt = self.repository.get_statement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {id} not found")
-            ))?;
+    pub async fn cancel_statement(
+        &self,
+        id: Uuid,
+        reason: Option<&str>,
+    ) -> AtlasResult<CustomerStatement> {
+        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Customer statement {id} not found"))
+        })?;
 
         if stmt.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -360,15 +413,16 @@ impl CustomerStatementEngine {
             self.repository.update_statement_notes(id, Some(r)).await?;
         }
 
-        self.repository.update_statement_status(id, "cancelled").await
+        self.repository
+            .update_statement_status(id, "cancelled")
+            .await
     }
 
     /// Resend a statement (transition from sent/viewed back to sent, updating `sent_at`)
     pub async fn resend_statement(&self, id: Uuid) -> AtlasResult<CustomerStatement> {
-        let stmt = self.repository.get_statement(id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Customer statement {id} not found")
-            ))?;
+        let stmt = self.repository.get_statement(id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Customer statement {id} not found"))
+        })?;
 
         if stmt.status != "sent" && stmt.status != "viewed" {
             return Err(AtlasError::WorkflowError(format!(
@@ -405,14 +459,18 @@ impl CustomerStatementEngine {
         if !VALID_LINE_TYPES.contains(&line_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid line type '{}'. Must be one of: {}",
-                line_type, VALID_LINE_TYPES.join(", ")
+                line_type,
+                VALID_LINE_TYPES.join(", ")
             )));
         }
 
-        let stmt = self.repository.get_statement(statement_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Statement {statement_id} not found")
-            ))?;
+        let stmt = self
+            .repository
+            .get_statement(statement_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Statement {statement_id} not found"))
+            })?;
 
         if stmt.organization_id != org_id {
             return Err(AtlasError::Forbidden("Not authorized".to_string()));
@@ -424,14 +482,14 @@ impl CustomerStatementEngine {
             ));
         }
 
-        let amt: f64 = amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Amount must be a valid number".to_string(),
-        ))?;
+        let amt: f64 = amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Amount must be a valid number".to_string())
+        })?;
 
         let orig_amt: Option<f64> = match original_amount {
-            Some(s) => Some(s.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Original amount must be a valid number".to_string(),
-            ))?),
+            Some(s) => Some(s.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Original amount must be a valid number".to_string())
+            })?),
             None => None,
         };
 
@@ -443,14 +501,26 @@ impl CustomerStatementEngine {
             line_type, stmt.statement_number, amount
         );
 
-        self.repository.create_statement_line(
-            org_id, statement_id, line_type,
-            transaction_id, transaction_number, transaction_date, due_date,
-            original_amount.map(|_s| format!("{:.2}", orig_amt.unwrap_or(0.0))).as_deref(),
-            &format!("{amt:.2}"),
-            description, reference_type, reference_id,
-            next_order, metadata,
-        ).await
+        self.repository
+            .create_statement_line(
+                org_id,
+                statement_id,
+                line_type,
+                transaction_id,
+                transaction_number,
+                transaction_date,
+                due_date,
+                original_amount
+                    .map(|_s| format!("{:.2}", orig_amt.unwrap_or(0.0)))
+                    .as_deref(),
+                &format!("{amt:.2}"),
+                description,
+                reference_type,
+                reference_id,
+                next_order,
+                metadata,
+            )
+            .await
     }
 
     /// List statement lines
@@ -462,11 +532,18 @@ impl CustomerStatementEngine {
     }
 
     /// Remove a statement line (only if statement is draft)
-    pub async fn remove_statement_line(&self, statement_id: Uuid, line_id: Uuid) -> AtlasResult<()> {
-        let stmt = self.repository.get_statement(statement_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Statement {statement_id} not found")
-            ))?;
+    pub async fn remove_statement_line(
+        &self,
+        statement_id: Uuid,
+        line_id: Uuid,
+    ) -> AtlasResult<()> {
+        let stmt = self
+            .repository
+            .get_statement(statement_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Statement {statement_id} not found"))
+            })?;
 
         if stmt.status != "draft" {
             return Err(AtlasError::WorkflowError(
@@ -482,7 +559,10 @@ impl CustomerStatementEngine {
     // ========================================================================
 
     /// Get statement summary dashboard
-    pub async fn get_statement_summary(&self, org_id: Uuid) -> AtlasResult<CustomerStatementSummary> {
+    pub async fn get_statement_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<CustomerStatementSummary> {
         self.repository.get_statement_summary(org_id).await
     }
 }
@@ -666,9 +746,9 @@ mod tests {
     fn test_aging_breakdown_skips_zero_and_negative() {
         let ref_date = chrono::NaiveDate::from_ymd_opt(2024, 6, 30).unwrap();
         let items = vec![
-            (chrono::NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(), 0.0),     // skip zero
-            (chrono::NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(), -100.0),  // skip negative
-            (chrono::NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(), 500.0),   // include
+            (chrono::NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(), 0.0), // skip zero
+            (chrono::NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(), -100.0), // skip negative
+            (chrono::NaiveDate::from_ymd_opt(2024, 6, 1).unwrap(), 500.0), // include
         ];
         let (cur, a30, _a60, _a90, _a120, _a121) = compute_aging_breakdown(ref_date, &items);
         assert!((a30 - 500.0).abs() < 0.01); // 29 days overdue -> 1-30

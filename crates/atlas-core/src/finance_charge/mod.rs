@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Receivables > Finance Charges
 
-pub mod repository;
 pub mod engine;
+pub mod repository;
 
 pub use engine::FinanceChargeEngine;
 pub use repository::{FinanceChargeRepository, PostgresFinanceChargeRepository};

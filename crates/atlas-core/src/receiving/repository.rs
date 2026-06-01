@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for receiving locations, receipts, lines,
 //! inspections, inspection details, deliveries, and returns.
 
-use atlas_shared::{
-    ReceivingLocation, ReceiptHeader, ReceiptLine, ReceiptInspection,
-    InspectionDetail, ReceiptDelivery, ReceiptReturn,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, InspectionDetail, ReceiptDelivery, ReceiptHeader, ReceiptInspection,
+    ReceiptLine, ReceiptReturn, ReceivingLocation,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -18,43 +17,91 @@ use uuid::Uuid;
 pub trait ReceivingRepository: Send + Sync {
     // Locations
     async fn create_location(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        location_type: &str, address: Option<&str>, city: Option<&str>,
-        state: Option<&str>, country: Option<&str>, postal_code: Option<&str>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        location_type: &str,
+        address: Option<&str>,
+        city: Option<&str>,
+        state: Option<&str>,
+        country: Option<&str>,
+        postal_code: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReceivingLocation>;
-    async fn get_location(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ReceivingLocation>>;
+    async fn get_location(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ReceivingLocation>>;
     async fn list_locations(&self, org_id: Uuid) -> AtlasResult<Vec<ReceivingLocation>>;
     async fn delete_location(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Receipts
     async fn create_receipt(
-        &self, org_id: Uuid, receipt_number: &str, receipt_type: &str,
-        receipt_source: &str, supplier_id: Option<Uuid>, supplier_name: Option<&str>,
-        supplier_number: Option<&str>, purchase_order_id: Option<Uuid>,
-        purchase_order_number: Option<&str>, receiving_location_id: Option<Uuid>,
-        receiving_location_code: Option<&str>, receiving_date: chrono::NaiveDate,
-        packing_slip_number: Option<&str>, bill_of_lading: Option<&str>,
-        carrier: Option<&str>, tracking_number: Option<&str>,
-        waybill_number: Option<&str>, notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        receipt_number: &str,
+        receipt_type: &str,
+        receipt_source: &str,
+        supplier_id: Option<Uuid>,
+        supplier_name: Option<&str>,
+        supplier_number: Option<&str>,
+        purchase_order_id: Option<Uuid>,
+        purchase_order_number: Option<&str>,
+        receiving_location_id: Option<Uuid>,
+        receiving_location_code: Option<&str>,
+        receiving_date: chrono::NaiveDate,
+        packing_slip_number: Option<&str>,
+        bill_of_lading: Option<&str>,
+        carrier: Option<&str>,
+        tracking_number: Option<&str>,
+        waybill_number: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptHeader>;
     async fn get_receipt(&self, id: Uuid) -> AtlasResult<Option<ReceiptHeader>>;
-    async fn get_receipt_by_number(&self, org_id: Uuid, receipt_number: &str) -> AtlasResult<Option<ReceiptHeader>>;
-    async fn list_receipts(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<ReceiptHeader>>;
+    async fn get_receipt_by_number(
+        &self,
+        org_id: Uuid,
+        receipt_number: &str,
+    ) -> AtlasResult<Option<ReceiptHeader>>;
+    async fn list_receipts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        supplier_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ReceiptHeader>>;
     async fn update_receipt_status(
-        &self, id: Uuid, status: &str, received_by: Option<Uuid>, closed_at: Option<chrono::DateTime<chrono::Utc>>,
+        &self,
+        id: Uuid,
+        status: &str,
+        received_by: Option<Uuid>,
+        closed_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<ReceiptHeader>;
 
     // Receipt Lines
     async fn create_receipt_line(
-        &self, org_id: Uuid, receipt_id: Uuid, line_number: i32,
-        purchase_order_line_id: Option<Uuid>, item_id: Option<Uuid>,
-        item_code: Option<&str>, item_description: Option<&str>,
-        ordered_qty: &str, ordered_uom: Option<&str>,
-        received_qty: &str, received_uom: Option<&str>,
-        lot_number: Option<&str>, serial_numbers: serde_json::Value,
-        expiration_date: Option<chrono::NaiveDate>, manufacture_date: Option<chrono::NaiveDate>,
-        unit_price: Option<&str>, currency: Option<&str>, notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        receipt_id: Uuid,
+        line_number: i32,
+        purchase_order_line_id: Option<Uuid>,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        ordered_qty: &str,
+        ordered_uom: Option<&str>,
+        received_qty: &str,
+        received_uom: Option<&str>,
+        lot_number: Option<&str>,
+        serial_numbers: serde_json::Value,
+        expiration_date: Option<chrono::NaiveDate>,
+        manufacture_date: Option<chrono::NaiveDate>,
+        unit_price: Option<&str>,
+        currency: Option<&str>,
+        notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptLine>;
     async fn get_receipt_line(&self, id: Uuid) -> AtlasResult<Option<ReceiptLine>>;
@@ -62,56 +109,116 @@ pub trait ReceivingRepository: Send + Sync {
 
     // Inspections
     async fn create_inspection(
-        &self, org_id: Uuid, receipt_id: Uuid, receipt_line_id: Uuid,
-        inspection_number: &str, inspection_template: Option<&str>,
-        inspector_id: Option<Uuid>, inspector_name: Option<&str>,
-        inspection_date: chrono::NaiveDate, sample_size: Option<&str>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        receipt_id: Uuid,
+        receipt_line_id: Uuid,
+        inspection_number: &str,
+        inspection_template: Option<&str>,
+        inspector_id: Option<Uuid>,
+        inspector_name: Option<&str>,
+        inspection_date: chrono::NaiveDate,
+        sample_size: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptInspection>;
     async fn get_inspection(&self, id: Uuid) -> AtlasResult<Option<ReceiptInspection>>;
-    async fn list_inspections(&self, org_id: Uuid, receipt_id: Option<Uuid>) -> AtlasResult<Vec<ReceiptInspection>>;
+    async fn list_inspections(
+        &self,
+        org_id: Uuid,
+        receipt_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ReceiptInspection>>;
     async fn complete_inspection(
-        &self, id: Uuid, quantity_inspected: &str, quantity_accepted: &str,
-        quantity_rejected: &str, disposition: &str, quality_score: Option<&str>,
-        rejection_reason: Option<&str>, notes: Option<&str>,
+        &self,
+        id: Uuid,
+        quantity_inspected: &str,
+        quantity_accepted: &str,
+        quantity_rejected: &str,
+        disposition: &str,
+        quality_score: Option<&str>,
+        rejection_reason: Option<&str>,
+        notes: Option<&str>,
     ) -> AtlasResult<ReceiptInspection>;
 
     // Inspection Details
     async fn create_inspection_detail(
-        &self, org_id: Uuid, inspection_id: Uuid, check_number: i32,
-        check_name: &str, check_type: &str, specification: Option<&str>,
-        result: &str, measured_value: Option<&str>, expected_value: Option<&str>,
+        &self,
+        org_id: Uuid,
+        inspection_id: Uuid,
+        check_number: i32,
+        check_name: &str,
+        check_type: &str,
+        specification: Option<&str>,
+        result: &str,
+        measured_value: Option<&str>,
+        expected_value: Option<&str>,
         notes: Option<&str>,
     ) -> AtlasResult<InspectionDetail>;
-    async fn list_inspection_details(&self, inspection_id: Uuid) -> AtlasResult<Vec<InspectionDetail>>;
+    async fn list_inspection_details(
+        &self,
+        inspection_id: Uuid,
+    ) -> AtlasResult<Vec<InspectionDetail>>;
 
     // Deliveries
     async fn create_delivery(
-        &self, org_id: Uuid, receipt_id: Uuid, receipt_line_id: Uuid,
-        delivery_number: &str, subinventory: Option<&str>, locator: Option<&str>,
-        quantity_delivered: &str, uom: Option<&str>, lot_number: Option<&str>,
-        serial_number: Option<&str>, delivered_by: Option<Uuid>,
-        delivered_by_name: Option<&str>, destination_type: &str,
-        account_code: Option<&str>, notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        receipt_id: Uuid,
+        receipt_line_id: Uuid,
+        delivery_number: &str,
+        subinventory: Option<&str>,
+        locator: Option<&str>,
+        quantity_delivered: &str,
+        uom: Option<&str>,
+        lot_number: Option<&str>,
+        serial_number: Option<&str>,
+        delivered_by: Option<Uuid>,
+        delivered_by_name: Option<&str>,
+        destination_type: &str,
+        account_code: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptDelivery>;
     async fn get_delivery(&self, id: Uuid) -> AtlasResult<Option<ReceiptDelivery>>;
-    async fn list_deliveries(&self, org_id: Uuid, receipt_id: Option<Uuid>) -> AtlasResult<Vec<ReceiptDelivery>>;
+    async fn list_deliveries(
+        &self,
+        org_id: Uuid,
+        receipt_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ReceiptDelivery>>;
 
     // Returns
     async fn create_return(
-        &self, org_id: Uuid, return_number: &str, receipt_id: Option<Uuid>,
-        receipt_line_id: Option<Uuid>, supplier_id: Option<Uuid>,
-        supplier_name: Option<&str>, return_type: &str,
-        item_id: Option<Uuid>, item_code: Option<&str>,
-        item_description: Option<&str>, quantity_returned: &str,
-        uom: Option<&str>, unit_price: Option<&str>, currency: Option<&str>,
-        return_reason: Option<&str>, return_date: chrono::NaiveDate,
+        &self,
+        org_id: Uuid,
+        return_number: &str,
+        receipt_id: Option<Uuid>,
+        receipt_line_id: Option<Uuid>,
+        supplier_id: Option<Uuid>,
+        supplier_name: Option<&str>,
+        return_type: &str,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        quantity_returned: &str,
+        uom: Option<&str>,
+        unit_price: Option<&str>,
+        currency: Option<&str>,
+        return_reason: Option<&str>,
+        return_date: chrono::NaiveDate,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptReturn>;
     async fn get_return(&self, id: Uuid) -> AtlasResult<Option<ReceiptReturn>>;
-    async fn list_returns(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ReceiptReturn>>;
+    async fn list_returns(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ReceiptReturn>>;
     async fn update_return_status(
-        &self, id: Uuid, status: &str, carrier: Option<&str>, tracking_number: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        carrier: Option<&str>,
+        tracking_number: Option<&str>,
     ) -> AtlasResult<ReceiptReturn>;
 }
 
@@ -121,7 +228,7 @@ pub struct PostgresReceivingRepository {
 }
 
 impl PostgresReceivingRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -214,10 +321,22 @@ fn row_to_line(row: &sqlx::postgres::PgRow) -> ReceiptLine {
         inspection_status: row.get("inspection_status"),
         delivery_status: row.get("delivery_status"),
         lot_number: row.get("lot_number"),
-        serial_numbers: row.try_get("serial_numbers").unwrap_or(serde_json::json!([])),
+        serial_numbers: row
+            .try_get("serial_numbers")
+            .unwrap_or(serde_json::json!([])),
         expiration_date: row.get("expiration_date"),
         manufacture_date: row.get("manufacture_date"),
-        unit_price: row.try_get::<Option<f64>, _>("unit_price").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.2}") }),
+        unit_price: row
+            .try_get::<Option<f64>, _>("unit_price")
+            .ok()
+            .flatten()
+            .map(|v| {
+                if v == v.floor() {
+                    format!("{v:.0}")
+                } else {
+                    format!("{v:.2}")
+                }
+            }),
         currency: row.get("currency"),
         notes: row.get("notes"),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
@@ -238,13 +357,33 @@ fn row_to_inspection(row: &sqlx::postgres::PgRow) -> ReceiptInspection {
         inspector_id: row.get("inspector_id"),
         inspector_name: row.get("inspector_name"),
         inspection_date: row.get("inspection_date"),
-        sample_size: row.try_get::<Option<f64>, _>("sample_size").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.2}") }),
+        sample_size: row
+            .try_get::<Option<f64>, _>("sample_size")
+            .ok()
+            .flatten()
+            .map(|v| {
+                if v == v.floor() {
+                    format!("{v:.0}")
+                } else {
+                    format!("{v:.2}")
+                }
+            }),
         quantity_inspected: get_num(row, "quantity_inspected"),
         quantity_accepted: get_num(row, "quantity_accepted"),
         quantity_rejected: get_num(row, "quantity_rejected"),
         disposition: row.get("disposition"),
         rejection_reason: row.get("rejection_reason"),
-        quality_score: row.try_get::<Option<f64>, _>("quality_score").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.2}") }),
+        quality_score: row
+            .try_get::<Option<f64>, _>("quality_score")
+            .ok()
+            .flatten()
+            .map(|v| {
+                if v == v.floor() {
+                    format!("{v:.0}")
+                } else {
+                    format!("{v:.2}")
+                }
+            }),
         notes: row.get("notes"),
         status: row.get("status"),
         completed_at: row.get("completed_at"),
@@ -314,7 +453,17 @@ fn row_to_return(row: &sqlx::postgres::PgRow) -> ReceiptReturn {
         item_description: row.get("item_description"),
         quantity_returned: get_num(row, "quantity_returned"),
         uom: row.get("uom"),
-        unit_price: row.try_get::<Option<f64>, _>("unit_price").ok().flatten().map(|v| if v == v.floor() { format!("{v:.0}") } else { format!("{v:.2}") }),
+        unit_price: row
+            .try_get::<Option<f64>, _>("unit_price")
+            .ok()
+            .flatten()
+            .map(|v| {
+                if v == v.floor() {
+                    format!("{v:.0}")
+                } else {
+                    format!("{v:.2}")
+                }
+            }),
         currency: row.get("currency"),
         return_reason: row.get("return_reason"),
         return_date: row.get("return_date"),
@@ -339,9 +488,17 @@ impl ReceivingRepository for PostgresReceivingRepository {
     // ========================================================================
 
     async fn create_location(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
-        location_type: &str, address: Option<&str>, city: Option<&str>,
-        state: Option<&str>, country: Option<&str>, postal_code: Option<&str>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        location_type: &str,
+        address: Option<&str>,
+        city: Option<&str>,
+        state: Option<&str>,
+        country: Option<&str>,
+        postal_code: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReceivingLocation> {
         let row = sqlx::query(
@@ -357,8 +514,16 @@ impl ReceivingRepository for PostgresReceivingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(location_type)
-        .bind(address).bind(city).bind(state).bind(country).bind(postal_code)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(location_type)
+        .bind(address)
+        .bind(city)
+        .bind(state)
+        .bind(country)
+        .bind(postal_code)
         .bind(created_by)
         .fetch_one(&self.pool)
         .await
@@ -366,7 +531,11 @@ impl ReceivingRepository for PostgresReceivingRepository {
         Ok(row_to_location(&row))
     }
 
-    async fn get_location(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<ReceivingLocation>> {
+    async fn get_location(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<ReceivingLocation>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.receiving_locations WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -404,14 +573,26 @@ impl ReceivingRepository for PostgresReceivingRepository {
     // ========================================================================
 
     async fn create_receipt(
-        &self, org_id: Uuid, receipt_number: &str, receipt_type: &str,
-        receipt_source: &str, supplier_id: Option<Uuid>, supplier_name: Option<&str>,
-        supplier_number: Option<&str>, purchase_order_id: Option<Uuid>,
-        purchase_order_number: Option<&str>, receiving_location_id: Option<Uuid>,
-        receiving_location_code: Option<&str>, receiving_date: chrono::NaiveDate,
-        packing_slip_number: Option<&str>, bill_of_lading: Option<&str>,
-        carrier: Option<&str>, tracking_number: Option<&str>,
-        waybill_number: Option<&str>, notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        receipt_number: &str,
+        receipt_type: &str,
+        receipt_source: &str,
+        supplier_id: Option<Uuid>,
+        supplier_name: Option<&str>,
+        supplier_number: Option<&str>,
+        purchase_order_id: Option<Uuid>,
+        purchase_order_number: Option<&str>,
+        receiving_location_id: Option<Uuid>,
+        receiving_location_code: Option<&str>,
+        receiving_date: chrono::NaiveDate,
+        packing_slip_number: Option<&str>,
+        bill_of_lading: Option<&str>,
+        carrier: Option<&str>,
+        tracking_number: Option<&str>,
+        waybill_number: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptHeader> {
         let row = sqlx::query(
             r"
@@ -454,7 +635,11 @@ impl ReceivingRepository for PostgresReceivingRepository {
         Ok(row.map(|r| row_to_receipt(&r)))
     }
 
-    async fn get_receipt_by_number(&self, org_id: Uuid, receipt_number: &str) -> AtlasResult<Option<ReceiptHeader>> {
+    async fn get_receipt_by_number(
+        &self,
+        org_id: Uuid,
+        receipt_number: &str,
+    ) -> AtlasResult<Option<ReceiptHeader>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.receipt_headers WHERE organization_id = $1 AND receipt_number = $2"
         )
@@ -465,7 +650,12 @@ impl ReceivingRepository for PostgresReceivingRepository {
         Ok(row.map(|r| row_to_receipt(&r)))
     }
 
-    async fn list_receipts(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<ReceiptHeader>> {
+    async fn list_receipts(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        supplier_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ReceiptHeader>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.receipt_headers
@@ -475,7 +665,9 @@ impl ReceivingRepository for PostgresReceivingRepository {
             ORDER BY receiving_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(supplier_id)
+        .bind(org_id)
+        .bind(status)
+        .bind(supplier_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -483,7 +675,11 @@ impl ReceivingRepository for PostgresReceivingRepository {
     }
 
     async fn update_receipt_status(
-        &self, id: Uuid, status: &str, received_by: Option<Uuid>, _closed_at: Option<chrono::DateTime<chrono::Utc>>,
+        &self,
+        id: Uuid,
+        status: &str,
+        received_by: Option<Uuid>,
+        _closed_at: Option<chrono::DateTime<chrono::Utc>>,
     ) -> AtlasResult<ReceiptHeader> {
         let row = sqlx::query(
             r"
@@ -509,14 +705,25 @@ impl ReceivingRepository for PostgresReceivingRepository {
     // ========================================================================
 
     async fn create_receipt_line(
-        &self, org_id: Uuid, receipt_id: Uuid, line_number: i32,
-        purchase_order_line_id: Option<Uuid>, item_id: Option<Uuid>,
-        item_code: Option<&str>, item_description: Option<&str>,
-        ordered_qty: &str, ordered_uom: Option<&str>,
-        received_qty: &str, received_uom: Option<&str>,
-        lot_number: Option<&str>, serial_numbers: serde_json::Value,
-        expiration_date: Option<chrono::NaiveDate>, manufacture_date: Option<chrono::NaiveDate>,
-        unit_price: Option<&str>, currency: Option<&str>, notes: Option<&str>,
+        &self,
+        org_id: Uuid,
+        receipt_id: Uuid,
+        line_number: i32,
+        purchase_order_line_id: Option<Uuid>,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        ordered_qty: &str,
+        ordered_uom: Option<&str>,
+        received_qty: &str,
+        received_uom: Option<&str>,
+        lot_number: Option<&str>,
+        serial_numbers: serde_json::Value,
+        expiration_date: Option<chrono::NaiveDate>,
+        manufacture_date: Option<chrono::NaiveDate>,
+        unit_price: Option<&str>,
+        currency: Option<&str>,
+        notes: Option<&str>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptLine> {
         let row = sqlx::query(
@@ -532,12 +739,25 @@ impl ReceivingRepository for PostgresReceivingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(receipt_id).bind(line_number)
-        .bind(purchase_order_line_id).bind(item_id).bind(item_code).bind(item_description)
-        .bind(ordered_qty.parse::<f64>().unwrap_or(0.0)).bind(ordered_uom)
-        .bind(received_qty.parse::<f64>().unwrap_or(0.0)).bind(received_uom)
-        .bind(lot_number).bind(serial_numbers).bind(expiration_date).bind(manufacture_date)
-        .bind(unit_price.map(|v| v.parse::<f64>().unwrap_or(0.0))).bind(currency).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(receipt_id)
+        .bind(line_number)
+        .bind(purchase_order_line_id)
+        .bind(item_id)
+        .bind(item_code)
+        .bind(item_description)
+        .bind(ordered_qty.parse::<f64>().unwrap_or(0.0))
+        .bind(ordered_uom)
+        .bind(received_qty.parse::<f64>().unwrap_or(0.0))
+        .bind(received_uom)
+        .bind(lot_number)
+        .bind(serial_numbers)
+        .bind(expiration_date)
+        .bind(manufacture_date)
+        .bind(unit_price.map(|v| v.parse::<f64>().unwrap_or(0.0)))
+        .bind(currency)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -555,7 +775,7 @@ impl ReceivingRepository for PostgresReceivingRepository {
 
     async fn list_receipt_lines(&self, receipt_id: Uuid) -> AtlasResult<Vec<ReceiptLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.receipt_lines WHERE receipt_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.receipt_lines WHERE receipt_id = $1 ORDER BY line_number",
         )
         .bind(receipt_id)
         .fetch_all(&self.pool)
@@ -569,11 +789,18 @@ impl ReceivingRepository for PostgresReceivingRepository {
     // ========================================================================
 
     async fn create_inspection(
-        &self, org_id: Uuid, receipt_id: Uuid, receipt_line_id: Uuid,
-        inspection_number: &str, inspection_template: Option<&str>,
-        inspector_id: Option<Uuid>, inspector_name: Option<&str>,
-        inspection_date: chrono::NaiveDate, sample_size: Option<&str>,
-        notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        receipt_id: Uuid,
+        receipt_line_id: Uuid,
+        inspection_number: &str,
+        inspection_template: Option<&str>,
+        inspector_id: Option<Uuid>,
+        inspector_name: Option<&str>,
+        inspection_date: chrono::NaiveDate,
+        sample_size: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptInspection> {
         let row = sqlx::query(
             r"
@@ -585,9 +812,17 @@ impl ReceivingRepository for PostgresReceivingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(receipt_id).bind(receipt_line_id).bind(inspection_number)
-        .bind(inspection_template).bind(inspector_id).bind(inspector_name)
-        .bind(inspection_date).bind(sample_size.map(|v| v.parse::<f64>().unwrap_or(0.0))).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(receipt_id)
+        .bind(receipt_line_id)
+        .bind(inspection_number)
+        .bind(inspection_template)
+        .bind(inspector_id)
+        .bind(inspector_name)
+        .bind(inspection_date)
+        .bind(sample_size.map(|v| v.parse::<f64>().unwrap_or(0.0)))
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -603,7 +838,11 @@ impl ReceivingRepository for PostgresReceivingRepository {
         Ok(row.map(|r| row_to_inspection(&r)))
     }
 
-    async fn list_inspections(&self, org_id: Uuid, receipt_id: Option<Uuid>) -> AtlasResult<Vec<ReceiptInspection>> {
+    async fn list_inspections(
+        &self,
+        org_id: Uuid,
+        receipt_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ReceiptInspection>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.receipt_inspections
@@ -611,7 +850,8 @@ impl ReceivingRepository for PostgresReceivingRepository {
             ORDER BY inspection_date DESC
             ",
         )
-        .bind(org_id).bind(receipt_id)
+        .bind(org_id)
+        .bind(receipt_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -619,9 +859,15 @@ impl ReceivingRepository for PostgresReceivingRepository {
     }
 
     async fn complete_inspection(
-        &self, id: Uuid, quantity_inspected: &str, quantity_accepted: &str,
-        quantity_rejected: &str, disposition: &str, quality_score: Option<&str>,
-        rejection_reason: Option<&str>, notes: Option<&str>,
+        &self,
+        id: Uuid,
+        quantity_inspected: &str,
+        quantity_accepted: &str,
+        quantity_rejected: &str,
+        disposition: &str,
+        quality_score: Option<&str>,
+        rejection_reason: Option<&str>,
+        notes: Option<&str>,
     ) -> AtlasResult<ReceiptInspection> {
         let row = sqlx::query(
             r"
@@ -641,8 +887,13 @@ impl ReceivingRepository for PostgresReceivingRepository {
             ",
         )
         .bind(id)
-        .bind(quantity_inspected.parse::<f64>().unwrap_or(0.0)).bind(quantity_accepted.parse::<f64>().unwrap_or(0.0)).bind(quantity_rejected.parse::<f64>().unwrap_or(0.0))
-        .bind(disposition).bind(quality_score.map(|v| v.parse::<f64>().unwrap_or(0.0))).bind(rejection_reason).bind(notes)
+        .bind(quantity_inspected.parse::<f64>().unwrap_or(0.0))
+        .bind(quantity_accepted.parse::<f64>().unwrap_or(0.0))
+        .bind(quantity_rejected.parse::<f64>().unwrap_or(0.0))
+        .bind(disposition)
+        .bind(quality_score.map(|v| v.parse::<f64>().unwrap_or(0.0)))
+        .bind(rejection_reason)
+        .bind(notes)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -654,9 +905,16 @@ impl ReceivingRepository for PostgresReceivingRepository {
     // ========================================================================
 
     async fn create_inspection_detail(
-        &self, org_id: Uuid, inspection_id: Uuid, check_number: i32,
-        check_name: &str, check_type: &str, specification: Option<&str>,
-        result: &str, measured_value: Option<&str>, expected_value: Option<&str>,
+        &self,
+        org_id: Uuid,
+        inspection_id: Uuid,
+        check_number: i32,
+        check_name: &str,
+        check_type: &str,
+        specification: Option<&str>,
+        result: &str,
+        measured_value: Option<&str>,
+        expected_value: Option<&str>,
         notes: Option<&str>,
     ) -> AtlasResult<InspectionDetail> {
         let row = sqlx::query(
@@ -668,16 +926,26 @@ impl ReceivingRepository for PostgresReceivingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(inspection_id).bind(check_number).bind(check_name)
-        .bind(check_type).bind(specification).bind(result)
-        .bind(measured_value).bind(expected_value).bind(notes)
+        .bind(org_id)
+        .bind(inspection_id)
+        .bind(check_number)
+        .bind(check_name)
+        .bind(check_type)
+        .bind(specification)
+        .bind(result)
+        .bind(measured_value)
+        .bind(expected_value)
+        .bind(notes)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_detail(&row))
     }
 
-    async fn list_inspection_details(&self, inspection_id: Uuid) -> AtlasResult<Vec<InspectionDetail>> {
+    async fn list_inspection_details(
+        &self,
+        inspection_id: Uuid,
+    ) -> AtlasResult<Vec<InspectionDetail>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.inspection_details WHERE inspection_id = $1 ORDER BY check_number"
         )
@@ -693,12 +961,23 @@ impl ReceivingRepository for PostgresReceivingRepository {
     // ========================================================================
 
     async fn create_delivery(
-        &self, org_id: Uuid, receipt_id: Uuid, receipt_line_id: Uuid,
-        delivery_number: &str, subinventory: Option<&str>, locator: Option<&str>,
-        quantity_delivered: &str, uom: Option<&str>, lot_number: Option<&str>,
-        serial_number: Option<&str>, delivered_by: Option<Uuid>,
-        delivered_by_name: Option<&str>, destination_type: &str,
-        account_code: Option<&str>, notes: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        receipt_id: Uuid,
+        receipt_line_id: Uuid,
+        delivery_number: &str,
+        subinventory: Option<&str>,
+        locator: Option<&str>,
+        quantity_delivered: &str,
+        uom: Option<&str>,
+        lot_number: Option<&str>,
+        serial_number: Option<&str>,
+        delivered_by: Option<Uuid>,
+        delivered_by_name: Option<&str>,
+        destination_type: &str,
+        account_code: Option<&str>,
+        notes: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptDelivery> {
         let row = sqlx::query(
             r"
@@ -712,10 +991,22 @@ impl ReceivingRepository for PostgresReceivingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(receipt_id).bind(receipt_line_id).bind(delivery_number)
-        .bind(subinventory).bind(locator).bind(quantity_delivered.parse::<f64>().unwrap_or(0.0)).bind(uom)
-        .bind(lot_number).bind(serial_number).bind(delivered_by).bind(delivered_by_name)
-        .bind(destination_type).bind(account_code).bind(notes).bind(created_by)
+        .bind(org_id)
+        .bind(receipt_id)
+        .bind(receipt_line_id)
+        .bind(delivery_number)
+        .bind(subinventory)
+        .bind(locator)
+        .bind(quantity_delivered.parse::<f64>().unwrap_or(0.0))
+        .bind(uom)
+        .bind(lot_number)
+        .bind(serial_number)
+        .bind(delivered_by)
+        .bind(delivered_by_name)
+        .bind(destination_type)
+        .bind(account_code)
+        .bind(notes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -731,7 +1022,11 @@ impl ReceivingRepository for PostgresReceivingRepository {
         Ok(row.map(|r| row_to_delivery(&r)))
     }
 
-    async fn list_deliveries(&self, org_id: Uuid, receipt_id: Option<Uuid>) -> AtlasResult<Vec<ReceiptDelivery>> {
+    async fn list_deliveries(
+        &self,
+        org_id: Uuid,
+        receipt_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ReceiptDelivery>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.receipt_deliveries
@@ -739,7 +1034,8 @@ impl ReceivingRepository for PostgresReceivingRepository {
             ORDER BY delivery_date DESC
             ",
         )
-        .bind(org_id).bind(receipt_id)
+        .bind(org_id)
+        .bind(receipt_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -751,13 +1047,23 @@ impl ReceivingRepository for PostgresReceivingRepository {
     // ========================================================================
 
     async fn create_return(
-        &self, org_id: Uuid, return_number: &str, receipt_id: Option<Uuid>,
-        receipt_line_id: Option<Uuid>, supplier_id: Option<Uuid>,
-        supplier_name: Option<&str>, return_type: &str,
-        item_id: Option<Uuid>, item_code: Option<&str>,
-        item_description: Option<&str>, quantity_returned: &str,
-        uom: Option<&str>, unit_price: Option<&str>, currency: Option<&str>,
-        return_reason: Option<&str>, return_date: chrono::NaiveDate,
+        &self,
+        org_id: Uuid,
+        return_number: &str,
+        receipt_id: Option<Uuid>,
+        receipt_line_id: Option<Uuid>,
+        supplier_id: Option<Uuid>,
+        supplier_name: Option<&str>,
+        return_type: &str,
+        item_id: Option<Uuid>,
+        item_code: Option<&str>,
+        item_description: Option<&str>,
+        quantity_returned: &str,
+        uom: Option<&str>,
+        unit_price: Option<&str>,
+        currency: Option<&str>,
+        return_reason: Option<&str>,
+        return_date: chrono::NaiveDate,
         created_by: Option<Uuid>,
     ) -> AtlasResult<ReceiptReturn> {
         let row = sqlx::query(
@@ -773,11 +1079,23 @@ impl ReceivingRepository for PostgresReceivingRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(return_number).bind(receipt_id).bind(receipt_line_id)
-        .bind(supplier_id).bind(supplier_name).bind(return_type)
-        .bind(item_id).bind(item_code).bind(item_description)
-        .bind(quantity_returned.parse::<f64>().unwrap_or(0.0)).bind(uom).bind(unit_price.map(|v| v.parse::<f64>().unwrap_or(0.0))).bind(currency)
-        .bind(return_reason).bind(return_date).bind(created_by)
+        .bind(org_id)
+        .bind(return_number)
+        .bind(receipt_id)
+        .bind(receipt_line_id)
+        .bind(supplier_id)
+        .bind(supplier_name)
+        .bind(return_type)
+        .bind(item_id)
+        .bind(item_code)
+        .bind(item_description)
+        .bind(quantity_returned.parse::<f64>().unwrap_or(0.0))
+        .bind(uom)
+        .bind(unit_price.map(|v| v.parse::<f64>().unwrap_or(0.0)))
+        .bind(currency)
+        .bind(return_reason)
+        .bind(return_date)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -793,7 +1111,11 @@ impl ReceivingRepository for PostgresReceivingRepository {
         Ok(row.map(|r| row_to_return(&r)))
     }
 
-    async fn list_returns(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ReceiptReturn>> {
+    async fn list_returns(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ReceiptReturn>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.receipt_returns
@@ -801,7 +1123,8 @@ impl ReceivingRepository for PostgresReceivingRepository {
             ORDER BY return_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(status)
+        .bind(org_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -809,7 +1132,11 @@ impl ReceivingRepository for PostgresReceivingRepository {
     }
 
     async fn update_return_status(
-        &self, id: Uuid, status: &str, carrier: Option<&str>, tracking_number: Option<&str>,
+        &self,
+        id: Uuid,
+        status: &str,
+        carrier: Option<&str>,
+        tracking_number: Option<&str>,
     ) -> AtlasResult<ReceiptReturn> {
         let row = sqlx::query(
             r"

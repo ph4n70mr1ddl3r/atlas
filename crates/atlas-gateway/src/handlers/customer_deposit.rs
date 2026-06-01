@@ -2,19 +2,18 @@
 //!
 //! Oracle Fusion: Financials > Accounts Receivable > Customer Deposits
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateDepositRequest {
@@ -40,13 +39,27 @@ pub async fn create_deposit(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.customer_deposit_engine.create_deposit(
-        org_id, &payload.deposit_number, payload.customer_id, &payload.customer_name,
-        payload.customer_site_id, payload.description.as_deref(), &payload.currency_code,
-        &payload.deposit_amount, payload.exchange_rate.as_deref(),
-        payload.deposit_account_code.as_deref(), payload.receivable_account_code.as_deref(),
-        payload.deposit_date, payload.expiration_date, Some(user_id),
-    ).await {
+    match state
+        .financials
+        .customer_deposit_engine
+        .create_deposit(
+            org_id,
+            &payload.deposit_number,
+            payload.customer_id,
+            &payload.customer_name,
+            payload.customer_site_id,
+            payload.description.as_deref(),
+            &payload.currency_code,
+            &payload.deposit_amount,
+            payload.exchange_rate.as_deref(),
+            payload.deposit_account_code.as_deref(),
+            payload.receivable_account_code.as_deref(),
+            payload.deposit_date,
+            payload.expiration_date,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(d) => Ok(created_json(d)),
         Err(e) => {
             error!("Failed to create deposit: {}", e);
@@ -60,7 +73,10 @@ pub async fn create_deposit(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ListDepositsQuery { pub status: Option<String>, pub customer_id: Option<Uuid> }
+pub struct ListDepositsQuery {
+    pub status: Option<String>,
+    pub customer_id: Option<Uuid>,
+}
 
 pub async fn list_deposits(
     State(state): State<Arc<AppState>>,
@@ -68,9 +84,17 @@ pub async fn list_deposits(
     Query(query): Query<ListDepositsQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.customer_deposit_engine.list_deposits(org_id, query.status.as_deref(), query.customer_id).await {
+    match state
+        .financials
+        .customer_deposit_engine
+        .list_deposits(org_id, query.status.as_deref(), query.customer_id)
+        .await
+    {
         Ok(deposits) => Ok(Json(serde_json::json!({ "data": deposits }))),
-        Err(e) => { error!("Failed to list deposits: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to list deposits: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -78,15 +102,25 @@ pub async fn get_deposit(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.customer_deposit_engine.get_deposit(id).await {
+    match state
+        .financials
+        .customer_deposit_engine
+        .get_deposit(id)
+        .await
+    {
         Ok(Some(d)) => Ok(to_json(d)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(e) => { error!("Failed to get deposit: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get deposit: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ReceiveDepositRequest { pub receipt_reference: Option<String> }
+pub struct ReceiveDepositRequest {
+    pub receipt_reference: Option<String>,
+}
 
 pub async fn receive_deposit(
     State(state): State<Arc<AppState>>,
@@ -95,7 +129,12 @@ pub async fn receive_deposit(
     Json(payload): Json<ReceiveDepositRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.customer_deposit_engine.receive_deposit(id, payload.receipt_reference.as_deref(), Some(user_id)).await {
+    match state
+        .financials
+        .customer_deposit_engine
+        .receive_deposit(id, payload.receipt_reference.as_deref(), Some(user_id))
+        .await
+    {
         Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to receive deposit: {}", e);
@@ -109,7 +148,9 @@ pub async fn receive_deposit(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RefundDepositRequest { pub refund_reference: Option<String> }
+pub struct RefundDepositRequest {
+    pub refund_reference: Option<String>,
+}
 
 pub async fn refund_deposit(
     State(state): State<Arc<AppState>>,
@@ -118,12 +159,18 @@ pub async fn refund_deposit(
     Json(payload): Json<RefundDepositRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.customer_deposit_engine.refund_deposit(id, payload.refund_reference.as_deref(), Some(user_id)).await {
+    match state
+        .financials
+        .customer_deposit_engine
+        .refund_deposit(id, payload.refund_reference.as_deref(), Some(user_id))
+        .await
+    {
         Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to refund deposit: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::WorkflowError(_) | atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::WorkflowError(_)
+                | atlas_shared::AtlasError::ValidationFailed(_) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
         }
@@ -131,14 +178,21 @@ pub async fn refund_deposit(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CancelDepositRequest { pub reason: Option<String> }
+pub struct CancelDepositRequest {
+    pub reason: Option<String>,
+}
 
 pub async fn cancel_deposit(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(payload): Json<CancelDepositRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.customer_deposit_engine.cancel_deposit(id, payload.reason.as_deref()).await {
+    match state
+        .financials
+        .customer_deposit_engine
+        .cancel_deposit(id, payload.reason.as_deref())
+        .await
+    {
         Ok(d) => Ok(to_json(d)),
         Err(e) => {
             error!("Failed to cancel deposit: {}", e);
@@ -169,16 +223,27 @@ pub async fn apply_deposit_to_invoice(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.customer_deposit_engine.apply_to_invoice(
-        org_id, payload.deposit_id, payload.invoice_id,
-        payload.invoice_number.as_deref(), &payload.applied_amount,
-        payload.application_date, payload.gl_account_code.as_deref(), Some(user_id),
-    ).await {
+    match state
+        .financials
+        .customer_deposit_engine
+        .apply_to_invoice(
+            org_id,
+            payload.deposit_id,
+            payload.invoice_id,
+            payload.invoice_number.as_deref(),
+            &payload.applied_amount,
+            payload.application_date,
+            payload.gl_account_code.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(app) => Ok(created_json(app)),
         Err(e) => {
             error!("Failed to apply deposit: {}", e);
             Err(match e {
-                atlas_shared::AtlasError::ValidationFailed(_) | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
+                atlas_shared::AtlasError::ValidationFailed(_)
+                | atlas_shared::AtlasError::WorkflowError(_) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             })
         }
@@ -190,8 +255,16 @@ pub async fn get_deposit_dashboard(
     claims: Extension<Claims>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.customer_deposit_engine.get_dashboard(org_id).await {
+    match state
+        .financials
+        .customer_deposit_engine
+        .get_dashboard(org_id)
+        .await
+    {
         Ok(dashboard) => Ok(to_json(dashboard)),
-        Err(e) => { error!("Failed to get dashboard: {}", e); Err(StatusCode::INTERNAL_SERVER_ERROR) }
+        Err(e) => {
+            error!("Failed to get dashboard: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

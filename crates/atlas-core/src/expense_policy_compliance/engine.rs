@@ -5,20 +5,25 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Expenses > Policies > Expense Policy Compliance
 
-use atlas_shared::{
-    ExpensePolicyRule, ExpenseComplianceAudit, ExpenseComplianceViolation,
-    ExpenseComplianceDashboard,
-    AtlasError, AtlasResult,
-};
 use super::ExpensePolicyComplianceRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, ExpenseComplianceAudit, ExpenseComplianceDashboard,
+    ExpenseComplianceViolation, ExpensePolicyRule,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
 /// Valid rule types for expense policy rules
 const VALID_RULE_TYPES: &[&str] = &[
-    "amount_limit", "daily_limit", "category_limit", "receipt_required",
-    "time_restriction", "duplicate_check", "approval_required", "per_diem_override",
+    "amount_limit",
+    "daily_limit",
+    "category_limit",
+    "receipt_required",
+    "time_restriction",
+    "duplicate_check",
+    "approval_required",
+    "per_diem_override",
 ];
 
 /// Valid severity levels
@@ -29,8 +34,16 @@ const VALID_EVALUATION_SCOPES: &[&str] = &["per_line", "per_day", "per_report", 
 
 /// Valid expense categories
 const VALID_EXPENSE_CATEGORIES: &[&str] = &[
-    "airfare", "hotel", "meals", "transportation", "entertainment",
-    "office_supplies", "telecommunications", "training", "other", "all",
+    "airfare",
+    "hotel",
+    "meals",
+    "transportation",
+    "entertainment",
+    "office_supplies",
+    "telecommunications",
+    "training",
+    "other",
+    "all",
 ];
 
 /// Valid rule statuses
@@ -38,7 +51,11 @@ const VALID_RULE_STATUSES: &[&str] = &["draft", "active", "inactive"];
 
 /// Valid audit triggers
 const VALID_AUDIT_TRIGGERS: &[&str] = &[
-    "automatic", "random_sample", "high_amount", "policy_violation", "manual",
+    "automatic",
+    "random_sample",
+    "high_amount",
+    "policy_violation",
+    "manual",
 ];
 
 /// Valid audit statuses
@@ -48,13 +65,12 @@ const VALID_AUDIT_STATUSES: &[&str] = &["pending", "in_review", "completed", "es
 const VALID_RISK_LEVELS: &[&str] = &["low", "medium", "high", "critical"];
 
 /// Valid violation resolution statuses
-const VALID_RESOLUTION_STATUSES: &[&str] = &[
-    "open", "justified", "adjusted", "upheld", "escalated",
-];
+const VALID_RESOLUTION_STATUSES: &[&str] =
+    &["open", "justified", "adjusted", "upheld", "escalated"];
 
 /// Calculate compliance score based on violations, warnings, and blocks.
 /// Score is 0-100, starting at 100 and applying penalties.
-#[must_use] 
+#[must_use]
 pub fn calculate_compliance_score(
     total_lines: i32,
     violations_count: i32,
@@ -78,7 +94,7 @@ pub fn calculate_compliance_score(
 }
 
 /// Determine risk level from compliance score
-#[must_use] 
+#[must_use]
 pub fn determine_risk_level(score: f64) -> &'static str {
     if score >= 80.0 {
         "low"
@@ -92,7 +108,7 @@ pub fn determine_risk_level(score: f64) -> &'static str {
 }
 
 /// Check if an expense amount violates an amount limit rule
-#[must_use] 
+#[must_use]
 pub fn evaluate_amount_limit(
     expense_amount: f64,
     threshold_amount: Option<f64>,
@@ -159,33 +175,41 @@ impl ExpensePolicyComplianceEngine {
     ) -> AtlasResult<ExpensePolicyRule> {
         // Validation
         if rule_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Rule code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Rule code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Rule name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Rule name is required".to_string(),
+            ));
         }
         if !VALID_RULE_TYPES.contains(&rule_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid rule type '{}'. Must be one of: {}",
-                rule_type, VALID_RULE_TYPES.join(", ")
+                rule_type,
+                VALID_RULE_TYPES.join(", ")
             )));
         }
         if !VALID_EXPENSE_CATEGORIES.contains(&expense_category) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid expense category '{}'. Must be one of: {}",
-                expense_category, VALID_EXPENSE_CATEGORIES.join(", ")
+                expense_category,
+                VALID_EXPENSE_CATEGORIES.join(", ")
             )));
         }
         if !VALID_SEVERITIES.contains(&severity) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid severity '{}'. Must be one of: {}",
-                severity, VALID_SEVERITIES.join(", ")
+                severity,
+                VALID_SEVERITIES.join(", ")
             )));
         }
         if !VALID_EVALUATION_SCOPES.contains(&evaluation_scope) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid evaluation scope '{}'. Must be one of: {}",
-                evaluation_scope, VALID_EVALUATION_SCOPES.join(", ")
+                evaluation_scope,
+                VALID_EVALUATION_SCOPES.join(", ")
             )));
         }
         if threshold_days < 0 {
@@ -201,19 +225,41 @@ impl ExpensePolicyComplianceEngine {
             }
         }
 
-        info!("Creating expense policy rule {} ({}) for org {}", rule_code, name, org_id);
+        info!(
+            "Creating expense policy rule {} ({}) for org {}",
+            rule_code, name, org_id
+        );
 
-        self.repository.create_rule(
-            org_id, rule_code, name, description, rule_type, expense_category,
-            severity, evaluation_scope, threshold_amount, maximum_amount,
-            threshold_days, requires_receipt, requires_justification,
-            effective_from, effective_to, applies_to_department,
-            applies_to_cost_center, created_by_id,
-        ).await
+        self.repository
+            .create_rule(
+                org_id,
+                rule_code,
+                name,
+                description,
+                rule_type,
+                expense_category,
+                severity,
+                evaluation_scope,
+                threshold_amount,
+                maximum_amount,
+                threshold_days,
+                requires_receipt,
+                requires_justification,
+                effective_from,
+                effective_to,
+                applies_to_department,
+                applies_to_cost_center,
+                created_by_id,
+            )
+            .await
     }
 
     /// Get a rule by code
-    pub async fn get_rule(&self, org_id: Uuid, rule_code: &str) -> AtlasResult<Option<ExpensePolicyRule>> {
+    pub async fn get_rule(
+        &self,
+        org_id: Uuid,
+        rule_code: &str,
+    ) -> AtlasResult<Option<ExpensePolicyRule>> {
         self.repository.get_rule(org_id, rule_code).await
     }
 
@@ -233,7 +279,8 @@ impl ExpensePolicyComplianceEngine {
             if !VALID_RULE_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_RULE_STATUSES.join(", ")
+                    s,
+                    VALID_RULE_STATUSES.join(", ")
                 )));
             }
         }
@@ -241,7 +288,8 @@ impl ExpensePolicyComplianceEngine {
             if !VALID_RULE_TYPES.contains(&rt) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid rule type '{}'. Must be one of: {}",
-                    rt, VALID_RULE_TYPES.join(", ")
+                    rt,
+                    VALID_RULE_TYPES.join(", ")
                 )));
             }
         }
@@ -250,7 +298,10 @@ impl ExpensePolicyComplianceEngine {
 
     /// Activate a draft rule
     pub async fn activate_rule(&self, id: Uuid) -> AtlasResult<ExpensePolicyRule> {
-        let rule = self.repository.get_rule_by_id(id).await?
+        let rule = self
+            .repository
+            .get_rule_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Rule {id} not found")))?;
 
         if rule.status != "draft" && rule.status != "inactive" {
@@ -266,7 +317,10 @@ impl ExpensePolicyComplianceEngine {
 
     /// Deactivate a rule
     pub async fn deactivate_rule(&self, id: Uuid) -> AtlasResult<ExpensePolicyRule> {
-        let rule = self.repository.get_rule_by_id(id).await?
+        let rule = self
+            .repository
+            .get_rule_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Rule {id} not found")))?;
 
         if rule.status != "active" {
@@ -282,7 +336,10 @@ impl ExpensePolicyComplianceEngine {
 
     /// Delete a rule (only if draft or inactive)
     pub async fn delete_rule(&self, org_id: Uuid, rule_code: &str) -> AtlasResult<()> {
-        let rule = self.repository.get_rule(org_id, rule_code).await?
+        let rule = self
+            .repository
+            .get_rule(org_id, rule_code)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Rule {rule_code} not found")))?;
 
         if rule.status == "active" {
@@ -314,20 +371,32 @@ impl ExpensePolicyComplianceEngine {
         if !VALID_AUDIT_TRIGGERS.contains(&audit_trigger) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid audit trigger '{}'. Must be one of: {}",
-                audit_trigger, VALID_AUDIT_TRIGGERS.join(", ")
+                audit_trigger,
+                VALID_AUDIT_TRIGGERS.join(", ")
             )));
         }
 
         let next_audit_num = self.repository.get_latest_audit_number(org_id).await? + 1;
         let audit_number = format!("ECA-{next_audit_num}");
 
-        info!("Creating compliance audit {} for report {} in org {}", audit_number, report_id, org_id);
+        info!(
+            "Creating compliance audit {} for report {} in org {}",
+            audit_number, report_id, org_id
+        );
 
-        self.repository.create_audit(
-            org_id, &audit_number, report_id, report_number,
-            employee_id, employee_name, department_id,
-            audit_date, audit_trigger,
-        ).await
+        self.repository
+            .create_audit(
+                org_id,
+                &audit_number,
+                report_id,
+                report_number,
+                employee_id,
+                employee_name,
+                department_id,
+                audit_date,
+                audit_trigger,
+            )
+            .await
     }
 
     /// Get an audit by ID
@@ -336,8 +405,14 @@ impl ExpensePolicyComplianceEngine {
     }
 
     /// Get an audit by audit number
-    pub async fn get_audit_by_number(&self, org_id: Uuid, audit_number: &str) -> AtlasResult<Option<ExpenseComplianceAudit>> {
-        self.repository.get_audit_by_number(org_id, audit_number).await
+    pub async fn get_audit_by_number(
+        &self,
+        org_id: Uuid,
+        audit_number: &str,
+    ) -> AtlasResult<Option<ExpenseComplianceAudit>> {
+        self.repository
+            .get_audit_by_number(org_id, audit_number)
+            .await
     }
 
     /// List audits with optional filters
@@ -351,7 +426,8 @@ impl ExpensePolicyComplianceEngine {
             if !VALID_AUDIT_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid status '{}'. Must be one of: {}",
-                    s, VALID_AUDIT_STATUSES.join(", ")
+                    s,
+                    VALID_AUDIT_STATUSES.join(", ")
                 )));
             }
         }
@@ -359,16 +435,22 @@ impl ExpensePolicyComplianceEngine {
             if !VALID_RISK_LEVELS.contains(&r) {
                 return Err(AtlasError::ValidationFailed(format!(
                     "Invalid risk level '{}'. Must be one of: {}",
-                    r, VALID_RISK_LEVELS.join(", ")
+                    r,
+                    VALID_RISK_LEVELS.join(", ")
                 )));
             }
         }
-        self.repository.list_audits(org_id, status, risk_level).await
+        self.repository
+            .list_audits(org_id, status, risk_level)
+            .await
     }
 
     /// Evaluate compliance for an audit against active policy rules
     pub async fn evaluate_compliance(&self, audit_id: Uuid) -> AtlasResult<ExpenseComplianceAudit> {
-        let audit = self.repository.get_audit(audit_id).await?
+        let audit = self
+            .repository
+            .get_audit(audit_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Audit {audit_id} not found")))?;
 
         if audit.status != "pending" {
@@ -379,14 +461,19 @@ impl ExpensePolicyComplianceEngine {
         }
 
         // Get all active rules for the org
-        let rules = self.repository.list_rules(audit.org_id, Some("active"), None).await?;
+        let rules = self
+            .repository
+            .list_rules(audit.org_id, Some("active"), None)
+            .await?;
 
         if rules.is_empty() {
             // No active rules, mark as completed with perfect score
-            return self.repository.update_audit_results(
-                audit_id, 0, 0, 0, 0, "100.00", "low",
-                "0.00", "0.00", false, false,
-            ).await;
+            return self
+                .repository
+                .update_audit_results(
+                    audit_id, 0, 0, 0, 0, "100.00", "low", "0.00", "0.00", false, false,
+                )
+                .await;
         }
 
         // Simulate evaluation: for each rule, check if it applies and create violations
@@ -417,21 +504,26 @@ impl ExpensePolicyComplianceEngine {
 
             match rule.rule_type.as_str() {
                 "amount_limit" => {
-                    let threshold = rule.threshold_amount.as_ref()
+                    let threshold = rule
+                        .threshold_amount
+                        .as_ref()
                         .and_then(|s| s.parse::<f64>().ok());
-                    let maximum = rule.maximum_amount.as_ref()
+                    let maximum = rule
+                        .maximum_amount
+                        .as_ref()
                         .and_then(|s| s.parse::<f64>().ok());
-                    if let Some((desc, exc)) = evaluate_amount_limit(simulated_expense_amount, threshold, maximum) {
+                    if let Some((desc, exc)) =
+                        evaluate_amount_limit(simulated_expense_amount, threshold, maximum)
+                    {
                         violated = true;
                         violation_desc = desc;
                         excess = exc;
                     }
                 }
-                "receipt_required"
-                    if rule.requires_receipt && simulated_expense_amount > 75.0 => {
-                        violated = true;
-                        violation_desc = format!("Receipt required for expenses over 75.00, got {simulated_expense_amount:.2}");
-                    }
+                "receipt_required" if rule.requires_receipt && simulated_expense_amount > 75.0 => {
+                    violated = true;
+                    violation_desc = format!("Receipt required for expenses over 75.00, got {simulated_expense_amount:.2}");
+                }
                 "daily_limit" | "category_limit" => {
                     if let Some(max_str) = &rule.maximum_amount {
                         if let Ok(max) = max_str.parse::<f64>() {
@@ -450,47 +542,75 @@ impl ExpensePolicyComplianceEngine {
 
             if violated {
                 let severity = match rule.severity.as_str() {
-                    "block" => { blocks_count += 1; "block" }
-                    "violation" => { violations_count += 1; "violation" }
-                    _ => { warnings_count += 1; "warning" }
+                    "block" => {
+                        blocks_count += 1;
+                        "block"
+                    }
+                    "violation" => {
+                        violations_count += 1;
+                        "violation"
+                    }
+                    _ => {
+                        warnings_count += 1;
+                        "warning"
+                    }
                 };
 
-                total_flagged += if excess > 0.0 { excess } else { simulated_expense_amount };
+                total_flagged += if excess > 0.0 {
+                    excess
+                } else {
+                    simulated_expense_amount
+                };
 
-                let excess_str = if excess > 0.0 { Some(format!("{excess:.2}")) } else { None };
+                let excess_str = if excess > 0.0 {
+                    Some(format!("{excess:.2}"))
+                } else {
+                    None
+                };
 
-                self.repository.create_violation(
-                    audit.org_id, audit_id, audit.report_id,
-                    None, // report_line_id
-                    Some(rule.id), &rule.rule_code, Some(&rule.name),
-                    &rule.rule_type, severity,
-                    Some(&violation_desc),
-                    Some(&format!("{simulated_expense_amount:.2}")),
-                    rule.threshold_amount.as_deref(),
-                    excess_str.as_deref(),
-                ).await?;
+                self.repository
+                    .create_violation(
+                        audit.org_id,
+                        audit_id,
+                        audit.report_id,
+                        None, // report_line_id
+                        Some(rule.id),
+                        &rule.rule_code,
+                        Some(&rule.name),
+                        &rule.rule_type,
+                        severity,
+                        Some(&violation_desc),
+                        Some(&format!("{simulated_expense_amount:.2}")),
+                        rule.threshold_amount.as_deref(),
+                        excess_str.as_deref(),
+                    )
+                    .await?;
             }
         }
 
         let total_lines = 10i32; // Simulated line count
-        let score = calculate_compliance_score(total_lines, violations_count, warnings_count, blocks_count);
+        let score =
+            calculate_compliance_score(total_lines, violations_count, warnings_count, blocks_count);
         let risk_level = determine_risk_level(score);
         let requires_manager = blocks_count > 0 || score < 60.0;
         let requires_finance = blocks_count > 2 || score < 40.0;
 
-        let updated_audit = self.repository.update_audit_results(
-            audit_id,
-            total_lines,
-            violations_count,
-            warnings_count,
-            blocks_count,
-            &format!("{score:.2}"),
-            risk_level,
-            &format!("{total_flagged:.2}"),
-            &format!("{:.2}", total_approved - total_flagged),
-            requires_manager,
-            requires_finance,
-        ).await?;
+        let updated_audit = self
+            .repository
+            .update_audit_results(
+                audit_id,
+                total_lines,
+                violations_count,
+                warnings_count,
+                blocks_count,
+                &format!("{score:.2}"),
+                risk_level,
+                &format!("{total_flagged:.2}"),
+                &format!("{:.2}", total_approved - total_flagged),
+                requires_manager,
+                requires_finance,
+            )
+            .await?;
 
         info!(
             "Evaluated compliance audit {}: score={:.2}, risk={}, violations={}, warnings={}, blocks={}",
@@ -507,7 +627,10 @@ impl ExpensePolicyComplianceEngine {
         reviewed_by: Option<Uuid>,
         review_notes: Option<&str>,
     ) -> AtlasResult<ExpenseComplianceAudit> {
-        let audit = self.repository.get_audit(id).await?
+        let audit = self
+            .repository
+            .get_audit(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Audit {id} not found")))?;
 
         if audit.status != "pending" && audit.status != "in_review" {
@@ -517,8 +640,13 @@ impl ExpensePolicyComplianceEngine {
             )));
         }
 
-        info!("Completed review for compliance audit {}", audit.audit_number);
-        self.repository.update_audit_review(id, "completed", reviewed_by, review_notes).await
+        info!(
+            "Completed review for compliance audit {}",
+            audit.audit_number
+        );
+        self.repository
+            .update_audit_review(id, "completed", reviewed_by, review_notes)
+            .await
     }
 
     /// Escalate an audit
@@ -528,17 +656,23 @@ impl ExpensePolicyComplianceEngine {
         reviewed_by: Option<Uuid>,
         review_notes: Option<&str>,
     ) -> AtlasResult<ExpenseComplianceAudit> {
-        let audit = self.repository.get_audit(id).await?
+        let audit = self
+            .repository
+            .get_audit(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Audit {id} not found")))?;
 
         if audit.status != "pending" && audit.status != "in_review" {
             return Err(AtlasError::WorkflowError(format!(
-                "Cannot escalate audit in '{}' status.", audit.status
+                "Cannot escalate audit in '{}' status.",
+                audit.status
             )));
         }
 
         info!("Escalated compliance audit {}", audit.audit_number);
-        self.repository.update_audit_review(id, "escalated", reviewed_by, review_notes).await
+        self.repository
+            .update_audit_review(id, "escalated", reviewed_by, review_notes)
+            .await
     }
 
     // ========================================================================
@@ -546,7 +680,10 @@ impl ExpensePolicyComplianceEngine {
     // ========================================================================
 
     /// List violations for an audit
-    pub async fn list_violations(&self, audit_id: Uuid) -> AtlasResult<Vec<ExpenseComplianceViolation>> {
+    pub async fn list_violations(
+        &self,
+        audit_id: Uuid,
+    ) -> AtlasResult<Vec<ExpenseComplianceViolation>> {
         self.repository.list_violations(audit_id).await
     }
 
@@ -558,7 +695,10 @@ impl ExpensePolicyComplianceEngine {
         justification: Option<&str>,
         resolved_by: Option<Uuid>,
     ) -> AtlasResult<ExpenseComplianceViolation> {
-        let violation = self.repository.get_violation_by_id(id).await?
+        let violation = self
+            .repository
+            .get_violation_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Violation {id} not found")))?;
 
         if violation.resolution_status != "open" {
@@ -571,19 +711,28 @@ impl ExpensePolicyComplianceEngine {
         if !VALID_RESOLUTION_STATUSES.contains(&resolution_status) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid resolution status '{}'. Must be one of: {}",
-                resolution_status, VALID_RESOLUTION_STATUSES.join(", ")
+                resolution_status,
+                VALID_RESOLUTION_STATUSES.join(", ")
             )));
         }
 
         info!("Resolved violation {} as '{}'", id, resolution_status);
-        self.repository.update_violation_resolution(
-            id, resolution_status, justification, resolved_by,
-            Some(chrono::Utc::now().date_naive()),
-        ).await
+        self.repository
+            .update_violation_resolution(
+                id,
+                resolution_status,
+                justification,
+                resolved_by,
+                Some(chrono::Utc::now().date_naive()),
+            )
+            .await
     }
 
     /// List open violations for an organization
-    pub async fn list_open_violations(&self, org_id: Uuid) -> AtlasResult<Vec<ExpenseComplianceViolation>> {
+    pub async fn list_open_violations(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<ExpenseComplianceViolation>> {
         self.repository.list_open_violations(org_id).await
     }
 

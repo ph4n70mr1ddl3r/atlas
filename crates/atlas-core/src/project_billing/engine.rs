@@ -6,13 +6,11 @@
 //!
 //! Oracle Fusion Cloud equivalent: Project Management > Project Billing
 
-use atlas_shared::{
-    BillRateSchedule, BillRateLine, ProjectBillingConfig,
-    BillingEvent, ProjectInvoiceHeader, ProjectInvoiceLine,
-    ProjectBillingDashboard,
-    AtlasError, AtlasResult,
-};
 use super::ProjectBillingRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, BillRateLine, BillRateSchedule, BillingEvent, ProjectBillingConfig,
+    ProjectBillingDashboard, ProjectInvoiceHeader, ProjectInvoiceLine,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -27,7 +25,11 @@ const VALID_SCHEDULE_TYPES: &[&str] = &["standard", "overtime", "holiday", "cust
 const VALID_SCHEDULE_STATUSES: &[&str] = &["draft", "active", "inactive"];
 
 const VALID_BILLING_METHODS: &[&str] = &[
-    "time_and_materials", "fixed_price", "milestone", "cost_plus", "retention",
+    "time_and_materials",
+    "fixed_price",
+    "milestone",
+    "cost_plus",
+    "retention",
 ];
 
 const VALID_INVOICE_FORMATS: &[&str] = &["detailed", "summary", "consolidated"];
@@ -37,28 +39,38 @@ const VALID_BILLING_CYCLES: &[&str] = &["weekly", "biweekly", "monthly", "milest
 #[allow(dead_code)]
 const VALID_BILLING_CONFIG_STATUSES: &[&str] = &["draft", "active", "completed", "cancelled"];
 
-const VALID_EVENT_TYPES: &[&str] = &[
-    "milestone", "progress", "completion", "retention_release",
-];
+const VALID_EVENT_TYPES: &[&str] = &["milestone", "progress", "completion", "retention_release"];
 
 #[allow(dead_code)]
 const VALID_EVENT_STATUSES: &[&str] = &[
-    "planned", "ready", "invoiced", "partially_invoiced", "cancelled",
+    "planned",
+    "ready",
+    "invoiced",
+    "partially_invoiced",
+    "cancelled",
 ];
 
 const VALID_INVOICE_TYPES: &[&str] = &[
-    "progress", "milestone", "t_and_m", "retention_release", "debit_memo", "credit_memo",
+    "progress",
+    "milestone",
+    "t_and_m",
+    "retention_release",
+    "debit_memo",
+    "credit_memo",
 ];
 
 #[allow(dead_code)]
 const VALID_INVOICE_STATUSES: &[&str] = &[
-    "draft", "submitted", "approved", "rejected", "posted", "cancelled",
+    "draft",
+    "submitted",
+    "approved",
+    "rejected",
+    "posted",
+    "cancelled",
 ];
 
 #[allow(dead_code)]
-const VALID_LINE_SOURCES: &[&str] = &[
-    "expenditure_item", "billing_event", "retention", "manual",
-];
+const VALID_LINE_SOURCES: &[&str] = &["expenditure_item", "billing_event", "retention", "manual"];
 
 #[allow(dead_code)]
 const VALID_PAYMENT_STATUSES: &[&str] = &["unpaid", "partially_paid", "paid"];
@@ -102,14 +114,20 @@ impl ProjectBillingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BillRateSchedule> {
         if schedule_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Schedule number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Schedule number is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Schedule name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Schedule name is required".to_string(),
+            ));
         }
         if !VALID_SCHEDULE_TYPES.contains(&schedule_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid schedule_type '{}'. Must be one of: {}", schedule_type, VALID_SCHEDULE_TYPES.join(", ")
+                "Invalid schedule_type '{}'. Must be one of: {}",
+                schedule_type,
+                VALID_SCHEDULE_TYPES.join(", ")
             )));
         }
         if let Some(end) = effective_end {
@@ -126,18 +144,35 @@ impl ProjectBillingEngine {
         }
 
         // Check for duplicate
-        if self.repository.get_schedule_by_number(org_id, schedule_number).await?.is_some() {
+        if self
+            .repository
+            .get_schedule_by_number(org_id, schedule_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Schedule '{schedule_number}' already exists"
             )));
         }
 
-        info!("Creating bill rate schedule '{}' ({}) for org {}", schedule_number, name, org_id);
-        self.repository.create_schedule(
-            org_id, schedule_number, name, description,
-            schedule_type, currency_code, effective_start, effective_end,
-            default_markup_pct, created_by,
-        ).await
+        info!(
+            "Creating bill rate schedule '{}' ({}) for org {}",
+            schedule_number, name, org_id
+        );
+        self.repository
+            .create_schedule(
+                org_id,
+                schedule_number,
+                name,
+                description,
+                schedule_type,
+                currency_code,
+                effective_start,
+                effective_end,
+                default_markup_pct,
+                created_by,
+            )
+            .await
     }
 
     /// Get a schedule by ID
@@ -146,12 +181,22 @@ impl ProjectBillingEngine {
     }
 
     /// Get a schedule by number
-    pub async fn get_schedule_by_number(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<Option<BillRateSchedule>> {
-        self.repository.get_schedule_by_number(org_id, schedule_number).await
+    pub async fn get_schedule_by_number(
+        &self,
+        org_id: Uuid,
+        schedule_number: &str,
+    ) -> AtlasResult<Option<BillRateSchedule>> {
+        self.repository
+            .get_schedule_by_number(org_id, schedule_number)
+            .await
     }
 
     /// List schedules for an organization
-    pub async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<BillRateSchedule>> {
+    pub async fn list_schedules(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<BillRateSchedule>> {
         self.repository.list_schedules(org_id, status).await
     }
 
@@ -170,7 +215,9 @@ impl ProjectBillingEngine {
     /// Delete a schedule
     pub async fn delete_schedule(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<()> {
         info!("Deleting schedule '{}' for org {}", schedule_number, org_id);
-        self.repository.delete_schedule(org_id, schedule_number).await
+        self.repository
+            .delete_schedule(org_id, schedule_number)
+            .await
     }
 
     // ========================================================================
@@ -191,10 +238,14 @@ impl ProjectBillingEngine {
         markup_pct: Option<f64>,
     ) -> AtlasResult<BillRateLine> {
         if role_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Role name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Role name is required".to_string(),
+            ));
         }
         if bill_rate < 0.0 {
-            return Err(AtlasError::ValidationFailed("Bill rate must be >= 0".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Bill rate must be >= 0".to_string(),
+            ));
         }
         if let Some(end) = effective_end {
             if end < effective_start {
@@ -205,19 +256,37 @@ impl ProjectBillingEngine {
         }
         if let Some(mp) = markup_pct {
             if mp < 0.0 {
-                return Err(AtlasError::ValidationFailed("Markup pct must be >= 0".to_string()));
+                return Err(AtlasError::ValidationFailed(
+                    "Markup pct must be >= 0".to_string(),
+                ));
             }
         }
 
         // Verify schedule exists
-        self.repository.get_schedule(schedule_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found")))?;
+        self.repository
+            .get_schedule(schedule_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Schedule {schedule_id} not found"))
+            })?;
 
-        info!("Adding rate line for role '{}' to schedule {} [rate={}]", role_name, schedule_id, bill_rate);
-        self.repository.create_rate_line(
-            org_id, schedule_id, role_name, project_id,
-            bill_rate, unit_of_measure, effective_start, effective_end, markup_pct,
-        ).await
+        info!(
+            "Adding rate line for role '{}' to schedule {} [rate={}]",
+            role_name, schedule_id, bill_rate
+        );
+        self.repository
+            .create_rate_line(
+                org_id,
+                schedule_id,
+                role_name,
+                project_id,
+                bill_rate,
+                unit_of_measure,
+                effective_start,
+                effective_end,
+                markup_pct,
+            )
+            .await
     }
 
     /// List rate lines for a schedule
@@ -232,7 +301,9 @@ impl ProjectBillingEngine {
         role_name: &str,
         date: chrono::NaiveDate,
     ) -> AtlasResult<Option<BillRateLine>> {
-        self.repository.find_rate_for_role(schedule_id, role_name, date).await
+        self.repository
+            .find_rate_for_role(schedule_id, role_name, date)
+            .await
     }
 
     /// Delete a rate line
@@ -267,30 +338,44 @@ impl ProjectBillingEngine {
     ) -> AtlasResult<ProjectBillingConfig> {
         if !VALID_BILLING_METHODS.contains(&billing_method) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid billing_method '{}'. Must be one of: {}", billing_method, VALID_BILLING_METHODS.join(", ")
+                "Invalid billing_method '{}'. Must be one of: {}",
+                billing_method,
+                VALID_BILLING_METHODS.join(", ")
             )));
         }
         if !VALID_INVOICE_FORMATS.contains(&invoice_format) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid invoice_format '{}'. Must be one of: {}", invoice_format, VALID_INVOICE_FORMATS.join(", ")
+                "Invalid invoice_format '{}'. Must be one of: {}",
+                invoice_format,
+                VALID_INVOICE_FORMATS.join(", ")
             )));
         }
         if !VALID_BILLING_CYCLES.contains(&billing_cycle) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid billing_cycle '{}'. Must be one of: {}", billing_cycle, VALID_BILLING_CYCLES.join(", ")
+                "Invalid billing_cycle '{}'. Must be one of: {}",
+                billing_cycle,
+                VALID_BILLING_CYCLES.join(", ")
             )));
         }
         if contract_amount < 0.0 {
-            return Err(AtlasError::ValidationFailed("Contract amount must be >= 0".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Contract amount must be >= 0".to_string(),
+            ));
         }
         if payment_terms_days < 0 {
-            return Err(AtlasError::ValidationFailed("Payment terms days must be >= 0".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Payment terms days must be >= 0".to_string(),
+            ));
         }
         if !(0.0..=100.0).contains(&retention_pct) {
-            return Err(AtlasError::ValidationFailed("Retention pct must be 0-100".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Retention pct must be 0-100".to_string(),
+            ));
         }
         if retention_amount_cap < 0.0 {
-            return Err(AtlasError::ValidationFailed("Retention amount cap must be >= 0".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Retention amount cap must be >= 0".to_string(),
+            ));
         }
 
         // For T&M / cost-plus, a bill rate schedule is required
@@ -304,27 +389,49 @@ impl ProjectBillingEngine {
 
         // Verify schedule exists if provided
         if let Some(sid) = bill_rate_schedule_id {
-            self.repository.get_schedule(sid).await?
+            self.repository
+                .get_schedule(sid)
+                .await?
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {sid} not found")))?;
         }
 
         // Check for duplicate project config
-        if self.repository.get_billing_config_by_project(org_id, project_id).await?.is_some() {
+        if self
+            .repository
+            .get_billing_config_by_project(org_id, project_id)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Billing config already exists for project {project_id}"
             )));
         }
 
-        info!("Creating billing config for project {} [method={}, amount={}]",
-              project_id, billing_method, contract_amount);
+        info!(
+            "Creating billing config for project {} [method={}, amount={}]",
+            project_id, billing_method, contract_amount
+        );
 
-        self.repository.create_billing_config(
-            org_id, project_id, billing_method, bill_rate_schedule_id,
-            contract_amount, currency_code, invoice_format, billing_cycle,
-            payment_terms_days, retention_pct, retention_amount_cap,
-            customer_id, customer_name, customer_po_number, contract_number,
-            created_by,
-        ).await
+        self.repository
+            .create_billing_config(
+                org_id,
+                project_id,
+                billing_method,
+                bill_rate_schedule_id,
+                contract_amount,
+                currency_code,
+                invoice_format,
+                billing_cycle,
+                payment_terms_days,
+                retention_pct,
+                retention_amount_cap,
+                customer_id,
+                customer_name,
+                customer_po_number,
+                contract_number,
+                created_by,
+            )
+            .await
     }
 
     /// Get billing config by ID
@@ -333,25 +440,39 @@ impl ProjectBillingEngine {
     }
 
     /// Get billing config by project
-    pub async fn get_billing_config_by_project(&self, org_id: Uuid, project_id: Uuid) -> AtlasResult<Option<ProjectBillingConfig>> {
-        self.repository.get_billing_config_by_project(org_id, project_id).await
+    pub async fn get_billing_config_by_project(
+        &self,
+        org_id: Uuid,
+        project_id: Uuid,
+    ) -> AtlasResult<Option<ProjectBillingConfig>> {
+        self.repository
+            .get_billing_config_by_project(org_id, project_id)
+            .await
     }
 
     /// List billing configs
-    pub async fn list_billing_configs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ProjectBillingConfig>> {
+    pub async fn list_billing_configs(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ProjectBillingConfig>> {
         self.repository.list_billing_configs(org_id, status).await
     }
 
     /// Activate a billing config
     pub async fn activate_billing_config(&self, id: Uuid) -> AtlasResult<ProjectBillingConfig> {
         info!("Activating billing config {}", id);
-        self.repository.update_billing_config_status(id, "active").await
+        self.repository
+            .update_billing_config_status(id, "active")
+            .await
     }
 
     /// Cancel a billing config
     pub async fn cancel_billing_config(&self, id: Uuid) -> AtlasResult<ProjectBillingConfig> {
         info!("Cancelling billing config {}", id);
-        self.repository.update_billing_config_status(id, "cancelled").await
+        self.repository
+            .update_billing_config_status(id, "cancelled")
+            .await
     }
 
     // ========================================================================
@@ -377,38 +498,67 @@ impl ProjectBillingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<BillingEvent> {
         if event_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Event number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Event number is required".to_string(),
+            ));
         }
         if event_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Event name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Event name is required".to_string(),
+            ));
         }
         if !VALID_EVENT_TYPES.contains(&event_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid event_type '{}'. Must be one of: {}", event_type, VALID_EVENT_TYPES.join(", ")
+                "Invalid event_type '{}'. Must be one of: {}",
+                event_type,
+                VALID_EVENT_TYPES.join(", ")
             )));
         }
         if billing_amount < 0.0 {
-            return Err(AtlasError::ValidationFailed("Billing amount must be >= 0".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Billing amount must be >= 0".to_string(),
+            ));
         }
         if !(0.0..=100.0).contains(&completion_pct) {
-            return Err(AtlasError::ValidationFailed("Completion pct must be 0-100".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Completion pct must be 0-100".to_string(),
+            ));
         }
 
         // Check for duplicate
-        if self.repository.get_billing_event_by_number(org_id, event_number).await?.is_some() {
+        if self
+            .repository
+            .get_billing_event_by_number(org_id, event_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Billing event '{event_number}' already exists"
             )));
         }
 
-        info!("Creating billing event '{}' ({}) for project {} [type={}, amount={}]",
-              event_number, event_name, project_id, event_type, billing_amount);
+        info!(
+            "Creating billing event '{}' ({}) for project {} [type={}, amount={}]",
+            event_number, event_name, project_id, event_type, billing_amount
+        );
 
-        self.repository.create_billing_event(
-            org_id, project_id, event_number, event_name, description,
-            event_type, billing_amount, currency_code, completion_pct,
-            planned_date, task_id, task_name, created_by,
-        ).await
+        self.repository
+            .create_billing_event(
+                org_id,
+                project_id,
+                event_number,
+                event_name,
+                description,
+                event_type,
+                billing_amount,
+                currency_code,
+                completion_pct,
+                planned_date,
+                task_id,
+                task_name,
+                created_by,
+            )
+            .await
     }
 
     /// Get a billing event by ID
@@ -417,8 +567,14 @@ impl ProjectBillingEngine {
     }
 
     /// Get a billing event by number
-    pub async fn get_billing_event_by_number(&self, org_id: Uuid, event_number: &str) -> AtlasResult<Option<BillingEvent>> {
-        self.repository.get_billing_event_by_number(org_id, event_number).await
+    pub async fn get_billing_event_by_number(
+        &self,
+        org_id: Uuid,
+        event_number: &str,
+    ) -> AtlasResult<Option<BillingEvent>> {
+        self.repository
+            .get_billing_event_by_number(org_id, event_number)
+            .await
     }
 
     /// List billing events with optional filters
@@ -428,7 +584,9 @@ impl ProjectBillingEngine {
         project_id: Option<Uuid>,
         status: Option<&str>,
     ) -> AtlasResult<Vec<BillingEvent>> {
-        self.repository.list_billing_events(org_id, project_id, status).await
+        self.repository
+            .list_billing_events(org_id, project_id, status)
+            .await
     }
 
     /// Complete a billing event (mark as ready for invoicing)
@@ -439,33 +597,48 @@ impl ProjectBillingEngine {
         completion_pct: f64,
     ) -> AtlasResult<BillingEvent> {
         if !(0.0..=100.0).contains(&completion_pct) {
-            return Err(AtlasError::ValidationFailed("Completion pct must be 0-100".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Completion pct must be 0-100".to_string(),
+            ));
         }
 
         // Verify event exists and is in a completable state
-        let event = self.repository.get_billing_event(id).await?
+        let event = self
+            .repository
+            .get_billing_event(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Billing event {id} not found")))?;
 
         if event.status != "planned" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Cannot complete event in '{}' status. Must be 'planned'", event.status
+                "Cannot complete event in '{}' status. Must be 'planned'",
+                event.status
             )));
         }
 
         info!("Completing billing event {} [pct={}]", id, completion_pct);
-        self.repository.complete_billing_event(id, actual_date, completion_pct).await
+        self.repository
+            .complete_billing_event(id, actual_date, completion_pct)
+            .await
     }
 
     /// Cancel a billing event
     pub async fn cancel_billing_event(&self, id: Uuid) -> AtlasResult<BillingEvent> {
         info!("Cancelling billing event {}", id);
-        self.repository.update_billing_event_status(id, "cancelled").await
+        self.repository
+            .update_billing_event_status(id, "cancelled")
+            .await
     }
 
     /// Delete a billing event
     pub async fn delete_billing_event(&self, org_id: Uuid, event_number: &str) -> AtlasResult<()> {
-        info!("Deleting billing event '{}' for org {}", event_number, org_id);
-        self.repository.delete_billing_event(org_id, event_number).await
+        info!(
+            "Deleting billing event '{}' for org {}",
+            event_number, org_id
+        );
+        self.repository
+            .delete_billing_event(org_id, event_number)
+            .await
     }
 
     // ========================================================================
@@ -494,29 +667,45 @@ impl ProjectBillingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ProjectInvoiceHeader> {
         if invoice_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("Invoice number is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Invoice number is required".to_string(),
+            ));
         }
         if !VALID_INVOICE_TYPES.contains(&invoice_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid invoice_type '{}'. Must be one of: {}", invoice_type, VALID_INVOICE_TYPES.join(", ")
+                "Invalid invoice_type '{}'. Must be one of: {}",
+                invoice_type,
+                VALID_INVOICE_TYPES.join(", ")
             )));
         }
         if lines.is_empty() {
-            return Err(AtlasError::ValidationFailed("Invoice must have at least one line".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Invoice must have at least one line".to_string(),
+            ));
         }
 
         // Check for duplicate invoice number
-        if self.repository.get_invoice_by_number(org_id, invoice_number).await?.is_some() {
+        if self
+            .repository
+            .get_invoice_by_number(org_id, invoice_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "Invoice '{invoice_number}' already exists"
             )));
         }
 
         // Resolve billing config for retention calculation
-        let config = self.repository.get_billing_config_by_project(org_id, project_id).await?;
+        let config = self
+            .repository
+            .get_billing_config_by_project(org_id, project_id)
+            .await?;
         let retention_pct = config.as_ref().map_or(0.0, |c| c.retention_pct);
         let retention_cap = config.as_ref().map_or(0.0, |c| c.retention_amount_cap);
-        let currency_code = config.as_ref().map_or_else(|| "USD".to_string(), |c| c.currency_code.clone());
+        let currency_code = config
+            .as_ref()
+            .map_or_else(|| "USD".to_string(), |c| c.currency_code.clone());
         let payment_terms = config.as_ref().map_or(30, |c| c.payment_terms_days);
 
         // Calculate totals from lines
@@ -527,7 +716,9 @@ impl ProjectBillingEngine {
 
         for line in &lines {
             if line.bill_amount < 0.0 {
-                return Err(AtlasError::ValidationFailed("Line bill amount must be >= 0".to_string()));
+                return Err(AtlasError::ValidationFailed(
+                    "Line bill amount must be >= 0".to_string(),
+                ));
             }
             let line_retention = compute_retention(line.bill_amount, retention_pct, retention_cap);
             invoice_amount += line.bill_amount;
@@ -541,36 +732,70 @@ impl ProjectBillingEngine {
         let today = chrono::Utc::now().date_naive();
         let due_date = today + chrono::Duration::days(i64::from(payment_terms));
 
-        info!("Creating invoice '{}' for project {} [type={}, amount={}, retention={}]",
-              invoice_number, project_id, invoice_type, total_amount, total_retention);
+        info!(
+            "Creating invoice '{}' for project {} [type={}, amount={}, retention={}]",
+            invoice_number, project_id, invoice_type, total_amount, total_retention
+        );
 
         // Create the header
-        let header = self.repository.create_invoice(
-            org_id, invoice_number, project_id, project_number, project_name,
-            invoice_type, customer_id, customer_name,
-            invoice_amount, total_tax, total_retention, total_amount,
-            &currency_code,
-            None, None, // billing period – could be derived from lines
-            today, Some(due_date),
-            billing_event_id, customer_po_number, contract_number,
-            notes, created_by,
-        ).await?;
+        let header = self
+            .repository
+            .create_invoice(
+                org_id,
+                invoice_number,
+                project_id,
+                project_number,
+                project_name,
+                invoice_type,
+                customer_id,
+                customer_name,
+                invoice_amount,
+                total_tax,
+                total_retention,
+                total_amount,
+                &currency_code,
+                None,
+                None, // billing period – could be derived from lines
+                today,
+                Some(due_date),
+                billing_event_id,
+                customer_po_number,
+                contract_number,
+                notes,
+                created_by,
+            )
+            .await?;
 
         // Create the lines
         for (i, line) in lines.iter().enumerate() {
             let line_retention = compute_retention(line.bill_amount, retention_pct, retention_cap);
-            self.repository.create_invoice_line(
-                org_id, header.id, (i + 1) as i32,
-                &line.line_source, line.expenditure_item_id, line.billing_event_id,
-                line.task_id, line.task_number.as_deref(), line.task_name.as_deref(),
-                line.description.as_deref(),
-                line.employee_id, line.employee_name.as_deref(),
-                line.role_name.as_deref(), line.expenditure_type.as_deref(),
-                line.quantity, &line.unit_of_measure, line.bill_rate,
-                line.raw_cost_amount, line.bill_amount, line.markup_amount,
-                line_retention, line.tax_amount,
-                line.transaction_date,
-            ).await?;
+            self.repository
+                .create_invoice_line(
+                    org_id,
+                    header.id,
+                    (i + 1) as i32,
+                    &line.line_source,
+                    line.expenditure_item_id,
+                    line.billing_event_id,
+                    line.task_id,
+                    line.task_number.as_deref(),
+                    line.task_name.as_deref(),
+                    line.description.as_deref(),
+                    line.employee_id,
+                    line.employee_name.as_deref(),
+                    line.role_name.as_deref(),
+                    line.expenditure_type.as_deref(),
+                    line.quantity,
+                    &line.unit_of_measure,
+                    line.bill_rate,
+                    line.raw_cost_amount,
+                    line.bill_amount,
+                    line.markup_amount,
+                    line_retention,
+                    line.tax_amount,
+                    line.transaction_date,
+                )
+                .await?;
         }
 
         Ok(header)
@@ -582,8 +807,14 @@ impl ProjectBillingEngine {
     }
 
     /// Get an invoice by number
-    pub async fn get_invoice_by_number(&self, org_id: Uuid, invoice_number: &str) -> AtlasResult<Option<ProjectInvoiceHeader>> {
-        self.repository.get_invoice_by_number(org_id, invoice_number).await
+    pub async fn get_invoice_by_number(
+        &self,
+        org_id: Uuid,
+        invoice_number: &str,
+    ) -> AtlasResult<Option<ProjectInvoiceHeader>> {
+        self.repository
+            .get_invoice_by_number(org_id, invoice_number)
+            .await
     }
 
     /// List invoices with optional filters
@@ -593,22 +824,31 @@ impl ProjectBillingEngine {
         project_id: Option<Uuid>,
         status: Option<&str>,
     ) -> AtlasResult<Vec<ProjectInvoiceHeader>> {
-        self.repository.list_invoices(org_id, project_id, status).await
+        self.repository
+            .list_invoices(org_id, project_id, status)
+            .await
     }
 
     /// Get invoice lines
-    pub async fn get_invoice_lines(&self, invoice_header_id: Uuid) -> AtlasResult<Vec<ProjectInvoiceLine>> {
+    pub async fn get_invoice_lines(
+        &self,
+        invoice_header_id: Uuid,
+    ) -> AtlasResult<Vec<ProjectInvoiceLine>> {
         self.repository.list_invoice_lines(invoice_header_id).await
     }
 
     /// Submit an invoice for approval
     pub async fn submit_invoice(&self, id: Uuid) -> AtlasResult<ProjectInvoiceHeader> {
-        let invoice = self.repository.get_invoice(id).await?
+        let invoice = self
+            .repository
+            .get_invoice(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if invoice.status != "draft" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Cannot submit invoice in '{}' status. Must be 'draft'", invoice.status
+                "Cannot submit invoice in '{}' status. Must be 'draft'",
+                invoice.status
             )));
         }
 
@@ -618,12 +858,16 @@ impl ProjectBillingEngine {
 
     /// Approve an invoice
     pub async fn approve_invoice(&self, id: Uuid) -> AtlasResult<ProjectInvoiceHeader> {
-        let invoice = self.repository.get_invoice(id).await?
+        let invoice = self
+            .repository
+            .get_invoice(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if invoice.status != "submitted" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Cannot approve invoice in '{}' status. Must be 'submitted'", invoice.status
+                "Cannot approve invoice in '{}' status. Must be 'submitted'",
+                invoice.status
             )));
         }
 
@@ -632,13 +876,21 @@ impl ProjectBillingEngine {
     }
 
     /// Reject an invoice
-    pub async fn reject_invoice(&self, id: Uuid, reason: &str) -> AtlasResult<ProjectInvoiceHeader> {
-        let invoice = self.repository.get_invoice(id).await?
+    pub async fn reject_invoice(
+        &self,
+        id: Uuid,
+        reason: &str,
+    ) -> AtlasResult<ProjectInvoiceHeader> {
+        let invoice = self
+            .repository
+            .get_invoice(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if invoice.status != "submitted" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Cannot reject invoice in '{}' status. Must be 'submitted'", invoice.status
+                "Cannot reject invoice in '{}' status. Must be 'submitted'",
+                invoice.status
             )));
         }
 
@@ -648,12 +900,16 @@ impl ProjectBillingEngine {
 
     /// Post an invoice to GL
     pub async fn post_invoice(&self, id: Uuid) -> AtlasResult<ProjectInvoiceHeader> {
-        let invoice = self.repository.get_invoice(id).await?
+        let invoice = self
+            .repository
+            .get_invoice(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if invoice.status != "approved" {
             return Err(AtlasError::ValidationFailed(format!(
-                "Cannot post invoice in '{}' status. Must be 'approved'", invoice.status
+                "Cannot post invoice in '{}' status. Must be 'approved'",
+                invoice.status
             )));
         }
 
@@ -663,7 +919,10 @@ impl ProjectBillingEngine {
 
     /// Cancel an invoice
     pub async fn cancel_invoice(&self, id: Uuid) -> AtlasResult<ProjectInvoiceHeader> {
-        let invoice = self.repository.get_invoice(id).await?
+        let invoice = self
+            .repository
+            .get_invoice(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {id} not found")))?;
 
         if invoice.status == "posted" {
@@ -760,7 +1019,9 @@ mod tests {
         }
 
         fn cloned(&self) -> Self {
-            Self { state: self.state.clone() }
+            Self {
+                state: self.state.clone(),
+            }
         }
 
         fn into_repo(self) -> Arc<dyn ProjectBillingRepository> {
@@ -797,7 +1058,13 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    fn make_billing_config(id: Uuid, org_id: Uuid, project_id: Uuid, method: &str, status: &str) -> ProjectBillingConfig {
+    fn make_billing_config(
+        id: Uuid,
+        org_id: Uuid,
+        project_id: Uuid,
+        method: &str,
+        status: &str,
+    ) -> ProjectBillingConfig {
         ProjectBillingConfig {
             id,
             organization_id: org_id,
@@ -824,7 +1091,13 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    fn make_event(id: Uuid, org_id: Uuid, project_id: Uuid, number: &str, status: &str) -> BillingEvent {
+    fn make_event(
+        id: Uuid,
+        org_id: Uuid,
+        project_id: Uuid,
+        number: &str,
+        status: &str,
+    ) -> BillingEvent {
         BillingEvent {
             id,
             organization_id: org_id,
@@ -852,7 +1125,13 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    fn make_invoice(id: Uuid, org_id: Uuid, project_id: Uuid, number: &str, status: &str) -> ProjectInvoiceHeader {
+    fn make_invoice(
+        id: Uuid,
+        org_id: Uuid,
+        project_id: Uuid,
+        number: &str,
+        status: &str,
+    ) -> ProjectInvoiceHeader {
         ProjectInvoiceHeader {
             id,
             organization_id: org_id,
@@ -896,10 +1175,17 @@ mod tests {
     impl ProjectBillingRepository for MockBillingRepo {
         // Schedules
         async fn create_schedule(
-            &self, org_id: Uuid, schedule_number: &str, name: &str,
-            description: Option<&str>, schedule_type: &str, currency_code: &str,
-            effective_start: chrono::NaiveDate, effective_end: Option<chrono::NaiveDate>,
-            default_markup_pct: f64, created_by: Option<Uuid>,
+            &self,
+            org_id: Uuid,
+            schedule_number: &str,
+            name: &str,
+            description: Option<&str>,
+            schedule_type: &str,
+            currency_code: &str,
+            effective_start: chrono::NaiveDate,
+            effective_end: Option<chrono::NaiveDate>,
+            default_markup_pct: f64,
+            created_by: Option<Uuid>,
         ) -> AtlasResult<BillRateSchedule> {
             let id = self.next_id();
             let schedule = BillRateSchedule {
@@ -920,7 +1206,9 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             };
             let mut state = self.state.lock().unwrap();
-            state.schedules.insert(id, ("draft".to_string(), schedule.clone()));
+            state
+                .schedules
+                .insert(id, ("draft".to_string(), schedule.clone()));
             Ok(schedule)
         }
 
@@ -929,7 +1217,11 @@ mod tests {
             Ok(state.schedules.get(&id).map(|(_, s)| s.clone()))
         }
 
-        async fn get_schedule_by_number(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<Option<BillRateSchedule>> {
+        async fn get_schedule_by_number(
+            &self,
+            org_id: Uuid,
+            schedule_number: &str,
+        ) -> AtlasResult<Option<BillRateSchedule>> {
             let state = self.state.lock().unwrap();
             for (_, s) in state.schedules.values() {
                 if s.organization_id == org_id && s.schedule_number == schedule_number {
@@ -939,7 +1231,11 @@ mod tests {
             Ok(None)
         }
 
-        async fn list_schedules(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<BillRateSchedule>> {
+        async fn list_schedules(
+            &self,
+            org_id: Uuid,
+            status: Option<&str>,
+        ) -> AtlasResult<Vec<BillRateSchedule>> {
             let state = self.state.lock().unwrap();
             let mut result = Vec::new();
             for (st, s) in state.schedules.values() {
@@ -950,9 +1246,15 @@ mod tests {
             Ok(result)
         }
 
-        async fn update_schedule_status(&self, id: Uuid, status: &str) -> AtlasResult<BillRateSchedule> {
+        async fn update_schedule_status(
+            &self,
+            id: Uuid,
+            status: &str,
+        ) -> AtlasResult<BillRateSchedule> {
             let mut state = self.state.lock().unwrap();
-            let entry = state.schedules.get_mut(&id)
+            let entry = state
+                .schedules
+                .get_mut(&id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Schedule {} not found", id)))?;
             entry.0 = status.to_string();
             entry.1.status = status.to_string();
@@ -962,12 +1264,19 @@ mod tests {
 
         async fn delete_schedule(&self, org_id: Uuid, schedule_number: &str) -> AtlasResult<()> {
             let mut state = self.state.lock().unwrap();
-            let to_remove: Vec<Uuid> = state.schedules.iter()
-                .filter(|(_, (_, s))| s.organization_id == org_id && s.schedule_number == schedule_number)
+            let to_remove: Vec<Uuid> = state
+                .schedules
+                .iter()
+                .filter(|(_, (_, s))| {
+                    s.organization_id == org_id && s.schedule_number == schedule_number
+                })
                 .map(|(id, _)| *id)
                 .collect();
             if to_remove.is_empty() {
-                return Err(AtlasError::EntityNotFound(format!("Schedule '{}' not found", schedule_number)));
+                return Err(AtlasError::EntityNotFound(format!(
+                    "Schedule '{}' not found",
+                    schedule_number
+                )));
             }
             for id in to_remove {
                 state.schedules.remove(&id);
@@ -977,9 +1286,15 @@ mod tests {
 
         // Rate Lines
         async fn create_rate_line(
-            &self, org_id: Uuid, schedule_id: Uuid, role_name: &str,
-            project_id: Option<Uuid>, bill_rate: f64, unit_of_measure: &str,
-            effective_start: chrono::NaiveDate, effective_end: Option<chrono::NaiveDate>,
+            &self,
+            org_id: Uuid,
+            schedule_id: Uuid,
+            role_name: &str,
+            project_id: Option<Uuid>,
+            bill_rate: f64,
+            unit_of_measure: &str,
+            effective_start: chrono::NaiveDate,
+            effective_end: Option<chrono::NaiveDate>,
             markup_pct: Option<f64>,
         ) -> AtlasResult<BillRateLine> {
             let id = self.next_id();
@@ -1005,7 +1320,9 @@ mod tests {
 
         async fn list_rate_lines(&self, schedule_id: Uuid) -> AtlasResult<Vec<BillRateLine>> {
             let state = self.state.lock().unwrap();
-            let result: Vec<BillRateLine> = state.rate_lines.values()
+            let result: Vec<BillRateLine> = state
+                .rate_lines
+                .values()
                 .filter(|l| l.schedule_id == schedule_id)
                 .cloned()
                 .collect();
@@ -1013,11 +1330,15 @@ mod tests {
         }
 
         async fn find_rate_for_role(
-            &self, schedule_id: Uuid, role_name: &str, date: chrono::NaiveDate,
+            &self,
+            schedule_id: Uuid,
+            role_name: &str,
+            date: chrono::NaiveDate,
         ) -> AtlasResult<Option<BillRateLine>> {
             let state = self.state.lock().unwrap();
             for line in state.rate_lines.values() {
-                if line.schedule_id == schedule_id && line.role_name == role_name
+                if line.schedule_id == schedule_id
+                    && line.role_name == role_name
                     && line.effective_start <= date
                     && (line.effective_end.is_none() || line.effective_end.unwrap() >= date)
                 {
@@ -1030,19 +1351,31 @@ mod tests {
         async fn delete_rate_line(&self, id: Uuid) -> AtlasResult<()> {
             let mut state = self.state.lock().unwrap();
             if state.rate_lines.remove(&id).is_none() {
-                return Err(AtlasError::EntityNotFound("Rate line not found".to_string()));
+                return Err(AtlasError::EntityNotFound(
+                    "Rate line not found".to_string(),
+                ));
             }
             Ok(())
         }
 
         // Billing Config
         async fn create_billing_config(
-            &self, org_id: Uuid, project_id: Uuid, billing_method: &str,
-            bill_rate_schedule_id: Option<Uuid>, contract_amount: f64,
-            currency_code: &str, invoice_format: &str, billing_cycle: &str,
-            payment_terms_days: i32, retention_pct: f64, retention_amount_cap: f64,
-            customer_id: Option<Uuid>, customer_name: Option<&str>,
-            customer_po_number: Option<&str>, contract_number: Option<&str>,
+            &self,
+            org_id: Uuid,
+            project_id: Uuid,
+            billing_method: &str,
+            bill_rate_schedule_id: Option<Uuid>,
+            contract_amount: f64,
+            currency_code: &str,
+            invoice_format: &str,
+            billing_cycle: &str,
+            payment_terms_days: i32,
+            retention_pct: f64,
+            retention_amount_cap: f64,
+            customer_id: Option<Uuid>,
+            customer_name: Option<&str>,
+            customer_po_number: Option<&str>,
+            contract_number: Option<&str>,
             created_by: Option<Uuid>,
         ) -> AtlasResult<ProjectBillingConfig> {
             let id = self.next_id();
@@ -1070,7 +1403,9 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             };
             let mut state = self.state.lock().unwrap();
-            state.billing_configs.insert(id, ("draft".to_string(), config.clone()));
+            state
+                .billing_configs
+                .insert(id, ("draft".to_string(), config.clone()));
             Ok(config)
         }
 
@@ -1079,7 +1414,11 @@ mod tests {
             Ok(state.billing_configs.get(&id).map(|(_, c)| c.clone()))
         }
 
-        async fn get_billing_config_by_project(&self, org_id: Uuid, project_id: Uuid) -> AtlasResult<Option<ProjectBillingConfig>> {
+        async fn get_billing_config_by_project(
+            &self,
+            org_id: Uuid,
+            project_id: Uuid,
+        ) -> AtlasResult<Option<ProjectBillingConfig>> {
             let state = self.state.lock().unwrap();
             for (_, c) in state.billing_configs.values() {
                 if c.organization_id == org_id && c.project_id == project_id {
@@ -1089,9 +1428,15 @@ mod tests {
             Ok(None)
         }
 
-        async fn update_billing_config_status(&self, id: Uuid, status: &str) -> AtlasResult<ProjectBillingConfig> {
+        async fn update_billing_config_status(
+            &self,
+            id: Uuid,
+            status: &str,
+        ) -> AtlasResult<ProjectBillingConfig> {
             let mut state = self.state.lock().unwrap();
-            let entry = state.billing_configs.get_mut(&id)
+            let entry = state
+                .billing_configs
+                .get_mut(&id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Config {} not found", id)))?;
             entry.0 = status.to_string();
             entry.1.status = status.to_string();
@@ -1099,7 +1444,11 @@ mod tests {
             Ok(entry.1.clone())
         }
 
-        async fn list_billing_configs(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<ProjectBillingConfig>> {
+        async fn list_billing_configs(
+            &self,
+            org_id: Uuid,
+            status: Option<&str>,
+        ) -> AtlasResult<Vec<ProjectBillingConfig>> {
             let state = self.state.lock().unwrap();
             let mut result = Vec::new();
             for (st, c) in state.billing_configs.values() {
@@ -1112,11 +1461,19 @@ mod tests {
 
         // Billing Events
         async fn create_billing_event(
-            &self, org_id: Uuid, project_id: Uuid, event_number: &str,
-            event_name: &str, description: Option<&str>, event_type: &str,
-            billing_amount: f64, currency_code: &str, completion_pct: f64,
+            &self,
+            org_id: Uuid,
+            project_id: Uuid,
+            event_number: &str,
+            event_name: &str,
+            description: Option<&str>,
+            event_type: &str,
+            billing_amount: f64,
+            currency_code: &str,
+            completion_pct: f64,
             planned_date: Option<chrono::NaiveDate>,
-            task_id: Option<Uuid>, task_name: Option<&str>,
+            task_id: Option<Uuid>,
+            task_name: Option<&str>,
             created_by: Option<Uuid>,
         ) -> AtlasResult<BillingEvent> {
             let id = self.next_id();
@@ -1145,7 +1502,9 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             };
             let mut state = self.state.lock().unwrap();
-            state.events.insert(id, ("planned".to_string(), event.clone()));
+            state
+                .events
+                .insert(id, ("planned".to_string(), event.clone()));
             Ok(event)
         }
 
@@ -1154,7 +1513,11 @@ mod tests {
             Ok(state.events.get(&id).map(|(_, e)| e.clone()))
         }
 
-        async fn get_billing_event_by_number(&self, org_id: Uuid, event_number: &str) -> AtlasResult<Option<BillingEvent>> {
+        async fn get_billing_event_by_number(
+            &self,
+            org_id: Uuid,
+            event_number: &str,
+        ) -> AtlasResult<Option<BillingEvent>> {
             let state = self.state.lock().unwrap();
             for (_, e) in state.events.values() {
                 if e.organization_id == org_id && e.event_number == event_number {
@@ -1165,7 +1528,10 @@ mod tests {
         }
 
         async fn list_billing_events(
-            &self, org_id: Uuid, project_id: Option<Uuid>, status: Option<&str>,
+            &self,
+            org_id: Uuid,
+            project_id: Option<Uuid>,
+            status: Option<&str>,
         ) -> AtlasResult<Vec<BillingEvent>> {
             let state = self.state.lock().unwrap();
             let mut result = Vec::new();
@@ -1180,9 +1546,15 @@ mod tests {
             Ok(result)
         }
 
-        async fn update_billing_event_status(&self, id: Uuid, status: &str) -> AtlasResult<BillingEvent> {
+        async fn update_billing_event_status(
+            &self,
+            id: Uuid,
+            status: &str,
+        ) -> AtlasResult<BillingEvent> {
             let mut state = self.state.lock().unwrap();
-            let entry = state.events.get_mut(&id)
+            let entry = state
+                .events
+                .get_mut(&id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Event {} not found", id)))?;
             entry.0 = status.to_string();
             entry.1.status = status.to_string();
@@ -1191,10 +1563,15 @@ mod tests {
         }
 
         async fn complete_billing_event(
-            &self, id: Uuid, actual_date: chrono::NaiveDate, completion_pct: f64,
+            &self,
+            id: Uuid,
+            actual_date: chrono::NaiveDate,
+            completion_pct: f64,
         ) -> AtlasResult<BillingEvent> {
             let mut state = self.state.lock().unwrap();
-            let entry = state.events.get_mut(&id)
+            let entry = state
+                .events
+                .get_mut(&id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Event {} not found", id)))?;
             entry.0 = "ready".to_string();
             entry.1.status = "ready".to_string();
@@ -1206,12 +1583,17 @@ mod tests {
 
         async fn delete_billing_event(&self, org_id: Uuid, event_number: &str) -> AtlasResult<()> {
             let mut state = self.state.lock().unwrap();
-            let to_remove: Vec<Uuid> = state.events.iter()
+            let to_remove: Vec<Uuid> = state
+                .events
+                .iter()
                 .filter(|(_, (_, e))| e.organization_id == org_id && e.event_number == event_number)
                 .map(|(id, _)| *id)
                 .collect();
             if to_remove.is_empty() {
-                return Err(AtlasError::EntityNotFound(format!("Event '{}' not found", event_number)));
+                return Err(AtlasError::EntityNotFound(format!(
+                    "Event '{}' not found",
+                    event_number
+                )));
             }
             for id in to_remove {
                 state.events.remove(&id);
@@ -1221,17 +1603,29 @@ mod tests {
 
         // Invoices
         async fn create_invoice(
-            &self, org_id: Uuid, invoice_number: &str, project_id: Uuid,
-            project_number: Option<&str>, project_name: Option<&str>,
-            invoice_type: &str, customer_id: Option<Uuid>, customer_name: Option<&str>,
-            invoice_amount: f64, tax_amount: f64, retention_held: f64,
-            total_amount: f64, currency_code: &str,
+            &self,
+            org_id: Uuid,
+            invoice_number: &str,
+            project_id: Uuid,
+            project_number: Option<&str>,
+            project_name: Option<&str>,
+            invoice_type: &str,
+            customer_id: Option<Uuid>,
+            customer_name: Option<&str>,
+            invoice_amount: f64,
+            tax_amount: f64,
+            retention_held: f64,
+            total_amount: f64,
+            currency_code: &str,
             billing_period_start: Option<chrono::NaiveDate>,
             billing_period_end: Option<chrono::NaiveDate>,
-            invoice_date: chrono::NaiveDate, due_date: Option<chrono::NaiveDate>,
+            invoice_date: chrono::NaiveDate,
+            due_date: Option<chrono::NaiveDate>,
             billing_event_id: Option<Uuid>,
-            customer_po_number: Option<&str>, contract_number: Option<&str>,
-            notes: Option<&str>, created_by: Option<Uuid>,
+            customer_po_number: Option<&str>,
+            contract_number: Option<&str>,
+            notes: Option<&str>,
+            created_by: Option<Uuid>,
         ) -> AtlasResult<ProjectInvoiceHeader> {
             let id = self.next_id();
             let invoice = ProjectInvoiceHeader {
@@ -1272,7 +1666,9 @@ mod tests {
                 updated_at: chrono::Utc::now(),
             };
             let mut state = self.state.lock().unwrap();
-            state.invoices.insert(id, ("draft".to_string(), invoice.clone()));
+            state
+                .invoices
+                .insert(id, ("draft".to_string(), invoice.clone()));
             Ok(invoice)
         }
 
@@ -1281,7 +1677,11 @@ mod tests {
             Ok(state.invoices.get(&id).map(|(_, i)| i.clone()))
         }
 
-        async fn get_invoice_by_number(&self, org_id: Uuid, invoice_number: &str) -> AtlasResult<Option<ProjectInvoiceHeader>> {
+        async fn get_invoice_by_number(
+            &self,
+            org_id: Uuid,
+            invoice_number: &str,
+        ) -> AtlasResult<Option<ProjectInvoiceHeader>> {
             let state = self.state.lock().unwrap();
             for (_, inv) in state.invoices.values() {
                 if inv.organization_id == org_id && inv.invoice_number == invoice_number {
@@ -1292,7 +1692,10 @@ mod tests {
         }
 
         async fn list_invoices(
-            &self, org_id: Uuid, project_id: Option<Uuid>, status: Option<&str>,
+            &self,
+            org_id: Uuid,
+            project_id: Option<Uuid>,
+            status: Option<&str>,
         ) -> AtlasResult<Vec<ProjectInvoiceHeader>> {
             let state = self.state.lock().unwrap();
             let mut result = Vec::new();
@@ -1307,9 +1710,15 @@ mod tests {
             Ok(result)
         }
 
-        async fn update_invoice_status(&self, id: Uuid, status: &str) -> AtlasResult<ProjectInvoiceHeader> {
+        async fn update_invoice_status(
+            &self,
+            id: Uuid,
+            status: &str,
+        ) -> AtlasResult<ProjectInvoiceHeader> {
             let mut state = self.state.lock().unwrap();
-            let entry = state.invoices.get_mut(&id)
+            let entry = state
+                .invoices
+                .get_mut(&id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
             entry.0 = status.to_string();
             entry.1.status = status.to_string();
@@ -1317,9 +1726,15 @@ mod tests {
             Ok(entry.1.clone())
         }
 
-        async fn reject_invoice(&self, id: Uuid, reason: &str) -> AtlasResult<ProjectInvoiceHeader> {
+        async fn reject_invoice(
+            &self,
+            id: Uuid,
+            reason: &str,
+        ) -> AtlasResult<ProjectInvoiceHeader> {
             let mut state = self.state.lock().unwrap();
-            let entry = state.invoices.get_mut(&id)
+            let entry = state
+                .invoices
+                .get_mut(&id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
             entry.0 = "rejected".to_string();
             entry.1.status = "rejected".to_string();
@@ -1330,7 +1745,9 @@ mod tests {
 
         async fn mark_invoice_posted(&self, id: Uuid) -> AtlasResult<ProjectInvoiceHeader> {
             let mut state = self.state.lock().unwrap();
-            let entry = state.invoices.get_mut(&id)
+            let entry = state
+                .invoices
+                .get_mut(&id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Invoice {} not found", id)))?;
             entry.0 = "posted".to_string();
             entry.1.status = "posted".to_string();
@@ -1342,12 +1759,19 @@ mod tests {
 
         async fn delete_invoice(&self, org_id: Uuid, invoice_number: &str) -> AtlasResult<()> {
             let mut state = self.state.lock().unwrap();
-            let to_remove: Vec<Uuid> = state.invoices.iter()
-                .filter(|(_, (_, inv))| inv.organization_id == org_id && inv.invoice_number == invoice_number)
+            let to_remove: Vec<Uuid> = state
+                .invoices
+                .iter()
+                .filter(|(_, (_, inv))| {
+                    inv.organization_id == org_id && inv.invoice_number == invoice_number
+                })
                 .map(|(id, _)| *id)
                 .collect();
             if to_remove.is_empty() {
-                return Err(AtlasError::EntityNotFound(format!("Invoice '{}' not found", invoice_number)));
+                return Err(AtlasError::EntityNotFound(format!(
+                    "Invoice '{}' not found",
+                    invoice_number
+                )));
             }
             for id in to_remove {
                 state.invoices.remove(&id);
@@ -1357,16 +1781,29 @@ mod tests {
 
         // Invoice Lines
         async fn create_invoice_line(
-            &self, org_id: Uuid, invoice_header_id: Uuid, line_number: i32,
-            line_source: &str, expenditure_item_id: Option<Uuid>,
+            &self,
+            org_id: Uuid,
+            invoice_header_id: Uuid,
+            line_number: i32,
+            line_source: &str,
+            expenditure_item_id: Option<Uuid>,
             billing_event_id: Option<Uuid>,
-            task_id: Option<Uuid>, task_number: Option<&str>, task_name: Option<&str>,
+            task_id: Option<Uuid>,
+            task_number: Option<&str>,
+            task_name: Option<&str>,
             description: Option<&str>,
-            employee_id: Option<Uuid>, employee_name: Option<&str>,
-            role_name: Option<&str>, expenditure_type: Option<&str>,
-            quantity: f64, unit_of_measure: &str, bill_rate: f64,
-            raw_cost_amount: f64, bill_amount: f64, markup_amount: f64,
-            retention_amount: f64, tax_amount: f64,
+            employee_id: Option<Uuid>,
+            employee_name: Option<&str>,
+            role_name: Option<&str>,
+            expenditure_type: Option<&str>,
+            quantity: f64,
+            unit_of_measure: &str,
+            bill_rate: f64,
+            raw_cost_amount: f64,
+            bill_amount: f64,
+            markup_amount: f64,
+            retention_amount: f64,
+            tax_amount: f64,
             transaction_date: Option<chrono::NaiveDate>,
         ) -> AtlasResult<ProjectInvoiceLine> {
             let id = self.next_id();
@@ -1404,9 +1841,14 @@ mod tests {
             Ok(line)
         }
 
-        async fn list_invoice_lines(&self, invoice_header_id: Uuid) -> AtlasResult<Vec<ProjectInvoiceLine>> {
+        async fn list_invoice_lines(
+            &self,
+            invoice_header_id: Uuid,
+        ) -> AtlasResult<Vec<ProjectInvoiceLine>> {
             let state = self.state.lock().unwrap();
-            let result: Vec<ProjectInvoiceLine> = state.invoice_lines.values()
+            let result: Vec<ProjectInvoiceLine> = state
+                .invoice_lines
+                .values()
                 .filter(|l| l.invoice_header_id == invoice_header_id)
                 .cloned()
                 .collect();
@@ -1445,13 +1887,20 @@ mod tests {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
         let org_id = Uuid::new_v4();
 
-        let result = engine.create_schedule(
-            org_id, "SCH-001", "Standard Rates", Some("Default schedule"),
-            "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            None,
-            15.0, None,
-        ).await;
+        let result = engine
+            .create_schedule(
+                org_id,
+                "SCH-001",
+                "Standard Rates",
+                Some("Default schedule"),
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                15.0,
+                None,
+            )
+            .await;
 
         assert!(result.is_ok());
         let schedule = result.unwrap();
@@ -1467,15 +1916,36 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        engine.create_schedule(
-            org_id, "SCH-DUP", "First", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        engine
+            .create_schedule(
+                org_id,
+                "SCH-DUP",
+                "First",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let result = engine.create_schedule(
-            org_id, "SCH-DUP", "Second", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await;
+        let result = engine
+            .create_schedule(
+                org_id,
+                "SCH-DUP",
+                "Second",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await;
 
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("already exists"));
@@ -1484,11 +1954,20 @@ mod tests {
     #[tokio::test]
     async fn test_create_schedule_invalid_type() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.create_schedule(
-            Uuid::new_v4(), "SCH-01", "Bad Type", None,
-            "invalid_type", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await;
+        let result = engine
+            .create_schedule(
+                Uuid::new_v4(),
+                "SCH-01",
+                "Bad Type",
+                None,
+                "invalid_type",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Invalid schedule_type"));
     }
@@ -1496,26 +1975,42 @@ mod tests {
     #[tokio::test]
     async fn test_create_schedule_end_before_start() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.create_schedule(
-            Uuid::new_v4(), "SCH-01", "Bad Dates", None,
-            "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 12, 31).unwrap(),
-            Some(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
-            0.0, None,
-        ).await;
+        let result = engine
+            .create_schedule(
+                Uuid::new_v4(),
+                "SCH-01",
+                "Bad Dates",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 12, 31).unwrap(),
+                Some(chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()),
+                0.0,
+                None,
+            )
+            .await;
         assert!(result.is_err());
-        assert!(format!("{:?}", result.unwrap_err()).contains("effective_end must be >= effective_start"));
+        assert!(format!("{:?}", result.unwrap_err())
+            .contains("effective_end must be >= effective_start"));
     }
 
     #[tokio::test]
     async fn test_create_schedule_negative_markup() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.create_schedule(
-            Uuid::new_v4(), "SCH-01", "Neg Markup", None,
-            "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None,
-            -5.0, None,
-        ).await;
+        let result = engine
+            .create_schedule(
+                Uuid::new_v4(),
+                "SCH-01",
+                "Neg Markup",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                -5.0,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("default_markup_pct must be >= 0"));
     }
@@ -1527,11 +2022,21 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let schedule = engine.create_schedule(
-            org_id, "SCH-ACT", "Activate Me", None,
-            "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        let schedule = engine
+            .create_schedule(
+                org_id,
+                "SCH-ACT",
+                "Activate Me",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
         let activated = engine.activate_schedule(schedule.id).await.unwrap();
         assert_eq!(activated.status, "active");
@@ -1543,15 +2048,37 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let _s1 = engine.create_schedule(
-            org_id, "SCH-01", "Draft", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        let _s1 = engine
+            .create_schedule(
+                org_id,
+                "SCH-01",
+                "Draft",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let s2 = engine.create_schedule(
-            org_id, "SCH-02", "Active", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        let s2 = engine
+            .create_schedule(
+                org_id,
+                "SCH-02",
+                "Active",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
         engine.activate_schedule(s2.id).await.unwrap();
 
         let drafts = engine.list_schedules(org_id, Some("draft")).await.unwrap();
@@ -1569,14 +2096,28 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        engine.create_schedule(
-            org_id, "SCH-DEL", "Delete Me", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        engine
+            .create_schedule(
+                org_id,
+                "SCH-DEL",
+                "Delete Me",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
         engine.delete_schedule(org_id, "SCH-DEL").await.unwrap();
 
-        let found = engine.get_schedule_by_number(org_id, "SCH-DEL").await.unwrap();
+        let found = engine
+            .get_schedule_by_number(org_id, "SCH-DEL")
+            .await
+            .unwrap();
         assert!(found.is_none());
     }
 
@@ -1598,17 +2139,36 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let schedule = engine.create_schedule(
-            org_id, "SCH-RL", "Rate Line Test", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        let schedule = engine
+            .create_schedule(
+                org_id,
+                "SCH-RL",
+                "Rate Line Test",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let line = engine.add_rate_line(
-            org_id, schedule.id, "Senior Developer", None,
-            175.0, "hours",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            None, Some(15.0),
-        ).await.unwrap();
+        let line = engine
+            .add_rate_line(
+                org_id,
+                schedule.id,
+                "Senior Developer",
+                None,
+                175.0,
+                "hours",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                Some(15.0),
+            )
+            .await
+            .unwrap();
 
         assert_eq!(line.role_name, "Senior Developer");
         assert!((line.bill_rate - 175.0).abs() < 0.01);
@@ -1621,16 +2181,35 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let schedule = engine.create_schedule(
-            org_id, "SCH-NEG", "Neg Rate", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        let schedule = engine
+            .create_schedule(
+                org_id,
+                "SCH-NEG",
+                "Neg Rate",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let result = engine.add_rate_line(
-            org_id, schedule.id, "Developer", None,
-            -50.0, "hours",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, None,
-        ).await;
+        let result = engine
+            .add_rate_line(
+                org_id,
+                schedule.id,
+                "Developer",
+                None,
+                -50.0,
+                "hours",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
 
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Bill rate must be >= 0"));
@@ -1639,11 +2218,19 @@ mod tests {
     #[tokio::test]
     async fn test_add_rate_line_schedule_not_found() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.add_rate_line(
-            Uuid::new_v4(), Uuid::new_v4(), "Developer", None,
-            150.0, "hours",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, None,
-        ).await;
+        let result = engine
+            .add_rate_line(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "Developer",
+                None,
+                150.0,
+                "hours",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
 
         assert!(result.is_err());
         let err_str = format!("{:?}", result.unwrap_err());
@@ -1656,29 +2243,64 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let schedule = engine.create_schedule(
-            org_id, "SCH-FIND", "Find Rate", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        let schedule = engine
+            .create_schedule(
+                org_id,
+                "SCH-FIND",
+                "Find Rate",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
-        engine.add_rate_line(
-            org_id, schedule.id, "Junior Dev", None,
-            100.0, "hours",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
+        engine
+            .add_rate_line(
+                org_id,
+                schedule.id,
+                "Junior Dev",
+                None,
+                100.0,
+                "hours",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        engine.add_rate_line(
-            org_id, schedule.id, "Senior Dev", None,
-            175.0, "hours",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
+        engine
+            .add_rate_line(
+                org_id,
+                schedule.id,
+                "Senior Dev",
+                None,
+                175.0,
+                "hours",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let date = chrono::NaiveDate::from_ymd_opt(2024, 6, 15).unwrap();
-        let senior_rate = engine.find_rate_for_role(schedule.id, "Senior Dev", date).await.unwrap();
+        let senior_rate = engine
+            .find_rate_for_role(schedule.id, "Senior Dev", date)
+            .await
+            .unwrap();
         assert!(senior_rate.is_some());
         assert!((senior_rate.unwrap().bill_rate - 175.0).abs() < 0.01);
 
-        let unknown = engine.find_rate_for_role(schedule.id, "Architect", date).await.unwrap();
+        let unknown = engine
+            .find_rate_for_role(schedule.id, "Architect", date)
+            .await
+            .unwrap();
         assert!(unknown.is_none());
     }
 
@@ -1688,27 +2310,53 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let schedule = engine.create_schedule(
-            org_id, "SCH-EFF", "Effectivity Test", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        let schedule = engine
+            .create_schedule(
+                org_id,
+                "SCH-EFF",
+                "Effectivity Test",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
         // Rate effective Jan 1 - Mar 31
-        engine.add_rate_line(
-            org_id, schedule.id, "Dev", None,
-            100.0, "hours",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
-            Some(chrono::NaiveDate::from_ymd_opt(2024, 3, 31).unwrap()),
-            None,
-        ).await.unwrap();
+        engine
+            .add_rate_line(
+                org_id,
+                schedule.id,
+                "Dev",
+                None,
+                100.0,
+                "hours",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                Some(chrono::NaiveDate::from_ymd_opt(2024, 3, 31).unwrap()),
+                None,
+            )
+            .await
+            .unwrap();
 
         // Within range
         let feb = chrono::NaiveDate::from_ymd_opt(2024, 2, 15).unwrap();
-        assert!(engine.find_rate_for_role(schedule.id, "Dev", feb).await.unwrap().is_some());
+        assert!(engine
+            .find_rate_for_role(schedule.id, "Dev", feb)
+            .await
+            .unwrap()
+            .is_some());
 
         // Outside range
         let may = chrono::NaiveDate::from_ymd_opt(2024, 5, 1).unwrap();
-        assert!(engine.find_rate_for_role(schedule.id, "Dev", may).await.unwrap().is_none());
+        assert!(engine
+            .find_rate_for_role(schedule.id, "Dev", may)
+            .await
+            .unwrap()
+            .is_none());
     }
 
     #[tokio::test]
@@ -1717,22 +2365,51 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let schedule = engine.create_schedule(
-            org_id, "SCH-LD", "List/Delete", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        let schedule = engine
+            .create_schedule(
+                org_id,
+                "SCH-LD",
+                "List/Delete",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let l1 = engine.add_rate_line(
-            org_id, schedule.id, "Role A", None,
-            100.0, "hours",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
+        let l1 = engine
+            .add_rate_line(
+                org_id,
+                schedule.id,
+                "Role A",
+                None,
+                100.0,
+                "hours",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let _l2 = engine.add_rate_line(
-            org_id, schedule.id, "Role B", None,
-            150.0, "hours",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
+        let _l2 = engine
+            .add_rate_line(
+                org_id,
+                schedule.id,
+                "Role B",
+                None,
+                150.0,
+                "hours",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let lines = engine.list_rate_lines(schedule.id).await.unwrap();
         assert_eq!(lines.len(), 2);
@@ -1755,18 +2432,44 @@ mod tests {
         let org_id = Uuid::new_v4();
 
         // Create schedule first (required for T&M)
-        let schedule = engine.create_schedule(
-            org_id, "SCH-TM", "T&M Rates", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        let schedule = engine
+            .create_schedule(
+                org_id,
+                "SCH-TM",
+                "T&M Rates",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
         let project_id = Uuid::new_v4();
-        let config = engine.create_billing_config(
-            org_id, project_id, "time_and_materials",
-            Some(schedule.id), 100000.0, "USD", "detailed", "monthly",
-            30, 10.0, 5000.0,
-            None, Some("Acme Corp"), Some("PO-123"), Some("CTR-001"), None,
-        ).await.unwrap();
+        let config = engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "time_and_materials",
+                Some(schedule.id),
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                10.0,
+                5000.0,
+                None,
+                Some("Acme Corp"),
+                Some("PO-123"),
+                Some("CTR-001"),
+                None,
+            )
+            .await
+            .unwrap();
 
         assert_eq!(config.billing_method, "time_and_materials");
         assert_eq!(config.customer_name, "Acme Corp");
@@ -1779,12 +2482,27 @@ mod tests {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
         let org_id = Uuid::new_v4();
 
-        let config = engine.create_billing_config(
-            org_id, Uuid::new_v4(), "fixed_price",
-            None, 500000.0, "USD", "summary", "milestone",
-            45, 0.0, 0.0,
-            None, Some("Big Corp"), None, None, None,
-        ).await.unwrap();
+        let config = engine
+            .create_billing_config(
+                org_id,
+                Uuid::new_v4(),
+                "fixed_price",
+                None,
+                500000.0,
+                "USD",
+                "summary",
+                "milestone",
+                45,
+                0.0,
+                0.0,
+                None,
+                Some("Big Corp"),
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         assert_eq!(config.billing_method, "fixed_price");
     }
@@ -1792,11 +2510,26 @@ mod tests {
     #[tokio::test]
     async fn test_create_billing_config_tm_requires_schedule() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.create_billing_config(
-            Uuid::new_v4(), Uuid::new_v4(), "time_and_materials",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_billing_config(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "time_and_materials",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
 
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("bill_rate_schedule_id is required"));
@@ -1809,17 +2542,48 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let result = engine.create_billing_config(
-            org_id, project_id, "milestone",
-            None, 200000.0, "USD", "summary", "milestone",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "milestone",
+                None,
+                200000.0,
+                "USD",
+                "summary",
+                "milestone",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
 
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("already exists"));
@@ -1828,11 +2592,26 @@ mod tests {
     #[tokio::test]
     async fn test_create_billing_config_invalid_method() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.create_billing_config(
-            Uuid::new_v4(), Uuid::new_v4(), "invalid_method",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_billing_config(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "invalid_method",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Invalid billing_method"));
     }
@@ -1840,11 +2619,26 @@ mod tests {
     #[tokio::test]
     async fn test_create_billing_config_negative_retention() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.create_billing_config(
-            Uuid::new_v4(), Uuid::new_v4(), "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, -5.0, 0.0, None, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_billing_config(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                -5.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Retention pct must be 0-100"));
     }
@@ -1855,11 +2649,27 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let config = engine.create_billing_config(
-            org_id, Uuid::new_v4(), "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        let config = engine
+            .create_billing_config(
+                org_id,
+                Uuid::new_v4(),
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let active = engine.activate_billing_config(config.id).await.unwrap();
         assert_eq!(active.status, "active");
@@ -1871,11 +2681,27 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let config = engine.create_billing_config(
-            org_id, Uuid::new_v4(), "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        let config = engine
+            .create_billing_config(
+                org_id,
+                Uuid::new_v4(),
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let cancelled = engine.cancel_billing_config(config.id).await.unwrap();
         assert_eq!(cancelled.status, "cancelled");
@@ -1891,13 +2717,24 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        let event = engine.create_billing_event(
-            org_id, project_id, "EVT-001", "Phase 1 Complete",
-            Some("First milestone delivery"), "milestone",
-            25000.0, "USD", 0.0,
-            Some(chrono::NaiveDate::from_ymd_opt(2024, 3, 31).unwrap()),
-            None, None, None,
-        ).await.unwrap();
+        let event = engine
+            .create_billing_event(
+                org_id,
+                project_id,
+                "EVT-001",
+                "Phase 1 Complete",
+                Some("First milestone delivery"),
+                "milestone",
+                25000.0,
+                "USD",
+                0.0,
+                Some(chrono::NaiveDate::from_ymd_opt(2024, 3, 31).unwrap()),
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         assert_eq!(event.event_number, "EVT-001");
         assert_eq!(event.event_type, "milestone");
@@ -1908,10 +2745,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_billing_event_invalid_type() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.create_billing_event(
-            Uuid::new_v4(), Uuid::new_v4(), "EVT-BAD", "Bad Type", None,
-            "invalid_type", 10000.0, "USD", 0.0, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_billing_event(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "EVT-BAD",
+                "Bad Type",
+                None,
+                "invalid_type",
+                10000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Invalid event_type"));
     }
@@ -1919,10 +2769,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_billing_event_invalid_completion() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.create_billing_event(
-            Uuid::new_v4(), Uuid::new_v4(), "EVT-PCT", "Bad Pct", None,
-            "progress", 10000.0, "USD", 150.0, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_billing_event(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "EVT-PCT",
+                "Bad Pct",
+                None,
+                "progress",
+                10000.0,
+                "USD",
+                150.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Completion pct must be 0-100"));
     }
@@ -1930,10 +2793,23 @@ mod tests {
     #[tokio::test]
     async fn test_create_billing_event_negative_amount() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.create_billing_event(
-            Uuid::new_v4(), Uuid::new_v4(), "EVT-NEG", "Neg Amount", None,
-            "milestone", -5000.0, "USD", 0.0, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_billing_event(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                "EVT-NEG",
+                "Neg Amount",
+                None,
+                "milestone",
+                -5000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Billing amount must be >= 0"));
     }
@@ -1943,15 +2819,42 @@ mod tests {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
         let org_id = Uuid::new_v4();
 
-        engine.create_billing_event(
-            org_id, Uuid::new_v4(), "EVT-DUP", "First", None,
-            "milestone", 10000.0, "USD", 0.0, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_event(
+                org_id,
+                Uuid::new_v4(),
+                "EVT-DUP",
+                "First",
+                None,
+                "milestone",
+                10000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let result = engine.create_billing_event(
-            org_id, Uuid::new_v4(), "EVT-DUP", "Second", None,
-            "milestone", 20000.0, "USD", 0.0, None, None, None, None,
-        ).await;
+        let result = engine
+            .create_billing_event(
+                org_id,
+                Uuid::new_v4(),
+                "EVT-DUP",
+                "Second",
+                None,
+                "milestone",
+                20000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
 
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("already exists"));
@@ -1964,16 +2867,33 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        let event = engine.create_billing_event(
-            org_id, project_id, "EVT-COMP", "Completable", None,
-            "milestone", 25000.0, "USD", 0.0, None, None, None, None,
-        ).await.unwrap();
+        let event = engine
+            .create_billing_event(
+                org_id,
+                project_id,
+                "EVT-COMP",
+                "Completable",
+                None,
+                "milestone",
+                25000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let completed = engine.complete_billing_event(
-            event.id,
-            chrono::NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
-            100.0,
-        ).await.unwrap();
+        let completed = engine
+            .complete_billing_event(
+                event.id,
+                chrono::NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
+                100.0,
+            )
+            .await
+            .unwrap();
 
         assert_eq!(completed.status, "ready");
         assert!((completed.completion_pct - 100.0).abs() < 0.01);
@@ -1986,24 +2906,43 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let event = engine.create_billing_event(
-            org_id, Uuid::new_v4(), "EVT-WS", "Wrong Status", None,
-            "milestone", 25000.0, "USD", 0.0, None, None, None, None,
-        ).await.unwrap();
+        let event = engine
+            .create_billing_event(
+                org_id,
+                Uuid::new_v4(),
+                "EVT-WS",
+                "Wrong Status",
+                None,
+                "milestone",
+                25000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         // Complete it first
-        engine.complete_billing_event(
-            event.id,
-            chrono::NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
-            100.0,
-        ).await.unwrap();
+        engine
+            .complete_billing_event(
+                event.id,
+                chrono::NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
+                100.0,
+            )
+            .await
+            .unwrap();
 
         // Try to complete again (now in "ready" status)
-        let result = engine.complete_billing_event(
-            event.id,
-            chrono::NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
-            100.0,
-        ).await;
+        let result = engine
+            .complete_billing_event(
+                event.id,
+                chrono::NaiveDate::from_ymd_opt(2024, 4, 1).unwrap(),
+                100.0,
+            )
+            .await;
 
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Must be 'planned'"));
@@ -2015,10 +2954,24 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        let event = engine.create_billing_event(
-            org_id, Uuid::new_v4(), "EVT-CAN", "Cancellable", None,
-            "milestone", 10000.0, "USD", 0.0, None, None, None, None,
-        ).await.unwrap();
+        let event = engine
+            .create_billing_event(
+                org_id,
+                Uuid::new_v4(),
+                "EVT-CAN",
+                "Cancellable",
+                None,
+                "milestone",
+                10000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let cancelled = engine.cancel_billing_event(event.id).await.unwrap();
         assert_eq!(cancelled.status, "cancelled");
@@ -2032,25 +2985,73 @@ mod tests {
         let proj1 = Uuid::new_v4();
         let proj2 = Uuid::new_v4();
 
-        engine.create_billing_event(
-            org_id, proj1, "EVT-P1-1", "P1 Event 1", None,
-            "milestone", 10000.0, "USD", 0.0, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_event(
+                org_id,
+                proj1,
+                "EVT-P1-1",
+                "P1 Event 1",
+                None,
+                "milestone",
+                10000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        engine.create_billing_event(
-            org_id, proj1, "EVT-P1-2", "P1 Event 2", None,
-            "progress", 5000.0, "USD", 0.0, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_event(
+                org_id,
+                proj1,
+                "EVT-P1-2",
+                "P1 Event 2",
+                None,
+                "progress",
+                5000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        engine.create_billing_event(
-            org_id, proj2, "EVT-P2-1", "P2 Event 1", None,
-            "milestone", 20000.0, "USD", 0.0, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_event(
+                org_id,
+                proj2,
+                "EVT-P2-1",
+                "P2 Event 1",
+                None,
+                "milestone",
+                20000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let proj1_events = engine.list_billing_events(org_id, Some(proj1), None).await.unwrap();
+        let proj1_events = engine
+            .list_billing_events(org_id, Some(proj1), None)
+            .await
+            .unwrap();
         assert_eq!(proj1_events.len(), 2);
 
-        let proj2_events = engine.list_billing_events(org_id, Some(proj2), None).await.unwrap();
+        let proj2_events = engine
+            .list_billing_events(org_id, Some(proj2), None)
+            .await
+            .unwrap();
         assert_eq!(proj2_events.len(), 1);
     }
 
@@ -2060,13 +3061,34 @@ mod tests {
         let engine = ProjectBillingEngine::new(repo.into_repo());
         let org_id = Uuid::new_v4();
 
-        engine.create_billing_event(
-            org_id, Uuid::new_v4(), "EVT-DEL", "Deletable", None,
-            "milestone", 10000.0, "USD", 0.0, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_event(
+                org_id,
+                Uuid::new_v4(),
+                "EVT-DEL",
+                "Deletable",
+                None,
+                "milestone",
+                10000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        engine.delete_billing_event(org_id, "EVT-DEL").await.unwrap();
-        assert!(engine.get_billing_event_by_number(org_id, "EVT-DEL").await.unwrap().is_none());
+        engine
+            .delete_billing_event(org_id, "EVT-DEL")
+            .await
+            .unwrap();
+        assert!(engine
+            .get_billing_event_by_number(org_id, "EVT-DEL")
+            .await
+            .unwrap()
+            .is_none());
     }
 
     // ========================================================================
@@ -2081,23 +3103,56 @@ mod tests {
         let project_id = Uuid::new_v4();
 
         // Set up billing config with 10% retention
-        let schedule = engine.create_schedule(
-            org_id, "SCH-TM-INV", "T&M Rates", None, "standard", "USD",
-            chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), None, 0.0, None,
-        ).await.unwrap();
+        let schedule = engine
+            .create_schedule(
+                org_id,
+                "SCH-TM-INV",
+                "T&M Rates",
+                None,
+                "standard",
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
+                None,
+                0.0,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let _config = engine.create_billing_config(
-            org_id, project_id, "time_and_materials",
-            Some(schedule.id), 100000.0, "USD", "detailed", "monthly",
-            30, 10.0, 0.0, None, Some("Test Customer"), None, None, None,
-        ).await.unwrap();
+        let _config = engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "time_and_materials",
+                Some(schedule.id),
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                10.0,
+                0.0,
+                None,
+                Some("Test Customer"),
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-001", project_id,
-            Some("PRJ-001"), Some("Test Project"),
-            "t_and_m", None, Some("Test Customer"), None,
-            vec![
-                InvoiceLineRequest {
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-001",
+                project_id,
+                Some("PRJ-001"),
+                Some("Test Project"),
+                "t_and_m",
+                None,
+                Some("Test Customer"),
+                None,
+                vec![InvoiceLineRequest {
                     line_source: "expenditure_item".to_string(),
                     expenditure_item_id: None,
                     billing_event_id: None,
@@ -2117,10 +3172,14 @@ mod tests {
                     markup_amount: 0.0,
                     tax_amount: 0.0,
                     transaction_date: Some(chrono::NaiveDate::from_ymd_opt(2024, 2, 15).unwrap()),
-                },
-            ],
-            None, None, None, None,
-        ).await.unwrap();
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         assert_eq!(invoice.invoice_number, "INV-001");
         assert_eq!(invoice.status, "draft");
@@ -2139,23 +3198,59 @@ mod tests {
         let project_id = Uuid::new_v4();
 
         // Fixed price, no retention
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "summary", "milestone",
-            30, 0.0, 0.0, None, Some("Big Corp"), None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "summary",
+                "milestone",
+                30,
+                0.0,
+                0.0,
+                None,
+                Some("Big Corp"),
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let event = engine.create_billing_event(
-            org_id, project_id, "EVT-INV", "Phase 1", None,
-            "milestone", 25000.0, "USD", 0.0, None, None, None, None,
-        ).await.unwrap();
+        let event = engine
+            .create_billing_event(
+                org_id,
+                project_id,
+                "EVT-INV",
+                "Phase 1",
+                None,
+                "milestone",
+                25000.0,
+                "USD",
+                0.0,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-M001", project_id,
-            Some("PRJ-FP"), Some("Fixed Price Project"),
-            "milestone", None, Some("Big Corp"), Some(event.id),
-            vec![
-                InvoiceLineRequest {
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-M001",
+                project_id,
+                Some("PRJ-FP"),
+                Some("Fixed Price Project"),
+                "milestone",
+                None,
+                Some("Big Corp"),
+                Some(event.id),
+                vec![InvoiceLineRequest {
                     line_source: "billing_event".to_string(),
                     expenditure_item_id: None,
                     billing_event_id: Some(event.id),
@@ -2175,10 +3270,14 @@ mod tests {
                     markup_amount: 0.0,
                     tax_amount: 0.0,
                     transaction_date: Some(chrono::Utc::now().date_naive()),
-                },
-            ],
-            None, None, None, None,
-        ).await.unwrap();
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         assert_eq!(invoice.invoice_type, "milestone");
         assert!((invoice.invoice_amount - 25000.0).abs() < 0.01);
@@ -2189,12 +3288,24 @@ mod tests {
     #[tokio::test]
     async fn test_create_invoice_no_lines_fails() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
-        let result = engine.create_invoice(
-            Uuid::new_v4(), "INV-NOL", Uuid::new_v4(),
-            None, None, "t_and_m", None, None, None,
-            vec![], // empty lines
-            None, None, None, None,
-        ).await;
+        let result = engine
+            .create_invoice(
+                Uuid::new_v4(),
+                "INV-NOL",
+                Uuid::new_v4(),
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![], // empty lines
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
 
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("at least one line"));
@@ -2207,32 +3318,88 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let line = InvoiceLineRequest {
             line_source: "manual".to_string(),
-            expenditure_item_id: None, billing_event_id: None,
-            task_id: None, task_number: None, task_name: None,
-            description: None, employee_id: None, employee_name: None,
-            role_name: None, expenditure_type: None,
-            quantity: 1.0, unit_of_measure: "each".to_string(),
-            bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-            markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
+            expenditure_item_id: None,
+            billing_event_id: None,
+            task_id: None,
+            task_number: None,
+            task_name: None,
+            description: None,
+            employee_id: None,
+            employee_name: None,
+            role_name: None,
+            expenditure_type: None,
+            quantity: 1.0,
+            unit_of_measure: "each".to_string(),
+            bill_rate: 1000.0,
+            raw_cost_amount: 0.0,
+            bill_amount: 1000.0,
+            markup_amount: 0.0,
+            tax_amount: 0.0,
+            transaction_date: None,
         };
 
-        engine.create_invoice(
-            org_id, "INV-DUP", project_id, None, None, "t_and_m", None, None, None,
-            vec![line.clone()], None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_invoice(
+                org_id,
+                "INV-DUP",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![line.clone()],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let result = engine.create_invoice(
-            org_id, "INV-DUP", project_id, None, None, "t_and_m", None, None, None,
-            vec![line], None, None, None, None,
-        ).await;
+        let result = engine
+            .create_invoice(
+                org_id,
+                "INV-DUP",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![line],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
 
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("already exists"));
@@ -2242,21 +3409,44 @@ mod tests {
     async fn test_create_invoice_negative_bill_amount() {
         let engine = ProjectBillingEngine::new(MockBillingRepo::new().into_repo());
 
-        let result = engine.create_invoice(
-            Uuid::new_v4(), "INV-NEG", Uuid::new_v4(),
-            None, None, "t_and_m", None, None, None,
-            vec![InvoiceLineRequest {
-                line_source: "manual".to_string(),
-                expenditure_item_id: None, billing_event_id: None,
-                task_id: None, task_number: None, task_name: None,
-                description: None, employee_id: None, employee_name: None,
-                role_name: None, expenditure_type: None,
-                quantity: 1.0, unit_of_measure: "each".to_string(),
-                bill_rate: 100.0, raw_cost_amount: 0.0, bill_amount: -500.0,
-                markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
-            }],
-            None, None, None, None,
-        ).await;
+        let result = engine
+            .create_invoice(
+                Uuid::new_v4(),
+                "INV-NEG",
+                Uuid::new_v4(),
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![InvoiceLineRequest {
+                    line_source: "manual".to_string(),
+                    expenditure_item_id: None,
+                    billing_event_id: None,
+                    task_id: None,
+                    task_number: None,
+                    task_name: None,
+                    description: None,
+                    employee_id: None,
+                    employee_name: None,
+                    role_name: None,
+                    expenditure_type: None,
+                    quantity: 1.0,
+                    unit_of_measure: "each".to_string(),
+                    bill_rate: 100.0,
+                    raw_cost_amount: 0.0,
+                    bill_amount: -500.0,
+                    markup_amount: 0.0,
+                    tax_amount: 0.0,
+                    transaction_date: None,
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await;
 
         assert!(result.is_err());
         assert!(format!("{:?}", result.unwrap_err()).contains("Line bill amount must be >= 0"));
@@ -2269,26 +3459,67 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-LC", project_id, None, None, "t_and_m", None, None, None,
-            vec![InvoiceLineRequest {
-                line_source: "manual".to_string(),
-                expenditure_item_id: None, billing_event_id: None,
-                task_id: None, task_number: None, task_name: None,
-                description: None, employee_id: None, employee_name: None,
-                role_name: None, expenditure_type: None,
-                quantity: 1.0, unit_of_measure: "each".to_string(),
-                bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-                markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
-            }],
-            None, None, None, None,
-        ).await.unwrap();
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-LC",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![InvoiceLineRequest {
+                    line_source: "manual".to_string(),
+                    expenditure_item_id: None,
+                    billing_event_id: None,
+                    task_id: None,
+                    task_number: None,
+                    task_name: None,
+                    description: None,
+                    employee_id: None,
+                    employee_name: None,
+                    role_name: None,
+                    expenditure_type: None,
+                    quantity: 1.0,
+                    unit_of_measure: "each".to_string(),
+                    bill_rate: 1000.0,
+                    raw_cost_amount: 0.0,
+                    bill_amount: 1000.0,
+                    markup_amount: 0.0,
+                    tax_amount: 0.0,
+                    transaction_date: None,
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         // Submit
         let submitted = engine.submit_invoice(invoice.id).await.unwrap();
@@ -2311,26 +3542,67 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-SUB", project_id, None, None, "t_and_m", None, None, None,
-            vec![InvoiceLineRequest {
-                line_source: "manual".to_string(),
-                expenditure_item_id: None, billing_event_id: None,
-                task_id: None, task_number: None, task_name: None,
-                description: None, employee_id: None, employee_name: None,
-                role_name: None, expenditure_type: None,
-                quantity: 1.0, unit_of_measure: "each".to_string(),
-                bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-                markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
-            }],
-            None, None, None, None,
-        ).await.unwrap();
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-SUB",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![InvoiceLineRequest {
+                    line_source: "manual".to_string(),
+                    expenditure_item_id: None,
+                    billing_event_id: None,
+                    task_id: None,
+                    task_number: None,
+                    task_name: None,
+                    description: None,
+                    employee_id: None,
+                    employee_name: None,
+                    role_name: None,
+                    expenditure_type: None,
+                    quantity: 1.0,
+                    unit_of_measure: "each".to_string(),
+                    bill_rate: 1000.0,
+                    raw_cost_amount: 0.0,
+                    bill_amount: 1000.0,
+                    markup_amount: 0.0,
+                    tax_amount: 0.0,
+                    transaction_date: None,
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         // Submit
         engine.submit_invoice(invoice.id).await.unwrap();
@@ -2348,30 +3620,74 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-REJ", project_id, None, None, "t_and_m", None, None, None,
-            vec![InvoiceLineRequest {
-                line_source: "manual".to_string(),
-                expenditure_item_id: None, billing_event_id: None,
-                task_id: None, task_number: None, task_name: None,
-                description: None, employee_id: None, employee_name: None,
-                role_name: None, expenditure_type: None,
-                quantity: 1.0, unit_of_measure: "each".to_string(),
-                bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-                markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
-            }],
-            None, None, None, None,
-        ).await.unwrap();
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-REJ",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![InvoiceLineRequest {
+                    line_source: "manual".to_string(),
+                    expenditure_item_id: None,
+                    billing_event_id: None,
+                    task_id: None,
+                    task_number: None,
+                    task_name: None,
+                    description: None,
+                    employee_id: None,
+                    employee_name: None,
+                    role_name: None,
+                    expenditure_type: None,
+                    quantity: 1.0,
+                    unit_of_measure: "each".to_string(),
+                    bill_rate: 1000.0,
+                    raw_cost_amount: 0.0,
+                    bill_amount: 1000.0,
+                    markup_amount: 0.0,
+                    tax_amount: 0.0,
+                    transaction_date: None,
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         engine.submit_invoice(invoice.id).await.unwrap();
 
-        let rejected = engine.reject_invoice(invoice.id, "Missing backup documentation").await.unwrap();
+        let rejected = engine
+            .reject_invoice(invoice.id, "Missing backup documentation")
+            .await
+            .unwrap();
         assert_eq!(rejected.status, "rejected");
         assert_eq!(rejected.rejected_reason, "Missing backup documentation");
     }
@@ -2383,26 +3699,67 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-REJ2", project_id, None, None, "t_and_m", None, None, None,
-            vec![InvoiceLineRequest {
-                line_source: "manual".to_string(),
-                expenditure_item_id: None, billing_event_id: None,
-                task_id: None, task_number: None, task_name: None,
-                description: None, employee_id: None, employee_name: None,
-                role_name: None, expenditure_type: None,
-                quantity: 1.0, unit_of_measure: "each".to_string(),
-                bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-                markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
-            }],
-            None, None, None, None,
-        ).await.unwrap();
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-REJ2",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![InvoiceLineRequest {
+                    line_source: "manual".to_string(),
+                    expenditure_item_id: None,
+                    billing_event_id: None,
+                    task_id: None,
+                    task_number: None,
+                    task_name: None,
+                    description: None,
+                    employee_id: None,
+                    employee_name: None,
+                    role_name: None,
+                    expenditure_type: None,
+                    quantity: 1.0,
+                    unit_of_measure: "each".to_string(),
+                    bill_rate: 1000.0,
+                    raw_cost_amount: 0.0,
+                    bill_amount: 1000.0,
+                    markup_amount: 0.0,
+                    tax_amount: 0.0,
+                    transaction_date: None,
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         // Try to reject a draft
         let result = engine.reject_invoice(invoice.id, "Wrong").await;
@@ -2417,26 +3774,67 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-CAN", project_id, None, None, "t_and_m", None, None, None,
-            vec![InvoiceLineRequest {
-                line_source: "manual".to_string(),
-                expenditure_item_id: None, billing_event_id: None,
-                task_id: None, task_number: None, task_name: None,
-                description: None, employee_id: None, employee_name: None,
-                role_name: None, expenditure_type: None,
-                quantity: 1.0, unit_of_measure: "each".to_string(),
-                bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-                markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
-            }],
-            None, None, None, None,
-        ).await.unwrap();
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-CAN",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![InvoiceLineRequest {
+                    line_source: "manual".to_string(),
+                    expenditure_item_id: None,
+                    billing_event_id: None,
+                    task_id: None,
+                    task_number: None,
+                    task_name: None,
+                    description: None,
+                    employee_id: None,
+                    employee_name: None,
+                    role_name: None,
+                    expenditure_type: None,
+                    quantity: 1.0,
+                    unit_of_measure: "each".to_string(),
+                    bill_rate: 1000.0,
+                    raw_cost_amount: 0.0,
+                    bill_amount: 1000.0,
+                    markup_amount: 0.0,
+                    tax_amount: 0.0,
+                    transaction_date: None,
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let cancelled = engine.cancel_invoice(invoice.id).await.unwrap();
         assert_eq!(cancelled.status, "cancelled");
@@ -2449,26 +3847,67 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-CPT", project_id, None, None, "t_and_m", None, None, None,
-            vec![InvoiceLineRequest {
-                line_source: "manual".to_string(),
-                expenditure_item_id: None, billing_event_id: None,
-                task_id: None, task_number: None, task_name: None,
-                description: None, employee_id: None, employee_name: None,
-                role_name: None, expenditure_type: None,
-                quantity: 1.0, unit_of_measure: "each".to_string(),
-                bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-                markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
-            }],
-            None, None, None, None,
-        ).await.unwrap();
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-CPT",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![InvoiceLineRequest {
+                    line_source: "manual".to_string(),
+                    expenditure_item_id: None,
+                    billing_event_id: None,
+                    task_id: None,
+                    task_number: None,
+                    task_name: None,
+                    description: None,
+                    employee_id: None,
+                    employee_name: None,
+                    role_name: None,
+                    expenditure_type: None,
+                    quantity: 1.0,
+                    unit_of_measure: "each".to_string(),
+                    bill_rate: 1000.0,
+                    raw_cost_amount: 0.0,
+                    bill_amount: 1000.0,
+                    markup_amount: 0.0,
+                    tax_amount: 0.0,
+                    transaction_date: None,
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         engine.submit_invoice(invoice.id).await.unwrap();
         engine.approve_invoice(invoice.id).await.unwrap();
@@ -2486,26 +3925,67 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-APR", project_id, None, None, "t_and_m", None, None, None,
-            vec![InvoiceLineRequest {
-                line_source: "manual".to_string(),
-                expenditure_item_id: None, billing_event_id: None,
-                task_id: None, task_number: None, task_name: None,
-                description: None, employee_id: None, employee_name: None,
-                role_name: None, expenditure_type: None,
-                quantity: 1.0, unit_of_measure: "each".to_string(),
-                bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-                markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
-            }],
-            None, None, None, None,
-        ).await.unwrap();
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-APR",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![InvoiceLineRequest {
+                    line_source: "manual".to_string(),
+                    expenditure_item_id: None,
+                    billing_event_id: None,
+                    task_id: None,
+                    task_number: None,
+                    task_name: None,
+                    description: None,
+                    employee_id: None,
+                    employee_name: None,
+                    role_name: None,
+                    expenditure_type: None,
+                    quantity: 1.0,
+                    unit_of_measure: "each".to_string(),
+                    bill_rate: 1000.0,
+                    raw_cost_amount: 0.0,
+                    bill_amount: 1000.0,
+                    markup_amount: 0.0,
+                    tax_amount: 0.0,
+                    transaction_date: None,
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let result = engine.approve_invoice(invoice.id).await;
         assert!(result.is_err());
@@ -2519,26 +3999,67 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-POST", project_id, None, None, "t_and_m", None, None, None,
-            vec![InvoiceLineRequest {
-                line_source: "manual".to_string(),
-                expenditure_item_id: None, billing_event_id: None,
-                task_id: None, task_number: None, task_name: None,
-                description: None, employee_id: None, employee_name: None,
-                role_name: None, expenditure_type: None,
-                quantity: 1.0, unit_of_measure: "each".to_string(),
-                bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-                markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
-            }],
-            None, None, None, None,
-        ).await.unwrap();
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-POST",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![InvoiceLineRequest {
+                    line_source: "manual".to_string(),
+                    expenditure_item_id: None,
+                    billing_event_id: None,
+                    task_id: None,
+                    task_number: None,
+                    task_name: None,
+                    description: None,
+                    employee_id: None,
+                    employee_name: None,
+                    role_name: None,
+                    expenditure_type: None,
+                    quantity: 1.0,
+                    unit_of_measure: "each".to_string(),
+                    bill_rate: 1000.0,
+                    raw_cost_amount: 0.0,
+                    bill_amount: 1000.0,
+                    markup_amount: 0.0,
+                    tax_amount: 0.0,
+                    transaction_date: None,
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let result = engine.post_invoice(invoice.id).await;
         assert!(result.is_err());
@@ -2553,48 +4074,142 @@ mod tests {
         let proj1 = Uuid::new_v4();
         let proj2 = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, proj1, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                proj1,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        engine.create_billing_config(
-            org_id, proj2, "fixed_price",
-            None, 200000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                proj2,
+                "fixed_price",
+                None,
+                200000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let line = InvoiceLineRequest {
             line_source: "manual".to_string(),
-            expenditure_item_id: None, billing_event_id: None,
-            task_id: None, task_number: None, task_name: None,
-            description: None, employee_id: None, employee_name: None,
-            role_name: None, expenditure_type: None,
-            quantity: 1.0, unit_of_measure: "each".to_string(),
-            bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-            markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
+            expenditure_item_id: None,
+            billing_event_id: None,
+            task_id: None,
+            task_number: None,
+            task_name: None,
+            description: None,
+            employee_id: None,
+            employee_name: None,
+            role_name: None,
+            expenditure_type: None,
+            quantity: 1.0,
+            unit_of_measure: "each".to_string(),
+            bill_rate: 1000.0,
+            raw_cost_amount: 0.0,
+            bill_amount: 1000.0,
+            markup_amount: 0.0,
+            tax_amount: 0.0,
+            transaction_date: None,
         };
 
-        engine.create_invoice(
-            org_id, "INV-P1-1", proj1, None, None, "t_and_m", None, None, None,
-            vec![line.clone()], None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_invoice(
+                org_id,
+                "INV-P1-1",
+                proj1,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![line.clone()],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        engine.create_invoice(
-            org_id, "INV-P1-2", proj1, None, None, "t_and_m", None, None, None,
-            vec![line.clone()], None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_invoice(
+                org_id,
+                "INV-P1-2",
+                proj1,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![line.clone()],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        engine.create_invoice(
-            org_id, "INV-P2-1", proj2, None, None, "t_and_m", None, None, None,
-            vec![line], None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_invoice(
+                org_id,
+                "INV-P2-1",
+                proj2,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![line],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let proj1_invoices = engine.list_invoices(org_id, Some(proj1), None).await.unwrap();
+        let proj1_invoices = engine
+            .list_invoices(org_id, Some(proj1), None)
+            .await
+            .unwrap();
         assert_eq!(proj1_invoices.len(), 2);
 
-        let proj2_invoices = engine.list_invoices(org_id, Some(proj2), None).await.unwrap();
+        let proj2_invoices = engine
+            .list_invoices(org_id, Some(proj2), None)
+            .await
+            .unwrap();
         assert_eq!(proj2_invoices.len(), 1);
     }
 
@@ -2605,50 +4220,95 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        let invoice = engine.create_invoice(
-            org_id, "INV-LN", project_id, None, None, "t_and_m", None, None, None,
-            vec![
-                InvoiceLineRequest {
-                    line_source: "expenditure_item".to_string(),
-                    expenditure_item_id: None, billing_event_id: None,
-                    task_id: None, task_number: Some("T1".to_string()),
-                    task_name: Some("Task 1".to_string()),
-                    description: Some("Line 1".to_string()),
-                    employee_id: None, employee_name: Some("Alice".to_string()),
-                    role_name: Some("Senior Dev".to_string()),
-                    expenditure_type: Some("labor".to_string()),
-                    quantity: 40.0, unit_of_measure: "hours".to_string(),
-                    bill_rate: 175.0, raw_cost_amount: 5000.0,
-                    bill_amount: 7000.0, markup_amount: 0.0,
-                    tax_amount: 0.0, transaction_date: None,
-                },
-                InvoiceLineRequest {
-                    line_source: "expenditure_item".to_string(),
-                    expenditure_item_id: None, billing_event_id: None,
-                    task_id: None, task_number: Some("T2".to_string()),
-                    task_name: Some("Task 2".to_string()),
-                    description: Some("Line 2".to_string()),
-                    employee_id: None, employee_name: Some("Bob".to_string()),
-                    role_name: Some("Architect".to_string()),
-                    expenditure_type: Some("labor".to_string()),
-                    quantity: 20.0, unit_of_measure: "hours".to_string(),
-                    bill_rate: 225.0, raw_cost_amount: 3500.0,
-                    bill_amount: 4500.0, markup_amount: 0.0,
-                    tax_amount: 0.0, transaction_date: None,
-                },
-            ],
-            None, None, None, None,
-        ).await.unwrap();
+        let invoice = engine
+            .create_invoice(
+                org_id,
+                "INV-LN",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![
+                    InvoiceLineRequest {
+                        line_source: "expenditure_item".to_string(),
+                        expenditure_item_id: None,
+                        billing_event_id: None,
+                        task_id: None,
+                        task_number: Some("T1".to_string()),
+                        task_name: Some("Task 1".to_string()),
+                        description: Some("Line 1".to_string()),
+                        employee_id: None,
+                        employee_name: Some("Alice".to_string()),
+                        role_name: Some("Senior Dev".to_string()),
+                        expenditure_type: Some("labor".to_string()),
+                        quantity: 40.0,
+                        unit_of_measure: "hours".to_string(),
+                        bill_rate: 175.0,
+                        raw_cost_amount: 5000.0,
+                        bill_amount: 7000.0,
+                        markup_amount: 0.0,
+                        tax_amount: 0.0,
+                        transaction_date: None,
+                    },
+                    InvoiceLineRequest {
+                        line_source: "expenditure_item".to_string(),
+                        expenditure_item_id: None,
+                        billing_event_id: None,
+                        task_id: None,
+                        task_number: Some("T2".to_string()),
+                        task_name: Some("Task 2".to_string()),
+                        description: Some("Line 2".to_string()),
+                        employee_id: None,
+                        employee_name: Some("Bob".to_string()),
+                        role_name: Some("Architect".to_string()),
+                        expenditure_type: Some("labor".to_string()),
+                        quantity: 20.0,
+                        unit_of_measure: "hours".to_string(),
+                        bill_rate: 225.0,
+                        raw_cost_amount: 3500.0,
+                        bill_amount: 4500.0,
+                        markup_amount: 0.0,
+                        tax_amount: 0.0,
+                        transaction_date: None,
+                    },
+                ],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         let lines = engine.get_invoice_lines(invoice.id).await.unwrap();
         assert_eq!(lines.len(), 2);
-        let names: std::collections::HashSet<&str> = lines.iter().map(|l| l.employee_name.as_str()).collect();
+        let names: std::collections::HashSet<&str> =
+            lines.iter().map(|l| l.employee_name.as_str()).collect();
         assert!(names.contains("Alice"));
         assert!(names.contains("Bob"));
     }
@@ -2660,29 +4320,74 @@ mod tests {
         let org_id = Uuid::new_v4();
         let project_id = Uuid::new_v4();
 
-        engine.create_billing_config(
-            org_id, project_id, "fixed_price",
-            None, 100000.0, "USD", "detailed", "monthly",
-            30, 0.0, 0.0, None, None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_billing_config(
+                org_id,
+                project_id,
+                "fixed_price",
+                None,
+                100000.0,
+                "USD",
+                "detailed",
+                "monthly",
+                30,
+                0.0,
+                0.0,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
-        engine.create_invoice(
-            org_id, "INV-DEL", project_id, None, None, "t_and_m", None, None, None,
-            vec![InvoiceLineRequest {
-                line_source: "manual".to_string(),
-                expenditure_item_id: None, billing_event_id: None,
-                task_id: None, task_number: None, task_name: None,
-                description: None, employee_id: None, employee_name: None,
-                role_name: None, expenditure_type: None,
-                quantity: 1.0, unit_of_measure: "each".to_string(),
-                bill_rate: 1000.0, raw_cost_amount: 0.0, bill_amount: 1000.0,
-                markup_amount: 0.0, tax_amount: 0.0, transaction_date: None,
-            }],
-            None, None, None, None,
-        ).await.unwrap();
+        engine
+            .create_invoice(
+                org_id,
+                "INV-DEL",
+                project_id,
+                None,
+                None,
+                "t_and_m",
+                None,
+                None,
+                None,
+                vec![InvoiceLineRequest {
+                    line_source: "manual".to_string(),
+                    expenditure_item_id: None,
+                    billing_event_id: None,
+                    task_id: None,
+                    task_number: None,
+                    task_name: None,
+                    description: None,
+                    employee_id: None,
+                    employee_name: None,
+                    role_name: None,
+                    expenditure_type: None,
+                    quantity: 1.0,
+                    unit_of_measure: "each".to_string(),
+                    bill_rate: 1000.0,
+                    raw_cost_amount: 0.0,
+                    bill_amount: 1000.0,
+                    markup_amount: 0.0,
+                    tax_amount: 0.0,
+                    transaction_date: None,
+                }],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
 
         engine.delete_invoice(org_id, "INV-DEL").await.unwrap();
-        assert!(engine.get_invoice_by_number(org_id, "INV-DEL").await.unwrap().is_none());
+        assert!(engine
+            .get_invoice_by_number(org_id, "INV-DEL")
+            .await
+            .unwrap()
+            .is_none());
     }
 
     // ========================================================================

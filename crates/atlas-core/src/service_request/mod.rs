@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: CX Service > Service Requests
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::ServiceRequestEngine;
-pub use repository::{ServiceRequestRepository, PostgresServiceRequestRepository};
+pub use repository::{PostgresServiceRequestRepository, ServiceRequestRepository};

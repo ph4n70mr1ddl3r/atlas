@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Treasury > Deals
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::TreasuryEngine;
-pub use repository::{TreasuryRepository, PostgresTreasuryRepository};
+pub use repository::{PostgresTreasuryRepository, TreasuryRepository};

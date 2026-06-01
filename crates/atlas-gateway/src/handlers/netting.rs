@@ -5,19 +5,18 @@
 //! API endpoints for managing netting agreements, netting batches,
 //! and netting settlements.
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
+use tracing::{error, info};
 use uuid::Uuid;
-use tracing::{info, error};
 
 #[derive(Debug, Deserialize)]
 pub struct CreateNettingAgreementRequest {
@@ -54,31 +53,39 @@ pub async fn create_netting_agreement(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    info!("Creating netting agreement '{}' for org {}", payload.agreement_number, org_id);
+    info!(
+        "Creating netting agreement '{}' for org {}",
+        payload.agreement_number, org_id
+    );
 
-    match state.financials.netting_engine.create_agreement(
-        org_id,
-        &payload.agreement_number,
-        &payload.name,
-        payload.description.as_deref(),
-        payload.partner_id,
-        payload.partner_number.as_deref(),
-        payload.partner_name.as_deref(),
-        &payload.currency_code,
-        &payload.netting_direction,
-        &payload.settlement_method,
-        &payload.minimum_netting_amount,
-        payload.maximum_netting_amount.as_deref(),
-        payload.auto_select_transactions,
-        payload.selection_criteria.clone(),
-        payload.netting_clearing_account.as_deref(),
-        payload.ap_clearing_account.as_deref(),
-        payload.ar_clearing_account.as_deref(),
-        payload.approval_required,
-        payload.effective_from,
-        payload.effective_to,
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .netting_engine
+        .create_agreement(
+            org_id,
+            &payload.agreement_number,
+            &payload.name,
+            payload.description.as_deref(),
+            payload.partner_id,
+            payload.partner_number.as_deref(),
+            payload.partner_name.as_deref(),
+            &payload.currency_code,
+            &payload.netting_direction,
+            &payload.settlement_method,
+            &payload.minimum_netting_amount,
+            payload.maximum_netting_amount.as_deref(),
+            payload.auto_select_transactions,
+            payload.selection_criteria.clone(),
+            payload.netting_clearing_account.as_deref(),
+            payload.ap_clearing_account.as_deref(),
+            payload.ar_clearing_account.as_deref(),
+            payload.approval_required,
+            payload.effective_from,
+            payload.effective_to,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(agreement) => Ok(created_json(agreement)),
         Err(e) => {
             error!("Failed to create netting agreement: {}", e);
@@ -104,7 +111,12 @@ pub async fn list_netting_agreements(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.netting_engine.list_agreements(org_id, query.status.as_deref()).await {
+    match state
+        .financials
+        .netting_engine
+        .list_agreements(org_id, query.status.as_deref())
+        .await
+    {
         Ok(agreements) => Ok(Json(serde_json::json!({ "data": agreements }))),
         Err(e) => {
             error!("Failed to list netting agreements: {}", e);
@@ -158,13 +170,18 @@ pub async fn create_netting_batch(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.netting_engine.create_batch(
-        org_id,
-        payload.agreement_id,
-        payload.settlement_date,
-        None,
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .netting_engine
+        .create_batch(
+            org_id,
+            payload.agreement_id,
+            payload.settlement_date,
+            None,
+            Some(user_id),
+        )
+        .await
+    {
         Ok(batch) => Ok(created_json(batch)),
         Err(e) => {
             error!("Failed to create netting batch: {}", e);
@@ -180,7 +197,12 @@ pub async fn submit_netting_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.netting_engine.submit_batch(id, Some(user_id)).await {
+    match state
+        .financials
+        .netting_engine
+        .submit_batch(id, Some(user_id))
+        .await
+    {
         Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to submit netting batch: {}", e);
@@ -196,7 +218,12 @@ pub async fn approve_netting_batch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match state.financials.netting_engine.approve_batch(id, Some(user_id)).await {
+    match state
+        .financials
+        .netting_engine
+        .approve_batch(id, Some(user_id))
+        .await
+    {
         Ok(batch) => Ok(to_json(batch)),
         Err(e) => {
             error!("Failed to approve netting batch: {}", e);

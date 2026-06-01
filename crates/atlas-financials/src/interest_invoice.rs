@@ -1,8 +1,8 @@
+use chrono::NaiveDate;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
-use chrono::NaiveDate;
-use rust_decimal::Decimal;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InterestSchedule {
@@ -47,7 +47,10 @@ impl InterestInvoiceService {
         rate: Decimal,
     ) -> Result<InterestSchedule, String> {
         let mut schedules = self.schedules.write().unwrap();
-        if schedules.iter().any(|s| s.organization_id == organization_id && s.schedule_code == code) {
+        if schedules
+            .iter()
+            .any(|s| s.organization_id == organization_id && s.schedule_code == code)
+        {
             return Err("Schedule with this code already exists".to_string());
         }
 
@@ -64,7 +67,12 @@ impl InterestInvoiceService {
         Ok(schedule)
     }
 
-    pub fn calculate_interest(&self, schedule_id: Uuid, amount: Decimal, days_overdue: i32) -> Decimal {
+    pub fn calculate_interest(
+        &self,
+        schedule_id: Uuid,
+        amount: Decimal,
+        days_overdue: i32,
+    ) -> Decimal {
         let schedules = self.schedules.read().unwrap();
         let schedule = match schedules.iter().find(|s| s.id == schedule_id) {
             Some(s) => s,
@@ -90,9 +98,11 @@ mod tests {
     fn test_calculate_simple_interest() {
         let service = InterestInvoiceService::new();
         let org_id = Uuid::new_v4();
-        
-        let s = service.create_schedule(org_id, "STD_10".to_string(), dec!(10.0)).unwrap();
-        
+
+        let s = service
+            .create_schedule(org_id, "STD_10".to_string(), dec!(10.0))
+            .unwrap();
+
         // Principal: 1000, 365 days overdue, 10% rate -> 100
         let interest = service.calculate_interest(s.id, dec!(1000), 365);
         assert_eq!(interest, dec!(100));

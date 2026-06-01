@@ -40,8 +40,8 @@ impl EscheatmentService {
         payments
             .iter()
             .filter(|p| {
-                p.status == "NEGOTIABLE" 
-                && (as_of_date - p.payment_date).num_days() >= stale_days_threshold
+                p.status == "NEGOTIABLE"
+                    && (as_of_date - p.payment_date).num_days() >= stale_days_threshold
             })
             .cloned()
             .collect()
@@ -106,7 +106,8 @@ mod tests {
 
         let as_of_date = NaiveDate::from_ymd_opt(2025, 11, 1).unwrap();
         // Assume stale threshold is 180 days
-        let stale_payments = EscheatmentService::identify_stale_payments(&payments, as_of_date, 180);
+        let stale_payments =
+            EscheatmentService::identify_stale_payments(&payments, as_of_date, 180);
 
         assert_eq!(stale_payments.len(), 1);
         assert_eq!(stale_payments[0].payment_id, "PAY-1");
@@ -129,8 +130,9 @@ mod tests {
 
         let escheatment_date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
 
-        let result = EscheatmentService::process_escheatment(&payment, &authority, escheatment_date);
-        
+        let result =
+            EscheatmentService::process_escheatment(&payment, &authority, escheatment_date);
+
         assert!(result.is_ok());
         let (updated_payment, record) = result.unwrap();
 
@@ -155,9 +157,16 @@ mod tests {
             jurisdiction: "NY".to_string(),
         };
 
-        let result = EscheatmentService::process_escheatment(&payment, &authority, NaiveDate::from_ymd_opt(2025, 1, 1).unwrap());
-        
+        let result = EscheatmentService::process_escheatment(
+            &payment,
+            &authority,
+            NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+        );
+
         assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), "Only NEGOTIABLE payments can be escheated");
+        assert_eq!(
+            result.err().unwrap(),
+            "Only NEGOTIABLE payments can be escheated"
+        );
     }
 }

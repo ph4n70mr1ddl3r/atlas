@@ -2,14 +2,13 @@
 //!
 //! Storage interface for doubtful account provision data.
 
-use atlas_shared::{
-    DoubtfulAccountPolicy, AgingBucketDefinition, ProvisionRun,
-    ProvisionRunDetail, ProvisionRunActivity, DoubtfulAccountDashboard,
-    AtlasResult, AtlasError,
-};
 use async_trait::async_trait;
-use uuid::Uuid;
+use atlas_shared::{
+    AgingBucketDefinition, AtlasError, AtlasResult, DoubtfulAccountDashboard,
+    DoubtfulAccountPolicy, ProvisionRun, ProvisionRunActivity, ProvisionRunDetail,
+};
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 /// Repository trait for doubtful account allowance data storage
 #[async_trait]
@@ -31,9 +30,21 @@ pub trait DoubtfulAccountAllowanceRepository: Send + Sync {
     ) -> AtlasResult<DoubtfulAccountPolicy>;
 
     async fn get_policy(&self, id: Uuid) -> AtlasResult<Option<DoubtfulAccountPolicy>>;
-    async fn get_policy_by_code(&self, org_id: Uuid, policy_code: &str) -> AtlasResult<Option<DoubtfulAccountPolicy>>;
-    async fn list_policies(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DoubtfulAccountPolicy>>;
-    async fn update_policy_status(&self, id: Uuid, status: &str) -> AtlasResult<DoubtfulAccountPolicy>;
+    async fn get_policy_by_code(
+        &self,
+        org_id: Uuid,
+        policy_code: &str,
+    ) -> AtlasResult<Option<DoubtfulAccountPolicy>>;
+    async fn list_policies(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DoubtfulAccountPolicy>>;
+    async fn update_policy_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<DoubtfulAccountPolicy>;
 
     async fn create_aging_bucket(
         &self,
@@ -63,8 +74,17 @@ pub trait DoubtfulAccountAllowanceRepository: Send + Sync {
     ) -> AtlasResult<ProvisionRun>;
 
     async fn get_provision_run(&self, id: Uuid) -> AtlasResult<Option<ProvisionRun>>;
-    async fn get_provision_run_by_number(&self, org_id: Uuid, run_number: &str) -> AtlasResult<Option<ProvisionRun>>;
-    async fn list_provision_runs(&self, org_id: Uuid, policy_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<ProvisionRun>>;
+    async fn get_provision_run_by_number(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+    ) -> AtlasResult<Option<ProvisionRun>>;
+    async fn list_provision_runs(
+        &self,
+        org_id: Uuid,
+        policy_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ProvisionRun>>;
 
     async fn update_provision_run_results(
         &self,
@@ -336,7 +356,7 @@ pub struct PostgresDoubtfulAccountAllowanceRepository {
 }
 
 impl PostgresDoubtfulAccountAllowanceRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: sqlx::PgPool) -> Self {
         Self { pool }
     }
@@ -396,13 +416,12 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
     }
 
     async fn get_policy(&self, id: Uuid) -> AtlasResult<Option<DoubtfulAccountPolicy>> {
-        let row: Option<PolicyRow> = sqlx::query_as(
-            "SELECT * FROM _atlas.doubtful_account_policies WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row: Option<PolicyRow> =
+            sqlx::query_as("SELECT * FROM _atlas.doubtful_account_policies WHERE id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         match row {
             Some(r) => {
@@ -415,7 +434,11 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         }
     }
 
-    async fn get_policy_by_code(&self, org_id: Uuid, policy_code: &str) -> AtlasResult<Option<DoubtfulAccountPolicy>> {
+    async fn get_policy_by_code(
+        &self,
+        org_id: Uuid,
+        policy_code: &str,
+    ) -> AtlasResult<Option<DoubtfulAccountPolicy>> {
         let row: Option<PolicyRow> = sqlx::query_as(
             "SELECT * FROM _atlas.doubtful_account_policies WHERE organization_id = $1 AND policy_code = $2",
         )
@@ -436,7 +459,11 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         }
     }
 
-    async fn list_policies(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<DoubtfulAccountPolicy>> {
+    async fn list_policies(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<DoubtfulAccountPolicy>> {
         let rows: Vec<PolicyRow> = if let Some(s) = status {
             sqlx::query_as(
                 "SELECT * FROM _atlas.doubtful_account_policies WHERE organization_id = $1 AND status = $2 ORDER BY policy_code",
@@ -465,7 +492,11 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         Ok(policies)
     }
 
-    async fn update_policy_status(&self, id: Uuid, status: &str) -> AtlasResult<DoubtfulAccountPolicy> {
+    async fn update_policy_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<DoubtfulAccountPolicy> {
         sqlx::query(
             "UPDATE _atlas.doubtful_account_policies SET status = $2, is_active = ($2 = 'active'), updated_at = now() WHERE id = $1",
         )
@@ -475,7 +506,9 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        self.get_policy(id).await?.ok_or_else(|| AtlasError::EntityNotFound("Policy not found".to_string()))
+        self.get_policy(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound("Policy not found".to_string()))
     }
 
     async fn create_aging_bucket(
@@ -564,18 +597,21 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
     }
 
     async fn get_provision_run(&self, id: Uuid) -> AtlasResult<Option<ProvisionRun>> {
-        let row: Option<RunRow> = sqlx::query_as(
-            "SELECT * FROM _atlas.doubtful_account_provision_runs WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row: Option<RunRow> =
+            sqlx::query_as("SELECT * FROM _atlas.doubtful_account_provision_runs WHERE id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(row.map(ProvisionRun::from))
     }
 
-    async fn get_provision_run_by_number(&self, org_id: Uuid, run_number: &str) -> AtlasResult<Option<ProvisionRun>> {
+    async fn get_provision_run_by_number(
+        &self,
+        org_id: Uuid,
+        run_number: &str,
+    ) -> AtlasResult<Option<ProvisionRun>> {
         let row: Option<RunRow> = sqlx::query_as(
             "SELECT * FROM _atlas.doubtful_account_provision_runs WHERE organization_id = $1 AND run_number = $2",
         )
@@ -588,7 +624,12 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         Ok(row.map(ProvisionRun::from))
     }
 
-    async fn list_provision_runs(&self, org_id: Uuid, policy_id: Option<Uuid>, status: Option<&str>) -> AtlasResult<Vec<ProvisionRun>> {
+    async fn list_provision_runs(
+        &self,
+        org_id: Uuid,
+        policy_id: Option<Uuid>,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<ProvisionRun>> {
         let rows: Vec<RunRow> = match (policy_id, status) {
             (Some(pid), Some(s)) => sqlx::query_as(
                 "SELECT * FROM _atlas.doubtful_account_provision_runs WHERE organization_id = $1 AND policy_id = $2 AND status = $3 ORDER BY run_date DESC",
@@ -645,7 +686,9 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        self.get_provision_run(id).await?.ok_or_else(|| AtlasError::EntityNotFound("Run not found".to_string()))
+        self.get_provision_run(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound("Run not found".to_string()))
     }
 
     async fn update_provision_run_status(
@@ -674,7 +717,9 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        self.get_provision_run(id).await?.ok_or_else(|| AtlasError::EntityNotFound("Run not found".to_string()))
+        self.get_provision_run(id)
+            .await?
+            .ok_or_else(|| AtlasError::EntityNotFound("Run not found".to_string()))
     }
 
     async fn create_provision_detail(
@@ -842,16 +887,20 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let latest_provision = latest
-            .as_ref().map_or_else(|| "0.00".to_string(), |l| l.total_provision_amount.to_string());
+        let latest_provision = latest.as_ref().map_or_else(
+            || "0.00".to_string(),
+            |l| l.total_provision_amount.to_string(),
+        );
 
         let latest_run_date = latest
             .as_ref()
             .map(|l| l.run_date.to_string())
             .unwrap_or_default();
 
-        let total_outstanding = latest
-            .as_ref().map_or_else(|| "0.00".to_string(), |l| l.total_outstanding_amount.to_string());
+        let total_outstanding = latest.as_ref().map_or_else(
+            || "0.00".to_string(),
+            |l| l.total_outstanding_amount.to_string(),
+        );
 
         let outstanding_f64: f64 = total_outstanding.parse().unwrap_or(0.0);
         let provision_f64: f64 = latest_provision.parse().unwrap_or(0.0);
@@ -869,7 +918,11 @@ impl DoubtfulAccountAllowanceRepository for PostgresDoubtfulAccountAllowanceRepo
             draft_runs: draft_runs as i32,
             posted_runs: posted_runs as i32,
             latest_provision_amount: latest_provision,
-            latest_run_date: if latest_run_date.is_empty() { None } else { Some(latest_run_date) },
+            latest_run_date: if latest_run_date.is_empty() {
+                None
+            } else {
+                Some(latest_run_date)
+            },
             total_outstanding_ar: total_outstanding,
             overall_provision_rate: format!("{rate:.4}"),
         })

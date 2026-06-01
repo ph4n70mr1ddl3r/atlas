@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Procurement > Sourcing > Negotiations
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::SourcingEngine;
-pub use repository::{SourcingRepository, PostgresSourcingRepository};
+pub use repository::{PostgresSourcingRepository, SourcingRepository};

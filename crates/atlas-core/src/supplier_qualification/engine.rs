@@ -7,14 +7,12 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Procurement > Supplier Qualification
 
-use atlas_shared::{
-    QualificationArea, QualificationQuestion,
-    SupplierQualificationInitiative, SupplierQualificationInvitation,
-    SupplierQualificationResponse, SupplierCertification,
-    SupplierQualificationDashboardSummary,
-    AtlasError, AtlasResult,
-};
 use super::SupplierQualificationRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, QualificationArea, QualificationQuestion, SupplierCertification,
+    SupplierQualificationDashboardSummary, SupplierQualificationInitiative,
+    SupplierQualificationInvitation, SupplierQualificationResponse,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -22,7 +20,12 @@ use uuid::Uuid;
 /// Valid area types
 #[allow(dead_code)]
 const VALID_AREA_TYPES: &[&str] = &[
-    "questionnaire", "certificate", "financial", "site_visit", "reference", "other",
+    "questionnaire",
+    "certificate",
+    "financial",
+    "site_visit",
+    "reference",
+    "other",
 ];
 
 /// Valid scoring models
@@ -32,33 +35,44 @@ const VALID_SCORING_MODELS: &[&str] = &["manual", "weighted", "pass_fail"];
 /// Valid question response types
 #[allow(dead_code)]
 const VALID_RESPONSE_TYPES: &[&str] = &[
-    "text", "yes_no", "numeric", "date", "multi_choice", "file_upload",
+    "text",
+    "yes_no",
+    "numeric",
+    "date",
+    "multi_choice",
+    "file_upload",
 ];
 
 /// Valid initiative statuses
 #[allow(dead_code)]
 const VALID_INITIATIVE_STATUSES: &[&str] = &[
-    "draft", "active", "pending_evaluations", "completed", "cancelled",
+    "draft",
+    "active",
+    "pending_evaluations",
+    "completed",
+    "cancelled",
 ];
 
 /// Valid qualification purposes
 #[allow(dead_code)]
-const VALID_QUALIFICATION_PURPOSES: &[&str] = &[
-    "new_supplier", "requalification", "compliance", "ad_hoc",
-];
+const VALID_QUALIFICATION_PURPOSES: &[&str] =
+    &["new_supplier", "requalification", "compliance", "ad_hoc"];
 
 /// Valid invitation statuses
 #[allow(dead_code)]
 const VALID_INVITATION_STATUSES: &[&str] = &[
-    "initiated", "pending_response", "under_evaluation",
-    "qualified", "disqualified", "expired", "withdrawn",
+    "initiated",
+    "pending_response",
+    "under_evaluation",
+    "qualified",
+    "disqualified",
+    "expired",
+    "withdrawn",
 ];
 
 /// Valid certification statuses
 #[allow(dead_code)]
-const VALID_CERTIFICATION_STATUSES: &[&str] = &[
-    "active", "expired", "revoked", "pending_renewal",
-];
+const VALID_CERTIFICATION_STATUSES: &[&str] = &["active", "expired", "revoked", "pending_renewal"];
 
 /// Supplier Qualification engine
 pub struct SupplierQualificationEngine {
@@ -89,10 +103,14 @@ impl SupplierQualificationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<QualificationArea> {
         if area_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Area code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Area code is required".to_string(),
+            ));
         }
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Area name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Area name is required".to_string(),
+            ));
         }
         if !VALID_AREA_TYPES.contains(&area_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -108,9 +126,9 @@ impl SupplierQualificationEngine {
                 VALID_SCORING_MODELS.join(", ")
             )));
         }
-        let score: f64 = passing_score.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Passing score must be a valid number".to_string(),
-        ))?;
+        let score: f64 = passing_score.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Passing score must be a valid number".to_string())
+        })?;
         if !(0.0..=100.0).contains(&score) {
             return Err(AtlasError::ValidationFailed(
                 "Passing score must be between 0 and 100".to_string(),
@@ -122,23 +140,42 @@ impl SupplierQualificationEngine {
             ));
         }
 
-        info!("Creating qualification area {} ({}) for org {}", area_code, name, org_id);
+        info!(
+            "Creating qualification area {} ({}) for org {}",
+            area_code, name, org_id
+        );
 
         self.repository
             .create_area(
-                org_id, area_code, name, description, area_type, scoring_model,
-                passing_score, is_mandatory, renewal_period_days, created_by,
+                org_id,
+                area_code,
+                name,
+                description,
+                area_type,
+                scoring_model,
+                passing_score,
+                is_mandatory,
+                renewal_period_days,
+                created_by,
             )
             .await
     }
 
     /// Get a qualification area by code
-    pub async fn get_area(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<QualificationArea>> {
+    pub async fn get_area(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<QualificationArea>> {
         self.repository.get_area(org_id, code).await
     }
 
     /// List qualification areas
-    pub async fn list_areas(&self, org_id: Uuid, active_only: bool) -> AtlasResult<Vec<QualificationArea>> {
+    pub async fn list_areas(
+        &self,
+        org_id: Uuid,
+        active_only: bool,
+    ) -> AtlasResult<Vec<QualificationArea>> {
         self.repository.list_areas(org_id, active_only).await
     }
 
@@ -172,10 +209,14 @@ impl SupplierQualificationEngine {
             .repository
             .get_area_by_id(area_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Qualification area {area_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Qualification area {area_id} not found"))
+            })?;
 
         if question_text.is_empty() {
-            return Err(AtlasError::ValidationFailed("Question text is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Question text is required".to_string(),
+            ));
         }
         if !VALID_RESPONSE_TYPES.contains(&response_type) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -184,17 +225,21 @@ impl SupplierQualificationEngine {
                 VALID_RESPONSE_TYPES.join(", ")
             )));
         }
-        let w: f64 = weight.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Weight must be a valid number".to_string(),
-        ))?;
+        let w: f64 = weight.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Weight must be a valid number".to_string())
+        })?;
         if w < 0.0 {
-            return Err(AtlasError::ValidationFailed("Weight cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Weight cannot be negative".to_string(),
+            ));
         }
-        let ms: f64 = max_score.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Max score must be a valid number".to_string(),
-        ))?;
+        let ms: f64 = max_score.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Max score must be a valid number".to_string())
+        })?;
         if ms < 0.0 {
-            return Err(AtlasError::ValidationFailed("Max score cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Max score cannot be negative".to_string(),
+            ));
         }
 
         info!(
@@ -204,8 +249,18 @@ impl SupplierQualificationEngine {
 
         self.repository
             .create_question(
-                org_id, area_id, question_number, question_text, description,
-                response_type, choices, is_required, weight, max_score, help_text, display_order,
+                org_id,
+                area_id,
+                question_number,
+                question_text,
+                description,
+                response_type,
+                choices,
+                is_required,
+                weight,
+                max_score,
+                help_text,
+                display_order,
             )
             .await
     }
@@ -236,7 +291,9 @@ impl SupplierQualificationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SupplierQualificationInitiative> {
         if name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Initiative name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Initiative name is required".to_string(),
+            ));
         }
         if !VALID_QUALIFICATION_PURPOSES.contains(&qualification_purpose) {
             return Err(AtlasError::ValidationFailed(format!(
@@ -251,7 +308,9 @@ impl SupplierQualificationEngine {
             .repository
             .get_area_by_id(area_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Qualification area {area_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Qualification area {area_id} not found"))
+            })?;
 
         if !area.is_active {
             return Err(AtlasError::ValidationFailed(format!(
@@ -269,14 +328,23 @@ impl SupplierQualificationEngine {
 
         self.repository
             .create_initiative(
-                org_id, &initiative_number, name, description, area_id,
-                qualification_purpose, deadline, created_by,
+                org_id,
+                &initiative_number,
+                name,
+                description,
+                area_id,
+                qualification_purpose,
+                deadline,
+                created_by,
             )
             .await
     }
 
     /// Get an initiative by ID
-    pub async fn get_initiative(&self, id: Uuid) -> AtlasResult<Option<SupplierQualificationInitiative>> {
+    pub async fn get_initiative(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<SupplierQualificationInitiative>> {
         self.repository.get_initiative(id).await
     }
 
@@ -299,7 +367,10 @@ impl SupplierQualificationEngine {
     }
 
     /// Activate a draft initiative
-    pub async fn activate_initiative(&self, id: Uuid) -> AtlasResult<SupplierQualificationInitiative> {
+    pub async fn activate_initiative(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<SupplierQualificationInitiative> {
         let initiative = self
             .repository
             .get_initiative(id)
@@ -318,7 +389,10 @@ impl SupplierQualificationEngine {
     }
 
     /// Complete an initiative
-    pub async fn complete_initiative(&self, id: Uuid) -> AtlasResult<SupplierQualificationInitiative> {
+    pub async fn complete_initiative(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<SupplierQualificationInitiative> {
         let initiative = self
             .repository
             .get_initiative(id)
@@ -333,11 +407,16 @@ impl SupplierQualificationEngine {
         }
 
         info!("Completed initiative {}", initiative.initiative_number);
-        self.repository.update_initiative_status(id, "completed").await
+        self.repository
+            .update_initiative_status(id, "completed")
+            .await
     }
 
     /// Cancel an initiative
-    pub async fn cancel_initiative(&self, id: Uuid) -> AtlasResult<SupplierQualificationInitiative> {
+    pub async fn cancel_initiative(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<SupplierQualificationInitiative> {
         let initiative = self
             .repository
             .get_initiative(id)
@@ -352,7 +431,9 @@ impl SupplierQualificationEngine {
         }
 
         info!("Cancelled initiative {}", initiative.initiative_number);
-        self.repository.update_initiative_status(id, "cancelled").await
+        self.repository
+            .update_initiative_status(id, "cancelled")
+            .await
     }
 
     // ========================================================================
@@ -375,7 +456,9 @@ impl SupplierQualificationEngine {
             .repository
             .get_initiative(initiative_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Initiative {initiative_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Initiative {initiative_id} not found"))
+            })?;
 
         if initiative.status != "active" && initiative.status != "draft" {
             return Err(AtlasError::WorkflowError(format!(
@@ -385,7 +468,9 @@ impl SupplierQualificationEngine {
         }
 
         if supplier_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Supplier name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Supplier name is required".to_string(),
+            ));
         }
 
         info!(
@@ -396,34 +481,74 @@ impl SupplierQualificationEngine {
         let invitation = self
             .repository
             .create_invitation(
-                org_id, initiative_id, supplier_id, supplier_name,
-                supplier_contact_name, supplier_contact_email, expiry_date, created_by,
+                org_id,
+                initiative_id,
+                supplier_id,
+                supplier_name,
+                supplier_contact_name,
+                supplier_contact_email,
+                expiry_date,
+                created_by,
             )
             .await?;
 
         // Update initiative counts
-        let invitations = self.repository.list_invitations_by_initiative(initiative_id).await?;
+        let invitations = self
+            .repository
+            .list_invitations_by_initiative(initiative_id)
+            .await?;
         let invited = invitations.len() as i32;
-        let responded = invitations.iter().filter(|i| i.status != "initiated").count() as i32;
-        let qualified = invitations.iter().filter(|i| i.status == "qualified").count() as i32;
-        let disqualified = invitations.iter().filter(|i| i.status == "disqualified").count() as i32;
-        let pending = invitations.iter().filter(|i| i.status == "initiated" || i.status == "pending_response" || i.status == "under_evaluation").count() as i32;
+        let responded = invitations
+            .iter()
+            .filter(|i| i.status != "initiated")
+            .count() as i32;
+        let qualified = invitations
+            .iter()
+            .filter(|i| i.status == "qualified")
+            .count() as i32;
+        let disqualified = invitations
+            .iter()
+            .filter(|i| i.status == "disqualified")
+            .count() as i32;
+        let pending = invitations
+            .iter()
+            .filter(|i| {
+                i.status == "initiated"
+                    || i.status == "pending_response"
+                    || i.status == "under_evaluation"
+            })
+            .count() as i32;
 
         self.repository
-            .update_initiative_counts(initiative_id, invited, responded, qualified, disqualified, pending)
+            .update_initiative_counts(
+                initiative_id,
+                invited,
+                responded,
+                qualified,
+                disqualified,
+                pending,
+            )
             .await?;
 
         Ok(invitation)
     }
 
     /// Get an invitation
-    pub async fn get_invitation(&self, id: Uuid) -> AtlasResult<Option<SupplierQualificationInvitation>> {
+    pub async fn get_invitation(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<SupplierQualificationInvitation>> {
         self.repository.get_invitation(id).await
     }
 
     /// List invitations for an initiative
-    pub async fn list_invitations(&self, initiative_id: Uuid) -> AtlasResult<Vec<SupplierQualificationInvitation>> {
-        self.repository.list_invitations_by_initiative(initiative_id).await
+    pub async fn list_invitations(
+        &self,
+        initiative_id: Uuid,
+    ) -> AtlasResult<Vec<SupplierQualificationInvitation>> {
+        self.repository
+            .list_invitations_by_initiative(initiative_id)
+            .await
     }
 
     /// List invitations for a supplier
@@ -432,7 +557,9 @@ impl SupplierQualificationEngine {
         org_id: Uuid,
         supplier_id: Uuid,
     ) -> AtlasResult<Vec<SupplierQualificationInvitation>> {
-        self.repository.list_invitations_by_supplier(org_id, supplier_id).await
+        self.repository
+            .list_invitations_by_supplier(org_id, supplier_id)
+            .await
     }
 
     /// Submit supplier response (moves to `pending_response`)
@@ -444,7 +571,9 @@ impl SupplierQualificationEngine {
             .repository
             .get_invitation(invitation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found"))
+            })?;
 
         if invitation.status != "initiated" {
             return Err(AtlasError::WorkflowError(format!(
@@ -453,19 +582,32 @@ impl SupplierQualificationEngine {
             )));
         }
 
-        info!("Supplier {} submitted response for initiative", invitation.supplier_name);
+        info!(
+            "Supplier {} submitted response for initiative",
+            invitation.supplier_name
+        );
         self.repository
-            .update_invitation_status(invitation_id, "pending_response", Some(chrono::Utc::now()), None)
+            .update_invitation_status(
+                invitation_id,
+                "pending_response",
+                Some(chrono::Utc::now()),
+                None,
+            )
             .await
     }
 
     /// Move invitation to `under_evaluation`
-    pub async fn start_evaluation(&self, invitation_id: Uuid) -> AtlasResult<SupplierQualificationInvitation> {
+    pub async fn start_evaluation(
+        &self,
+        invitation_id: Uuid,
+    ) -> AtlasResult<SupplierQualificationInvitation> {
         let invitation = self
             .repository
             .get_invitation(invitation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found"))
+            })?;
 
         if invitation.status != "pending_response" {
             return Err(AtlasError::WorkflowError(format!(
@@ -474,9 +616,17 @@ impl SupplierQualificationEngine {
             )));
         }
 
-        info!("Starting evaluation for supplier {}", invitation.supplier_name);
+        info!(
+            "Starting evaluation for supplier {}",
+            invitation.supplier_name
+        );
         self.repository
-            .update_invitation_status(invitation_id, "under_evaluation", None, Some(chrono::Utc::now()))
+            .update_invitation_status(
+                invitation_id,
+                "under_evaluation",
+                None,
+                Some(chrono::Utc::now()),
+            )
             .await
     }
 
@@ -491,7 +641,9 @@ impl SupplierQualificationEngine {
             .repository
             .get_invitation(invitation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found"))
+            })?;
 
         if invitation.status != "under_evaluation" {
             return Err(AtlasError::WorkflowError(format!(
@@ -527,7 +679,8 @@ impl SupplierQualificationEngine {
             .update_invitation_status(invitation_id, "qualified", None, None)
             .await?;
 
-        self.refresh_initiative_counts(invitation.initiative_id).await?;
+        self.refresh_initiative_counts(invitation.initiative_id)
+            .await?;
 
         Ok(result)
     }
@@ -543,7 +696,9 @@ impl SupplierQualificationEngine {
             .repository
             .get_invitation(invitation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found"))
+            })?;
 
         if invitation.status != "under_evaluation" {
             return Err(AtlasError::WorkflowError(format!(
@@ -584,7 +739,8 @@ impl SupplierQualificationEngine {
             .update_invitation_status(invitation_id, "disqualified", None, None)
             .await?;
 
-        self.refresh_initiative_counts(invitation.initiative_id).await?;
+        self.refresh_initiative_counts(invitation.initiative_id)
+            .await?;
 
         Ok(result)
     }
@@ -608,7 +764,9 @@ impl SupplierQualificationEngine {
             .repository
             .get_invitation(invitation_id)
             .await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found")))?;
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Invitation {invitation_id} not found"))
+            })?;
 
         if invitation.status != "initiated" && invitation.status != "pending_response" {
             return Err(AtlasError::WorkflowError(format!(
@@ -618,12 +776,22 @@ impl SupplierQualificationEngine {
         }
 
         self.repository
-            .create_response(org_id, invitation_id, question_id, response_text, response_value, file_reference)
+            .create_response(
+                org_id,
+                invitation_id,
+                question_id,
+                response_text,
+                response_value,
+                file_reference,
+            )
             .await
     }
 
     /// List responses for an invitation
-    pub async fn list_responses(&self, invitation_id: Uuid) -> AtlasResult<Vec<SupplierQualificationResponse>> {
+    pub async fn list_responses(
+        &self,
+        invitation_id: Uuid,
+    ) -> AtlasResult<Vec<SupplierQualificationResponse>> {
         self.repository.list_responses(invitation_id).await
     }
 
@@ -635,11 +803,13 @@ impl SupplierQualificationEngine {
         evaluator_notes: Option<&str>,
         evaluated_by: Option<Uuid>,
     ) -> AtlasResult<SupplierQualificationResponse> {
-        let score_val: f64 = score.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Score must be a valid number".to_string(),
-        ))?;
+        let score_val: f64 = score.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Score must be a valid number".to_string())
+        })?;
         if score_val < 0.0 {
-            return Err(AtlasError::ValidationFailed("Score cannot be negative".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Score cannot be negative".to_string(),
+            ));
         }
 
         self.repository
@@ -670,10 +840,14 @@ impl SupplierQualificationEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SupplierCertification> {
         if certification_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Certification name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Certification name is required".to_string(),
+            ));
         }
         if supplier_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Supplier name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Supplier name is required".to_string(),
+            ));
         }
 
         info!(
@@ -683,10 +857,21 @@ impl SupplierQualificationEngine {
 
         self.repository
             .create_certification(
-                org_id, supplier_id, supplier_name, certification_type,
-                certification_name, certifying_body, certificate_number,
-                "active", issued_date, expiry_date, renewal_date,
-                qualification_invitation_id, document_reference, notes, created_by,
+                org_id,
+                supplier_id,
+                supplier_name,
+                certification_type,
+                certification_name,
+                certifying_body,
+                certificate_number,
+                "active",
+                issued_date,
+                expiry_date,
+                renewal_date,
+                qualification_invitation_id,
+                document_reference,
+                notes,
+                created_by,
             )
             .await
     }
@@ -712,7 +897,9 @@ impl SupplierQualificationEngine {
                 )));
             }
         }
-        self.repository.list_certifications(org_id, supplier_id, status).await
+        self.repository
+            .list_certifications(org_id, supplier_id, status)
+            .await
     }
 
     /// Revoke a certification
@@ -730,8 +917,13 @@ impl SupplierQualificationEngine {
             )));
         }
 
-        info!("Revoked certification '{}' for supplier {}", cert.certification_name, cert.supplier_name);
-        self.repository.update_certification_status(id, "revoked").await
+        info!(
+            "Revoked certification '{}' for supplier {}",
+            cert.certification_name, cert.supplier_name
+        );
+        self.repository
+            .update_certification_status(id, "revoked")
+            .await
     }
 
     /// Renew a certification
@@ -754,9 +946,14 @@ impl SupplierQualificationEngine {
             )));
         }
 
-        info!("Renewed certification '{}' for supplier {}", cert.certification_name, cert.supplier_name);
+        info!(
+            "Renewed certification '{}' for supplier {}",
+            cert.certification_name, cert.supplier_name
+        );
         // For simplicity, just update the status - the expiry date would be updated via repository
-        self.repository.update_certification_status(id, "active").await
+        self.repository
+            .update_certification_status(id, "active")
+            .await
     }
 
     // ========================================================================
@@ -764,7 +961,10 @@ impl SupplierQualificationEngine {
     // ========================================================================
 
     /// Get qualification dashboard summary
-    pub async fn get_dashboard_summary(&self, org_id: Uuid) -> AtlasResult<SupplierQualificationDashboardSummary> {
+    pub async fn get_dashboard_summary(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<SupplierQualificationDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 
@@ -794,15 +994,42 @@ impl SupplierQualificationEngine {
 
     /// Refresh the initiative counts after a status change
     async fn refresh_initiative_counts(&self, initiative_id: Uuid) -> AtlasResult<()> {
-        let invitations = self.repository.list_invitations_by_initiative(initiative_id).await?;
+        let invitations = self
+            .repository
+            .list_invitations_by_initiative(initiative_id)
+            .await?;
         let invited = invitations.len() as i32;
-        let responded = invitations.iter().filter(|i| i.status != "initiated").count() as i32;
-        let qualified = invitations.iter().filter(|i| i.status == "qualified").count() as i32;
-        let disqualified = invitations.iter().filter(|i| i.status == "disqualified").count() as i32;
-        let pending = invitations.iter().filter(|i| matches!(i.status.as_str(), "initiated" | "pending_response" | "under_evaluation")).count() as i32;
+        let responded = invitations
+            .iter()
+            .filter(|i| i.status != "initiated")
+            .count() as i32;
+        let qualified = invitations
+            .iter()
+            .filter(|i| i.status == "qualified")
+            .count() as i32;
+        let disqualified = invitations
+            .iter()
+            .filter(|i| i.status == "disqualified")
+            .count() as i32;
+        let pending = invitations
+            .iter()
+            .filter(|i| {
+                matches!(
+                    i.status.as_str(),
+                    "initiated" | "pending_response" | "under_evaluation"
+                )
+            })
+            .count() as i32;
 
         self.repository
-            .update_initiative_counts(initiative_id, invited, responded, qualified, disqualified, pending)
+            .update_initiative_counts(
+                initiative_id,
+                invited,
+                responded,
+                qualified,
+                disqualified,
+                pending,
+            )
             .await
     }
 }
@@ -860,7 +1087,8 @@ mod tests {
 
     #[test]
     fn test_score_calculation() {
-        let engine = SupplierQualificationEngine::new(Arc::new(crate::MockSupplierQualificationRepository));
+        let engine =
+            SupplierQualificationEngine::new(Arc::new(crate::MockSupplierQualificationRepository));
 
         let responses = vec![
             SupplierQualificationResponse {
@@ -907,11 +1135,11 @@ mod tests {
 
     #[test]
     fn test_score_calculation_empty() {
-        let engine = SupplierQualificationEngine::new(Arc::new(crate::MockSupplierQualificationRepository));
+        let engine =
+            SupplierQualificationEngine::new(Arc::new(crate::MockSupplierQualificationRepository));
         let (overall, max, pct) = engine.calculate_scores(&[]);
         assert_eq!(overall, 0.0);
         assert_eq!(max, 0.0);
         assert_eq!(pct, 0.0);
     }
 }
-

@@ -1,531 +1,359 @@
 //! API Handlers
-//! 
+//!
 //! Request handlers for all API endpoints.
 
-mod schema;
-mod records;
-pub mod auth;
-mod admin;
-mod reports;
-pub mod fusion;
-pub mod advanced;
-pub mod period_close;
-pub mod currency;
-pub mod tax;
-pub mod intercompany;
-pub mod reconciliation;
-pub mod expense;
-pub mod budget;
-pub mod fixed_assets;
-pub mod subledger_accounting;
-mod encumbrance;
-pub mod cash_management;
-pub mod sourcing;
-pub mod lease;
-pub mod project_costing;
-pub mod cost_allocation;
-pub mod financial_reporting;
-pub mod multi_book;
-pub mod procurement_contracts;
-pub mod inventory;
-pub mod customer_returns;
-pub mod pricing;
-pub mod sales_commission;
-pub mod treasury;
-pub mod grant_management;
-pub mod supplier_qualification;
-pub mod recurring_journal;
-pub mod manual_journal;
-pub mod descriptive_flexfield;
-pub mod cross_validation;
-pub mod scheduled_process;
-mod segregation_of_duties;
-mod allocation;
-mod currency_revaluation;
-mod purchase_requisition;
-mod corporate_card;
-pub mod performance;
-pub mod benefits;
-pub mod credit_management;
-pub mod product_information;
-pub mod transfer_pricing;
-pub mod order_management;
-pub mod approval_delegation;
-pub mod compensation;
-pub mod manufacturing;
-pub mod warehouse_management;
 pub mod absence;
-pub mod time_and_labor;
-pub mod approval_authority;
-pub mod data_archiving;
-pub mod service_request;
-pub mod lead_opportunity;
-pub mod demand_planning;
-mod autoinvoice;
-mod shipping;
-mod recruiting;
-pub mod revenue;
-pub mod marketing;
-pub mod receiving;
-pub mod supplier_scorecard;
-pub mod kpi;
 pub mod account_monitor;
-pub mod goal_management;
-pub mod contract_lifecycle;
-pub mod enterprise_asset_management;
-pub mod risk_management;
-pub mod product_configurator;
-pub mod territory_management;
-pub mod transportation_management;
-pub mod sustainability;
-pub mod promotions_management;
-pub mod project_billing;
-pub mod quality_management;
-pub mod cost_accounting;
-pub mod accounts_payable;
-pub mod supply_chain_planning;
-pub mod health_safety;
-pub mod funds_reservation;
-pub mod rebate_management;
-pub mod project_resource_management;
-pub mod loyalty_management;
-pub mod general_ledger;
-pub mod accounts_receivable;
-pub mod payment_management;
-pub mod netting;
-pub mod financial_statements;
-pub mod journal_import;
-pub mod inflation_adjustment;
-pub mod impairment_management;
-pub mod bank_account_transfer;
-pub mod tax_reporting;
-pub mod subscription;
-pub mod financial_consolidation;
-pub mod joint_venture;
-pub mod deferred_revenue;
-pub mod revenue_management;
-pub mod cash_flow_forecast;
-pub mod regulatory_reporting;
-pub mod advance_payment;
-pub mod customer_deposit;
-pub mod cash_position;
 pub mod accounting_hub;
-pub mod financial_controls;
-pub mod payment_terms;
-pub mod lockbox;
+pub mod accounts_payable;
+pub mod accounts_receivable;
+mod admin;
+pub mod advance_payment;
+pub mod advanced;
+mod allocation;
+pub mod approval_authority;
+pub mod approval_delegation;
 pub mod ar_aging;
-pub mod mass_additions;
 pub mod asset_reclassification;
-pub mod gl_budget_transfer;
-pub mod payment_format;
-pub mod financial_dimension_set;
-pub mod receipt_write_off;
-pub mod prepayment_application;
-pub mod suspense_account;
-pub mod interest_invoice;
-pub mod expense_policy_compliance;
-pub mod bank_guarantee;
-pub mod letter_of_credit;
-pub mod hedge_management;
-pub mod payment_risk;
-pub mod cash_concentration;
-pub mod customer_statement;
-pub mod remittance_batch;
-pub mod chargeback_management;
-pub mod finance_charge_management;
-pub mod profitability_analysis;
-pub mod recurring_invoice;
-pub mod payment_settlement;
-pub mod payment_process_request;
-pub mod invoice_batch;
-pub mod withholding_tax;
-pub mod tax_registration;
-pub mod doubtful_account_allowance;
-pub mod invoice_matching;
-pub mod distribution_set;
-pub mod cash_flow_statement;
-pub mod third_party_payment;
-pub mod auto_offset;
-pub mod average_balance;
-pub mod cash_receipt;
-pub mod direct_debit_mandate;
-pub mod statistical_accounting;
-pub mod receivables_factoring;
-pub mod document_sequencing;
-pub mod transaction_calendar;
 pub mod asset_retirement;
-pub mod multi_period_accounting;
+pub mod auth;
+pub mod auto_offset;
+mod autoinvoice;
+pub mod average_balance;
+pub mod bank_account_transfer;
+pub mod bank_guarantee;
+pub mod benefits;
+pub mod budget;
+pub mod cash_concentration;
+pub mod cash_flow_forecast;
+pub mod cash_flow_statement;
+pub mod cash_management;
+pub mod cash_position;
+pub mod cash_receipt;
+pub mod chargeback_management;
+pub mod compensation;
+pub mod contract_lifecycle;
+mod corporate_card;
+pub mod cost_accounting;
+pub mod cost_allocation;
+pub mod credit_management;
+pub mod cross_validation;
+pub mod currency;
+mod currency_revaluation;
+pub mod customer_deposit;
+pub mod customer_returns;
+pub mod customer_statement;
+pub mod data_archiving;
+pub mod deferred_revenue;
+pub mod demand_planning;
+pub mod descriptive_flexfield;
+pub mod direct_debit_mandate;
+pub mod distribution_set;
+pub mod document_sequencing;
+pub mod doubtful_account_allowance;
 pub mod dunning_letter_management;
+mod encumbrance;
+pub mod enterprise_asset_management;
+pub mod expense;
+pub mod expense_policy_compliance;
+pub mod finance_charge_management;
+pub mod financial_consolidation;
+pub mod financial_controls;
+pub mod financial_dimension_set;
+pub mod financial_reporting;
+pub mod financial_statements;
+pub mod fixed_assets;
+pub mod funds_reservation;
+pub mod fusion;
+pub mod general_ledger;
+pub mod gl_budget_transfer;
+pub mod goal_management;
+pub mod grant_management;
+pub mod health_safety;
+pub mod hedge_management;
+pub mod impairment_management;
+pub mod inflation_adjustment;
+pub mod intercompany;
+pub mod interest_invoice;
+pub mod inventory;
+pub mod invoice_batch;
+pub mod invoice_matching;
+pub mod joint_venture;
+pub mod journal_import;
+pub mod kpi;
+pub mod lead_opportunity;
+pub mod lease;
+pub mod letter_of_credit;
+pub mod lockbox;
+pub mod loyalty_management;
+pub mod manual_journal;
+pub mod manufacturing;
+pub mod marketing;
+pub mod mass_additions;
+pub mod multi_book;
+pub mod multi_period_accounting;
+pub mod netting;
+pub mod order_management;
+pub mod payment_format;
+pub mod payment_management;
+pub mod payment_process_request;
+pub mod payment_risk;
+pub mod payment_settlement;
+pub mod payment_terms;
+pub mod performance;
+pub mod period_close;
+pub mod prepayment_application;
+pub mod pricing;
+pub mod procurement_contracts;
+pub mod product_configurator;
+pub mod product_information;
+pub mod profitability_analysis;
+pub mod project_billing;
+pub mod project_costing;
+pub mod project_resource_management;
+pub mod promotions_management;
+mod purchase_requisition;
+pub mod quality_management;
+pub mod rebate_management;
+pub mod receipt_write_off;
+pub mod receivables_factoring;
+pub mod receiving;
+pub mod reconciliation;
+mod records;
+mod recruiting;
+pub mod recurring_invoice;
+pub mod recurring_journal;
+pub mod regulatory_reporting;
+pub mod remittance_batch;
+mod reports;
+pub mod revenue;
+pub mod revenue_management;
+pub mod risk_management;
+pub mod sales_commission;
+pub mod scheduled_process;
+mod schema;
+mod segregation_of_duties;
+pub mod service_request;
+mod shipping;
+pub mod sourcing;
+pub mod statistical_accounting;
+pub mod subledger_accounting;
+pub mod subscription;
+pub mod supplier_qualification;
+pub mod supplier_scorecard;
+pub mod supply_chain_planning;
+pub mod suspense_account;
+pub mod sustainability;
+pub mod tax;
+pub mod tax_registration;
+pub mod tax_reporting;
+pub mod territory_management;
+pub mod third_party_payment;
+pub mod time_and_labor;
+pub mod transaction_calendar;
+pub mod transfer_pricing;
+pub mod transportation_management;
+pub mod treasury;
+pub mod warehouse_management;
+pub mod withholding_tax;
 
-pub use schema::*;
-pub use records::*;
-pub use auth::*;
 pub use admin::*;
-pub use reports::*;
-pub use fusion::*;
 pub use advanced::*;
-pub use period_close::*;
-pub use currency::*;
-pub use tax::*;
-pub use intercompany::*;
-pub use reconciliation::*;
-pub use expense::*;
-pub use budget::*;
-pub use fixed_assets::*;
-pub use subledger_accounting::*;
-pub use encumbrance::*;
-pub use cash_management::*;
-pub use sourcing::*;
-pub use lease::*;
-pub use project_costing::*;
-pub use cost_allocation::*;
-pub use financial_reporting::*;
-pub use multi_book::*;
-pub use procurement_contracts::*;
-pub use inventory::*;
-pub use customer_returns::*;
-pub use pricing::*;
-pub use sales_commission::*;
-pub use treasury::*;
-pub use grant_management::{
-    create_sponsor, list_sponsors, get_sponsor, delete_sponsor,
-    create_indirect_cost_rate, list_indirect_cost_rates,
-    create_award as create_grant_award, list_awards as list_grant_awards,
-    get_award as get_grant_award, activate_award, suspend_award,
-    complete_award, terminate_award,
-    create_budget_line as create_grant_budget_line,
-    list_budget_lines as list_grant_budget_lines,
-    create_expenditure as create_grant_expenditure,
-    list_expenditures as list_grant_expenditures,
-    approve_expenditure, reverse_expenditure,
-    create_billing as create_grant_billing,
-    list_billings as list_grant_billings,
-    submit_billing as submit_grant_billing,
-    approve_billing as approve_grant_billing,
-    mark_billing_paid,
-    create_compliance_report, list_compliance_reports,
-    submit_compliance_report, approve_compliance_report,
-    get_grant_dashboard,
-};
-pub use supplier_qualification::{
-    create_qualification_area, get_qualification_area,
-    list_qualification_areas, delete_qualification_area,
-    create_qualification_question, list_qualification_questions,
-    delete_qualification_question,
-    create_initiative, get_initiative, list_initiatives,
-    activate_initiative, complete_initiative, cancel_initiative,
-    invite_supplier, list_invitations,
-    submit_invitation_response, start_evaluation,
-    qualify_supplier, disqualify_supplier,
-    create_response, list_responses, score_response,
-    create_certification, list_certifications,
-    revoke_certification, renew_certification,
-    get_qualification_dashboard,
-};
-pub use recurring_journal::{
-    create_schedule as create_recurring_schedule,
-    get_schedule as get_recurring_schedule,
-    list_schedules as list_recurring_schedules,
-    activate_schedule as activate_recurring_schedule,
-    deactivate_schedule as deactivate_recurring_schedule,
-    delete_schedule as delete_recurring_schedule,
-    add_schedule_line as add_recurring_schedule_line,
-    list_schedule_lines as list_recurring_schedule_lines,
-    delete_schedule_line as delete_recurring_schedule_line,
-    generate_journal,
-    get_generation,
-    list_generations as list_recurring_generations,
-    post_generation,
-    reverse_generation,
-    cancel_generation,
-    list_generation_lines as list_recurring_generation_lines,
-    get_dashboard as get_recurring_journal_dashboard,
-};
-pub use descriptive_flexfield::{
-    create_value_set, list_value_sets, get_value_set, delete_value_set,
-    create_value_set_entry, list_value_set_entries, delete_value_set_entry,
-    create_flexfield, list_flexfields, get_flexfield,
-    activate_flexfield, deactivate_flexfield, delete_flexfield,
-    create_context, list_contexts, disable_context, enable_context, delete_context,
-    create_segment, list_segments_by_context, list_segments_by_flexfield, delete_segment,
-    set_flexfield_data, get_flexfield_data, delete_flexfield_data,
-    get_flexfield_dashboard,
-};
-pub use cross_validation::{
-    create_rule as create_cvr_rule,
-    list_rules as list_cvr_rules,
-    get_rule as get_cvr_rule,
-    enable_rule as enable_cvr_rule,
-    disable_rule as disable_cvr_rule,
-    delete_rule as delete_cvr_rule,
-    create_rule_line as create_cvr_rule_line,
-    list_rule_lines as list_cvr_rule_lines,
-    delete_rule_line as delete_cvr_rule_line,
-    validate_combination,
-    get_cvr_dashboard,
-};
-pub use scheduled_process::{
-    create_template as create_process_template,
-    get_template as get_process_template,
-    list_templates as list_process_templates,
-    activate_template as activate_process_template,
-    deactivate_template as deactivate_process_template,
-    delete_template as delete_process_template,
-    submit_process,
-    get_process,
-    list_processes,
-    start_process,
-    complete_process,
-    cancel_process,
-    update_progress,
-    approve_process,
-    create_recurrence as create_process_recurrence,
-    get_recurrence as get_process_recurrence,
-    list_recurrences as list_process_recurrences,
-    deactivate_recurrence as deactivate_process_recurrence,
-    delete_recurrence as delete_process_recurrence,
-    process_due_recurrences,
-    list_process_logs,
-    add_process_log,
-    get_scheduled_process_dashboard,
-};
-pub use segregation_of_duties::{
-    create_sod_rule,
-    get_sod_rule,
-    list_sod_rules,
-    activate_sod_rule,
-    deactivate_sod_rule,
-    delete_sod_rule,
-    assign_sod_role,
-    list_sod_assignments,
-    remove_sod_assignment,
-    check_sod_conflict,
-    run_sod_detection,
-    list_sod_violations,
-    get_sod_violation,
-    resolve_sod_violation,
-    accept_sod_exception,
-    create_sod_mitigation,
-    list_sod_mitigations,
-    approve_sod_mitigation,
-    revoke_sod_mitigation,
-    get_sod_dashboard,
-};
 pub use allocation::{
-    create_allocation_pool,
-    get_allocation_pool,
-    list_allocation_pools,
-    activate_allocation_pool,
-    deactivate_allocation_pool,
-    delete_allocation_pool,
-    create_allocation_basis,
-    get_allocation_basis,
-    list_allocation_bases,
-    activate_allocation_basis,
-    deactivate_allocation_basis,
-    delete_allocation_basis,
-    add_allocation_basis_detail,
-    list_allocation_basis_details,
-    recalculate_basis_percentages,
-    create_allocation_rule,
-    get_allocation_rule,
-    list_allocation_rules,
-    activate_allocation_rule,
-    deactivate_allocation_rule,
-    delete_allocation_rule,
-    execute_allocation,
-    get_allocation_run,
-    list_allocation_runs,
-    post_allocation_run,
-    reverse_allocation_run,
-    cancel_allocation_run,
-    get_allocation_dashboard,
+    activate_allocation_basis, activate_allocation_pool, activate_allocation_rule,
+    add_allocation_basis_detail, cancel_allocation_run, create_allocation_basis,
+    create_allocation_pool, create_allocation_rule, deactivate_allocation_basis,
+    deactivate_allocation_pool, deactivate_allocation_rule, delete_allocation_basis,
+    delete_allocation_pool, delete_allocation_rule, execute_allocation, get_allocation_basis,
+    get_allocation_dashboard, get_allocation_pool, get_allocation_rule, get_allocation_run,
+    list_allocation_bases, list_allocation_basis_details, list_allocation_pools,
+    list_allocation_rules, list_allocation_runs, post_allocation_run,
+    recalculate_basis_percentages, reverse_allocation_run,
 };
-pub use currency_revaluation::{
-    create_revaluation_definition,
-    get_revaluation_definition,
-    list_revaluation_definitions,
-    activate_revaluation_definition,
-    deactivate_revaluation_definition,
-    delete_revaluation_definition,
-    add_revaluation_account,
-    list_revaluation_accounts,
-    remove_revaluation_account,
-    execute_revaluation,
-    get_revaluation_run,
-    list_revaluation_runs,
-    post_revaluation_run,
-    reverse_revaluation_run,
-    cancel_revaluation_run,
-    get_revaluation_dashboard,
+pub use auth::*;
+pub use benefits::{
+    activate_enrollment as activate_benefits_enrollment,
+    cancel_enrollment as cancel_benefits_enrollment, create_benefits_plan,
+    create_enrollment as create_benefits_enrollment, delete_benefits_plan, generate_deductions,
+    get_benefits_dashboard, get_benefits_plan, get_enrollment as get_benefits_enrollment,
+    list_benefits_plans, list_deductions as list_benefits_deductions,
+    list_enrollments as list_benefits_enrollments,
+    reactivate_enrollment as reactivate_benefits_enrollment,
+    suspend_enrollment as suspend_benefits_enrollment,
+    waive_enrollment as waive_benefits_enrollment,
 };
-pub use purchase_requisition::{
-    create_requisition,
-    get_requisition,
-    list_requisitions,
-    update_requisition,
-    delete_requisition,
-    add_requisition_line,
-    list_requisition_lines,
-    remove_requisition_line,
-    add_requisition_distribution,
-    list_requisition_distributions,
-    submit_requisition,
-    approve_requisition,
-    reject_requisition,
-    cancel_requisition,
-    close_requisition,
-    return_requisition,
-    list_requisition_approvals,
-    autocreate,
-    list_autocreate_links,
-    cancel_autocreate_link,
-    get_requisition_dashboard,
-};
+pub use budget::*;
+pub use cash_management::*;
 pub use corporate_card::{
-    create_program as create_corporate_card_program,
-    get_program as get_corporate_card_program,
-    list_programs as list_corporate_card_programs,
-    issue_card,
-    get_card as get_corporate_card,
-    list_cards as list_corporate_cards,
-    suspend_card,
-    reactivate_card,
-    cancel_card,
-    report_lost,
-    report_stolen,
-    import_transaction,
+    approve_limit_override, cancel_card, create_program as create_corporate_card_program,
+    dispute_transaction as dispute_corporate_card_transaction, get_card as get_corporate_card,
+    get_corporate_card_dashboard, get_program as get_corporate_card_program,
+    get_statement as get_corporate_card_statement,
     get_transaction as get_corporate_card_transaction,
+    import_statement as import_corporate_card_statement, import_transaction, issue_card,
+    list_cards as list_corporate_cards, list_limit_overrides,
+    list_programs as list_corporate_card_programs,
+    list_statements as list_corporate_card_statements,
     list_transactions as list_corporate_card_transactions,
     match_transaction as match_corporate_card_transaction,
-    unmatch_transaction as unmatch_corporate_card_transaction,
-    dispute_transaction as dispute_corporate_card_transaction,
-    resolve_dispute as resolve_corporate_card_dispute,
-    import_statement as import_corporate_card_statement,
-    get_statement as get_corporate_card_statement,
-    list_statements as list_corporate_card_statements,
-    reconcile_statement as reconcile_corporate_card_statement,
-    pay_statement as pay_corporate_card_statement,
-    request_limit_override,
-    approve_limit_override,
-    reject_limit_override,
-    list_limit_overrides,
-    get_corporate_card_dashboard,
+    pay_statement as pay_corporate_card_statement, reactivate_card,
+    reconcile_statement as reconcile_corporate_card_statement, reject_limit_override, report_lost,
+    report_stolen, request_limit_override, resolve_dispute as resolve_corporate_card_dispute,
+    suspend_card, unmatch_transaction as unmatch_corporate_card_transaction,
 };
-pub use benefits::{
-    create_benefits_plan,
-    get_benefits_plan,
-    list_benefits_plans,
-    delete_benefits_plan,
-    create_enrollment as create_benefits_enrollment,
-    get_enrollment as get_benefits_enrollment,
-    list_enrollments as list_benefits_enrollments,
-    activate_enrollment as activate_benefits_enrollment,
-    waive_enrollment as waive_benefits_enrollment,
-    cancel_enrollment as cancel_benefits_enrollment,
-    suspend_enrollment as suspend_benefits_enrollment,
-    reactivate_enrollment as reactivate_benefits_enrollment,
-    generate_deductions,
-    list_deductions as list_benefits_deductions,
-    get_benefits_dashboard,
-};
-pub use performance::{
-    create_rating_model,
-    get_rating_model,
-    list_rating_models,
-    delete_rating_model,
-    create_review_cycle,
-    get_review_cycle,
-    list_review_cycles,
-    transition_cycle,
-    create_competency,
-    get_competency,
-    list_competencies,
-    delete_competency,
-    create_document as create_performance_document,
-    get_document as get_performance_document,
-    list_documents as list_performance_documents,
-    transition_document,
-    submit_self_evaluation,
-    submit_manager_evaluation,
-    finalize_document as finalize_performance_document,
-    create_goal,
-    list_goals as list_performance_goals,
-    complete_goal,
-    rate_goal,
-    delete_goal as delete_performance_goal,
-    upsert_competency_assessment,
-    list_competency_assessments as list_competency_assessments_for_document,
-    create_feedback as create_performance_feedback,
-    list_feedback as list_performance_feedback,
-    submit_feedback as submit_performance_feedback,
-    get_performance_dashboard,
-};
+pub use cost_allocation::*;
 pub use credit_management::{
-    create_scoring_model,
-    get_scoring_model,
-    list_scoring_models,
-    delete_scoring_model,
-    create_profile,
-    get_profile,
-    list_profiles,
-    update_profile_status,
-    update_profile_score,
-    delete_profile,
-    create_credit_limit,
-    list_credit_limits,
-    update_credit_limit,
-    set_temp_limit,
-    delete_credit_limit,
-    create_check_rule,
-    list_check_rules,
-    delete_check_rule,
-    calculate_exposure,
-    get_latest_exposure,
-    perform_credit_check,
-    create_hold,
-    list_holds,
-    release_hold,
-    override_hold,
-    create_review,
-    list_reviews,
-    start_review,
-    complete_review,
-    approve_review,
-    reject_review,
-    cancel_review,
-    get_credit_dashboard,
+    approve_review, calculate_exposure, cancel_review, complete_review, create_check_rule,
+    create_credit_limit, create_hold, create_profile, create_review, create_scoring_model,
+    delete_check_rule, delete_credit_limit, delete_profile, delete_scoring_model,
+    get_credit_dashboard, get_latest_exposure, get_profile, get_scoring_model, list_check_rules,
+    list_credit_limits, list_holds, list_profiles, list_reviews, list_scoring_models,
+    override_hold, perform_credit_check, reject_review, release_hold, set_temp_limit, start_review,
+    update_credit_limit, update_profile_score, update_profile_status,
 };
+pub use cross_validation::{
+    create_rule as create_cvr_rule, create_rule_line as create_cvr_rule_line,
+    delete_rule as delete_cvr_rule, delete_rule_line as delete_cvr_rule_line,
+    disable_rule as disable_cvr_rule, enable_rule as enable_cvr_rule, get_cvr_dashboard,
+    get_rule as get_cvr_rule, list_rule_lines as list_cvr_rule_lines, list_rules as list_cvr_rules,
+    validate_combination,
+};
+pub use currency::*;
+pub use currency_revaluation::{
+    activate_revaluation_definition, add_revaluation_account, cancel_revaluation_run,
+    create_revaluation_definition, deactivate_revaluation_definition,
+    delete_revaluation_definition, execute_revaluation, get_revaluation_dashboard,
+    get_revaluation_definition, get_revaluation_run, list_revaluation_accounts,
+    list_revaluation_definitions, list_revaluation_runs, post_revaluation_run,
+    remove_revaluation_account, reverse_revaluation_run,
+};
+pub use customer_returns::*;
+pub use descriptive_flexfield::{
+    activate_flexfield, create_context, create_flexfield, create_segment, create_value_set,
+    create_value_set_entry, deactivate_flexfield, delete_context, delete_flexfield,
+    delete_flexfield_data, delete_segment, delete_value_set, delete_value_set_entry,
+    disable_context, enable_context, get_flexfield, get_flexfield_dashboard, get_flexfield_data,
+    get_value_set, list_contexts, list_flexfields, list_segments_by_context,
+    list_segments_by_flexfield, list_value_set_entries, list_value_sets, set_flexfield_data,
+};
+pub use encumbrance::*;
+pub use expense::*;
+pub use financial_reporting::*;
+pub use fixed_assets::*;
+pub use fusion::*;
+pub use grant_management::{
+    activate_award, approve_billing as approve_grant_billing, approve_compliance_report,
+    approve_expenditure, complete_award, create_award as create_grant_award,
+    create_billing as create_grant_billing, create_budget_line as create_grant_budget_line,
+    create_compliance_report, create_expenditure as create_grant_expenditure,
+    create_indirect_cost_rate, create_sponsor, delete_sponsor, get_award as get_grant_award,
+    get_grant_dashboard, get_sponsor, list_awards as list_grant_awards,
+    list_billings as list_grant_billings, list_budget_lines as list_grant_budget_lines,
+    list_compliance_reports, list_expenditures as list_grant_expenditures,
+    list_indirect_cost_rates, list_sponsors, mark_billing_paid, reverse_expenditure,
+    submit_billing as submit_grant_billing, submit_compliance_report, suspend_award,
+    terminate_award,
+};
+pub use intercompany::*;
+pub use inventory::*;
+pub use lease::*;
 pub use manual_journal::{
-    create_batch as create_journal_batch,
-    get_batch as get_journal_batch,
-    list_batches as list_journal_batches,
-    delete_batch as delete_journal_batch,
-    submit_batch,
-    approve_batch as approve_journal_batch,
-    reject_batch as reject_journal_batch,
-    post_batch as post_journal_batch,
-    reverse_batch as reverse_journal_batch,
-    create_entry as create_journal_entry,
-    get_entry as get_journal_entry,
-    list_entries_by_batch as list_journal_entries_by_batch,
-    list_entries as list_journal_entries,
-    delete_entry as delete_journal_entry,
-    add_line as add_journal_line,
-    list_lines as list_journal_lines,
-    get_dashboard as get_manual_journal_dashboard,
+    add_line as add_journal_line, approve_batch as approve_journal_batch,
+    create_batch as create_journal_batch, create_entry as create_journal_entry,
+    delete_batch as delete_journal_batch, delete_entry as delete_journal_entry,
+    get_batch as get_journal_batch, get_dashboard as get_manual_journal_dashboard,
+    get_entry as get_journal_entry, list_batches as list_journal_batches,
+    list_entries as list_journal_entries, list_entries_by_batch as list_journal_entries_by_batch,
+    list_lines as list_journal_lines, post_batch as post_journal_batch,
+    reject_batch as reject_journal_batch, reverse_batch as reverse_journal_batch, submit_batch,
 };
+pub use multi_book::*;
+pub use performance::{
+    complete_goal, create_competency, create_document as create_performance_document,
+    create_feedback as create_performance_feedback, create_goal, create_rating_model,
+    create_review_cycle, delete_competency, delete_goal as delete_performance_goal,
+    delete_rating_model, finalize_document as finalize_performance_document, get_competency,
+    get_document as get_performance_document, get_performance_dashboard, get_rating_model,
+    get_review_cycle, list_competencies,
+    list_competency_assessments as list_competency_assessments_for_document,
+    list_documents as list_performance_documents, list_feedback as list_performance_feedback,
+    list_goals as list_performance_goals, list_rating_models, list_review_cycles, rate_goal,
+    submit_feedback as submit_performance_feedback, submit_manager_evaluation,
+    submit_self_evaluation, transition_cycle, transition_document, upsert_competency_assessment,
+};
+pub use period_close::*;
+pub use pricing::*;
+pub use procurement_contracts::*;
+pub use project_costing::*;
+pub use purchase_requisition::{
+    add_requisition_distribution, add_requisition_line, approve_requisition, autocreate,
+    cancel_autocreate_link, cancel_requisition, close_requisition, create_requisition,
+    delete_requisition, get_requisition, get_requisition_dashboard, list_autocreate_links,
+    list_requisition_approvals, list_requisition_distributions, list_requisition_lines,
+    list_requisitions, reject_requisition, remove_requisition_line, return_requisition,
+    submit_requisition, update_requisition,
+};
+pub use reconciliation::*;
+pub use records::*;
+pub use recurring_journal::{
+    activate_schedule as activate_recurring_schedule,
+    add_schedule_line as add_recurring_schedule_line, cancel_generation,
+    create_schedule as create_recurring_schedule,
+    deactivate_schedule as deactivate_recurring_schedule,
+    delete_schedule as delete_recurring_schedule,
+    delete_schedule_line as delete_recurring_schedule_line, generate_journal,
+    get_dashboard as get_recurring_journal_dashboard, get_generation,
+    get_schedule as get_recurring_schedule,
+    list_generation_lines as list_recurring_generation_lines,
+    list_generations as list_recurring_generations,
+    list_schedule_lines as list_recurring_schedule_lines,
+    list_schedules as list_recurring_schedules, post_generation, reverse_generation,
+};
+pub use reports::*;
+pub use sales_commission::*;
+pub use scheduled_process::{
+    activate_template as activate_process_template, add_process_log, approve_process,
+    cancel_process, complete_process, create_recurrence as create_process_recurrence,
+    create_template as create_process_template,
+    deactivate_recurrence as deactivate_process_recurrence,
+    deactivate_template as deactivate_process_template,
+    delete_recurrence as delete_process_recurrence, delete_template as delete_process_template,
+    get_process, get_recurrence as get_process_recurrence, get_scheduled_process_dashboard,
+    get_template as get_process_template, list_process_logs, list_processes,
+    list_recurrences as list_process_recurrences, list_templates as list_process_templates,
+    process_due_recurrences, start_process, submit_process, update_progress,
+};
+pub use schema::*;
+pub use segregation_of_duties::{
+    accept_sod_exception, activate_sod_rule, approve_sod_mitigation, assign_sod_role,
+    check_sod_conflict, create_sod_mitigation, create_sod_rule, deactivate_sod_rule,
+    delete_sod_rule, get_sod_dashboard, get_sod_rule, get_sod_violation, list_sod_assignments,
+    list_sod_mitigations, list_sod_rules, list_sod_violations, remove_sod_assignment,
+    resolve_sod_violation, revoke_sod_mitigation, run_sod_detection,
+};
+pub use sourcing::*;
+pub use subledger_accounting::*;
+pub use supplier_qualification::{
+    activate_initiative, cancel_initiative, complete_initiative, create_certification,
+    create_initiative, create_qualification_area, create_qualification_question, create_response,
+    delete_qualification_area, delete_qualification_question, disqualify_supplier, get_initiative,
+    get_qualification_area, get_qualification_dashboard, invite_supplier, list_certifications,
+    list_initiatives, list_invitations, list_qualification_areas, list_qualification_questions,
+    list_responses, qualify_supplier, renew_certification, revoke_certification, score_response,
+    start_evaluation, submit_invitation_response,
+};
+pub use tax::*;
+pub use treasury::*;
 
+use crate::middleware::{admin_auth_middleware, auth_middleware};
+use crate::AppState;
 use axum::{
-    Router,
-    routing::{get, post, put, delete},
-    Json,
     http::StatusCode,
     middleware,
+    routing::{delete, get, post, put},
+    Json, Router,
 };
 use serde_json::Value;
-use crate::AppState;
-use crate::middleware::{auth_middleware, admin_auth_middleware};
 use std::sync::Arc;
 
 /// Helper to serialize a `Serialize` value to `Json<Value>` safely.
@@ -569,25 +397,20 @@ fn core_api_routes() -> Router<Arc<AppState>> {
         .route("/schema/:entity", get(get_entity_schema))
         .route("/schema/:entity/form", get(get_entity_form))
         .route("/schema/:entity/list", get(get_entity_list_view))
-        
         // CRUD operations (requires auth)
         .route("/:entity", post(create_record))
         .route("/:entity", get(list_records))
         .route("/:entity/:id", get(get_record))
         .route("/:entity/:id", put(update_record))
         .route("/:entity/:id", delete(delete_record))
-        
         // Workflow operations (requires auth)
         .route("/:entity/:id/transitions", get(get_transitions))
         .route("/:entity/:id/:action", post(execute_action))
-        
         // Audit (requires auth)
         .route("/:entity/:id/history", get(get_record_history))
-        
         // Reports (requires auth)
         .route("/reports/dashboard", get(dashboard_report))
         .route("/reports/:entity", get(generate_entity_report))
-        
         // Import/Export (requires auth)
         .route("/import", post(import_data))
         .route("/export/:entity", get(export_data))
@@ -601,12 +424,10 @@ fn fusion_api_routes() -> Router<Arc<AppState>> {
         .route("/notifications/:id/read", put(mark_notification_read))
         .route("/notifications/read-all", put(mark_all_notifications_read))
         .route("/notifications/:id/dismiss", put(dismiss_notification))
-        
         // Saved Searches (personalized views)
         .route("/saved-searches", get(list_saved_searches))
         .route("/saved-searches", post(create_saved_search))
         .route("/saved-searches/:id", delete(delete_saved_search))
-        
         // Approval Chains
         .route("/approval-chains", get(list_approval_chains))
         .route("/approval-chains", post(create_approval_chain))
@@ -614,7 +435,6 @@ fn fusion_api_routes() -> Router<Arc<AppState>> {
         .route("/approvals/:step_id/approve", post(approve_approval_step))
         .route("/approvals/:step_id/reject", post(reject_approval_step))
         .route("/approvals/:step_id/delegate", post(delegate_approval_step))
-        
         // Duplicate Detection
         .route("/duplicates/check", post(check_duplicates))
 }
@@ -623,31 +443,30 @@ fn advanced_api_routes() -> Router<Arc<AppState>> {
     Router::new()
         // Structured Filtering (advanced list endpoint)
         .route("/:entity/filtered", get(list_records_advanced))
-        
         // Bulk Operations
         .route("/bulk", post(execute_bulk_operation))
-        
         // Comments / Notes on Records
         .route("/:entity/:id/comments", get(list_comments))
         .route("/:entity/:id/comments", post(create_comment))
         .route("/:entity/:id/comments/:comment_id", delete(delete_comment))
-        .route("/:entity/:id/comments/:comment_id/pin", put(toggle_pin_comment))
-        
+        .route(
+            "/:entity/:id/comments/:comment_id/pin",
+            put(toggle_pin_comment),
+        )
         // Favorites / Bookmarks
         .route("/favorites", get(list_favorites))
         .route("/:entity/:id/favorite", post(add_favorite))
         .route("/:entity/:id/favorite", delete(remove_favorite))
         .route("/:entity/:id/favorite", get(check_favorite))
-        
         // CSV Export
         .route("/export/:entity/csv", get(export_csv))
-        
         // CSV Import
         .route("/import/csv", post(import_csv))
-        
         // Related Records
-        .route("/:entity/:id/related/:related_entity", get(get_related_records))
-        
+        .route(
+            "/:entity/:id/related/:related_entity",
+            get(get_related_records),
+        )
         // Effective Dating
         .route("/:entity/:id/effective", get(get_effective_record))
         .route("/:entity/:id/effective", post(create_effective_version))
@@ -660,37 +479,57 @@ fn period_close_api_routes() -> Router<Arc<AppState>> {
         .route("/calendars", post(create_calendar))
         .route("/calendars/:calendar_id", get(get_calendar))
         .route("/calendars/:calendar_id", delete(delete_calendar))
-        
         // Period Generation & Listing
-        .route("/calendars/:calendar_id/periods/generate", post(generate_periods))
+        .route(
+            "/calendars/:calendar_id/periods/generate",
+            post(generate_periods),
+        )
         .route("/calendars/:calendar_id/periods", get(list_periods))
         .route("/periods/:period_id", get(get_period))
-        
         // Period Status Changes
         .route("/periods/:period_id/open", post(open_period))
-        .route("/periods/:period_id/pending-close", post(pending_close_period))
+        .route(
+            "/periods/:period_id/pending-close",
+            post(pending_close_period),
+        )
         .route("/periods/:period_id/close", post(close_period))
-        .route("/periods/:period_id/permanently-close", post(permanently_close_period))
+        .route(
+            "/periods/:period_id/permanently-close",
+            post(permanently_close_period),
+        )
         .route("/periods/:period_id/reopen", post(reopen_period))
-        
         // Subledger Status
-        .route("/periods/:period_id/subledger", post(update_subledger_status))
-        
+        .route(
+            "/periods/:period_id/subledger",
+            post(update_subledger_status),
+        )
         // Period Close Checklist
         .route("/periods/:period_id/checklist", get(list_checklist_items))
         .route("/periods/:period_id/checklist", post(create_checklist_item))
-        .route("/periods/:period_id/checklist/:item_id", put(update_checklist_item))
-        .route("/periods/:period_id/checklist/:item_id", delete(delete_checklist_item))
-        
+        .route(
+            "/periods/:period_id/checklist/:item_id",
+            put(update_checklist_item),
+        )
+        .route(
+            "/periods/:period_id/checklist/:item_id",
+            delete(delete_checklist_item),
+        )
         // Period Exceptions
-        .route("/periods/:period_id/exceptions", post(grant_period_exception))
-        .route("/periods/:period_id/exceptions/:user_id", delete(revoke_period_exception))
-        
+        .route(
+            "/periods/:period_id/exceptions",
+            post(grant_period_exception),
+        )
+        .route(
+            "/periods/:period_id/exceptions/:user_id",
+            delete(revoke_period_exception),
+        )
         // Period Close Dashboard
         .route("/calendars/:calendar_id/summary", get(get_close_summary))
-        
         // Posting Validation
-        .route("/calendars/:calendar_id/check-posting", get(check_posting_allowed))
+        .route(
+            "/calendars/:calendar_id/check-posting",
+            get(check_posting_allowed),
+        )
 }
 
 fn currency_api_routes() -> Router<Arc<AppState>> {
@@ -700,19 +539,15 @@ fn currency_api_routes() -> Router<Arc<AppState>> {
         .route("/currencies", post(create_currency))
         .route("/currencies/base", get(get_base_currency))
         .route("/currencies/:code", delete(delete_currency))
-        
         // Exchange Rates
         .route("/exchange-rates", post(set_exchange_rate))
         .route("/exchange-rates", get(list_exchange_rates))
         .route("/exchange-rates/:from/:to", get(get_exchange_rate))
         .route("/exchange-rates/:id", delete(delete_exchange_rate))
-        
         // Currency Conversion
         .route("/currency/convert", post(convert_currency))
-        
         // Unrealized Gain/Loss
         .route("/currency/gain-loss", post(calculate_gain_loss))
-        
         // Bulk Rate Import
         .route("/exchange-rates/import", post(import_rates))
 }
@@ -724,27 +559,24 @@ fn tax_api_routes() -> Router<Arc<AppState>> {
         .route("/regimes", post(create_tax_regime))
         .route("/regimes/:code", get(get_tax_regime))
         .route("/regimes/:code", delete(delete_tax_regime))
-        
         // Tax Jurisdictions
         .route("/jurisdictions", get(list_tax_jurisdictions))
         .route("/jurisdictions", post(create_tax_jurisdiction))
-        .route("/jurisdictions/:regime_code/:code", delete(delete_tax_jurisdiction))
-        
+        .route(
+            "/jurisdictions/:regime_code/:code",
+            delete(delete_tax_jurisdiction),
+        )
         // Tax Rates
         .route("/rates", post(create_tax_rate))
         .route("/rates/:regime_code", get(list_tax_rates))
         .route("/rates/:regime_code/:code", delete(delete_tax_rate))
-        
         // Tax Determination Rules
         .route("/rules", post(create_determination_rule))
         .route("/rules/:regime_code", get(list_determination_rules))
-        
         // Tax Calculation
         .route("/calculate", post(calculate_tax))
-        
         // Tax Lines (per transaction)
         .route("/lines/:entity_type/:entity_id", get(get_tax_lines))
-        
         // Tax Reporting
         .route("/reports", post(generate_tax_report))
         .route("/reports", get(list_tax_reports))
@@ -757,22 +589,31 @@ fn intercompany_api_routes() -> Router<Arc<AppState>> {
         .route("/batches", post(create_intercompany_batch))
         .route("/batches/:batch_number", get(get_intercompany_batch))
         .route("/batches/:batch_id/submit", post(submit_intercompany_batch))
-        .route("/batches/:batch_id/approve", post(approve_intercompany_batch))
+        .route(
+            "/batches/:batch_id/approve",
+            post(approve_intercompany_batch),
+        )
         .route("/batches/:batch_id/post", post(post_intercompany_batch))
         .route("/batches/:batch_id/reject", post(reject_intercompany_batch))
-        
         // Intercompany Transactions
         .route("/transactions", post(create_intercompany_transaction))
-        .route("/transactions/batch/:batch_id", get(list_intercompany_transactions))
-        .route("/transactions/entity/:entity_id", get(list_entity_transactions))
-        
+        .route(
+            "/transactions/batch/:batch_id",
+            get(list_intercompany_transactions),
+        )
+        .route(
+            "/transactions/entity/:entity_id",
+            get(list_entity_transactions),
+        )
         // Intercompany Settlements
         .route("/settlements", post(create_intercompany_settlement))
         .route("/settlements", get(list_intercompany_settlements))
-        
         // Intercompany Balances
         .route("/balances/summary", get(get_intercompany_balance_summary))
-        .route("/balances/:from_entity_id/:to_entity_id", get(get_intercompany_balance))
+        .route(
+            "/balances/:from_entity_id/:to_entity_id",
+            get(get_intercompany_balance),
+        )
 }
 
 fn reconciliation_api_routes() -> Router<Arc<AppState>> {
@@ -782,29 +623,32 @@ fn reconciliation_api_routes() -> Router<Arc<AppState>> {
         .route("/bank-accounts", post(create_bank_account))
         .route("/bank-accounts/:id", get(get_bank_account))
         .route("/bank-accounts/:id", delete(delete_bank_account))
-        
         // Bank Statements
         .route("/statements", post(create_bank_statement))
-        .route("/statements/bank-account/:bank_account_id", get(list_bank_statements))
+        .route(
+            "/statements/bank-account/:bank_account_id",
+            get(list_bank_statements),
+        )
         .route("/statements/:statement_id", get(get_bank_statement))
         .route("/statements/:statement_id/lines", get(list_statement_lines))
-        
         // System Transactions
         .route("/system-transactions", post(create_system_transaction))
-        .route("/system-transactions/unreconciled/:bank_account_id", get(list_unreconciled_transactions))
-        
+        .route(
+            "/system-transactions/unreconciled/:bank_account_id",
+            get(list_unreconciled_transactions),
+        )
         // Auto-Matching
-        .route("/statements/:statement_id/auto-match", post(auto_match_statement))
-        
+        .route(
+            "/statements/:statement_id/auto-match",
+            post(auto_match_statement),
+        )
         // Manual Matching
         .route("/statements/:statement_id/manual-match", post(manual_match))
         .route("/matches/:match_id/unmatch", post(unmatch))
         .route("/statements/:statement_id/matches", get(list_matches))
-        
         // Reconciliation Summary
         .route("/summary", get(get_reconciliation_summary))
         .route("/summaries", get(list_reconciliation_summaries))
-        
         // Matching Rules
         .route("/rules", post(create_matching_rule))
         .route("/rules", get(list_matching_rules))
@@ -818,12 +662,10 @@ fn expense_api_routes() -> Router<Arc<AppState>> {
         .route("/categories", post(create_expense_category))
         .route("/categories/:code", get(get_expense_category))
         .route("/categories/:code", delete(delete_expense_category))
-        
         // Expense Policies
         .route("/policies", get(list_expense_policies))
         .route("/policies", post(create_expense_policy))
         .route("/policies/:id", delete(delete_expense_policy))
-        
         // Expense Reports
         .route("/reports", get(list_expense_reports))
         .route("/reports", post(create_expense_report))
@@ -832,11 +674,13 @@ fn expense_api_routes() -> Router<Arc<AppState>> {
         .route("/reports/:id/approve", post(approve_expense_report))
         .route("/reports/:id/reject", post(reject_expense_report))
         .route("/reports/:id/reimburse", post(reimburse_expense_report))
-        
         // Expense Lines
         .route("/reports/:report_id/lines", get(list_expense_lines))
         .route("/reports/:report_id/lines", post(add_expense_line))
-        .route("/reports/:report_id/lines/:line_id", delete(delete_expense_line))
+        .route(
+            "/reports/:report_id/lines/:line_id",
+            delete(delete_expense_line),
+        )
 }
 
 fn budget_api_routes() -> Router<Arc<AppState>> {
@@ -846,35 +690,59 @@ fn budget_api_routes() -> Router<Arc<AppState>> {
         .route("/definitions", post(create_budget_definition))
         .route("/definitions/:code", get(get_budget_definition))
         .route("/definitions/:code", delete(delete_budget_definition))
-
         // Budget Versions
-        .route("/definitions/:budget_code/versions", post(create_budget_version))
-        .route("/definitions/:budget_code/versions", get(list_budget_versions))
+        .route(
+            "/definitions/:budget_code/versions",
+            post(create_budget_version),
+        )
+        .route(
+            "/definitions/:budget_code/versions",
+            get(list_budget_versions),
+        )
         .route("/versions/:version_id", get(get_budget_version))
-
         // Budget Version Workflow
         .route("/versions/:version_id/submit", post(submit_budget_version))
-        .route("/versions/:version_id/approve", post(approve_budget_version))
-        .route("/versions/:version_id/activate", post(activate_budget_version))
+        .route(
+            "/versions/:version_id/approve",
+            post(approve_budget_version),
+        )
+        .route(
+            "/versions/:version_id/activate",
+            post(activate_budget_version),
+        )
         .route("/versions/:version_id/reject", post(reject_budget_version))
         .route("/versions/:version_id/close", post(close_budget_version))
-
         // Budget Lines
         .route("/versions/:version_id/lines", get(list_budget_lines))
         .route("/versions/:version_id/lines", post(add_budget_line))
-        .route("/versions/:version_id/lines/:line_id", delete(delete_budget_line))
-
+        .route(
+            "/versions/:version_id/lines/:line_id",
+            delete(delete_budget_line),
+        )
         // Budget Transfers
-        .route("/versions/:version_id/transfers", post(create_budget_transfer))
-        .route("/versions/:version_id/transfers", get(list_budget_transfers))
-        .route("/transfers/:transfer_id/approve", post(approve_budget_transfer))
-        .route("/transfers/:transfer_id/reject", post(reject_budget_transfer))
-
+        .route(
+            "/versions/:version_id/transfers",
+            post(create_budget_transfer),
+        )
+        .route(
+            "/versions/:version_id/transfers",
+            get(list_budget_transfers),
+        )
+        .route(
+            "/transfers/:transfer_id/approve",
+            post(approve_budget_transfer),
+        )
+        .route(
+            "/transfers/:transfer_id/reject",
+            post(reject_budget_transfer),
+        )
         // Budget Variance Report
         .route("/versions/:version_id/variance", get(get_budget_variance))
-
         // Budget Control Check
-        .route("/definitions/:budget_code/check", post(check_budget_control))
+        .route(
+            "/definitions/:budget_code/check",
+            post(check_budget_control),
+        )
 }
 
 fn fixed_assets_api_routes() -> Router<Arc<AppState>> {
@@ -884,30 +752,27 @@ fn fixed_assets_api_routes() -> Router<Arc<AppState>> {
         .route("/categories", post(create_asset_category))
         .route("/categories/:code", get(get_asset_category))
         .route("/categories/:code", delete(delete_asset_category))
-
         // Asset Books
         .route("/books", get(list_asset_books))
         .route("/books", post(create_asset_book))
-
         // Fixed Assets
         .route("/assets", get(list_fixed_assets))
         .route("/assets", post(create_fixed_asset))
         .route("/assets/:id", get(get_fixed_asset))
-
         // Asset Lifecycle
         .route("/assets/:id/acquire", post(acquire_fixed_asset))
         .route("/assets/:id/place-in-service", post(place_asset_in_service))
-
         // Depreciation
         .route("/assets/:id/depreciate", post(calculate_depreciation))
-        .route("/assets/:id/depreciation-history", get(list_depreciation_history))
-
+        .route(
+            "/assets/:id/depreciation-history",
+            get(list_depreciation_history),
+        )
         // Asset Transfers
         .route("/transfers", get(list_asset_transfers))
         .route("/transfers", post(create_asset_transfer))
         .route("/transfers/:id/approve", post(approve_asset_transfer))
         .route("/transfers/:id/reject", post(reject_asset_transfer))
-
         // Asset Retirements
         .route("/retirements", get(list_asset_retirements))
         .route("/retirements", post(create_asset_retirement))
@@ -921,40 +786,37 @@ fn sla_api_routes() -> Router<Arc<AppState>> {
         .route("/methods", post(create_accounting_method))
         .route("/methods/:code", get(get_accounting_method))
         .route("/methods/:code", delete(delete_accounting_method))
-
         // Derivation Rules
         .route("/methods/:method_id/rules", get(list_derivation_rules))
         .route("/methods/:method_id/rules", post(create_derivation_rule))
-        .route("/methods/:method_id/rules/:code", delete(delete_derivation_rule))
-
+        .route(
+            "/methods/:method_id/rules/:code",
+            delete(delete_derivation_rule),
+        )
         // Resolve Account Code
         .route("/resolve-account", post(resolve_account_code))
-
         // Journal Entries
         .route("/entries", get(list_journal_entries))
         .route("/entries", post(create_journal_entry))
         .route("/entries/:id", get(get_journal_entry))
-
         // Journal Lines
         .route("/entries/:entry_id/lines", get(list_journal_lines))
         .route("/entries/:entry_id/lines", post(add_journal_line))
-
         // Entry Lifecycle
         .route("/entries/:id/account", post(account_journal_entry))
         .route("/entries/:id/post", post(post_journal_entry))
         .route("/entries/:id/reverse", post(reverse_journal_entry))
-
         // Auto-Accounting
-        .route("/entries/:entry_id/generate-lines", post(generate_journal_lines))
-
+        .route(
+            "/entries/:entry_id/generate-lines",
+            post(generate_journal_lines),
+        )
         // Transfer to GL
         .route("/transfer-to-gl", post(transfer_to_gl))
         .route("/transfers/:id", get(get_transfer_log))
         .route("/transfers", get(list_transfer_logs))
-
         // SLA Events
         .route("/events", get(list_sla_events))
-
         // SLA Dashboard
         .route("/dashboard", get(get_sla_dashboard))
 }
@@ -966,28 +828,23 @@ fn encumbrance_api_routes() -> Router<Arc<AppState>> {
         .route("/types", post(create_encumbrance_type))
         .route("/types/:code", get(get_encumbrance_type))
         .route("/types/:code", delete(delete_encumbrance_type))
-
         // Encumbrance Entries
         .route("/entries", post(create_encumbrance_entry))
         .route("/entries", get(list_encumbrance_entries))
         .route("/entries/:id", get(get_encumbrance_entry))
         .route("/entries/:id/activate", post(activate_encumbrance_entry))
         .route("/entries/:id/cancel", post(cancel_encumbrance_entry))
-
         // Encumbrance Lines
         .route("/entries/:entry_id/lines", post(add_encumbrance_line))
         .route("/entries/:entry_id/lines", get(list_encumbrance_lines))
         .route("/lines/:line_id", delete(delete_encumbrance_line))
-
         // Liquidations
         .route("/liquidations", post(create_liquidation))
         .route("/liquidations", get(list_liquidations))
         .route("/liquidations/:id/reverse", post(reverse_liquidation))
-
         // Year-End Carry-Forward
         .route("/carry-forward", post(process_carry_forward))
         .route("/carry-forward", get(list_carry_forwards))
-
         // Encumbrance Summary Dashboard
         .route("/summary", get(get_encumbrance_summary))
 }
@@ -999,25 +856,24 @@ fn cash_management_api_routes() -> Router<Arc<AppState>> {
         .route("/positions", get(list_cash_positions))
         .route("/positions/:bank_account_id", get(get_cash_position))
         .route("/positions/summary", get(get_cash_position_summary))
-
         // Forecast Templates
         .route("/templates", post(create_forecast_template))
         .route("/templates", get(list_forecast_templates))
         .route("/templates/:code", get(get_forecast_template))
         .route("/templates/:code", delete(delete_forecast_template))
-
         // Forecast Sources
         .route("/sources", post(create_forecast_source))
         .route("/sources/:template_code", get(list_forecast_sources))
-        .route("/sources/:template_code/:code", delete(delete_forecast_source))
-
+        .route(
+            "/sources/:template_code/:code",
+            delete(delete_forecast_source),
+        )
         // Cash Forecasts
         .route("/forecasts", post(generate_forecast))
         .route("/forecasts", get(list_cash_forecasts))
         .route("/forecasts/:id", get(get_cash_forecast))
         .route("/forecasts/:id/approve", post(approve_cash_forecast))
         .route("/forecasts/:forecast_id/lines", get(list_forecast_lines))
-
         // Forecast Summary (Dashboard)
         .route("/forecast-summary", get(get_forecast_summary))
 }
@@ -1031,28 +887,23 @@ fn sourcing_api_routes() -> Router<Arc<AppState>> {
         .route("/events/:id/publish", post(publish_sourcing_event))
         .route("/events/:id/close", post(close_sourcing_event))
         .route("/events/:id/cancel", post(cancel_sourcing_event))
-
         // Event Lines
         .route("/events/:event_id/lines", post(add_event_line))
         .route("/events/:event_id/lines", get(list_event_lines))
-
         // Supplier Invitations
         .route("/events/:event_id/invites", post(invite_supplier))
         .route("/events/:event_id/invites", get(list_invites))
-
         // Supplier Responses
         .route("/events/:event_id/responses", post(submit_response))
         .route("/events/:event_id/responses", get(list_responses))
         .route("/responses/:id", get(get_response))
         .route("/responses/:response_id/lines", post(add_response_line))
         .route("/responses/:response_id/lines", get(list_response_lines))
-
         // Scoring & Evaluation
         .route("/events/:event_id/criteria", post(add_scoring_criterion))
         .route("/events/:event_id/criteria", get(list_scoring_criteria))
         .route("/responses/:response_id/score", post(score_response))
         .route("/events/:event_id/evaluate", post(evaluate_responses))
-
         // Award Management
         .route("/events/:event_id/awards", post(create_award))
         .route("/events/:event_id/awards", get(list_awards))
@@ -1060,13 +911,11 @@ fn sourcing_api_routes() -> Router<Arc<AppState>> {
         .route("/awards/:id/approve", post(approve_award))
         .route("/awards/:id/reject", post(reject_award))
         .route("/awards/:award_id/lines", get(list_award_lines))
-
         // Sourcing Templates
         .route("/templates", post(create_sourcing_template))
         .route("/templates", get(list_sourcing_templates))
         .route("/templates/:code", get(get_sourcing_template))
         .route("/templates/:code", delete(delete_sourcing_template))
-
         // Sourcing Dashboard
         .route("/summary", get(get_sourcing_summary))
 }
@@ -1078,22 +927,23 @@ fn lease_api_routes() -> Router<Arc<AppState>> {
         .route("/contracts", post(create_lease))
         .route("/contracts/:id", get(get_lease))
         .route("/contracts/:id/activate", post(activate_lease))
-
         // Lease Payments
         .route("/contracts/:id/payments", get(list_lease_payments))
         .route("/contracts/:id/payments", post(process_lease_payment))
-
         // Lease Modifications
-        .route("/contracts/:id/modifications", post(create_lease_modification))
-        .route("/contracts/:id/modifications", get(list_lease_modifications))
-
+        .route(
+            "/contracts/:id/modifications",
+            post(create_lease_modification),
+        )
+        .route(
+            "/contracts/:id/modifications",
+            get(list_lease_modifications),
+        )
         // Lease Impairment
         .route("/contracts/:id/impairment", post(record_lease_impairment))
-
         // Lease Termination
         .route("/contracts/:id/terminate", post(terminate_lease))
         .route("/contracts/:id/terminations", get(list_lease_terminations))
-
         // Lease Dashboard
         .route("/dashboard", get(get_lease_dashboard))
 }
@@ -1106,25 +956,36 @@ fn project_costing_api_routes() -> Router<Arc<AppState>> {
         .route("/transactions/:id", get(get_cost_transaction))
         .route("/transactions/:id/approve", post(approve_cost_transaction))
         .route("/transactions/:id/reverse", post(reverse_cost_transaction))
-
         // Burden Schedules
         .route("/burden-schedules", get(list_burden_schedules))
         .route("/burden-schedules", post(create_burden_schedule))
         .route("/burden-schedules/:code", get(get_burden_schedule))
-        .route("/burden-schedules/:id/activate", post(activate_burden_schedule))
-        .route("/burden-schedules/:schedule_id/lines", get(list_burden_schedule_lines))
-        .route("/burden-schedules/:schedule_id/lines", post(add_burden_schedule_line))
-
+        .route(
+            "/burden-schedules/:id/activate",
+            post(activate_burden_schedule),
+        )
+        .route(
+            "/burden-schedules/:schedule_id/lines",
+            get(list_burden_schedule_lines),
+        )
+        .route(
+            "/burden-schedules/:schedule_id/lines",
+            post(add_burden_schedule_line),
+        )
         // Cost Adjustments
         .route("/adjustments", get(list_cost_adjustments))
         .route("/adjustments", post(create_cost_adjustment))
         .route("/adjustments/:id/approve", post(approve_cost_adjustment))
-
         // Cost Distributions
-        .route("/transactions/:id/distribute", post(distribute_cost_transaction))
-        .route("/transactions/:transaction_id/distributions", get(list_cost_distributions))
+        .route(
+            "/transactions/:id/distribute",
+            post(distribute_cost_transaction),
+        )
+        .route(
+            "/transactions/:transaction_id/distributions",
+            get(list_cost_distributions),
+        )
         .route("/distributions/post", post(post_distributions))
-
         // Project Costing Dashboard
         .route("/dashboard", get(get_costing_summary))
 }
@@ -1136,28 +997,23 @@ fn cost_allocation_api_routes() -> Router<Arc<AppState>> {
         .route("/pools", post(create_allocation_pool))
         .route("/pools/:code", get(get_allocation_pool))
         .route("/pools/:code", delete(delete_allocation_pool))
-
         // Allocation Bases
         .route("/bases", get(list_allocation_bases))
         .route("/bases", post(create_allocation_base))
         .route("/bases/:code", get(get_allocation_base))
         .route("/bases/:code", delete(delete_allocation_base))
-
         // Base Values
         .route("/base-values", post(set_base_value))
         .route("/base-values", get(list_base_values))
-
         // Allocation Rules
         .route("/rules", get(list_allocation_rules))
         .route("/rules", post(create_allocation_rule))
         .route("/rules/:id", get(get_allocation_rule))
         .route("/rules/:id/activate", post(activate_allocation_rule))
         .route("/rules/:id/deactivate", post(deactivate_allocation_rule))
-
         // Rule Targets
         .route("/rules/:rule_id/targets", post(add_rule_target))
         .route("/rules/:rule_id/targets", get(list_rule_targets))
-
         // Allocation Runs
         .route("/rules/:rule_id/execute", post(execute_allocation_rule))
         .route("/runs", get(list_allocation_runs))
@@ -1165,7 +1021,6 @@ fn cost_allocation_api_routes() -> Router<Arc<AppState>> {
         .route("/runs/:id/post", post(post_allocation_run))
         .route("/runs/:id/reverse", post(reverse_allocation_run))
         .route("/runs/:run_id/lines", get(list_allocation_run_lines))
-
         // Cost Allocation Dashboard
         .route("/summary", get(get_allocation_summary))
 }
@@ -1177,38 +1032,46 @@ fn financial_reporting_api_routes() -> Router<Arc<AppState>> {
         .route("/templates", post(create_financial_template))
         .route("/templates/:code", get(get_financial_template))
         .route("/templates/:code", delete(delete_financial_template))
-
         // Report Rows
         .route("/templates/:template_id/rows", get(list_financial_rows))
         .route("/templates/:template_id/rows", post(create_financial_row))
         .route("/rows/:id", delete(delete_financial_row))
-
         // Report Columns
-        .route("/templates/:template_id/columns", get(list_financial_columns))
-        .route("/templates/:template_id/columns", post(create_financial_column))
+        .route(
+            "/templates/:template_id/columns",
+            get(list_financial_columns),
+        )
+        .route(
+            "/templates/:template_id/columns",
+            post(create_financial_column),
+        )
         .route("/columns/:id", delete(delete_financial_column))
-
         // Report Generation
-        .route("/templates/:template_code/generate", post(generate_financial_report))
+        .route(
+            "/templates/:template_code/generate",
+            post(generate_financial_report),
+        )
         .route("/runs", get(list_financial_runs))
         .route("/runs/:id", get(get_financial_run))
         .route("/runs/:run_id/results", get(get_financial_run_results))
-
         // Report Lifecycle
         .route("/runs/:id/approve", post(approve_financial_report))
         .route("/runs/:id/publish", post(publish_financial_report))
         .route("/runs/:id/archive", post(archive_financial_report))
-
         // Quick Templates
         .route("/quick/trial-balance", post(create_financial_trial_balance))
-        .route("/quick/income-statement", post(create_financial_income_statement))
+        .route(
+            "/quick/income-statement",
+            post(create_financial_income_statement),
+        )
         .route("/quick/balance-sheet", post(create_financial_balance_sheet))
-
         // Favourites
         .route("/favourites", get(list_financial_favourites))
         .route("/favourites/:template_id", post(add_financial_favourite))
-        .route("/favourites/:template_id", delete(remove_financial_favourite))
-
+        .route(
+            "/favourites/:template_id",
+            delete(remove_financial_favourite),
+        )
         // Dashboard
         .route("/dashboard", get(get_financial_dashboard))
 }
@@ -1221,12 +1084,10 @@ fn multi_book_api_routes() -> Router<Arc<AppState>> {
         .route("/books/:code", get(get_accounting_book))
         .route("/books/:code/status", put(update_accounting_book_status))
         .route("/books/:code", delete(delete_accounting_book))
-
         // Account Mappings
         .route("/mappings", post(create_account_mapping))
         .route("/mappings", get(list_account_mappings))
         .route("/mappings/:id", delete(delete_account_mapping))
-
         // Journal Entries
         .route("/entries", post(create_book_journal_entry))
         .route("/entries/:id", get(get_book_journal_entry))
@@ -1234,11 +1095,9 @@ fn multi_book_api_routes() -> Router<Arc<AppState>> {
         .route("/entries/:entry_id/lines", get(get_book_journal_lines))
         .route("/entries/:id/post", post(post_book_journal_entry))
         .route("/entries/:id/reverse", post(reverse_book_journal_entry))
-
         // Propagation
         .route("/entries/:id/propagate", post(propagate_entry))
         .route("/propagation-logs", get(list_propagation_logs))
-
         // Multi-Book Dashboard
         .route("/dashboard", get(get_multi_book_summary))
 }
@@ -1250,7 +1109,6 @@ fn procurement_contracts_api_routes() -> Router<Arc<AppState>> {
         .route("/types", post(create_contract_type))
         .route("/types/:code", get(get_contract_type))
         .route("/types/:code", delete(delete_contract_type))
-
         // Contracts
         .route("/", post(create_contract))
         .route("/", get(list_contracts))
@@ -1260,25 +1118,20 @@ fn procurement_contracts_api_routes() -> Router<Arc<AppState>> {
         .route("/:id/reject", post(reject_contract))
         .route("/:id/terminate", post(terminate_contract))
         .route("/:id/close", post(close_contract))
-
         // Contract Lines
         .route("/:contract_id/lines", post(add_contract_line))
         .route("/:contract_id/lines", get(list_contract_lines))
         .route("/lines/:line_id", delete(delete_contract_line))
-
         // Milestones
         .route("/:contract_id/milestones", post(add_milestone))
         .route("/:contract_id/milestones", get(list_milestones))
         .route("/milestones/:milestone_id", put(update_milestone))
-
         // Renewals
         .route("/:contract_id/renewals", post(renew_contract))
         .route("/:contract_id/renewals", get(list_renewals))
-
         // Spend Tracking
         .route("/:contract_id/spend", post(record_spend))
         .route("/:contract_id/spend", get(list_spend_entries))
-
         // Dashboard
         .route("/dashboard", get(get_dashboard_summary))
 }
@@ -1299,7 +1152,10 @@ fn inventory_api_routes() -> Router<Arc<AppState>> {
         .route("/transactions/adjust", post(adjust_item))
         .route("/transactions", get(list_transactions))
         .route("/subinventories", post(create_subinventory))
-        .route("/subinventories/:inventory_org_id", get(list_subinventories))
+        .route(
+            "/subinventories/:inventory_org_id",
+            get(list_subinventories),
+        )
         .route("/dashboard", get(get_inventory_dashboard))
 }
 
@@ -1310,7 +1166,6 @@ fn returns_api_routes() -> Router<Arc<AppState>> {
         .route("/reasons", get(list_return_reasons))
         .route("/reasons/:code", get(get_return_reason))
         .route("/reasons/:code", delete(delete_return_reason))
-
         // Return Authorizations (RMAs)
         .route("/rmas", post(create_rma))
         .route("/rmas", get(list_rmas))
@@ -1319,20 +1174,17 @@ fn returns_api_routes() -> Router<Arc<AppState>> {
         .route("/rmas/:id/approve", post(approve_rma))
         .route("/rmas/:id/reject", post(reject_rma))
         .route("/rmas/:id/cancel", post(cancel_rma))
-
         // Return Lines
         .route("/rmas/:rma_id/lines", post(add_return_line))
         .route("/rmas/:rma_id/lines", get(list_return_lines))
         .route("/lines/:line_id/receive", post(receive_return_line))
         .route("/lines/:line_id/inspect", post(inspect_return_line))
-
         // Credit Memos
         .route("/rmas/:rma_id/credit-memo", post(generate_credit_memo))
         .route("/credit-memos", get(list_credit_memos))
         .route("/credit-memos/:id", get(get_credit_memo))
         .route("/credit-memos/:id/issue", post(issue_credit_memo))
         .route("/credit-memos/:id/cancel", post(cancel_credit_memo))
-
         // Dashboard
         .route("/dashboard", get(get_returns_dashboard))
 }
@@ -1346,38 +1198,36 @@ fn pricing_api_routes() -> Router<Arc<AppState>> {
         .route("/price-lists/:code", delete(delete_price_list))
         .route("/price-lists/:id/activate", post(activate_price_list))
         .route("/price-lists/:id/deactivate", post(deactivate_price_list))
-
         // Price List Lines
-        .route("/price-lists/:price_list_id/lines", post(add_price_list_line))
-        .route("/price-lists/:price_list_id/lines", get(list_price_list_lines))
+        .route(
+            "/price-lists/:price_list_id/lines",
+            post(add_price_list_line),
+        )
+        .route(
+            "/price-lists/:price_list_id/lines",
+            get(list_price_list_lines),
+        )
         .route("/lines/:id", delete(delete_price_list_line))
-
         // Price Tiers
         .route("/lines/:price_list_line_id/tiers", post(add_price_tier))
         .route("/lines/:price_list_line_id/tiers", get(list_price_tiers))
-
         // Discount Rules
         .route("/discount-rules", post(create_discount_rule))
         .route("/discount-rules", get(list_discount_rules))
         .route("/discount-rules/:code", get(get_discount_rule))
         .route("/discount-rules/:code", delete(delete_discount_rule))
-
         // Charge Definitions
         .route("/charges", post(create_charge_definition))
         .route("/charges", get(list_charge_definitions))
         .route("/charges/:code", get(get_charge_definition))
         .route("/charges/:code", delete(delete_charge_definition))
-
         // Pricing Strategies
         .route("/strategies", post(create_pricing_strategy))
         .route("/strategies", get(list_pricing_strategies))
-
         // Price Calculation
         .route("/calculate", post(calculate_price))
-
         // Calculation Logs
         .route("/calculation-logs", get(list_calculation_logs))
-
         // Pricing Dashboard
         .route("/dashboard", get(get_pricing_dashboard))
 }
@@ -1389,7 +1239,6 @@ fn commission_api_routes() -> Router<Arc<AppState>> {
         .route("/reps", get(list_reps))
         .route("/reps/:code", get(get_rep))
         .route("/reps/:code", delete(delete_rep))
-
         // Commission Plans
         .route("/plans", post(create_commission_plan))
         .route("/plans", get(list_commission_plans))
@@ -1397,25 +1246,20 @@ fn commission_api_routes() -> Router<Arc<AppState>> {
         .route("/plans/:code", delete(delete_commission_plan))
         .route("/plans/:id/activate", post(activate_commission_plan))
         .route("/plans/:id/deactivate", post(deactivate_commission_plan))
-
         // Commission Rate Tiers
         .route("/plans/:plan_id/tiers", post(add_rate_tier))
         .route("/plans/:plan_id/tiers", get(list_rate_tiers))
-
         // Plan Assignments
         .route("/assignments", post(assign_plan))
         .route("/assignments", get(list_assignments))
-
         // Sales Quotas
         .route("/quotas", post(create_quota))
         .route("/quotas", get(list_quotas))
         .route("/quotas/:id", get(get_quota))
-
         // Commission Transactions
         .route("/transactions", post(credit_transaction))
         .route("/transactions", get(list_commission_transactions))
         .route("/transactions/:id", get(get_commission_transaction))
-
         // Payouts
         .route("/payouts", post(process_payout))
         .route("/payouts", get(list_payouts))
@@ -1423,7 +1267,6 @@ fn commission_api_routes() -> Router<Arc<AppState>> {
         .route("/payouts/:id/lines", get(get_payout_lines))
         .route("/payouts/:id/approve", post(approve_payout))
         .route("/payouts/:id/reject", post(reject_payout))
-
         // Commission Dashboard
         .route("/dashboard", get(get_commission_dashboard))
 }
@@ -1435,21 +1278,17 @@ fn treasury_api_routes() -> Router<Arc<AppState>> {
         .route("/counterparties", get(list_counterparties))
         .route("/counterparties/:code", get(get_counterparty))
         .route("/counterparties/:code", delete(delete_counterparty))
-
         // Treasury Deals
         .route("/deals", post(create_deal))
         .route("/deals", get(list_deals))
         .route("/deals/:id", get(get_deal))
-
         // Deal Lifecycle
         .route("/deals/:id/authorize", post(authorize_deal))
         .route("/deals/:id/settle", post(settle_deal))
         .route("/deals/:id/mature", post(mature_deal))
         .route("/deals/:id/cancel", post(cancel_deal))
-
         // Deal Settlements
         .route("/deals/:id/settlements", get(list_deal_settlements))
-
         // Treasury Dashboard
         .route("/dashboard", get(get_treasury_dashboard))
 }
@@ -1461,11 +1300,9 @@ fn grants_api_routes() -> Router<Arc<AppState>> {
         .route("/sponsors", get(list_sponsors))
         .route("/sponsors/:code", get(get_sponsor))
         .route("/sponsors/:code", delete(delete_sponsor))
-
         // Indirect Cost Rates
         .route("/indirect-cost-rates", post(create_indirect_cost_rate))
         .route("/indirect-cost-rates", get(list_indirect_cost_rates))
-
         // Awards
         .route("/awards", post(create_grant_award))
         .route("/awards", get(list_grant_awards))
@@ -1474,30 +1311,37 @@ fn grants_api_routes() -> Router<Arc<AppState>> {
         .route("/awards/:id/suspend", post(suspend_award))
         .route("/awards/:id/complete", post(complete_award))
         .route("/awards/:id/terminate", post(terminate_award))
-
         // Budget Lines
-        .route("/awards/:award_id/budget-lines", post(create_grant_budget_line))
-        .route("/awards/:award_id/budget-lines", get(list_grant_budget_lines))
-
+        .route(
+            "/awards/:award_id/budget-lines",
+            post(create_grant_budget_line),
+        )
+        .route(
+            "/awards/:award_id/budget-lines",
+            get(list_grant_budget_lines),
+        )
         // Expenditures
-        .route("/awards/:award_id/expenditures", post(create_grant_expenditure))
-        .route("/awards/:award_id/expenditures", get(list_grant_expenditures))
+        .route(
+            "/awards/:award_id/expenditures",
+            post(create_grant_expenditure),
+        )
+        .route(
+            "/awards/:award_id/expenditures",
+            get(list_grant_expenditures),
+        )
         .route("/expenditures/:id/approve", post(approve_expenditure))
         .route("/expenditures/:id/reverse", post(reverse_expenditure))
-
         // Billing
         .route("/awards/:award_id/billings", post(create_grant_billing))
         .route("/awards/:award_id/billings", get(list_grant_billings))
         .route("/billings/:id/submit", post(submit_grant_billing))
         .route("/billings/:id/approve", post(approve_grant_billing))
         .route("/billings/:id/pay", post(mark_billing_paid))
-
         // Compliance Reports
         .route("/awards/:award_id/reports", post(create_compliance_report))
         .route("/awards/:award_id/reports", get(list_compliance_reports))
         .route("/reports/:id/submit", post(submit_compliance_report))
         .route("/reports/:id/approve", post(approve_compliance_report))
-
         // Grant Dashboard
         .route("/dashboard", get(get_grant_dashboard))
 }
@@ -1509,12 +1353,16 @@ fn supplier_qualification_api_routes() -> Router<Arc<AppState>> {
         .route("/areas", get(list_qualification_areas))
         .route("/areas/:code", get(get_qualification_area))
         .route("/areas/:code", delete(delete_qualification_area))
-
         // Qualification Questions
-        .route("/areas/:area_id/questions", post(create_qualification_question))
-        .route("/areas/:area_id/questions", get(list_qualification_questions))
+        .route(
+            "/areas/:area_id/questions",
+            post(create_qualification_question),
+        )
+        .route(
+            "/areas/:area_id/questions",
+            get(list_qualification_questions),
+        )
         .route("/questions/:id", delete(delete_qualification_question))
-
         // Initiatives
         .route("/initiatives", post(create_initiative))
         .route("/initiatives", get(list_initiatives))
@@ -1522,28 +1370,44 @@ fn supplier_qualification_api_routes() -> Router<Arc<AppState>> {
         .route("/initiatives/:id/activate", post(activate_initiative))
         .route("/initiatives/:id/complete", post(complete_initiative))
         .route("/initiatives/:id/cancel", post(cancel_initiative))
-
         // Supplier Invitations
-        .route("/initiatives/:initiative_id/invitations", post(invite_supplier))
-        .route("/initiatives/:initiative_id/invitations", get(list_invitations))
-
+        .route(
+            "/initiatives/:initiative_id/invitations",
+            post(invite_supplier),
+        )
+        .route(
+            "/initiatives/:initiative_id/invitations",
+            get(list_invitations),
+        )
         // Invitation Lifecycle
-        .route("/invitations/:invitation_id/submit", post(submit_invitation_response))
-        .route("/invitations/:invitation_id/evaluate", post(start_evaluation))
-        .route("/invitations/:invitation_id/qualify", post(qualify_supplier))
-        .route("/invitations/:invitation_id/disqualify", post(disqualify_supplier))
-
+        .route(
+            "/invitations/:invitation_id/submit",
+            post(submit_invitation_response),
+        )
+        .route(
+            "/invitations/:invitation_id/evaluate",
+            post(start_evaluation),
+        )
+        .route(
+            "/invitations/:invitation_id/qualify",
+            post(qualify_supplier),
+        )
+        .route(
+            "/invitations/:invitation_id/disqualify",
+            post(disqualify_supplier),
+        )
         // Responses
-        .route("/invitations/:invitation_id/responses", post(create_response))
+        .route(
+            "/invitations/:invitation_id/responses",
+            post(create_response),
+        )
         .route("/invitations/:invitation_id/responses", get(list_responses))
         .route("/responses/:response_id/score", post(score_response))
-
         // Certifications
         .route("/certifications", post(create_certification))
         .route("/certifications", get(list_certifications))
         .route("/certifications/:id/revoke", post(revoke_certification))
         .route("/certifications/:id/renew", post(renew_certification))
-
         // Dashboard
         .route("/dashboard", get(get_qualification_dashboard))
 }
@@ -1560,18 +1424,18 @@ fn journals_api_routes() -> Router<Arc<AppState>> {
         .route("/batches/:id/reject", post(reject_journal_batch))
         .route("/batches/:id/post", post(post_journal_batch))
         .route("/batches/:id/reverse", post(reverse_journal_batch))
-
         // Journal Entries
         .route("/batches/:batch_id/entries", post(create_journal_entry))
-        .route("/batches/:batch_id/entries", get(list_journal_entries_by_batch))
+        .route(
+            "/batches/:batch_id/entries",
+            get(list_journal_entries_by_batch),
+        )
         .route("/entries/:id", get(get_journal_entry))
         .route("/entries", get(list_journal_entries))
         .route("/entries/:id", delete(delete_journal_entry))
-
         // Journal Lines
         .route("/entries/:entry_id/lines", post(add_journal_line))
         .route("/entries/:entry_id/lines", get(list_journal_lines))
-
         // Dashboard
         .route("/dashboard", get(get_manual_journal_dashboard))
 }
@@ -1605,57 +1469,107 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .nest("/commission", commission_api_routes())
         .nest("/treasury", treasury_api_routes())
         .nest("/grants", grants_api_routes())
-        .nest("/supplier-qualification", supplier_qualification_api_routes())
+        .nest(
+            "/supplier-qualification",
+            supplier_qualification_api_routes(),
+        )
         .nest("/journals", journals_api_routes())
-        
         // ═══════════════════════════════════════════════════════════
         // Recurring Journals (Oracle Fusion GL > Recurring Journals)
         // ═══════════════════════════════════════════════════════════
-
         // ═══════════════════════════════════════════════════════════
         // Recurring Journals (Oracle Fusion GL > Recurring Journals)
         // ═══════════════════════════════════════════════════════════
-
         // Schedules
-        .route("/recurring-journals/schedules", post(create_recurring_schedule))
-        .route("/recurring-journals/schedules", get(list_recurring_schedules))
-        .route("/recurring-journals/schedules/:schedule_number", get(get_recurring_schedule))
-        .route("/recurring-journals/schedules/:schedule_number", delete(delete_recurring_schedule))
-        .route("/recurring-journals/schedules/:id/activate", post(activate_recurring_schedule))
-        .route("/recurring-journals/schedules/:id/deactivate", post(deactivate_recurring_schedule))
-
+        .route(
+            "/recurring-journals/schedules",
+            post(create_recurring_schedule),
+        )
+        .route(
+            "/recurring-journals/schedules",
+            get(list_recurring_schedules),
+        )
+        .route(
+            "/recurring-journals/schedules/:schedule_number",
+            get(get_recurring_schedule),
+        )
+        .route(
+            "/recurring-journals/schedules/:schedule_number",
+            delete(delete_recurring_schedule),
+        )
+        .route(
+            "/recurring-journals/schedules/:id/activate",
+            post(activate_recurring_schedule),
+        )
+        .route(
+            "/recurring-journals/schedules/:id/deactivate",
+            post(deactivate_recurring_schedule),
+        )
         // Schedule Lines
-        .route("/recurring-journals/schedules/:schedule_id/lines", post(add_recurring_schedule_line))
-        .route("/recurring-journals/schedules/:schedule_id/lines", get(list_recurring_schedule_lines))
-        .route("/recurring-journals/lines/:line_id", delete(delete_recurring_schedule_line))
-
+        .route(
+            "/recurring-journals/schedules/:schedule_id/lines",
+            post(add_recurring_schedule_line),
+        )
+        .route(
+            "/recurring-journals/schedules/:schedule_id/lines",
+            get(list_recurring_schedule_lines),
+        )
+        .route(
+            "/recurring-journals/lines/:line_id",
+            delete(delete_recurring_schedule_line),
+        )
         // Generation
-        .route("/recurring-journals/schedules/:schedule_id/generate", post(generate_journal))
+        .route(
+            "/recurring-journals/schedules/:schedule_id/generate",
+            post(generate_journal),
+        )
         .route("/recurring-journals/generations/:id", get(get_generation))
-        .route("/recurring-journals/schedules/:schedule_id/generations", get(list_recurring_generations))
-        .route("/recurring-journals/generations/:id/post", post(post_generation))
-        .route("/recurring-journals/generations/:id/reverse", post(reverse_generation))
-        .route("/recurring-journals/generations/:id/cancel", post(cancel_generation))
-        .route("/recurring-journals/generations/:generation_id/lines", get(list_recurring_generation_lines))
-
+        .route(
+            "/recurring-journals/schedules/:schedule_id/generations",
+            get(list_recurring_generations),
+        )
+        .route(
+            "/recurring-journals/generations/:id/post",
+            post(post_generation),
+        )
+        .route(
+            "/recurring-journals/generations/:id/reverse",
+            post(reverse_generation),
+        )
+        .route(
+            "/recurring-journals/generations/:id/cancel",
+            post(cancel_generation),
+        )
+        .route(
+            "/recurring-journals/generations/:generation_id/lines",
+            get(list_recurring_generation_lines),
+        )
         // Dashboard
-        .route("/recurring-journals/dashboard", get(get_recurring_journal_dashboard))
-
+        .route(
+            "/recurring-journals/dashboard",
+            get(get_recurring_journal_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════
         // Descriptive Flexfields (Oracle Fusion DFF)
         // ═══════════════════════════════════════════════════════════
-
         // Value Sets
         .route("/flexfields/value-sets", post(create_value_set))
         .route("/flexfields/value-sets", get(list_value_sets))
         .route("/flexfields/value-sets/:code", get(get_value_set))
         .route("/flexfields/value-sets/:code", delete(delete_value_set))
-
         // Value Set Entries
-        .route("/flexfields/value-sets/:code/entries", post(create_value_set_entry))
-        .route("/flexfields/value-sets/:code/entries", get(list_value_set_entries))
-        .route("/flexfields/value-sets/entries/:id", delete(delete_value_set_entry))
-
+        .route(
+            "/flexfields/value-sets/:code/entries",
+            post(create_value_set_entry),
+        )
+        .route(
+            "/flexfields/value-sets/:code/entries",
+            get(list_value_set_entries),
+        )
+        .route(
+            "/flexfields/value-sets/entries/:id",
+            delete(delete_value_set_entry),
+        )
         // Flexfields
         .route("/flexfields", post(create_flexfield))
         .route("/flexfields", get(list_flexfields))
@@ -1663,63 +1577,96 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/flexfields/:id/activate", post(activate_flexfield))
         .route("/flexfields/:id/deactivate", post(deactivate_flexfield))
         .route("/flexfields/:code", delete(delete_flexfield))
-
         // Contexts
         .route("/flexfields/:flexfield_code/contexts", post(create_context))
         .route("/flexfields/:flexfield_code/contexts", get(list_contexts))
         .route("/flexfields/contexts/:id/disable", post(disable_context))
         .route("/flexfields/contexts/:id/enable", post(enable_context))
         .route("/flexfields/contexts/:id", delete(delete_context))
-
         // Segments
-        .route("/flexfields/:flexfield_code/contexts/:context_code/segments", post(create_segment))
-        .route("/flexfields/:flexfield_code/contexts/:context_code/segments", get(list_segments_by_context))
-        .route("/flexfields/:flexfield_code/segments", get(list_segments_by_flexfield))
+        .route(
+            "/flexfields/:flexfield_code/contexts/:context_code/segments",
+            post(create_segment),
+        )
+        .route(
+            "/flexfields/:flexfield_code/contexts/:context_code/segments",
+            get(list_segments_by_context),
+        )
+        .route(
+            "/flexfields/:flexfield_code/segments",
+            get(list_segments_by_flexfield),
+        )
         .route("/flexfields/segments/:id", delete(delete_segment))
-
         // Flexfield Data (per-record values)
-        .route("/flexfields/data/:entity_name/:entity_id", post(set_flexfield_data))
-        .route("/flexfields/data/:entity_name/:entity_id", get(get_flexfield_data))
-        .route("/flexfields/data/:entity_name/:entity_id", delete(delete_flexfield_data))
-
+        .route(
+            "/flexfields/data/:entity_name/:entity_id",
+            post(set_flexfield_data),
+        )
+        .route(
+            "/flexfields/data/:entity_name/:entity_id",
+            get(get_flexfield_data),
+        )
+        .route(
+            "/flexfields/data/:entity_name/:entity_id",
+            delete(delete_flexfield_data),
+        )
         // Dashboard
         .route("/flexfields/dashboard", get(get_flexfield_dashboard))
-
         // ═══════════════════════════════════════════════════════════
         // Cross-Validation Rules (Oracle Fusion GL > Chart of Accounts > CVR)
         // ═══════════════════════════════════════════════════════════
-
         // Rules
         .route("/cross-validation/rules", post(create_cvr_rule))
         .route("/cross-validation/rules", get(list_cvr_rules))
         .route("/cross-validation/rules/:code", get(get_cvr_rule))
         .route("/cross-validation/rules/:id/enable", post(enable_cvr_rule))
-        .route("/cross-validation/rules/:id/disable", post(disable_cvr_rule))
+        .route(
+            "/cross-validation/rules/:id/disable",
+            post(disable_cvr_rule),
+        )
         .route("/cross-validation/rules/:code", delete(delete_cvr_rule))
-
         // Rule Lines
-        .route("/cross-validation/rules/:rule_code/lines", post(create_cvr_rule_line))
-        .route("/cross-validation/rules/:rule_code/lines", get(list_cvr_rule_lines))
+        .route(
+            "/cross-validation/rules/:rule_code/lines",
+            post(create_cvr_rule_line),
+        )
+        .route(
+            "/cross-validation/rules/:rule_code/lines",
+            get(list_cvr_rule_lines),
+        )
         .route("/cross-validation/lines/:id", delete(delete_cvr_rule_line))
-
         // Validation
         .route("/cross-validation/validate", post(validate_combination))
-
         // Dashboard
         .route("/cross-validation/dashboard", get(get_cvr_dashboard))
-
         // ═══════════════════════════════════════════════════════════
         // Scheduled Processes (Oracle Fusion Enterprise Scheduler)
         // ═══════════════════════════════════════════════════════════
-
         // Process Templates
-        .route("/scheduled-processes/templates", post(create_process_template))
-        .route("/scheduled-processes/templates", get(list_process_templates))
-        .route("/scheduled-processes/templates/:code", get(get_process_template))
-        .route("/scheduled-processes/templates/:code", delete(delete_process_template))
-        .route("/scheduled-processes/templates/:id/activate", post(activate_process_template))
-        .route("/scheduled-processes/templates/:id/deactivate", post(deactivate_process_template))
-
+        .route(
+            "/scheduled-processes/templates",
+            post(create_process_template),
+        )
+        .route(
+            "/scheduled-processes/templates",
+            get(list_process_templates),
+        )
+        .route(
+            "/scheduled-processes/templates/:code",
+            get(get_process_template),
+        )
+        .route(
+            "/scheduled-processes/templates/:code",
+            delete(delete_process_template),
+        )
+        .route(
+            "/scheduled-processes/templates/:id/activate",
+            post(activate_process_template),
+        )
+        .route(
+            "/scheduled-processes/templates/:id/deactivate",
+            post(deactivate_process_template),
+        )
         // Process Submission & Management
         .route("/scheduled-processes", post(submit_process))
         .route("/scheduled-processes", get(list_processes))
@@ -1729,28 +1676,43 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/scheduled-processes/:id/cancel", post(cancel_process))
         .route("/scheduled-processes/:id/progress", post(update_progress))
         .route("/scheduled-processes/:id/approve", post(approve_process))
-
         // Process Logs
         .route("/scheduled-processes/:id/logs", get(list_process_logs))
         .route("/scheduled-processes/:id/logs", post(add_process_log))
-
         // Recurrence Schedules
-        .route("/scheduled-processes/recurrences", post(create_process_recurrence))
-        .route("/scheduled-processes/recurrences", get(list_process_recurrences))
-        .route("/scheduled-processes/recurrences/:id", get(get_process_recurrence))
-        .route("/scheduled-processes/recurrences/:id", delete(delete_process_recurrence))
-        .route("/scheduled-processes/recurrences/:id/deactivate", post(deactivate_process_recurrence))
-
+        .route(
+            "/scheduled-processes/recurrences",
+            post(create_process_recurrence),
+        )
+        .route(
+            "/scheduled-processes/recurrences",
+            get(list_process_recurrences),
+        )
+        .route(
+            "/scheduled-processes/recurrences/:id",
+            get(get_process_recurrence),
+        )
+        .route(
+            "/scheduled-processes/recurrences/:id",
+            delete(delete_process_recurrence),
+        )
+        .route(
+            "/scheduled-processes/recurrences/:id/deactivate",
+            post(deactivate_process_recurrence),
+        )
         // Cron-like trigger for due recurrences
-        .route("/scheduled-processes/recurrences/process-due", post(process_due_recurrences))
-
+        .route(
+            "/scheduled-processes/recurrences/process-due",
+            post(process_due_recurrences),
+        )
         // Dashboard
-        .route("/scheduled-processes/dashboard", get(get_scheduled_process_dashboard))
-
+        .route(
+            "/scheduled-processes/dashboard",
+            get(get_scheduled_process_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════
         // Segregation of Duties (Oracle Fusion Advanced Access Control)
         // ═══════════════════════════════════════════════════════════
-
         // SoD Rules
         .route("/sod/rules", post(create_sod_rule))
         .route("/sod/rules", get(list_sod_rules))
@@ -1758,64 +1720,83 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/sod/rules/:code", delete(delete_sod_rule))
         .route("/sod/rules/:id/activate", post(activate_sod_rule))
         .route("/sod/rules/:id/deactivate", post(deactivate_sod_rule))
-
         // Role Assignments
         .route("/sod/assignments", post(assign_sod_role))
         .route("/sod/assignments", get(list_sod_assignments))
         .route("/sod/assignments/:id", delete(remove_sod_assignment))
-
         // Conflict Detection
         .route("/sod/check", post(check_sod_conflict))
         .route("/sod/detect", post(run_sod_detection))
-
         // Violations
         .route("/sod/violations", get(list_sod_violations))
         .route("/sod/violations/:id", get(get_sod_violation))
         .route("/sod/violations/:id/resolve", post(resolve_sod_violation))
         .route("/sod/violations/:id/exception", post(accept_sod_exception))
-
         // Mitigating Controls
         .route("/sod/mitigations", post(create_sod_mitigation))
-        .route("/sod/violations/:violation_id/mitigations", get(list_sod_mitigations))
+        .route(
+            "/sod/violations/:violation_id/mitigations",
+            get(list_sod_mitigations),
+        )
         .route("/sod/mitigations/:id/approve", post(approve_sod_mitigation))
         .route("/sod/mitigations/:id/revoke", post(revoke_sod_mitigation))
-
         // SoD Dashboard
         .route("/sod/dashboard", get(get_sod_dashboard))
-
         // ═══════════════════════════════════════════════════════════
         // GL Allocations (Oracle Fusion General Ledger > Allocations)
         // ═══════════════════════════════════════════════════════════
-
         // Allocation Pools
         .route("/allocation/pools", post(create_allocation_pool))
         .route("/allocation/pools", get(list_allocation_pools))
         .route("/allocation/pools/:code", get(get_allocation_pool))
         .route("/allocation/pools/:code", delete(delete_allocation_pool))
-        .route("/allocation/pools/:id/activate", post(activate_allocation_pool))
-        .route("/allocation/pools/:id/deactivate", post(deactivate_allocation_pool))
-
+        .route(
+            "/allocation/pools/:id/activate",
+            post(activate_allocation_pool),
+        )
+        .route(
+            "/allocation/pools/:id/deactivate",
+            post(deactivate_allocation_pool),
+        )
         // Allocation Bases
         .route("/allocation/bases", post(create_allocation_basis))
         .route("/allocation/bases", get(list_allocation_bases))
         .route("/allocation/bases/:code", get(get_allocation_basis))
         .route("/allocation/bases/:code", delete(delete_allocation_basis))
-        .route("/allocation/bases/:id/activate", post(activate_allocation_basis))
-        .route("/allocation/bases/:id/deactivate", post(deactivate_allocation_basis))
-
+        .route(
+            "/allocation/bases/:id/activate",
+            post(activate_allocation_basis),
+        )
+        .route(
+            "/allocation/bases/:id/deactivate",
+            post(deactivate_allocation_basis),
+        )
         // Basis Details
-        .route("/allocation/bases/:basis_code/details", post(add_allocation_basis_detail))
-        .route("/allocation/bases/:basis_code/details", get(list_allocation_basis_details))
-        .route("/allocation/bases/:basis_code/recalculate", post(recalculate_basis_percentages))
-
+        .route(
+            "/allocation/bases/:basis_code/details",
+            post(add_allocation_basis_detail),
+        )
+        .route(
+            "/allocation/bases/:basis_code/details",
+            get(list_allocation_basis_details),
+        )
+        .route(
+            "/allocation/bases/:basis_code/recalculate",
+            post(recalculate_basis_percentages),
+        )
         // Allocation Rules
         .route("/allocation/rules", post(create_allocation_rule))
         .route("/allocation/rules", get(list_allocation_rules))
         .route("/allocation/rules/:code", get(get_allocation_rule))
         .route("/allocation/rules/:code", delete(delete_allocation_rule))
-        .route("/allocation/rules/:id/activate", post(activate_allocation_rule))
-        .route("/allocation/rules/:id/deactivate", post(deactivate_allocation_rule))
-
+        .route(
+            "/allocation/rules/:id/activate",
+            post(activate_allocation_rule),
+        )
+        .route(
+            "/allocation/rules/:id/deactivate",
+            post(deactivate_allocation_rule),
+        )
         // Allocation Runs
         .route("/allocation/runs", post(execute_allocation))
         .route("/allocation/runs", get(list_allocation_runs))
@@ -1823,58 +1804,101 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/allocation/runs/:id/post", post(post_allocation_run))
         .route("/allocation/runs/:id/reverse", post(reverse_allocation_run))
         .route("/allocation/runs/:id/cancel", post(cancel_allocation_run))
-
         // Allocation Dashboard
         .route("/allocation/dashboard", get(get_allocation_dashboard))
-        
         // ═══════════════════════════════════════════════════════════════
         // Currency Revaluation (Oracle Fusion GL Currency Revaluation)
         // ═══════════════════════════════════════════════════════════════
-        
         // Definitions
-        .route("/currency-revaluation/definitions", get(list_revaluation_definitions))
-        .route("/currency-revaluation/definitions", post(create_revaluation_definition))
-        .route("/currency-revaluation/definitions/:code", get(get_revaluation_definition))
-        .route("/currency-revaluation/definitions/:code", delete(delete_revaluation_definition))
-        .route("/currency-revaluation/definitions/:id/activate", post(activate_revaluation_definition))
-        .route("/currency-revaluation/definitions/:id/deactivate", post(deactivate_revaluation_definition))
-        
+        .route(
+            "/currency-revaluation/definitions",
+            get(list_revaluation_definitions),
+        )
+        .route(
+            "/currency-revaluation/definitions",
+            post(create_revaluation_definition),
+        )
+        .route(
+            "/currency-revaluation/definitions/:code",
+            get(get_revaluation_definition),
+        )
+        .route(
+            "/currency-revaluation/definitions/:code",
+            delete(delete_revaluation_definition),
+        )
+        .route(
+            "/currency-revaluation/definitions/:id/activate",
+            post(activate_revaluation_definition),
+        )
+        .route(
+            "/currency-revaluation/definitions/:id/deactivate",
+            post(deactivate_revaluation_definition),
+        )
         // Accounts
-        .route("/currency-revaluation/definitions/:code/accounts", post(add_revaluation_account))
-        .route("/currency-revaluation/definitions/:code/accounts", get(list_revaluation_accounts))
-        .route("/currency-revaluation/accounts/:id", delete(remove_revaluation_account))
-        
+        .route(
+            "/currency-revaluation/definitions/:code/accounts",
+            post(add_revaluation_account),
+        )
+        .route(
+            "/currency-revaluation/definitions/:code/accounts",
+            get(list_revaluation_accounts),
+        )
+        .route(
+            "/currency-revaluation/accounts/:id",
+            delete(remove_revaluation_account),
+        )
         // Runs
         .route("/currency-revaluation/runs", post(execute_revaluation))
         .route("/currency-revaluation/runs", get(list_revaluation_runs))
         .route("/currency-revaluation/runs/:id", get(get_revaluation_run))
-        .route("/currency-revaluation/runs/:id/post", post(post_revaluation_run))
-        .route("/currency-revaluation/runs/:id/reverse", post(reverse_revaluation_run))
-        .route("/currency-revaluation/runs/:id/cancel", post(cancel_revaluation_run))
-        
+        .route(
+            "/currency-revaluation/runs/:id/post",
+            post(post_revaluation_run),
+        )
+        .route(
+            "/currency-revaluation/runs/:id/reverse",
+            post(reverse_revaluation_run),
+        )
+        .route(
+            "/currency-revaluation/runs/:id/cancel",
+            post(cancel_revaluation_run),
+        )
         // Dashboard
-        .route("/currency-revaluation/dashboard", get(get_revaluation_dashboard))
-
+        .route(
+            "/currency-revaluation/dashboard",
+            get(get_revaluation_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════════
         // Purchase Requisitions (Oracle Fusion Self-Service Procurement > Requisitions)
         // ═══════════════════════════════════════════════════════════════
-
         // Requisitions
         .route("/requisitions", post(create_requisition))
         .route("/requisitions", get(list_requisitions))
         .route("/requisitions/:id", get(get_requisition))
         .route("/requisitions/:id", put(update_requisition))
         .route("/requisitions/:id", delete(delete_requisition))
-
         // Requisition Lines
-        .route("/requisitions/:requisition_id/lines", post(add_requisition_line))
-        .route("/requisitions/:requisition_id/lines", get(list_requisition_lines))
-        .route("/requisitions/lines/:line_id", delete(remove_requisition_line))
-
+        .route(
+            "/requisitions/:requisition_id/lines",
+            post(add_requisition_line),
+        )
+        .route(
+            "/requisitions/:requisition_id/lines",
+            get(list_requisition_lines),
+        )
+        .route(
+            "/requisitions/lines/:line_id",
+            delete(remove_requisition_line),
+        )
         // Distributions
-        .route("/requisitions/:requisition_id/lines/:line_id/distributions", post(add_requisition_distribution))
-        .route("/requisitions/lines/:line_id/distributions", get(list_requisition_distributions))
-
+        .route(
+            "/requisitions/:requisition_id/lines/:line_id/distributions",
+            post(add_requisition_distribution),
+        )
+        .route(
+            "/requisitions/lines/:line_id/distributions",
+            get(list_requisition_distributions),
+        )
         // Approval Workflow
         .route("/requisitions/:id/submit", post(submit_requisition))
         .route("/requisitions/:id/approve", post(approve_requisition))
@@ -1882,143 +1906,232 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/requisitions/:id/cancel", post(cancel_requisition))
         .route("/requisitions/:id/close", post(close_requisition))
         .route("/requisitions/:id/return", post(return_requisition))
-        .route("/requisitions/:id/approvals", get(list_requisition_approvals))
-
+        .route(
+            "/requisitions/:id/approvals",
+            get(list_requisition_approvals),
+        )
         // AutoCreate (Convert to PO)
         .route("/requisitions/autocreate", post(autocreate))
-        .route("/requisitions/:requisition_id/autocreate-links", get(list_autocreate_links))
-        .route("/requisitions/autocreate/:link_id/cancel", post(cancel_autocreate_link))
-
+        .route(
+            "/requisitions/:requisition_id/autocreate-links",
+            get(list_autocreate_links),
+        )
+        .route(
+            "/requisitions/autocreate/:link_id/cancel",
+            post(cancel_autocreate_link),
+        )
         // Dashboard
         .route("/requisitions/dashboard", get(get_requisition_dashboard))
-
         // ══════════════════════════════════════════════════════════════════════
         // Corporate Card Management (Oracle Fusion Expenses > Corporate Cards)
         // ══════════════════════════════════════════════════════════════════════
-
         // Card Programmes
-        .route("/corporate-cards/programs", get(list_corporate_card_programs))
-        .route("/corporate-cards/programs", post(create_corporate_card_program))
-        .route("/corporate-cards/programs/:code", get(get_corporate_card_program))
-
+        .route(
+            "/corporate-cards/programs",
+            get(list_corporate_card_programs),
+        )
+        .route(
+            "/corporate-cards/programs",
+            post(create_corporate_card_program),
+        )
+        .route(
+            "/corporate-cards/programs/:code",
+            get(get_corporate_card_program),
+        )
         // Cards
         .route("/corporate-cards/cards", get(list_corporate_cards))
         .route("/corporate-cards/cards", post(issue_card))
         .route("/corporate-cards/cards/:id", get(get_corporate_card))
         .route("/corporate-cards/cards/:id/suspend", post(suspend_card))
-        .route("/corporate-cards/cards/:id/reactivate", post(reactivate_card))
+        .route(
+            "/corporate-cards/cards/:id/reactivate",
+            post(reactivate_card),
+        )
         .route("/corporate-cards/cards/:id/cancel", post(cancel_card))
         .route("/corporate-cards/cards/:id/lost", post(report_lost))
         .route("/corporate-cards/cards/:id/stolen", post(report_stolen))
-
         // Transactions
-        .route("/corporate-cards/transactions", get(list_corporate_card_transactions))
+        .route(
+            "/corporate-cards/transactions",
+            get(list_corporate_card_transactions),
+        )
         .route("/corporate-cards/transactions", post(import_transaction))
-        .route("/corporate-cards/transactions/:id", get(get_corporate_card_transaction))
-        .route("/corporate-cards/transactions/:id/match", post(match_corporate_card_transaction))
-        .route("/corporate-cards/transactions/:id/unmatch", post(unmatch_corporate_card_transaction))
-        .route("/corporate-cards/transactions/:id/dispute", post(dispute_corporate_card_transaction))
-        .route("/corporate-cards/transactions/:id/resolve-dispute", post(resolve_corporate_card_dispute))
-
+        .route(
+            "/corporate-cards/transactions/:id",
+            get(get_corporate_card_transaction),
+        )
+        .route(
+            "/corporate-cards/transactions/:id/match",
+            post(match_corporate_card_transaction),
+        )
+        .route(
+            "/corporate-cards/transactions/:id/unmatch",
+            post(unmatch_corporate_card_transaction),
+        )
+        .route(
+            "/corporate-cards/transactions/:id/dispute",
+            post(dispute_corporate_card_transaction),
+        )
+        .route(
+            "/corporate-cards/transactions/:id/resolve-dispute",
+            post(resolve_corporate_card_dispute),
+        )
         // Statements
-        .route("/corporate-cards/statements", get(list_corporate_card_statements))
-        .route("/corporate-cards/statements", post(import_corporate_card_statement))
-        .route("/corporate-cards/statements/:id", get(get_corporate_card_statement))
-        .route("/corporate-cards/statements/:id/reconcile", post(reconcile_corporate_card_statement))
-        .route("/corporate-cards/statements/:id/pay", post(pay_corporate_card_statement))
-
+        .route(
+            "/corporate-cards/statements",
+            get(list_corporate_card_statements),
+        )
+        .route(
+            "/corporate-cards/statements",
+            post(import_corporate_card_statement),
+        )
+        .route(
+            "/corporate-cards/statements/:id",
+            get(get_corporate_card_statement),
+        )
+        .route(
+            "/corporate-cards/statements/:id/reconcile",
+            post(reconcile_corporate_card_statement),
+        )
+        .route(
+            "/corporate-cards/statements/:id/pay",
+            post(pay_corporate_card_statement),
+        )
         // Spending Limit Overrides
-        .route("/corporate-cards/limit-overrides", get(list_limit_overrides))
-        .route("/corporate-cards/limit-overrides", post(request_limit_override))
-        .route("/corporate-cards/limit-overrides/:id/approve", post(approve_limit_override))
-        .route("/corporate-cards/limit-overrides/:id/reject", post(reject_limit_override))
-
+        .route(
+            "/corporate-cards/limit-overrides",
+            get(list_limit_overrides),
+        )
+        .route(
+            "/corporate-cards/limit-overrides",
+            post(request_limit_override),
+        )
+        .route(
+            "/corporate-cards/limit-overrides/:id/approve",
+            post(approve_limit_override),
+        )
+        .route(
+            "/corporate-cards/limit-overrides/:id/reject",
+            post(reject_limit_override),
+        )
         // Dashboard
-        .route("/corporate-cards/dashboard", get(get_corporate_card_dashboard))
-
+        .route(
+            "/corporate-cards/dashboard",
+            get(get_corporate_card_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Benefits Administration (Oracle Fusion HCM > Benefits)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Benefits Plans
         .route("/benefits/plans", get(list_benefits_plans))
         .route("/benefits/plans", post(create_benefits_plan))
         .route("/benefits/plans/:code", get(get_benefits_plan))
         .route("/benefits/plans/:code", delete(delete_benefits_plan))
-
         // Benefits Enrollments
         .route("/benefits/enrollments", post(create_benefits_enrollment))
         .route("/benefits/enrollments", get(list_benefits_enrollments))
         .route("/benefits/enrollments/:id", get(get_benefits_enrollment))
-        .route("/benefits/enrollments/:id/activate", post(activate_benefits_enrollment))
-        .route("/benefits/enrollments/:id/waive", post(waive_benefits_enrollment))
-        .route("/benefits/enrollments/:id/cancel", post(cancel_benefits_enrollment))
-        .route("/benefits/enrollments/:id/suspend", post(suspend_benefits_enrollment))
-        .route("/benefits/enrollments/:id/reactivate", post(reactivate_benefits_enrollment))
-
+        .route(
+            "/benefits/enrollments/:id/activate",
+            post(activate_benefits_enrollment),
+        )
+        .route(
+            "/benefits/enrollments/:id/waive",
+            post(waive_benefits_enrollment),
+        )
+        .route(
+            "/benefits/enrollments/:id/cancel",
+            post(cancel_benefits_enrollment),
+        )
+        .route(
+            "/benefits/enrollments/:id/suspend",
+            post(suspend_benefits_enrollment),
+        )
+        .route(
+            "/benefits/enrollments/:id/reactivate",
+            post(reactivate_benefits_enrollment),
+        )
         // Benefits Deductions
         .route("/benefits/deductions/generate", post(generate_deductions))
         .route("/benefits/deductions", get(list_benefits_deductions))
-
         // Benefits Dashboard
         .route("/benefits/dashboard", get(get_benefits_dashboard))
-
         // ═══════════════════════════════════════════════════════════════════════════════════
         // Performance Management (Oracle Fusion HCM > Performance)
         // ═══════════════════════════════════════════════════════════════════════════════════
-
         // Rating Models
         .route("/performance/rating-models", get(list_rating_models))
         .route("/performance/rating-models", post(create_rating_model))
         .route("/performance/rating-models/:code", get(get_rating_model))
-        .route("/performance/rating-models/:code", delete(delete_rating_model))
-
+        .route(
+            "/performance/rating-models/:code",
+            delete(delete_rating_model),
+        )
         // Review Cycles
         .route("/performance/cycles", post(create_review_cycle))
         .route("/performance/cycles", get(list_review_cycles))
         .route("/performance/cycles/:id", get(get_review_cycle))
         .route("/performance/cycles/:id/transition", post(transition_cycle))
-
         // Competencies
         .route("/performance/competencies", post(create_competency))
         .route("/performance/competencies", get(list_competencies))
         .route("/performance/competencies/:code", get(get_competency))
         .route("/performance/competencies/:code", delete(delete_competency))
-
         // Performance Documents
         .route("/performance/documents", post(create_performance_document))
         .route("/performance/documents", get(list_performance_documents))
         .route("/performance/documents/:id", get(get_performance_document))
-        .route("/performance/documents/:id/transition", post(transition_document))
-        .route("/performance/documents/:id/self-evaluation", post(submit_self_evaluation))
-        .route("/performance/documents/:id/manager-evaluation", post(submit_manager_evaluation))
-        .route("/performance/documents/:id/finalize", post(finalize_performance_document))
-
+        .route(
+            "/performance/documents/:id/transition",
+            post(transition_document),
+        )
+        .route(
+            "/performance/documents/:id/self-evaluation",
+            post(submit_self_evaluation),
+        )
+        .route(
+            "/performance/documents/:id/manager-evaluation",
+            post(submit_manager_evaluation),
+        )
+        .route(
+            "/performance/documents/:id/finalize",
+            post(finalize_performance_document),
+        )
         // Goals
         .route("/performance/goals", post(create_goal))
-        .route("/performance/documents/:document_id/goals", get(list_performance_goals))
+        .route(
+            "/performance/documents/:document_id/goals",
+            get(list_performance_goals),
+        )
         .route("/performance/goals/:id/complete", post(complete_goal))
         .route("/performance/goals/:id/rate", post(rate_goal))
         .route("/performance/goals/:id", delete(delete_performance_goal))
-
         // Competency Assessments
-        .route("/performance/assessments", post(upsert_competency_assessment))
-        .route("/performance/documents/:document_id/assessments", get(list_competency_assessments_for_document))
-
+        .route(
+            "/performance/assessments",
+            post(upsert_competency_assessment),
+        )
+        .route(
+            "/performance/documents/:document_id/assessments",
+            get(list_competency_assessments_for_document),
+        )
         // Feedback
         .route("/performance/feedback", post(create_performance_feedback))
         .route("/performance/feedback", get(list_performance_feedback))
-        .route("/performance/feedback/:id/submit", post(submit_performance_feedback))
-
+        .route(
+            "/performance/feedback/:id/submit",
+            post(submit_performance_feedback),
+        )
         // Performance Dashboard
-        .route("/performance/dashboard/:review_cycle_id", get(get_performance_dashboard))
-
+        .route(
+            "/performance/dashboard/:review_cycle_id",
+            get(get_performance_dashboard),
+        )
         // Credit Management - Scoring Models
         .route("/credit/scoring-models", post(create_scoring_model))
         .route("/credit/scoring-models", get(list_scoring_models))
         .route("/credit/scoring-models/:code", get(get_scoring_model))
         .route("/credit/scoring-models/:code", delete(delete_scoring_model))
-
         // Credit Management - Profiles
         .route("/credit/profiles", post(create_profile))
         .route("/credit/profiles", get(list_profiles))
@@ -2026,30 +2139,31 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/credit/profiles/:id/status", post(update_profile_status))
         .route("/credit/profiles/:id/score", post(update_profile_score))
         .route("/credit/profiles/:id", delete(delete_profile))
-
         // Credit Management - Limits
         .route("/credit/limits", post(create_credit_limit))
         .route("/credit/limits/:id", put(update_credit_limit))
         .route("/credit/limits/:id/temp", post(set_temp_limit))
         .route("/credit/limits/:id", delete(delete_credit_limit))
-        .route("/credit/profiles/:profile_id/limits", get(list_credit_limits))
-
+        .route(
+            "/credit/profiles/:profile_id/limits",
+            get(list_credit_limits),
+        )
         // Credit Management - Check Rules
         .route("/credit/check-rules", post(create_check_rule))
         .route("/credit/check-rules", get(list_check_rules))
         .route("/credit/check-rules/:id", delete(delete_check_rule))
-
         // Credit Management - Exposure
         .route("/credit/exposure/calculate", post(calculate_exposure))
         .route("/credit/exposure/check", post(perform_credit_check))
-        .route("/credit/profiles/:profile_id/exposure", get(get_latest_exposure))
-
+        .route(
+            "/credit/profiles/:profile_id/exposure",
+            get(get_latest_exposure),
+        )
         // Credit Management - Holds
         .route("/credit/holds", post(create_hold))
         .route("/credit/holds", get(list_holds))
         .route("/credit/holds/:id/release", post(release_hold))
         .route("/credit/holds/:id/override", post(override_hold))
-
         // Credit Management - Reviews
         .route("/credit/reviews", post(create_review))
         .route("/credit/reviews", get(list_reviews))
@@ -2058,325 +2172,720 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/credit/reviews/:id/approve", post(approve_review))
         .route("/credit/reviews/:id/reject", post(reject_review))
         .route("/credit/reviews/:id/cancel", post(cancel_review))
-
         // Credit Management - Dashboard
         .route("/credit/dashboard", get(get_credit_dashboard))
-
         // ═══════════════════════════════════════════════════════
         // Product Information Management (Oracle Fusion Product Hub)
         // ═══════════════════════════════════════════════════════
-
         // Product Items
         .route("/pim/items", post(product_information::create_item))
         .route("/pim/items", get(product_information::list_items))
-        .route("/pim/items/by-number/:item_number", get(product_information::get_item_by_number))
+        .route(
+            "/pim/items/by-number/:item_number",
+            get(product_information::get_item_by_number),
+        )
         .route("/pim/items/:id", get(product_information::get_item))
-        .route("/pim/items/:id/status", post(product_information::update_item_status))
-        .route("/pim/items/:id/lifecycle", post(product_information::update_item_lifecycle))
+        .route(
+            "/pim/items/:id/status",
+            post(product_information::update_item_status),
+        )
+        .route(
+            "/pim/items/:id/lifecycle",
+            post(product_information::update_item_lifecycle),
+        )
         .route("/pim/items/:id", delete(product_information::delete_item))
-
         // Item Categories
-        .route("/pim/categories", post(product_information::create_category))
+        .route(
+            "/pim/categories",
+            post(product_information::create_category),
+        )
         .route("/pim/categories", get(product_information::list_categories))
-        .route("/pim/categories/:id", get(product_information::get_category))
-        .route("/pim/categories/:id", delete(product_information::delete_category))
-
+        .route(
+            "/pim/categories/:id",
+            get(product_information::get_category),
+        )
+        .route(
+            "/pim/categories/:id",
+            delete(product_information::delete_category),
+        )
         // Item Category Assignments
-        .route("/pim/items/:item_id/categories", post(product_information::assign_item_category))
-        .route("/pim/items/:item_id/categories", get(product_information::list_item_categories))
-        .route("/pim/item-categories/:assignment_id", delete(product_information::remove_item_category))
-
+        .route(
+            "/pim/items/:item_id/categories",
+            post(product_information::assign_item_category),
+        )
+        .route(
+            "/pim/items/:item_id/categories",
+            get(product_information::list_item_categories),
+        )
+        .route(
+            "/pim/item-categories/:assignment_id",
+            delete(product_information::remove_item_category),
+        )
         // Item Cross-References
-        .route("/pim/items/:item_id/cross-references", post(product_information::create_cross_reference))
-        .route("/pim/items/:item_id/cross-references", get(product_information::list_cross_references))
-        .route("/pim/cross-references", get(product_information::list_all_cross_references))
-        .route("/pim/cross-references/:id", delete(product_information::delete_cross_reference))
-
+        .route(
+            "/pim/items/:item_id/cross-references",
+            post(product_information::create_cross_reference),
+        )
+        .route(
+            "/pim/items/:item_id/cross-references",
+            get(product_information::list_cross_references),
+        )
+        .route(
+            "/pim/cross-references",
+            get(product_information::list_all_cross_references),
+        )
+        .route(
+            "/pim/cross-references/:id",
+            delete(product_information::delete_cross_reference),
+        )
         // Item Templates
         .route("/pim/templates", post(product_information::create_template))
         .route("/pim/templates", get(product_information::list_templates))
-        .route("/pim/templates/:id", delete(product_information::delete_template))
-
+        .route(
+            "/pim/templates/:id",
+            delete(product_information::delete_template),
+        )
         // New Item Requests (NIR)
-        .route("/pim/new-item-requests", post(product_information::create_new_item_request))
-        .route("/pim/new-item-requests", get(product_information::list_new_item_requests))
-        .route("/pim/new-item-requests/:id", get(product_information::get_new_item_request))
-        .route("/pim/new-item-requests/:id/submit", post(product_information::submit_new_item_request))
-        .route("/pim/new-item-requests/:id/approve", post(product_information::approve_new_item_request))
-        .route("/pim/new-item-requests/:id/reject", post(product_information::reject_new_item_request))
-        .route("/pim/new-item-requests/:id/implement", post(product_information::implement_new_item_request))
-        .route("/pim/new-item-requests/:id/cancel", post(product_information::cancel_new_item_request))
-
+        .route(
+            "/pim/new-item-requests",
+            post(product_information::create_new_item_request),
+        )
+        .route(
+            "/pim/new-item-requests",
+            get(product_information::list_new_item_requests),
+        )
+        .route(
+            "/pim/new-item-requests/:id",
+            get(product_information::get_new_item_request),
+        )
+        .route(
+            "/pim/new-item-requests/:id/submit",
+            post(product_information::submit_new_item_request),
+        )
+        .route(
+            "/pim/new-item-requests/:id/approve",
+            post(product_information::approve_new_item_request),
+        )
+        .route(
+            "/pim/new-item-requests/:id/reject",
+            post(product_information::reject_new_item_request),
+        )
+        .route(
+            "/pim/new-item-requests/:id/implement",
+            post(product_information::implement_new_item_request),
+        )
+        .route(
+            "/pim/new-item-requests/:id/cancel",
+            post(product_information::cancel_new_item_request),
+        )
         // PIM Dashboard
-        .route("/pim/dashboard", get(product_information::get_pim_dashboard))
-
+        .route(
+            "/pim/dashboard",
+            get(product_information::get_pim_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Transfer Pricing (Oracle Fusion Financials > Transfer Pricing)
         // ═══════════════════════════════════════════════════════
-
         // Policies
-        .route("/transfer-pricing/policies", post(transfer_pricing::create_policy))
-        .route("/transfer-pricing/policies", get(transfer_pricing::list_policies))
-        .route("/transfer-pricing/policies/:code", get(transfer_pricing::get_policy))
-        .route("/transfer-pricing/policies/:id/activate", post(transfer_pricing::activate_policy))
-        .route("/transfer-pricing/policies/:id/deactivate", post(transfer_pricing::deactivate_policy))
-        .route("/transfer-pricing/policies/:code", delete(transfer_pricing::delete_policy))
-
+        .route(
+            "/transfer-pricing/policies",
+            post(transfer_pricing::create_policy),
+        )
+        .route(
+            "/transfer-pricing/policies",
+            get(transfer_pricing::list_policies),
+        )
+        .route(
+            "/transfer-pricing/policies/:code",
+            get(transfer_pricing::get_policy),
+        )
+        .route(
+            "/transfer-pricing/policies/:id/activate",
+            post(transfer_pricing::activate_policy),
+        )
+        .route(
+            "/transfer-pricing/policies/:id/deactivate",
+            post(transfer_pricing::deactivate_policy),
+        )
+        .route(
+            "/transfer-pricing/policies/:code",
+            delete(transfer_pricing::delete_policy),
+        )
         // Transactions
-        .route("/transfer-pricing/transactions", post(transfer_pricing::create_transaction))
-        .route("/transfer-pricing/transactions", get(transfer_pricing::list_transactions))
-        .route("/transfer-pricing/transactions/:id", get(transfer_pricing::get_transaction))
-        .route("/transfer-pricing/transactions/:id/submit", post(transfer_pricing::submit_transaction))
-        .route("/transfer-pricing/transactions/:id/approve", post(transfer_pricing::approve_transaction))
-        .route("/transfer-pricing/transactions/:id/reject", post(transfer_pricing::reject_transaction))
-
+        .route(
+            "/transfer-pricing/transactions",
+            post(transfer_pricing::create_transaction),
+        )
+        .route(
+            "/transfer-pricing/transactions",
+            get(transfer_pricing::list_transactions),
+        )
+        .route(
+            "/transfer-pricing/transactions/:id",
+            get(transfer_pricing::get_transaction),
+        )
+        .route(
+            "/transfer-pricing/transactions/:id/submit",
+            post(transfer_pricing::submit_transaction),
+        )
+        .route(
+            "/transfer-pricing/transactions/:id/approve",
+            post(transfer_pricing::approve_transaction),
+        )
+        .route(
+            "/transfer-pricing/transactions/:id/reject",
+            post(transfer_pricing::reject_transaction),
+        )
         // Benchmarks
-        .route("/transfer-pricing/benchmarks", post(transfer_pricing::create_benchmark))
-        .route("/transfer-pricing/benchmarks", get(transfer_pricing::list_benchmarks))
-        .route("/transfer-pricing/benchmarks/:id", get(transfer_pricing::get_benchmark))
-        .route("/transfer-pricing/benchmarks/:id/submit", post(transfer_pricing::submit_benchmark))
-        .route("/transfer-pricing/benchmarks/:id/approve", post(transfer_pricing::approve_benchmark))
-        .route("/transfer-pricing/benchmarks/:id/reject", post(transfer_pricing::reject_benchmark))
-        .route("/transfer-pricing/benchmarks/:id", delete(transfer_pricing::delete_benchmark))
-
+        .route(
+            "/transfer-pricing/benchmarks",
+            post(transfer_pricing::create_benchmark),
+        )
+        .route(
+            "/transfer-pricing/benchmarks",
+            get(transfer_pricing::list_benchmarks),
+        )
+        .route(
+            "/transfer-pricing/benchmarks/:id",
+            get(transfer_pricing::get_benchmark),
+        )
+        .route(
+            "/transfer-pricing/benchmarks/:id/submit",
+            post(transfer_pricing::submit_benchmark),
+        )
+        .route(
+            "/transfer-pricing/benchmarks/:id/approve",
+            post(transfer_pricing::approve_benchmark),
+        )
+        .route(
+            "/transfer-pricing/benchmarks/:id/reject",
+            post(transfer_pricing::reject_benchmark),
+        )
+        .route(
+            "/transfer-pricing/benchmarks/:id",
+            delete(transfer_pricing::delete_benchmark),
+        )
         // Comparables
-        .route("/transfer-pricing/benchmarks/:benchmark_id/comparables", post(transfer_pricing::add_comparable))
-        .route("/transfer-pricing/benchmarks/:benchmark_id/comparables", get(transfer_pricing::list_comparables))
-
+        .route(
+            "/transfer-pricing/benchmarks/:benchmark_id/comparables",
+            post(transfer_pricing::add_comparable),
+        )
+        .route(
+            "/transfer-pricing/benchmarks/:benchmark_id/comparables",
+            get(transfer_pricing::list_comparables),
+        )
         // Documentation
-        .route("/transfer-pricing/documentation", post(transfer_pricing::create_documentation))
-        .route("/transfer-pricing/documentation", get(transfer_pricing::list_documentation))
-        .route("/transfer-pricing/documentation/:id", get(transfer_pricing::get_documentation))
-        .route("/transfer-pricing/documentation/:id/submit", post(transfer_pricing::submit_documentation))
-        .route("/transfer-pricing/documentation/:id/approve", post(transfer_pricing::approve_documentation))
-        .route("/transfer-pricing/documentation/:id/file", post(transfer_pricing::file_documentation))
-
+        .route(
+            "/transfer-pricing/documentation",
+            post(transfer_pricing::create_documentation),
+        )
+        .route(
+            "/transfer-pricing/documentation",
+            get(transfer_pricing::list_documentation),
+        )
+        .route(
+            "/transfer-pricing/documentation/:id",
+            get(transfer_pricing::get_documentation),
+        )
+        .route(
+            "/transfer-pricing/documentation/:id/submit",
+            post(transfer_pricing::submit_documentation),
+        )
+        .route(
+            "/transfer-pricing/documentation/:id/approve",
+            post(transfer_pricing::approve_documentation),
+        )
+        .route(
+            "/transfer-pricing/documentation/:id/file",
+            post(transfer_pricing::file_documentation),
+        )
         // Dashboard
-        .route("/transfer-pricing/dashboard", get(transfer_pricing::get_tp_dashboard))
-
+        .route(
+            "/transfer-pricing/dashboard",
+            get(transfer_pricing::get_tp_dashboard),
+        )
         // ========================================================================
         // Order Management (Oracle Fusion SCM > Order Management)
         // ========================================================================
         .route("/orders", post(order_management::create_order))
         .route("/orders", get(order_management::list_orders))
         .route("/orders/:id", get(order_management::get_order_by_id))
-        .route("/orders/by-number/:order_number", get(order_management::get_order))
+        .route(
+            "/orders/by-number/:order_number",
+            get(order_management::get_order),
+        )
         .route("/orders/:id/submit", post(order_management::submit_order))
         .route("/orders/:id/confirm", post(order_management::confirm_order))
         .route("/orders/:id/close", post(order_management::close_order))
         .route("/orders/:id/cancel", post(order_management::cancel_order))
-
         // Order Lines
         .route("/orders/lines", post(order_management::add_order_line))
         .route("/orders/lines/:id", get(order_management::get_order_line))
-        .route("/orders/lines/:id/ship", post(order_management::ship_order_line))
-        .route("/orders/lines/:id/cancel", post(order_management::cancel_order_line))
-        .route("/orders/:order_id/lines", get(order_management::list_order_lines))
-
+        .route(
+            "/orders/lines/:id/ship",
+            post(order_management::ship_order_line),
+        )
+        .route(
+            "/orders/lines/:id/cancel",
+            post(order_management::cancel_order_line),
+        )
+        .route(
+            "/orders/:order_id/lines",
+            get(order_management::list_order_lines),
+        )
         // Order Holds
         .route("/orders/holds", post(order_management::apply_hold))
-        .route("/orders/holds/:id/release", post(order_management::release_hold))
+        .route(
+            "/orders/holds/:id/release",
+            post(order_management::release_hold),
+        )
         .route("/orders/:order_id/holds", get(order_management::list_holds))
-
         // Shipments
         .route("/orders/shipments", post(order_management::create_shipment))
         .route("/orders/shipments", get(order_management::list_shipments))
         .route("/orders/shipments/:id", get(order_management::get_shipment))
-        .route("/orders/shipments/:id/confirm", post(order_management::confirm_shipment))
-        .route("/orders/shipments/:id/tracking", post(order_management::update_tracking))
-        .route("/orders/shipments/:id/deliver", post(order_management::confirm_delivery))
-
+        .route(
+            "/orders/shipments/:id/confirm",
+            post(order_management::confirm_shipment),
+        )
+        .route(
+            "/orders/shipments/:id/tracking",
+            post(order_management::update_tracking),
+        )
+        .route(
+            "/orders/shipments/:id/deliver",
+            post(order_management::confirm_delivery),
+        )
         // Order Management Dashboard
-        .route("/orders/dashboard", get(order_management::get_order_management_dashboard))
-
+        .route(
+            "/orders/dashboard",
+            get(order_management::get_order_management_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Approval Delegation Rules (Oracle Fusion BPM Worklist > Delegation)
         // ═══════════════════════════════════════════════════════
-
         // Delegation Rules
-        .route("/approval-delegation/rules", post(approval_delegation::create_delegation_rule))
-        .route("/approval-delegation/rules", get(approval_delegation::list_delegation_rules))
-        .route("/approval-delegation/rules/my", get(approval_delegation::list_my_delegation_rules))
-        .route("/approval-delegation/rules/:id", get(approval_delegation::get_delegation_rule))
-        .route("/approval-delegation/rules/:id", delete(approval_delegation::delete_delegation_rule))
-        .route("/approval-delegation/rules/:id/activate", post(approval_delegation::activate_delegation_rule))
-        .route("/approval-delegation/rules/:id/cancel", post(approval_delegation::cancel_delegation_rule))
-
+        .route(
+            "/approval-delegation/rules",
+            post(approval_delegation::create_delegation_rule),
+        )
+        .route(
+            "/approval-delegation/rules",
+            get(approval_delegation::list_delegation_rules),
+        )
+        .route(
+            "/approval-delegation/rules/my",
+            get(approval_delegation::list_my_delegation_rules),
+        )
+        .route(
+            "/approval-delegation/rules/:id",
+            get(approval_delegation::get_delegation_rule),
+        )
+        .route(
+            "/approval-delegation/rules/:id",
+            delete(approval_delegation::delete_delegation_rule),
+        )
+        .route(
+            "/approval-delegation/rules/:id/activate",
+            post(approval_delegation::activate_delegation_rule),
+        )
+        .route(
+            "/approval-delegation/rules/:id/cancel",
+            post(approval_delegation::cancel_delegation_rule),
+        )
         // Process Scheduled Rules (Admin/Cron)
-        .route("/approval-delegation/process-scheduled", post(approval_delegation::process_scheduled_delegations))
-
+        .route(
+            "/approval-delegation/process-scheduled",
+            post(approval_delegation::process_scheduled_delegations),
+        )
         // Delegation History
-        .route("/approval-delegation/history", get(approval_delegation::list_delegation_history))
-
+        .route(
+            "/approval-delegation/history",
+            get(approval_delegation::list_delegation_history),
+        )
         // Delegation Dashboard
-        .route("/approval-delegation/dashboard", get(approval_delegation::get_delegation_dashboard))
-
+        .route(
+            "/approval-delegation/dashboard",
+            get(approval_delegation::get_delegation_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Approval Authority Limits (Oracle Fusion BPM > Document Approval Limits)
         // ═══════════════════════════════════════════════════════
-
         // Limit CRUD
-        .route("/approval-authority/limits", post(approval_authority::create_authority_limit))
-        .route("/approval-authority/limits", get(approval_authority::list_authority_limits))
-        .route("/approval-authority/limits/:id", get(approval_authority::get_authority_limit))
-        .route("/approval-authority/limits/:id", delete(approval_authority::delete_authority_limit))
-        .route("/approval-authority/limits/:id/activate", post(approval_authority::activate_authority_limit))
-        .route("/approval-authority/limits/:id/deactivate", post(approval_authority::deactivate_authority_limit))
-
+        .route(
+            "/approval-authority/limits",
+            post(approval_authority::create_authority_limit),
+        )
+        .route(
+            "/approval-authority/limits",
+            get(approval_authority::list_authority_limits),
+        )
+        .route(
+            "/approval-authority/limits/:id",
+            get(approval_authority::get_authority_limit),
+        )
+        .route(
+            "/approval-authority/limits/:id",
+            delete(approval_authority::delete_authority_limit),
+        )
+        .route(
+            "/approval-authority/limits/:id/activate",
+            post(approval_authority::activate_authority_limit),
+        )
+        .route(
+            "/approval-authority/limits/:id/deactivate",
+            post(approval_authority::deactivate_authority_limit),
+        )
         // Authority Check
-        .route("/approval-authority/check", post(approval_authority::check_authority))
-
+        .route(
+            "/approval-authority/check",
+            post(approval_authority::check_authority),
+        )
         // Check Audit Trail
-        .route("/approval-authority/audits", get(approval_authority::list_check_audits))
-
+        .route(
+            "/approval-authority/audits",
+            get(approval_authority::list_check_audits),
+        )
         // Authority Dashboard
-        .route("/approval-authority/dashboard", get(approval_authority::get_authority_dashboard))
-
+        .route(
+            "/approval-authority/dashboard",
+            get(approval_authority::get_authority_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Data Archiving & Retention Management (Oracle Fusion ILM)
         // ═══════════════════════════════════════════════════════
-
         // Retention Policies
-        .route("/data-archiving/policies", post(data_archiving::create_retention_policy))
-        .route("/data-archiving/policies", get(data_archiving::list_retention_policies))
-        .route("/data-archiving/policies/:id", get(data_archiving::get_retention_policy))
-        .route("/data-archiving/policies/:id", delete(data_archiving::delete_retention_policy))
-        .route("/data-archiving/policies/:id/activate", post(data_archiving::activate_retention_policy))
-        .route("/data-archiving/policies/:id/deactivate", post(data_archiving::deactivate_retention_policy))
-
+        .route(
+            "/data-archiving/policies",
+            post(data_archiving::create_retention_policy),
+        )
+        .route(
+            "/data-archiving/policies",
+            get(data_archiving::list_retention_policies),
+        )
+        .route(
+            "/data-archiving/policies/:id",
+            get(data_archiving::get_retention_policy),
+        )
+        .route(
+            "/data-archiving/policies/:id",
+            delete(data_archiving::delete_retention_policy),
+        )
+        .route(
+            "/data-archiving/policies/:id/activate",
+            post(data_archiving::activate_retention_policy),
+        )
+        .route(
+            "/data-archiving/policies/:id/deactivate",
+            post(data_archiving::deactivate_retention_policy),
+        )
         // Legal Holds
-        .route("/data-archiving/legal-holds", post(data_archiving::create_legal_hold))
-        .route("/data-archiving/legal-holds", get(data_archiving::list_legal_holds))
-        .route("/data-archiving/legal-holds/:id", get(data_archiving::get_legal_hold))
-        .route("/data-archiving/legal-holds/:id", delete(data_archiving::delete_legal_hold))
-        .route("/data-archiving/legal-holds/:id/release", post(data_archiving::release_legal_hold))
-
+        .route(
+            "/data-archiving/legal-holds",
+            post(data_archiving::create_legal_hold),
+        )
+        .route(
+            "/data-archiving/legal-holds",
+            get(data_archiving::list_legal_holds),
+        )
+        .route(
+            "/data-archiving/legal-holds/:id",
+            get(data_archiving::get_legal_hold),
+        )
+        .route(
+            "/data-archiving/legal-holds/:id",
+            delete(data_archiving::delete_legal_hold),
+        )
+        .route(
+            "/data-archiving/legal-holds/:id/release",
+            post(data_archiving::release_legal_hold),
+        )
         // Legal Hold Items
-        .route("/data-archiving/legal-holds/:id/items", post(data_archiving::add_legal_hold_items))
-        .route("/data-archiving/legal-holds/:id/items", get(data_archiving::list_legal_hold_items))
-        .route("/data-archiving/legal-holds/items/:id", delete(data_archiving::remove_legal_hold_item))
-        .route("/data-archiving/holds/check", get(data_archiving::check_legal_hold))
-
+        .route(
+            "/data-archiving/legal-holds/:id/items",
+            post(data_archiving::add_legal_hold_items),
+        )
+        .route(
+            "/data-archiving/legal-holds/:id/items",
+            get(data_archiving::list_legal_hold_items),
+        )
+        .route(
+            "/data-archiving/legal-holds/items/:id",
+            delete(data_archiving::remove_legal_hold_item),
+        )
+        .route(
+            "/data-archiving/holds/check",
+            get(data_archiving::check_legal_hold),
+        )
         // Archive Operations
-        .route("/data-archiving/archive", post(data_archiving::execute_archive))
-        .route("/data-archiving/archived", get(data_archiving::list_archived_records))
-        .route("/data-archiving/archived/:id", get(data_archiving::get_archived_record))
-        .route("/data-archiving/archived/:id/restore", post(data_archiving::restore_archived_record))
-        .route("/data-archiving/archived/:id/purge", post(data_archiving::purge_archived_record))
-
+        .route(
+            "/data-archiving/archive",
+            post(data_archiving::execute_archive),
+        )
+        .route(
+            "/data-archiving/archived",
+            get(data_archiving::list_archived_records),
+        )
+        .route(
+            "/data-archiving/archived/:id",
+            get(data_archiving::get_archived_record),
+        )
+        .route(
+            "/data-archiving/archived/:id/restore",
+            post(data_archiving::restore_archived_record),
+        )
+        .route(
+            "/data-archiving/archived/:id/purge",
+            post(data_archiving::purge_archived_record),
+        )
         // Archive Batches
-        .route("/data-archiving/batches", get(data_archiving::list_archive_batches))
-        .route("/data-archiving/batches/:id", get(data_archiving::get_archive_batch))
-
+        .route(
+            "/data-archiving/batches",
+            get(data_archiving::list_archive_batches),
+        )
+        .route(
+            "/data-archiving/batches/:id",
+            get(data_archiving::get_archive_batch),
+        )
         // Archive Audit
-        .route("/data-archiving/audit", get(data_archiving::list_archive_audit))
-
+        .route(
+            "/data-archiving/audit",
+            get(data_archiving::list_archive_audit),
+        )
         // Data Archiving Dashboard
-        .route("/data-archiving/dashboard", get(data_archiving::get_data_archiving_dashboard))
-
+        .route(
+            "/data-archiving/dashboard",
+            get(data_archiving::get_data_archiving_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Manufacturing Execution (Oracle Fusion SCM > Manufacturing)
         // ═══════════════════════════════════════════════════════
-
         // Work Definitions
-        .route("/manufacturing/definitions", post(manufacturing::create_work_definition))
-        .route("/manufacturing/definitions", get(manufacturing::list_work_definitions))
-        .route("/manufacturing/definitions/:definition_number", get(manufacturing::get_work_definition))
-        .route("/manufacturing/definitions/:id/activate", post(manufacturing::activate_work_definition))
-        .route("/manufacturing/definitions/:id/deactivate", post(manufacturing::deactivate_work_definition))
-        .route("/manufacturing/definitions/delete/:id", delete(manufacturing::delete_work_definition))
-
+        .route(
+            "/manufacturing/definitions",
+            post(manufacturing::create_work_definition),
+        )
+        .route(
+            "/manufacturing/definitions",
+            get(manufacturing::list_work_definitions),
+        )
+        .route(
+            "/manufacturing/definitions/:definition_number",
+            get(manufacturing::get_work_definition),
+        )
+        .route(
+            "/manufacturing/definitions/:id/activate",
+            post(manufacturing::activate_work_definition),
+        )
+        .route(
+            "/manufacturing/definitions/:id/deactivate",
+            post(manufacturing::deactivate_work_definition),
+        )
+        .route(
+            "/manufacturing/definitions/delete/:id",
+            delete(manufacturing::delete_work_definition),
+        )
         // Work Definition BOM Components
-        .route("/manufacturing/definitions/:id/components", post(manufacturing::add_work_definition_component))
-        .route("/manufacturing/definitions/:id/components", get(manufacturing::list_work_definition_components))
-        .route("/manufacturing/definitions/components/:id", delete(manufacturing::delete_work_definition_component))
-
+        .route(
+            "/manufacturing/definitions/:id/components",
+            post(manufacturing::add_work_definition_component),
+        )
+        .route(
+            "/manufacturing/definitions/:id/components",
+            get(manufacturing::list_work_definition_components),
+        )
+        .route(
+            "/manufacturing/definitions/components/:id",
+            delete(manufacturing::delete_work_definition_component),
+        )
         // Work Definition Routing Operations
-        .route("/manufacturing/definitions/:id/operations", post(manufacturing::add_work_definition_operation))
-        .route("/manufacturing/definitions/:id/operations", get(manufacturing::list_work_definition_operations))
-        .route("/manufacturing/definitions/operations/:id", delete(manufacturing::delete_work_definition_operation))
-
+        .route(
+            "/manufacturing/definitions/:id/operations",
+            post(manufacturing::add_work_definition_operation),
+        )
+        .route(
+            "/manufacturing/definitions/:id/operations",
+            get(manufacturing::list_work_definition_operations),
+        )
+        .route(
+            "/manufacturing/definitions/operations/:id",
+            delete(manufacturing::delete_work_definition_operation),
+        )
         // Work Orders
-        .route("/manufacturing/work-orders", post(manufacturing::create_work_order))
-        .route("/manufacturing/work-orders", get(manufacturing::list_work_orders))
-        .route("/manufacturing/work-orders/:work_order_number", get(manufacturing::get_work_order))
-        .route("/manufacturing/work-orders/:id/release", post(manufacturing::release_work_order))
-        .route("/manufacturing/work-orders/:id/start", post(manufacturing::start_work_order))
-        .route("/manufacturing/work-orders/:id/complete", post(manufacturing::complete_work_order))
-        .route("/manufacturing/work-orders/:id/close", post(manufacturing::close_work_order))
-        .route("/manufacturing/work-orders/:id/cancel", post(manufacturing::cancel_work_order))
-
+        .route(
+            "/manufacturing/work-orders",
+            post(manufacturing::create_work_order),
+        )
+        .route(
+            "/manufacturing/work-orders",
+            get(manufacturing::list_work_orders),
+        )
+        .route(
+            "/manufacturing/work-orders/:work_order_number",
+            get(manufacturing::get_work_order),
+        )
+        .route(
+            "/manufacturing/work-orders/:id/release",
+            post(manufacturing::release_work_order),
+        )
+        .route(
+            "/manufacturing/work-orders/:id/start",
+            post(manufacturing::start_work_order),
+        )
+        .route(
+            "/manufacturing/work-orders/:id/complete",
+            post(manufacturing::complete_work_order),
+        )
+        .route(
+            "/manufacturing/work-orders/:id/close",
+            post(manufacturing::close_work_order),
+        )
+        .route(
+            "/manufacturing/work-orders/:id/cancel",
+            post(manufacturing::cancel_work_order),
+        )
         // Production Reporting
-        .route("/manufacturing/work-orders/:id/report-completion", post(manufacturing::report_completion))
-        .route("/manufacturing/work-orders/:id/issue-materials", post(manufacturing::issue_materials))
-        .route("/manufacturing/materials/:id/return", post(manufacturing::return_material))
-
+        .route(
+            "/manufacturing/work-orders/:id/report-completion",
+            post(manufacturing::report_completion),
+        )
+        .route(
+            "/manufacturing/work-orders/:id/issue-materials",
+            post(manufacturing::issue_materials),
+        )
+        .route(
+            "/manufacturing/materials/:id/return",
+            post(manufacturing::return_material),
+        )
         // Work Order Operations & Materials
-        .route("/manufacturing/work-orders/:id/operations", get(manufacturing::list_work_order_operations))
-        .route("/manufacturing/work-orders/operations/:id/status", post(manufacturing::update_operation_status))
-        .route("/manufacturing/work-orders/:id/materials", get(manufacturing::list_work_order_materials))
-
+        .route(
+            "/manufacturing/work-orders/:id/operations",
+            get(manufacturing::list_work_order_operations),
+        )
+        .route(
+            "/manufacturing/work-orders/operations/:id/status",
+            post(manufacturing::update_operation_status),
+        )
+        .route(
+            "/manufacturing/work-orders/:id/materials",
+            get(manufacturing::list_work_order_materials),
+        )
         // Manufacturing Dashboard
-        .route("/manufacturing/dashboard", get(manufacturing::get_manufacturing_dashboard))
-
+        .route(
+            "/manufacturing/dashboard",
+            get(manufacturing::get_manufacturing_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Warehouse Management (Oracle Fusion Cloud Warehouse Management)
         // ═══════════════════════════════════════════════════════
-
         // Warehouses
-        .route("/warehouse/warehouses", post(warehouse_management::create_warehouse))
-        .route("/warehouse/warehouses", get(warehouse_management::list_warehouses))
-        .route("/warehouse/warehouses/:id", get(warehouse_management::get_warehouse))
-        .route("/warehouse/warehouses/:id/delete", delete(warehouse_management::delete_warehouse))
-
+        .route(
+            "/warehouse/warehouses",
+            post(warehouse_management::create_warehouse),
+        )
+        .route(
+            "/warehouse/warehouses",
+            get(warehouse_management::list_warehouses),
+        )
+        .route(
+            "/warehouse/warehouses/:id",
+            get(warehouse_management::get_warehouse),
+        )
+        .route(
+            "/warehouse/warehouses/:id/delete",
+            delete(warehouse_management::delete_warehouse),
+        )
         // Warehouse Zones
-        .route("/warehouse/warehouses/:id/zones", post(warehouse_management::create_zone))
-        .route("/warehouse/warehouses/:id/zones", get(warehouse_management::list_zones))
-        .route("/warehouse/zones/:id", delete(warehouse_management::delete_zone))
-
+        .route(
+            "/warehouse/warehouses/:id/zones",
+            post(warehouse_management::create_zone),
+        )
+        .route(
+            "/warehouse/warehouses/:id/zones",
+            get(warehouse_management::list_zones),
+        )
+        .route(
+            "/warehouse/zones/:id",
+            delete(warehouse_management::delete_zone),
+        )
         // Put-Away Rules
-        .route("/warehouse/warehouses/:id/put-away-rules", post(warehouse_management::create_put_away_rule))
-        .route("/warehouse/warehouses/:id/put-away-rules", get(warehouse_management::list_put_away_rules))
-        .route("/warehouse/put-away-rules/:id", delete(warehouse_management::delete_put_away_rule))
-
+        .route(
+            "/warehouse/warehouses/:id/put-away-rules",
+            post(warehouse_management::create_put_away_rule),
+        )
+        .route(
+            "/warehouse/warehouses/:id/put-away-rules",
+            get(warehouse_management::list_put_away_rules),
+        )
+        .route(
+            "/warehouse/put-away-rules/:id",
+            delete(warehouse_management::delete_put_away_rule),
+        )
         // Warehouse Tasks
         .route("/warehouse/tasks", post(warehouse_management::create_task))
-        .route("/warehouse/warehouses/:id/tasks", post(warehouse_management::create_task_for_warehouse))
+        .route(
+            "/warehouse/warehouses/:id/tasks",
+            post(warehouse_management::create_task_for_warehouse),
+        )
         .route("/warehouse/tasks", get(warehouse_management::list_tasks))
         .route("/warehouse/tasks/:id", get(warehouse_management::get_task))
-        .route("/warehouse/tasks/:id/start", post(warehouse_management::start_task))
-        .route("/warehouse/tasks/:id/complete", post(warehouse_management::complete_task))
-        .route("/warehouse/tasks/:id/cancel", post(warehouse_management::cancel_task))
-        .route("/warehouse/tasks/:id", delete(warehouse_management::delete_task))
-
+        .route(
+            "/warehouse/tasks/:id/start",
+            post(warehouse_management::start_task),
+        )
+        .route(
+            "/warehouse/tasks/:id/complete",
+            post(warehouse_management::complete_task),
+        )
+        .route(
+            "/warehouse/tasks/:id/cancel",
+            post(warehouse_management::cancel_task),
+        )
+        .route(
+            "/warehouse/tasks/:id",
+            delete(warehouse_management::delete_task),
+        )
         // Pick Waves
-        .route("/warehouse/warehouses/:id/waves", post(warehouse_management::create_wave))
+        .route(
+            "/warehouse/warehouses/:id/waves",
+            post(warehouse_management::create_wave),
+        )
         .route("/warehouse/waves", get(warehouse_management::list_waves))
         .route("/warehouse/waves/:id", get(warehouse_management::get_wave))
-        .route("/warehouse/waves/:id/release", post(warehouse_management::release_wave))
-        .route("/warehouse/waves/:id/complete", post(warehouse_management::complete_wave))
-        .route("/warehouse/waves/:id/cancel", post(warehouse_management::cancel_wave))
-        .route("/warehouse/waves/:id", delete(warehouse_management::delete_wave))
-
+        .route(
+            "/warehouse/waves/:id/release",
+            post(warehouse_management::release_wave),
+        )
+        .route(
+            "/warehouse/waves/:id/complete",
+            post(warehouse_management::complete_wave),
+        )
+        .route(
+            "/warehouse/waves/:id/cancel",
+            post(warehouse_management::cancel_wave),
+        )
+        .route(
+            "/warehouse/waves/:id",
+            delete(warehouse_management::delete_wave),
+        )
         // Warehouse Dashboard
-        .route("/warehouse/dashboard", get(warehouse_management::get_warehouse_dashboard))
-
+        .route(
+            "/warehouse/dashboard",
+            get(warehouse_management::get_warehouse_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════════
         // Absence Management (Oracle Fusion Cloud HCM)
         // ═══════════════════════════════════════════════════════════════
-
         // Absence Types
         .route("/absence/types", post(absence::create_absence_type))
         .route("/absence/types", get(absence::list_absence_types))
         .route("/absence/types/:code", get(absence::get_absence_type))
         .route("/absence/types/:code", delete(absence::delete_absence_type))
-
         // Absence Plans
         .route("/absence/plans", post(absence::create_absence_plan))
         .route("/absence/plans", get(absence::list_absence_plans))
         .route("/absence/plans/:code", get(absence::get_absence_plan))
         .route("/absence/plans/:code", delete(absence::delete_absence_plan))
-
         // Absence Entries
         .route("/absence/entries", post(absence::create_entry))
         .route("/absence/entries", get(absence::list_entries))
@@ -2385,2740 +2894,6880 @@ pub fn api_routes() -> Router<Arc<AppState>> {
         .route("/absence/entries/:id/approve", post(absence::approve_entry))
         .route("/absence/entries/:id/reject", post(absence::reject_entry))
         .route("/absence/entries/:id/cancel", post(absence::cancel_entry))
-
         // Absence Entry History
-        .route("/absence/entries/:id/history", get(absence::get_entry_history))
-
+        .route(
+            "/absence/entries/:id/history",
+            get(absence::get_entry_history),
+        )
         // Absence Balances
         .route("/absence/balances", get(absence::get_balance))
         .route("/absence/balances/list", get(absence::list_balances))
-
         // Absence Dashboard
         .route("/absence/dashboard", get(absence::get_absence_dashboard))
-
         // ═══════════════════════════════════════════════════════════════
         // Time and Labor Management (Oracle Fusion Cloud HCM Time and Labor)
         // ═══════════════════════════════════════════════════════════════
-
         // Work Schedules
-        .route("/time-and-labor/schedules", post(time_and_labor::create_work_schedule))
-        .route("/time-and-labor/schedules", get(time_and_labor::list_work_schedules))
-        .route("/time-and-labor/schedules/:code", get(time_and_labor::get_work_schedule))
-        .route("/time-and-labor/schedules/:code", delete(time_and_labor::delete_work_schedule))
-
+        .route(
+            "/time-and-labor/schedules",
+            post(time_and_labor::create_work_schedule),
+        )
+        .route(
+            "/time-and-labor/schedules",
+            get(time_and_labor::list_work_schedules),
+        )
+        .route(
+            "/time-and-labor/schedules/:code",
+            get(time_and_labor::get_work_schedule),
+        )
+        .route(
+            "/time-and-labor/schedules/:code",
+            delete(time_and_labor::delete_work_schedule),
+        )
         // Overtime Rules
-        .route("/time-and-labor/overtime-rules", post(time_and_labor::create_overtime_rule))
-        .route("/time-and-labor/overtime-rules", get(time_and_labor::list_overtime_rules))
-        .route("/time-and-labor/overtime-rules/:code", get(time_and_labor::get_overtime_rule))
-        .route("/time-and-labor/overtime-rules/:code", delete(time_and_labor::delete_overtime_rule))
-
+        .route(
+            "/time-and-labor/overtime-rules",
+            post(time_and_labor::create_overtime_rule),
+        )
+        .route(
+            "/time-and-labor/overtime-rules",
+            get(time_and_labor::list_overtime_rules),
+        )
+        .route(
+            "/time-and-labor/overtime-rules/:code",
+            get(time_and_labor::get_overtime_rule),
+        )
+        .route(
+            "/time-and-labor/overtime-rules/:code",
+            delete(time_and_labor::delete_overtime_rule),
+        )
         // Time Cards
-        .route("/time-and-labor/time-cards", post(time_and_labor::create_time_card))
-        .route("/time-and-labor/time-cards", get(time_and_labor::list_time_cards))
-        .route("/time-and-labor/time-cards/:id", get(time_and_labor::get_time_card))
-        .route("/time-and-labor/time-cards/:id/submit", post(time_and_labor::submit_time_card))
-        .route("/time-and-labor/time-cards/:id/approve", post(time_and_labor::approve_time_card))
-        .route("/time-and-labor/time-cards/:id/reject", post(time_and_labor::reject_time_card))
-        .route("/time-and-labor/time-cards/:id/cancel", post(time_and_labor::cancel_time_card))
-
+        .route(
+            "/time-and-labor/time-cards",
+            post(time_and_labor::create_time_card),
+        )
+        .route(
+            "/time-and-labor/time-cards",
+            get(time_and_labor::list_time_cards),
+        )
+        .route(
+            "/time-and-labor/time-cards/:id",
+            get(time_and_labor::get_time_card),
+        )
+        .route(
+            "/time-and-labor/time-cards/:id/submit",
+            post(time_and_labor::submit_time_card),
+        )
+        .route(
+            "/time-and-labor/time-cards/:id/approve",
+            post(time_and_labor::approve_time_card),
+        )
+        .route(
+            "/time-and-labor/time-cards/:id/reject",
+            post(time_and_labor::reject_time_card),
+        )
+        .route(
+            "/time-and-labor/time-cards/:id/cancel",
+            post(time_and_labor::cancel_time_card),
+        )
         // Time Entries
-        .route("/time-and-labor/entries", post(time_and_labor::create_time_entry))
-        .route("/time-and-labor/entries/time-card/:time_card_id", get(time_and_labor::list_time_entries))
-        .route("/time-and-labor/entries/:id", delete(time_and_labor::delete_time_entry))
-
+        .route(
+            "/time-and-labor/entries",
+            post(time_and_labor::create_time_entry),
+        )
+        .route(
+            "/time-and-labor/entries/time-card/:time_card_id",
+            get(time_and_labor::list_time_entries),
+        )
+        .route(
+            "/time-and-labor/entries/:id",
+            delete(time_and_labor::delete_time_entry),
+        )
         // Time Card History
-        .route("/time-and-labor/time-cards/:time_card_id/history", get(time_and_labor::get_time_card_history))
-
+        .route(
+            "/time-and-labor/time-cards/:time_card_id/history",
+            get(time_and_labor::get_time_card_history),
+        )
         // Labor Distributions
-        .route("/time-and-labor/distributions", post(time_and_labor::create_labor_distribution))
-        .route("/time-and-labor/distributions/entry/:time_entry_id", get(time_and_labor::list_labor_distributions))
-        .route("/time-and-labor/distributions/:id", delete(time_and_labor::delete_labor_distribution))
-
+        .route(
+            "/time-and-labor/distributions",
+            post(time_and_labor::create_labor_distribution),
+        )
+        .route(
+            "/time-and-labor/distributions/entry/:time_entry_id",
+            get(time_and_labor::list_labor_distributions),
+        )
+        .route(
+            "/time-and-labor/distributions/:id",
+            delete(time_and_labor::delete_labor_distribution),
+        )
         // Time and Labor Dashboard
-        .route("/time-and-labor/dashboard", get(time_and_labor::get_time_and_labor_dashboard))
-
+        .route(
+            "/time-and-labor/dashboard",
+            get(time_and_labor::get_time_and_labor_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════════
         // Compensation Management (Oracle Fusion Cloud HCM Compensation Workbench)
         // ═══════════════════════════════════════════════════════════════
-
         // Compensation Plans
         .route("/compensation/plans", post(compensation::create_plan))
         .route("/compensation/plans", get(compensation::list_plans))
         .route("/compensation/plans/:code", get(compensation::get_plan))
-        .route("/compensation/plans/:code", delete(compensation::delete_plan))
-
+        .route(
+            "/compensation/plans/:code",
+            delete(compensation::delete_plan),
+        )
         // Plan Components
-        .route("/compensation/plans/:plan_code/components", post(compensation::create_component))
-        .route("/compensation/plans/:plan_code/components", get(compensation::list_components))
-
+        .route(
+            "/compensation/plans/:plan_code/components",
+            post(compensation::create_component),
+        )
+        .route(
+            "/compensation/plans/:plan_code/components",
+            get(compensation::list_components),
+        )
         // Compensation Cycles
         .route("/compensation/cycles", post(compensation::create_cycle))
         .route("/compensation/cycles", get(compensation::list_cycles))
         .route("/compensation/cycles/:id", get(compensation::get_cycle))
-        .route("/compensation/cycles/:id/transition", post(compensation::transition_cycle))
-        .route("/compensation/cycles/:id", delete(compensation::delete_cycle))
-
+        .route(
+            "/compensation/cycles/:id/transition",
+            post(compensation::transition_cycle),
+        )
+        .route(
+            "/compensation/cycles/:id",
+            delete(compensation::delete_cycle),
+        )
         // Budget Pools
-        .route("/compensation/cycles/:cycle_id/pools", post(compensation::create_budget_pool))
-        .route("/compensation/cycles/:cycle_id/pools", get(compensation::list_budget_pools))
-
+        .route(
+            "/compensation/cycles/:cycle_id/pools",
+            post(compensation::create_budget_pool),
+        )
+        .route(
+            "/compensation/cycles/:cycle_id/pools",
+            get(compensation::list_budget_pools),
+        )
         // Worksheets
-        .route("/compensation/cycles/:cycle_id/worksheets", post(compensation::create_worksheet))
-        .route("/compensation/cycles/:cycle_id/worksheets", get(compensation::list_worksheets))
-        .route("/compensation/worksheets/:id", get(compensation::get_worksheet))
-        .route("/compensation/worksheets/:id/submit", post(compensation::submit_worksheet))
-        .route("/compensation/worksheets/:id/approve", post(compensation::approve_worksheet))
-        .route("/compensation/worksheets/:id/reject", post(compensation::reject_worksheet))
-
+        .route(
+            "/compensation/cycles/:cycle_id/worksheets",
+            post(compensation::create_worksheet),
+        )
+        .route(
+            "/compensation/cycles/:cycle_id/worksheets",
+            get(compensation::list_worksheets),
+        )
+        .route(
+            "/compensation/worksheets/:id",
+            get(compensation::get_worksheet),
+        )
+        .route(
+            "/compensation/worksheets/:id/submit",
+            post(compensation::submit_worksheet),
+        )
+        .route(
+            "/compensation/worksheets/:id/approve",
+            post(compensation::approve_worksheet),
+        )
+        .route(
+            "/compensation/worksheets/:id/reject",
+            post(compensation::reject_worksheet),
+        )
         // Worksheet Lines
-        .route("/compensation/worksheets/:worksheet_id/lines", post(compensation::add_worksheet_line))
-        .route("/compensation/worksheets/:worksheet_id/lines", get(compensation::list_worksheet_lines))
-        .route("/compensation/lines/:line_id", put(compensation::update_worksheet_line))
-        .route("/compensation/lines/:line_id", delete(compensation::delete_worksheet_line))
-
+        .route(
+            "/compensation/worksheets/:worksheet_id/lines",
+            post(compensation::add_worksheet_line),
+        )
+        .route(
+            "/compensation/worksheets/:worksheet_id/lines",
+            get(compensation::list_worksheet_lines),
+        )
+        .route(
+            "/compensation/lines/:line_id",
+            put(compensation::update_worksheet_line),
+        )
+        .route(
+            "/compensation/lines/:line_id",
+            delete(compensation::delete_worksheet_line),
+        )
         // Compensation Statements
-        .route("/compensation/cycles/:cycle_id/statements", post(compensation::generate_statement))
-        .route("/compensation/cycles/:cycle_id/statements", get(compensation::list_statements))
-        .route("/compensation/statements/:id", get(compensation::get_statement))
-        .route("/compensation/statements/:id/publish", post(compensation::publish_statement))
-
+        .route(
+            "/compensation/cycles/:cycle_id/statements",
+            post(compensation::generate_statement),
+        )
+        .route(
+            "/compensation/cycles/:cycle_id/statements",
+            get(compensation::list_statements),
+        )
+        .route(
+            "/compensation/statements/:id",
+            get(compensation::get_statement),
+        )
+        .route(
+            "/compensation/statements/:id/publish",
+            post(compensation::publish_statement),
+        )
         // Compensation Dashboard
         .route("/compensation/dashboard", get(compensation::get_dashboard))
-
         // ═══════════════════════════════════════════════════════
         // Service Request Management (Oracle Fusion CX Service)
         // ═══════════════════════════════════════════════════════
-
         // Service Categories
-        .route("/service/categories", post(service_request::create_category))
+        .route(
+            "/service/categories",
+            post(service_request::create_category),
+        )
         .route("/service/categories", get(service_request::list_categories))
-        .route("/service/categories/:code", get(service_request::get_category))
-        .route("/service/categories/:code", delete(service_request::delete_category))
-
+        .route(
+            "/service/categories/:code",
+            get(service_request::get_category),
+        )
+        .route(
+            "/service/categories/:code",
+            delete(service_request::delete_category),
+        )
         // Service Requests
         .route("/service/requests", post(service_request::create_request))
         .route("/service/requests", get(service_request::list_requests))
         .route("/service/requests/:id", get(service_request::get_request))
-        .route("/service/requests/number/:number", get(service_request::get_request_by_number))
-
+        .route(
+            "/service/requests/number/:number",
+            get(service_request::get_request_by_number),
+        )
         // Service Request Lifecycle
-        .route("/service/requests/:id/status", post(service_request::update_request_status))
-        .route("/service/requests/:id/resolve", post(service_request::resolve_request))
-
+        .route(
+            "/service/requests/:id/status",
+            post(service_request::update_request_status),
+        )
+        .route(
+            "/service/requests/:id/resolve",
+            post(service_request::resolve_request),
+        )
         // Service Request Assignments
-        .route("/service/requests/:id/assign", post(service_request::assign_request))
-        .route("/service/requests/:id/assignments", get(service_request::list_assignments))
-
+        .route(
+            "/service/requests/:id/assign",
+            post(service_request::assign_request),
+        )
+        .route(
+            "/service/requests/:id/assignments",
+            get(service_request::list_assignments),
+        )
         // Service Request Updates / Communications
-        .route("/service/requests/:id/updates", post(service_request::add_update))
-        .route("/service/requests/:id/updates", get(service_request::list_updates))
-
+        .route(
+            "/service/requests/:id/updates",
+            post(service_request::add_update),
+        )
+        .route(
+            "/service/requests/:id/updates",
+            get(service_request::list_updates),
+        )
         // Service Request Dashboard
-        .route("/service/dashboard", get(service_request::get_service_request_dashboard))
-
+        .route(
+            "/service/dashboard",
+            get(service_request::get_service_request_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════
         // Lead and Opportunity Management (Oracle Fusion CX Sales)
         // ═══════════════════════════════════════════════════════════
-
         // Lead Sources
-        .route("/sales/lead-sources", post(lead_opportunity::create_lead_source))
-        .route("/sales/lead-sources", get(lead_opportunity::list_lead_sources))
-        .route("/sales/lead-sources/:code", delete(lead_opportunity::delete_lead_source))
-
+        .route(
+            "/sales/lead-sources",
+            post(lead_opportunity::create_lead_source),
+        )
+        .route(
+            "/sales/lead-sources",
+            get(lead_opportunity::list_lead_sources),
+        )
+        .route(
+            "/sales/lead-sources/:code",
+            delete(lead_opportunity::delete_lead_source),
+        )
         // Sales Leads
         .route("/sales/leads", post(lead_opportunity::create_lead))
         .route("/sales/leads", get(lead_opportunity::list_leads))
         .route("/sales/leads/:id", get(lead_opportunity::get_lead))
-        .route("/sales/leads/:id/status", post(lead_opportunity::update_lead_status))
-        .route("/sales/leads/:id/score", post(lead_opportunity::update_lead_score))
-        .route("/sales/leads/:id/convert", post(lead_opportunity::convert_lead))
+        .route(
+            "/sales/leads/:id/status",
+            post(lead_opportunity::update_lead_status),
+        )
+        .route(
+            "/sales/leads/:id/score",
+            post(lead_opportunity::update_lead_score),
+        )
+        .route(
+            "/sales/leads/:id/convert",
+            post(lead_opportunity::convert_lead),
+        )
         .route("/sales/leads/:id", delete(lead_opportunity::delete_lead))
-
         // Opportunity Stages
-        .route("/sales/opportunity-stages", post(lead_opportunity::create_opportunity_stage))
-        .route("/sales/opportunity-stages", get(lead_opportunity::list_opportunity_stages))
-        .route("/sales/opportunity-stages/:code", delete(lead_opportunity::delete_opportunity_stage))
-
+        .route(
+            "/sales/opportunity-stages",
+            post(lead_opportunity::create_opportunity_stage),
+        )
+        .route(
+            "/sales/opportunity-stages",
+            get(lead_opportunity::list_opportunity_stages),
+        )
+        .route(
+            "/sales/opportunity-stages/:code",
+            delete(lead_opportunity::delete_opportunity_stage),
+        )
         // Sales Opportunities
-        .route("/sales/opportunities", post(lead_opportunity::create_opportunity))
-        .route("/sales/opportunities", get(lead_opportunity::list_opportunities))
-        .route("/sales/opportunities/:id", get(lead_opportunity::get_opportunity))
-        .route("/sales/opportunities/:id/stage", post(lead_opportunity::update_opportunity_stage))
-        .route("/sales/opportunities/:id/win", post(lead_opportunity::close_opportunity_won))
-        .route("/sales/opportunities/:id/lose", post(lead_opportunity::close_opportunity_lost))
-        .route("/sales/opportunities/:id/history", get(lead_opportunity::list_stage_history))
-        .route("/sales/opportunities/:id", delete(lead_opportunity::delete_opportunity))
-
+        .route(
+            "/sales/opportunities",
+            post(lead_opportunity::create_opportunity),
+        )
+        .route(
+            "/sales/opportunities",
+            get(lead_opportunity::list_opportunities),
+        )
+        .route(
+            "/sales/opportunities/:id",
+            get(lead_opportunity::get_opportunity),
+        )
+        .route(
+            "/sales/opportunities/:id/stage",
+            post(lead_opportunity::update_opportunity_stage),
+        )
+        .route(
+            "/sales/opportunities/:id/win",
+            post(lead_opportunity::close_opportunity_won),
+        )
+        .route(
+            "/sales/opportunities/:id/lose",
+            post(lead_opportunity::close_opportunity_lost),
+        )
+        .route(
+            "/sales/opportunities/:id/history",
+            get(lead_opportunity::list_stage_history),
+        )
+        .route(
+            "/sales/opportunities/:id",
+            delete(lead_opportunity::delete_opportunity),
+        )
         // Opportunity Lines
-        .route("/sales/opportunities/:opportunity_id/lines", post(lead_opportunity::add_opportunity_line))
-        .route("/sales/opportunities/:opportunity_id/lines", get(lead_opportunity::list_opportunity_lines))
-        .route("/sales/opportunity-lines/:id", delete(lead_opportunity::delete_opportunity_line))
-
+        .route(
+            "/sales/opportunities/:opportunity_id/lines",
+            post(lead_opportunity::add_opportunity_line),
+        )
+        .route(
+            "/sales/opportunities/:opportunity_id/lines",
+            get(lead_opportunity::list_opportunity_lines),
+        )
+        .route(
+            "/sales/opportunity-lines/:id",
+            delete(lead_opportunity::delete_opportunity_line),
+        )
         // Sales Activities
         .route("/sales/activities", post(lead_opportunity::create_activity))
         .route("/sales/activities", get(lead_opportunity::list_activities))
-        .route("/sales/activities/:id/complete", post(lead_opportunity::complete_activity))
-        .route("/sales/activities/:id/cancel", post(lead_opportunity::cancel_activity))
-        .route("/sales/activities/:id", delete(lead_opportunity::delete_activity))
-
+        .route(
+            "/sales/activities/:id/complete",
+            post(lead_opportunity::complete_activity),
+        )
+        .route(
+            "/sales/activities/:id/cancel",
+            post(lead_opportunity::cancel_activity),
+        )
+        .route(
+            "/sales/activities/:id",
+            delete(lead_opportunity::delete_activity),
+        )
         // Sales Pipeline Dashboard
-        .route("/sales/dashboard", get(lead_opportunity::get_sales_pipeline_dashboard))
-
+        .route(
+            "/sales/dashboard",
+            get(lead_opportunity::get_sales_pipeline_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Marketing Campaign Management (Oracle Fusion CX Marketing)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Campaign Types
-        .route("/marketing/campaign-types", post(marketing::create_campaign_type))
-        .route("/marketing/campaign-types", get(marketing::list_campaign_types))
-        .route("/marketing/campaign-types/:code", delete(marketing::delete_campaign_type))
-
+        .route(
+            "/marketing/campaign-types",
+            post(marketing::create_campaign_type),
+        )
+        .route(
+            "/marketing/campaign-types",
+            get(marketing::list_campaign_types),
+        )
+        .route(
+            "/marketing/campaign-types/:code",
+            delete(marketing::delete_campaign_type),
+        )
         // Marketing Campaigns
         .route("/marketing/campaigns", post(marketing::create_campaign))
         .route("/marketing/campaigns", get(marketing::list_campaigns))
         .route("/marketing/campaigns/:id", get(marketing::get_campaign))
-        .route("/marketing/campaigns/:id/activate", post(marketing::activate_campaign))
-        .route("/marketing/campaigns/:id/pause", post(marketing::pause_campaign))
-        .route("/marketing/campaigns/:id/complete", post(marketing::complete_campaign))
-        .route("/marketing/campaigns/:id/cancel", post(marketing::cancel_campaign))
-        .route("/marketing/campaigns/:id", delete(marketing::delete_campaign))
-
+        .route(
+            "/marketing/campaigns/:id/activate",
+            post(marketing::activate_campaign),
+        )
+        .route(
+            "/marketing/campaigns/:id/pause",
+            post(marketing::pause_campaign),
+        )
+        .route(
+            "/marketing/campaigns/:id/complete",
+            post(marketing::complete_campaign),
+        )
+        .route(
+            "/marketing/campaigns/:id/cancel",
+            post(marketing::cancel_campaign),
+        )
+        .route(
+            "/marketing/campaigns/:id",
+            delete(marketing::delete_campaign),
+        )
         // Campaign Members
-        .route("/marketing/campaigns/:campaign_id/members", post(marketing::add_campaign_member))
-        .route("/marketing/campaigns/:campaign_id/members", get(marketing::list_campaign_members))
-        .route("/marketing/members/:id/status", post(marketing::update_member_status))
-        .route("/marketing/members/:id", delete(marketing::delete_campaign_member))
-
+        .route(
+            "/marketing/campaigns/:campaign_id/members",
+            post(marketing::add_campaign_member),
+        )
+        .route(
+            "/marketing/campaigns/:campaign_id/members",
+            get(marketing::list_campaign_members),
+        )
+        .route(
+            "/marketing/members/:id/status",
+            post(marketing::update_member_status),
+        )
+        .route(
+            "/marketing/members/:id",
+            delete(marketing::delete_campaign_member),
+        )
         // Campaign Responses
-        .route("/marketing/campaigns/:campaign_id/responses", post(marketing::create_campaign_response))
-        .route("/marketing/campaigns/:campaign_id/responses", get(marketing::list_campaign_responses))
-        .route("/marketing/responses/:id", delete(marketing::delete_campaign_response))
-
+        .route(
+            "/marketing/campaigns/:campaign_id/responses",
+            post(marketing::create_campaign_response),
+        )
+        .route(
+            "/marketing/campaigns/:campaign_id/responses",
+            get(marketing::list_campaign_responses),
+        )
+        .route(
+            "/marketing/responses/:id",
+            delete(marketing::delete_campaign_response),
+        )
         // Marketing Dashboard
-        .route("/marketing/dashboard", get(marketing::get_marketing_dashboard))
-
+        .route(
+            "/marketing/dashboard",
+            get(marketing::get_marketing_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════
         // Demand Planning (Oracle Fusion SCM > Demand Management)
         // ═══════════════════════════════════════════════════════════
-
         // Forecast Methods
         .route("/demand/methods", post(demand_planning::create_method))
         .route("/demand/methods", get(demand_planning::list_methods))
         .route("/demand/methods/:id", get(demand_planning::get_method))
-        .route("/demand/methods-by-code/:code", delete(demand_planning::delete_method))
-
+        .route(
+            "/demand/methods-by-code/:code",
+            delete(demand_planning::delete_method),
+        )
         // Demand Schedules
         .route("/demand/schedules", post(demand_planning::create_schedule))
         .route("/demand/schedules", get(demand_planning::list_schedules))
         .route("/demand/schedules/:id", get(demand_planning::get_schedule))
-        .route("/demand/schedules/:id/submit", post(demand_planning::submit_schedule))
-        .route("/demand/schedules/:id/approve", post(demand_planning::approve_schedule))
-        .route("/demand/schedules/:id/activate", post(demand_planning::activate_schedule))
-        .route("/demand/schedules/:id/close", post(demand_planning::close_schedule))
-        .route("/demand/schedules/:id/cancel", post(demand_planning::cancel_schedule))
-        .route("/demand/schedules-by-number/:schedule_number", delete(demand_planning::delete_schedule))
-
+        .route(
+            "/demand/schedules/:id/submit",
+            post(demand_planning::submit_schedule),
+        )
+        .route(
+            "/demand/schedules/:id/approve",
+            post(demand_planning::approve_schedule),
+        )
+        .route(
+            "/demand/schedules/:id/activate",
+            post(demand_planning::activate_schedule),
+        )
+        .route(
+            "/demand/schedules/:id/close",
+            post(demand_planning::close_schedule),
+        )
+        .route(
+            "/demand/schedules/:id/cancel",
+            post(demand_planning::cancel_schedule),
+        )
+        .route(
+            "/demand/schedules-by-number/:schedule_number",
+            delete(demand_planning::delete_schedule),
+        )
         // Schedule Lines
-        .route("/demand/schedules/:schedule_id/lines", post(demand_planning::add_schedule_line))
-        .route("/demand/schedules/:schedule_id/lines", get(demand_planning::list_schedule_lines))
-        .route("/demand/schedule-lines/:id", delete(demand_planning::delete_schedule_line))
-
+        .route(
+            "/demand/schedules/:schedule_id/lines",
+            post(demand_planning::add_schedule_line),
+        )
+        .route(
+            "/demand/schedules/:schedule_id/lines",
+            get(demand_planning::list_schedule_lines),
+        )
+        .route(
+            "/demand/schedule-lines/:id",
+            delete(demand_planning::delete_schedule_line),
+        )
         // Demand History
         .route("/demand/history", post(demand_planning::create_history))
         .route("/demand/history", get(demand_planning::list_history))
-        .route("/demand/history/:id", delete(demand_planning::delete_history))
-
+        .route(
+            "/demand/history/:id",
+            delete(demand_planning::delete_history),
+        )
         // Forecast Consumption
-        .route("/demand/consumption", post(demand_planning::consume_forecast))
-        .route("/demand/consumption/:schedule_line_id", get(demand_planning::list_consumption))
-        .route("/demand/consumption-entries/:id", delete(demand_planning::delete_consumption))
-
+        .route(
+            "/demand/consumption",
+            post(demand_planning::consume_forecast),
+        )
+        .route(
+            "/demand/consumption/:schedule_line_id",
+            get(demand_planning::list_consumption),
+        )
+        .route(
+            "/demand/consumption-entries/:id",
+            delete(demand_planning::delete_consumption),
+        )
         // Accuracy Measurement
         .route("/demand/accuracy", post(demand_planning::measure_accuracy))
-        .route("/demand/schedules/:schedule_id/accuracy", get(demand_planning::list_accuracy))
-
+        .route(
+            "/demand/schedules/:schedule_id/accuracy",
+            get(demand_planning::list_accuracy),
+        )
         // Demand Planning Dashboard
-        .route("/demand/dashboard", get(demand_planning::get_demand_planning_dashboard))
-
+        .route(
+            "/demand/dashboard",
+            get(demand_planning::get_demand_planning_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // AutoInvoice (Oracle Fusion Receivables AutoInvoice)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Grouping Rules
-        .route("/autoinvoice/grouping-rules", post(autoinvoice::create_grouping_rule))
-        .route("/autoinvoice/grouping-rules", get(autoinvoice::list_grouping_rules))
-        .route("/autoinvoice/grouping-rules/:id", get(autoinvoice::get_grouping_rule))
-        .route("/autoinvoice/grouping-rules/:id", delete(autoinvoice::delete_grouping_rule))
-
+        .route(
+            "/autoinvoice/grouping-rules",
+            post(autoinvoice::create_grouping_rule),
+        )
+        .route(
+            "/autoinvoice/grouping-rules",
+            get(autoinvoice::list_grouping_rules),
+        )
+        .route(
+            "/autoinvoice/grouping-rules/:id",
+            get(autoinvoice::get_grouping_rule),
+        )
+        .route(
+            "/autoinvoice/grouping-rules/:id",
+            delete(autoinvoice::delete_grouping_rule),
+        )
         // Validation Rules
-        .route("/autoinvoice/validation-rules", post(autoinvoice::create_validation_rule))
-        .route("/autoinvoice/validation-rules", get(autoinvoice::list_validation_rules))
-        .route("/autoinvoice/validation-rules/:id", delete(autoinvoice::delete_validation_rule))
-
+        .route(
+            "/autoinvoice/validation-rules",
+            post(autoinvoice::create_validation_rule),
+        )
+        .route(
+            "/autoinvoice/validation-rules",
+            get(autoinvoice::list_validation_rules),
+        )
+        .route(
+            "/autoinvoice/validation-rules/:id",
+            delete(autoinvoice::delete_validation_rule),
+        )
         // Batch Import & Processing
         .route("/autoinvoice/batches", post(autoinvoice::import_batch))
         .route("/autoinvoice/batches", get(autoinvoice::list_batches))
         .route("/autoinvoice/batches/:id", get(autoinvoice::get_batch))
-        .route("/autoinvoice/batches/:id/validate", post(autoinvoice::validate_batch))
-        .route("/autoinvoice/batches/:id/process", post(autoinvoice::process_batch))
-        .route("/autoinvoice/import-and-process", post(autoinvoice::import_and_process))
-
+        .route(
+            "/autoinvoice/batches/:id/validate",
+            post(autoinvoice::validate_batch),
+        )
+        .route(
+            "/autoinvoice/batches/:id/process",
+            post(autoinvoice::process_batch),
+        )
+        .route(
+            "/autoinvoice/import-and-process",
+            post(autoinvoice::import_and_process),
+        )
         // Batch Lines & Results
-        .route("/autoinvoice/batches/:id/lines", get(autoinvoice::get_batch_lines))
-        .route("/autoinvoice/batches/:id/results", get(autoinvoice::get_batch_results))
-
+        .route(
+            "/autoinvoice/batches/:id/lines",
+            get(autoinvoice::get_batch_lines),
+        )
+        .route(
+            "/autoinvoice/batches/:id/results",
+            get(autoinvoice::get_batch_results),
+        )
         // Invoice Management
         .route("/autoinvoice/invoices/:id", get(autoinvoice::get_invoice))
-        .route("/autoinvoice/invoices/:id/status", put(autoinvoice::update_invoice_status))
-
+        .route(
+            "/autoinvoice/invoices/:id/status",
+            put(autoinvoice::update_invoice_status),
+        )
         // AutoInvoice Dashboard
-        .route("/autoinvoice/dashboard", get(autoinvoice::get_autoinvoice_dashboard))
-
+        .route(
+            "/autoinvoice/dashboard",
+            get(autoinvoice::get_autoinvoice_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Shipping Execution (Oracle Fusion SCM > Shipping Execution)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Carriers
         .route("/shipping/carriers", post(shipping::create_carrier))
         .route("/shipping/carriers", get(shipping::list_carriers))
         .route("/shipping/carriers/:id", get(shipping::get_carrier))
-        .route("/shipping/carriers-by-code/:code", delete(shipping::delete_carrier))
-
+        .route(
+            "/shipping/carriers-by-code/:code",
+            delete(shipping::delete_carrier),
+        )
         // Shipping Methods
         .route("/shipping/methods", post(shipping::create_shipping_method))
         .route("/shipping/methods", get(shipping::list_shipping_methods))
-        .route("/shipping/methods-by-code/:code", delete(shipping::delete_shipping_method))
-
+        .route(
+            "/shipping/methods-by-code/:code",
+            delete(shipping::delete_shipping_method),
+        )
         // Shipments
         .route("/shipping/shipments", post(shipping::create_shipment))
         .route("/shipping/shipments", get(shipping::list_shipments))
         .route("/shipping/shipments/:id", get(shipping::get_shipment))
-        .route("/shipping/shipments/:id/confirm", post(shipping::confirm_shipment))
+        .route(
+            "/shipping/shipments/:id/confirm",
+            post(shipping::confirm_shipment),
+        )
         .route("/shipping/shipments/:id/ship", post(shipping::ship_confirm))
-        .route("/shipping/shipments/:id/deliver", post(shipping::deliver_shipment))
-        .route("/shipping/shipments/:id/cancel", post(shipping::cancel_shipment))
-        .route("/shipping/shipments-by-number/:shipment_number", delete(shipping::delete_shipment))
-
+        .route(
+            "/shipping/shipments/:id/deliver",
+            post(shipping::deliver_shipment),
+        )
+        .route(
+            "/shipping/shipments/:id/cancel",
+            post(shipping::cancel_shipment),
+        )
+        .route(
+            "/shipping/shipments-by-number/:shipment_number",
+            delete(shipping::delete_shipment),
+        )
         // Shipment Lines
-        .route("/shipping/shipments/:shipment_id/lines", post(shipping::add_shipment_line))
-        .route("/shipping/shipments/:shipment_id/lines", get(shipping::list_shipment_lines))
-        .route("/shipping/shipment-lines/:id", delete(shipping::delete_shipment_line))
-        .route("/shipping/shipment-lines/:id/shipped-qty", put(shipping::update_shipped_quantity))
-
+        .route(
+            "/shipping/shipments/:shipment_id/lines",
+            post(shipping::add_shipment_line),
+        )
+        .route(
+            "/shipping/shipments/:shipment_id/lines",
+            get(shipping::list_shipment_lines),
+        )
+        .route(
+            "/shipping/shipment-lines/:id",
+            delete(shipping::delete_shipment_line),
+        )
+        .route(
+            "/shipping/shipment-lines/:id/shipped-qty",
+            put(shipping::update_shipped_quantity),
+        )
         // Packing Slips
-        .route("/shipping/shipments/:shipment_id/packing-slips", post(shipping::create_packing_slip))
-        .route("/shipping/shipments/:shipment_id/packing-slips", get(shipping::list_packing_slips))
-        .route("/shipping/packing-slips/:id", delete(shipping::delete_packing_slip))
-
+        .route(
+            "/shipping/shipments/:shipment_id/packing-slips",
+            post(shipping::create_packing_slip),
+        )
+        .route(
+            "/shipping/shipments/:shipment_id/packing-slips",
+            get(shipping::list_packing_slips),
+        )
+        .route(
+            "/shipping/packing-slips/:id",
+            delete(shipping::delete_packing_slip),
+        )
         // Packing Slip Lines
-        .route("/shipping/packing-slips/:packing_slip_id/lines", post(shipping::add_packing_slip_line))
-        .route("/shipping/packing-slips/:packing_slip_id/lines", get(shipping::list_packing_slip_lines))
-        .route("/shipping/packing-slip-lines/:id", delete(shipping::delete_packing_slip_line))
-
+        .route(
+            "/shipping/packing-slips/:packing_slip_id/lines",
+            post(shipping::add_packing_slip_line),
+        )
+        .route(
+            "/shipping/packing-slips/:packing_slip_id/lines",
+            get(shipping::list_packing_slip_lines),
+        )
+        .route(
+            "/shipping/packing-slip-lines/:id",
+            delete(shipping::delete_packing_slip_line),
+        )
         // Shipping Dashboard
         .route("/shipping/dashboard", get(shipping::get_shipping_dashboard))
-
         // ═════════════════════════════════════════════════════════════════════════════════════
         // Recruiting Management (Oracle Fusion HCM > Recruiting)
         // ═════════════════════════════════════════════════════════════════════════════════════
-
         // Job Requisitions
-        .route("/recruiting/requisitions", post(recruiting::create_requisition))
-        .route("/recruiting/requisitions", get(recruiting::list_requisitions))
-        .route("/recruiting/requisitions/:id", get(recruiting::get_requisition))
-        .route("/recruiting/requisitions/:id/open", post(recruiting::open_requisition))
-        .route("/recruiting/requisitions/:id/hold", post(recruiting::hold_requisition))
-        .route("/recruiting/requisitions/:id/close", post(recruiting::close_requisition))
-        .route("/recruiting/requisitions/:id/cancel", post(recruiting::cancel_requisition))
-        .route("/recruiting/requisitions-by-number/:number", delete(recruiting::delete_requisition))
-
+        .route(
+            "/recruiting/requisitions",
+            post(recruiting::create_requisition),
+        )
+        .route(
+            "/recruiting/requisitions",
+            get(recruiting::list_requisitions),
+        )
+        .route(
+            "/recruiting/requisitions/:id",
+            get(recruiting::get_requisition),
+        )
+        .route(
+            "/recruiting/requisitions/:id/open",
+            post(recruiting::open_requisition),
+        )
+        .route(
+            "/recruiting/requisitions/:id/hold",
+            post(recruiting::hold_requisition),
+        )
+        .route(
+            "/recruiting/requisitions/:id/close",
+            post(recruiting::close_requisition),
+        )
+        .route(
+            "/recruiting/requisitions/:id/cancel",
+            post(recruiting::cancel_requisition),
+        )
+        .route(
+            "/recruiting/requisitions-by-number/:number",
+            delete(recruiting::delete_requisition),
+        )
         // Candidates
         .route("/recruiting/candidates", post(recruiting::create_candidate))
         .route("/recruiting/candidates", get(recruiting::list_candidates))
         .route("/recruiting/candidates/:id", get(recruiting::get_candidate))
-        .route("/recruiting/candidates/:id/status", post(recruiting::update_candidate_status))
-        .route("/recruiting/candidates/:id", delete(recruiting::delete_candidate))
-
+        .route(
+            "/recruiting/candidates/:id/status",
+            post(recruiting::update_candidate_status),
+        )
+        .route(
+            "/recruiting/candidates/:id",
+            delete(recruiting::delete_candidate),
+        )
         // Job Applications
-        .route("/recruiting/applications", post(recruiting::create_application))
-        .route("/recruiting/applications", get(recruiting::list_applications))
-        .route("/recruiting/applications/:id", get(recruiting::get_application))
-        .route("/recruiting/applications/:id/status", post(recruiting::update_application_status))
-        .route("/recruiting/applications/:id/withdraw", post(recruiting::withdraw_application))
-
+        .route(
+            "/recruiting/applications",
+            post(recruiting::create_application),
+        )
+        .route(
+            "/recruiting/applications",
+            get(recruiting::list_applications),
+        )
+        .route(
+            "/recruiting/applications/:id",
+            get(recruiting::get_application),
+        )
+        .route(
+            "/recruiting/applications/:id/status",
+            post(recruiting::update_application_status),
+        )
+        .route(
+            "/recruiting/applications/:id/withdraw",
+            post(recruiting::withdraw_application),
+        )
         // Interviews
-        .route("/recruiting/applications/:application_id/interviews", post(recruiting::create_interview))
-        .route("/recruiting/applications/:application_id/interviews", get(recruiting::list_interviews))
-        .route("/recruiting/interviews/:id/complete", post(recruiting::complete_interview))
-        .route("/recruiting/interviews/:id/cancel", post(recruiting::cancel_interview))
-        .route("/recruiting/interviews/:id", delete(recruiting::delete_interview))
-
+        .route(
+            "/recruiting/applications/:application_id/interviews",
+            post(recruiting::create_interview),
+        )
+        .route(
+            "/recruiting/applications/:application_id/interviews",
+            get(recruiting::list_interviews),
+        )
+        .route(
+            "/recruiting/interviews/:id/complete",
+            post(recruiting::complete_interview),
+        )
+        .route(
+            "/recruiting/interviews/:id/cancel",
+            post(recruiting::cancel_interview),
+        )
+        .route(
+            "/recruiting/interviews/:id",
+            delete(recruiting::delete_interview),
+        )
         // Job Offers
-        .route("/recruiting/applications/:application_id/offers", post(recruiting::create_offer))
+        .route(
+            "/recruiting/applications/:application_id/offers",
+            post(recruiting::create_offer),
+        )
         .route("/recruiting/offers", get(recruiting::list_offers))
         .route("/recruiting/offers/:id", get(recruiting::get_offer))
-        .route("/recruiting/offers/:id/approve", post(recruiting::approve_offer))
-        .route("/recruiting/offers/:id/extend", post(recruiting::extend_offer))
-        .route("/recruiting/offers/:id/accept", post(recruiting::accept_offer))
-        .route("/recruiting/offers/:id/decline", post(recruiting::decline_offer))
-        .route("/recruiting/offers/:id/withdraw", post(recruiting::withdraw_offer))
+        .route(
+            "/recruiting/offers/:id/approve",
+            post(recruiting::approve_offer),
+        )
+        .route(
+            "/recruiting/offers/:id/extend",
+            post(recruiting::extend_offer),
+        )
+        .route(
+            "/recruiting/offers/:id/accept",
+            post(recruiting::accept_offer),
+        )
+        .route(
+            "/recruiting/offers/:id/decline",
+            post(recruiting::decline_offer),
+        )
+        .route(
+            "/recruiting/offers/:id/withdraw",
+            post(recruiting::withdraw_offer),
+        )
         .route("/recruiting/offers/:id", delete(recruiting::delete_offer))
-
         // Recruiting Dashboard
-        .route("/recruiting/dashboard", get(recruiting::get_recruiting_dashboard))
-
+        .route(
+            "/recruiting/dashboard",
+            get(recruiting::get_recruiting_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════════
         // Revenue Recognition (Oracle Fusion Financials > Revenue Management / ASC 606)
         // ═════════════════════════════════════════════════════════════════════════════════════
-
         // Revenue Policies
         .route("/revenue/policies", post(revenue::create_policy))
         .route("/revenue/policies", get(revenue::list_policies))
         .route("/revenue/policies/:code", get(revenue::get_policy))
         .route("/revenue/policies/:code", delete(revenue::delete_policy))
-
         // Revenue Contracts
         .route("/revenue/contracts", post(revenue::create_contract))
         .route("/revenue/contracts", get(revenue::list_contracts))
         .route("/revenue/contracts/:id", get(revenue::get_contract))
-        .route("/revenue/contracts/:id/activate", post(revenue::activate_contract))
-        .route("/revenue/contracts/:id/cancel", post(revenue::cancel_contract))
-
+        .route(
+            "/revenue/contracts/:id/activate",
+            post(revenue::activate_contract),
+        )
+        .route(
+            "/revenue/contracts/:id/cancel",
+            post(revenue::cancel_contract),
+        )
         // Performance Obligations
-        .route("/revenue/contracts/:contract_id/obligations", post(revenue::create_obligation))
-        .route("/revenue/contracts/:contract_id/obligations", get(revenue::list_obligations))
+        .route(
+            "/revenue/contracts/:contract_id/obligations",
+            post(revenue::create_obligation),
+        )
+        .route(
+            "/revenue/contracts/:contract_id/obligations",
+            get(revenue::list_obligations),
+        )
         .route("/revenue/obligations/:id", get(revenue::get_obligation))
-
         // Transaction Price Allocation (ASC 606 Step 4)
-        .route("/revenue/contracts/:contract_id/allocate", post(revenue::allocate_transaction_price))
-
+        .route(
+            "/revenue/contracts/:contract_id/allocate",
+            post(revenue::allocate_transaction_price),
+        )
         // Revenue Scheduling (ASC 606 Step 5)
-        .route("/revenue/obligations/:obligation_id/schedule/straight-line", post(revenue::generate_straight_line_schedule))
-        .route("/revenue/obligations/:obligation_id/schedule/point-in-time", post(revenue::schedule_point_in_time))
-
+        .route(
+            "/revenue/obligations/:obligation_id/schedule/straight-line",
+            post(revenue::generate_straight_line_schedule),
+        )
+        .route(
+            "/revenue/obligations/:obligation_id/schedule/point-in-time",
+            post(revenue::schedule_point_in_time),
+        )
         // Revenue Recognition Execution
-        .route("/revenue/schedule-lines/:line_id/recognize", post(revenue::recognize_revenue))
-        .route("/revenue/schedule-lines/:line_id/reverse", post(revenue::reverse_recognition))
-        .route("/revenue/obligations/:obligation_id/schedule-lines", get(revenue::list_schedule_lines))
-        .route("/revenue/contracts/:contract_id/schedule-lines", get(revenue::list_contract_schedule_lines))
-
+        .route(
+            "/revenue/schedule-lines/:line_id/recognize",
+            post(revenue::recognize_revenue),
+        )
+        .route(
+            "/revenue/schedule-lines/:line_id/reverse",
+            post(revenue::reverse_recognition),
+        )
+        .route(
+            "/revenue/obligations/:obligation_id/schedule-lines",
+            get(revenue::list_schedule_lines),
+        )
+        .route(
+            "/revenue/contracts/:contract_id/schedule-lines",
+            get(revenue::list_contract_schedule_lines),
+        )
         // Contract Modifications
-        .route("/revenue/contracts/:contract_id/modifications", post(revenue::create_modification))
-        .route("/revenue/contracts/:contract_id/modifications", get(revenue::list_modifications))
-
+        .route(
+            "/revenue/contracts/:contract_id/modifications",
+            post(revenue::create_modification),
+        )
+        .route(
+            "/revenue/contracts/:contract_id/modifications",
+            get(revenue::list_modifications),
+        )
         // ═══════════════════════════════════════════════════════════════════════════════════════
         // Receiving Management (Oracle Fusion SCM > Receiving)
         // ═══════════════════════════════════════════════════════════════════════════════════════
-
         // Receiving Locations
         .route("/receiving/locations", post(receiving::create_location))
         .route("/receiving/locations", get(receiving::list_locations))
-        .route("/receiving/locations/:code", delete(receiving::delete_location))
-
+        .route(
+            "/receiving/locations/:code",
+            delete(receiving::delete_location),
+        )
         // Receipts
         .route("/receiving/receipts", post(receiving::create_receipt))
         .route("/receiving/receipts", get(receiving::list_receipts))
         .route("/receiving/receipts/:id", get(receiving::get_receipt))
-        .route("/receiving/receipts/:id/confirm", post(receiving::confirm_receipt))
-        .route("/receiving/receipts/:id/close", post(receiving::close_receipt))
-        .route("/receiving/receipts/:id/cancel", post(receiving::cancel_receipt))
-
+        .route(
+            "/receiving/receipts/:id/confirm",
+            post(receiving::confirm_receipt),
+        )
+        .route(
+            "/receiving/receipts/:id/close",
+            post(receiving::close_receipt),
+        )
+        .route(
+            "/receiving/receipts/:id/cancel",
+            post(receiving::cancel_receipt),
+        )
         // Receipt Lines
-        .route("/receiving/receipts/:receipt_id/lines", post(receiving::add_receipt_line))
-        .route("/receiving/receipts/:receipt_id/lines", get(receiving::list_receipt_lines))
-
+        .route(
+            "/receiving/receipts/:receipt_id/lines",
+            post(receiving::add_receipt_line),
+        )
+        .route(
+            "/receiving/receipts/:receipt_id/lines",
+            get(receiving::list_receipt_lines),
+        )
         // Inspections
-        .route("/receiving/receipts/:receipt_id/inspections", post(receiving::create_inspection))
-        .route("/receiving/receipts/:receipt_id/inspections", get(receiving::list_inspections))
-        .route("/receiving/inspections/:id/complete", post(receiving::complete_inspection))
-
+        .route(
+            "/receiving/receipts/:receipt_id/inspections",
+            post(receiving::create_inspection),
+        )
+        .route(
+            "/receiving/receipts/:receipt_id/inspections",
+            get(receiving::list_inspections),
+        )
+        .route(
+            "/receiving/inspections/:id/complete",
+            post(receiving::complete_inspection),
+        )
         // Inspection Details
-        .route("/receiving/inspections/:inspection_id/details", post(receiving::add_inspection_detail))
-        .route("/receiving/inspections/:inspection_id/details", get(receiving::list_inspection_details))
-
+        .route(
+            "/receiving/inspections/:inspection_id/details",
+            post(receiving::add_inspection_detail),
+        )
+        .route(
+            "/receiving/inspections/:inspection_id/details",
+            get(receiving::list_inspection_details),
+        )
         // Deliveries
-        .route("/receiving/receipts/:receipt_id/deliveries", post(receiving::create_delivery))
-        .route("/receiving/receipts/:receipt_id/deliveries", get(receiving::list_deliveries))
-
+        .route(
+            "/receiving/receipts/:receipt_id/deliveries",
+            post(receiving::create_delivery),
+        )
+        .route(
+            "/receiving/receipts/:receipt_id/deliveries",
+            get(receiving::list_deliveries),
+        )
         // Returns to Supplier
         .route("/receiving/returns", post(receiving::create_return))
         .route("/receiving/returns", get(receiving::list_returns))
-        .route("/receiving/returns/:id/submit", post(receiving::submit_return))
+        .route(
+            "/receiving/returns/:id/submit",
+            post(receiving::submit_return),
+        )
         .route("/receiving/returns/:id/ship", post(receiving::ship_return))
-        .route("/receiving/returns/:id/credit", post(receiving::credit_return))
-        .route("/receiving/returns/:id/cancel", post(receiving::cancel_return))
-
+        .route(
+            "/receiving/returns/:id/credit",
+            post(receiving::credit_return),
+        )
+        .route(
+            "/receiving/returns/:id/cancel",
+            post(receiving::cancel_return),
+        )
         // Receiving Dashboard
-        .route("/receiving/dashboard", get(receiving::get_receiving_dashboard))
-
+        .route(
+            "/receiving/dashboard",
+            get(receiving::get_receiving_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════════════════════════════════
         // Supplier Scorecard Management (Oracle Fusion Supplier Portal > Performance)
         // ═══════════════════════════════════════════════════════════════════════════════════════
-
         // Templates
-        .route("/supplier-scorecard/templates", post(supplier_scorecard::create_template))
-        .route("/supplier-scorecard/templates", get(supplier_scorecard::list_templates))
-        .route("/supplier-scorecard/templates/:id", get(supplier_scorecard::get_template))
-        .route("/supplier-scorecard/templates-by-code/:code", delete(supplier_scorecard::delete_template))
-
+        .route(
+            "/supplier-scorecard/templates",
+            post(supplier_scorecard::create_template),
+        )
+        .route(
+            "/supplier-scorecard/templates",
+            get(supplier_scorecard::list_templates),
+        )
+        .route(
+            "/supplier-scorecard/templates/:id",
+            get(supplier_scorecard::get_template),
+        )
+        .route(
+            "/supplier-scorecard/templates-by-code/:code",
+            delete(supplier_scorecard::delete_template),
+        )
         // Categories
-        .route("/supplier-scorecard/categories", post(supplier_scorecard::create_category))
-        .route("/supplier-scorecard/templates/:template_id/categories", get(supplier_scorecard::list_categories))
-        .route("/supplier-scorecard/categories/:id", delete(supplier_scorecard::delete_category))
-
+        .route(
+            "/supplier-scorecard/categories",
+            post(supplier_scorecard::create_category),
+        )
+        .route(
+            "/supplier-scorecard/templates/:template_id/categories",
+            get(supplier_scorecard::list_categories),
+        )
+        .route(
+            "/supplier-scorecard/categories/:id",
+            delete(supplier_scorecard::delete_category),
+        )
         // Scorecards
-        .route("/supplier-scorecard/scorecards", post(supplier_scorecard::create_scorecard))
-        .route("/supplier-scorecard/scorecards", get(supplier_scorecard::list_scorecards))
-        .route("/supplier-scorecard/scorecards/:id", get(supplier_scorecard::get_scorecard))
-        .route("/supplier-scorecard/scorecards/:id/submit", post(supplier_scorecard::submit_scorecard))
-        .route("/supplier-scorecard/scorecards/:id/approve", post(supplier_scorecard::approve_scorecard))
-        .route("/supplier-scorecard/scorecards/:id/reject", post(supplier_scorecard::reject_scorecard))
-        .route("/supplier-scorecard/scorecards-by-number/:scorecard_number", delete(supplier_scorecard::delete_scorecard))
-
+        .route(
+            "/supplier-scorecard/scorecards",
+            post(supplier_scorecard::create_scorecard),
+        )
+        .route(
+            "/supplier-scorecard/scorecards",
+            get(supplier_scorecard::list_scorecards),
+        )
+        .route(
+            "/supplier-scorecard/scorecards/:id",
+            get(supplier_scorecard::get_scorecard),
+        )
+        .route(
+            "/supplier-scorecard/scorecards/:id/submit",
+            post(supplier_scorecard::submit_scorecard),
+        )
+        .route(
+            "/supplier-scorecard/scorecards/:id/approve",
+            post(supplier_scorecard::approve_scorecard),
+        )
+        .route(
+            "/supplier-scorecard/scorecards/:id/reject",
+            post(supplier_scorecard::reject_scorecard),
+        )
+        .route(
+            "/supplier-scorecard/scorecards-by-number/:scorecard_number",
+            delete(supplier_scorecard::delete_scorecard),
+        )
         // Scorecard Lines
-        .route("/supplier-scorecard/scorecards/:scorecard_id/lines", post(supplier_scorecard::add_scorecard_line))
-        .route("/supplier-scorecard/scorecards/:scorecard_id/lines", get(supplier_scorecard::list_scorecard_lines))
-        .route("/supplier-scorecard/lines/:id", delete(supplier_scorecard::delete_scorecard_line))
-
+        .route(
+            "/supplier-scorecard/scorecards/:scorecard_id/lines",
+            post(supplier_scorecard::add_scorecard_line),
+        )
+        .route(
+            "/supplier-scorecard/scorecards/:scorecard_id/lines",
+            get(supplier_scorecard::list_scorecard_lines),
+        )
+        .route(
+            "/supplier-scorecard/lines/:id",
+            delete(supplier_scorecard::delete_scorecard_line),
+        )
         // Performance Reviews
-        .route("/supplier-scorecard/reviews", post(supplier_scorecard::create_review))
-        .route("/supplier-scorecard/reviews", get(supplier_scorecard::list_reviews))
-        .route("/supplier-scorecard/reviews/:id", get(supplier_scorecard::get_review))
-        .route("/supplier-scorecard/reviews/:id/complete", post(supplier_scorecard::complete_review))
-        .route("/supplier-scorecard/reviews-by-number/:review_number", delete(supplier_scorecard::delete_review))
-
+        .route(
+            "/supplier-scorecard/reviews",
+            post(supplier_scorecard::create_review),
+        )
+        .route(
+            "/supplier-scorecard/reviews",
+            get(supplier_scorecard::list_reviews),
+        )
+        .route(
+            "/supplier-scorecard/reviews/:id",
+            get(supplier_scorecard::get_review),
+        )
+        .route(
+            "/supplier-scorecard/reviews/:id/complete",
+            post(supplier_scorecard::complete_review),
+        )
+        .route(
+            "/supplier-scorecard/reviews-by-number/:review_number",
+            delete(supplier_scorecard::delete_review),
+        )
         // Review Action Items
-        .route("/supplier-scorecard/reviews/:review_id/action-items", post(supplier_scorecard::create_action_item))
-        .route("/supplier-scorecard/reviews/:review_id/action-items", get(supplier_scorecard::list_action_items))
-        .route("/supplier-scorecard/action-items/:id/complete", post(supplier_scorecard::complete_action_item))
-        .route("/supplier-scorecard/action-items/:id", delete(supplier_scorecard::delete_action_item))
-
+        .route(
+            "/supplier-scorecard/reviews/:review_id/action-items",
+            post(supplier_scorecard::create_action_item),
+        )
+        .route(
+            "/supplier-scorecard/reviews/:review_id/action-items",
+            get(supplier_scorecard::list_action_items),
+        )
+        .route(
+            "/supplier-scorecard/action-items/:id/complete",
+            post(supplier_scorecard::complete_action_item),
+        )
+        .route(
+            "/supplier-scorecard/action-items/:id",
+            delete(supplier_scorecard::delete_action_item),
+        )
         // Supplier Scorecard Dashboard
-        .route("/supplier-scorecard/dashboard", get(supplier_scorecard::get_scorecard_dashboard))
-
+        .route(
+            "/supplier-scorecard/dashboard",
+            get(supplier_scorecard::get_scorecard_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // KPI & Embedded Analytics (Oracle Fusion OTBI-inspired)
         // ═══════════════════════════════════════════════════════
-
         // KPI Definitions
         .route("/kpi/definitions", post(kpi::create_kpi))
         .route("/kpi/definitions", get(kpi::list_kpis))
         .route("/kpi/definitions/id/:id", get(kpi::get_kpi))
         .route("/kpi/definitions/code/:code", delete(kpi::delete_kpi))
-
         // KPI Data Points
-        .route("/kpi/definitions/:kpi_id/data-points", post(kpi::record_data_point))
-        .route("/kpi/definitions/:kpi_id/data-points/latest", get(kpi::get_latest_data_point))
-        .route("/kpi/definitions/:kpi_id/data-points", get(kpi::list_data_points))
+        .route(
+            "/kpi/definitions/:kpi_id/data-points",
+            post(kpi::record_data_point),
+        )
+        .route(
+            "/kpi/definitions/:kpi_id/data-points/latest",
+            get(kpi::get_latest_data_point),
+        )
+        .route(
+            "/kpi/definitions/:kpi_id/data-points",
+            get(kpi::list_data_points),
+        )
         .route("/kpi/data-points/:id", delete(kpi::delete_data_point))
-
         // Dashboards
         .route("/kpi/dashboards", post(kpi::create_dashboard))
         .route("/kpi/dashboards", get(kpi::list_dashboards))
         .route("/kpi/dashboards/id/:id", get(kpi::get_dashboard))
         .route("/kpi/dashboards/code/:code", delete(kpi::delete_dashboard))
-
         // Dashboard Widgets
-        .route("/kpi/dashboards/:dashboard_id/widgets", post(kpi::add_widget))
-        .route("/kpi/dashboards/:dashboard_id/widgets", get(kpi::list_widgets))
+        .route(
+            "/kpi/dashboards/:dashboard_id/widgets",
+            post(kpi::add_widget),
+        )
+        .route(
+            "/kpi/dashboards/:dashboard_id/widgets",
+            get(kpi::list_widgets),
+        )
         .route("/kpi/widgets/:id", delete(kpi::delete_widget))
-
         // KPI Analytics Dashboard
         .route("/kpi/dashboard", get(kpi::get_kpi_dashboard))
-
         // ========================================================================
         // Account Monitor & Balance Inquiry (Oracle Fusion GL Account Monitor)
         // ========================================================================
-
         // Account Groups
-        .route("/account-monitor/groups", post(account_monitor::create_account_group))
-        .route("/account-monitor/groups", get(account_monitor::list_account_groups))
-        .route("/account-monitor/groups/id/:id", get(account_monitor::get_account_group))
-        .route("/account-monitor/groups/code/:code", delete(account_monitor::delete_account_group))
-
+        .route(
+            "/account-monitor/groups",
+            post(account_monitor::create_account_group),
+        )
+        .route(
+            "/account-monitor/groups",
+            get(account_monitor::list_account_groups),
+        )
+        .route(
+            "/account-monitor/groups/id/:id",
+            get(account_monitor::get_account_group),
+        )
+        .route(
+            "/account-monitor/groups/code/:code",
+            delete(account_monitor::delete_account_group),
+        )
         // Group Members
-        .route("/account-monitor/groups/:group_id/members", post(account_monitor::add_group_member))
-        .route("/account-monitor/groups/:group_id/members", get(account_monitor::list_group_members))
-        .route("/account-monitor/members/:id", delete(account_monitor::remove_group_member))
-
+        .route(
+            "/account-monitor/groups/:group_id/members",
+            post(account_monitor::add_group_member),
+        )
+        .route(
+            "/account-monitor/groups/:group_id/members",
+            get(account_monitor::list_group_members),
+        )
+        .route(
+            "/account-monitor/members/:id",
+            delete(account_monitor::remove_group_member),
+        )
         // Balance Snapshots
-        .route("/account-monitor/groups/:group_id/snapshots", post(account_monitor::capture_snapshot))
-        .route("/account-monitor/groups/:group_id/snapshots", get(account_monitor::list_snapshots))
-        .route("/account-monitor/snapshots/alerts", get(account_monitor::get_alert_snapshots))
-        .route("/account-monitor/snapshots/:id", delete(account_monitor::delete_snapshot))
-
+        .route(
+            "/account-monitor/groups/:group_id/snapshots",
+            post(account_monitor::capture_snapshot),
+        )
+        .route(
+            "/account-monitor/groups/:group_id/snapshots",
+            get(account_monitor::list_snapshots),
+        )
+        .route(
+            "/account-monitor/snapshots/alerts",
+            get(account_monitor::get_alert_snapshots),
+        )
+        .route(
+            "/account-monitor/snapshots/:id",
+            delete(account_monitor::delete_snapshot),
+        )
         // Saved Balance Inquiries
-        .route("/account-monitor/inquiries", post(account_monitor::create_saved_inquiry))
-        .route("/account-monitor/inquiries", get(account_monitor::list_saved_inquiries))
-        .route("/account-monitor/inquiries/id/:id", get(account_monitor::get_saved_inquiry))
-        .route("/account-monitor/inquiries/id/:id", delete(account_monitor::delete_saved_inquiry))
-
+        .route(
+            "/account-monitor/inquiries",
+            post(account_monitor::create_saved_inquiry),
+        )
+        .route(
+            "/account-monitor/inquiries",
+            get(account_monitor::list_saved_inquiries),
+        )
+        .route(
+            "/account-monitor/inquiries/id/:id",
+            get(account_monitor::get_saved_inquiry),
+        )
+        .route(
+            "/account-monitor/inquiries/id/:id",
+            delete(account_monitor::delete_saved_inquiry),
+        )
         // Account Monitor Dashboard
-        .route("/account-monitor/dashboard", get(account_monitor::get_account_monitor_summary))
-
+        .route(
+            "/account-monitor/dashboard",
+            get(account_monitor::get_account_monitor_summary),
+        )
         // Goal Management - Library Categories
-        .route("/goal-management/library/categories", post(goal_management::create_library_category))
-        .route("/goal-management/library/categories", get(goal_management::list_library_categories))
-        .route("/goal-management/library/categories/:code", delete(goal_management::delete_library_category))
-
+        .route(
+            "/goal-management/library/categories",
+            post(goal_management::create_library_category),
+        )
+        .route(
+            "/goal-management/library/categories",
+            get(goal_management::list_library_categories),
+        )
+        .route(
+            "/goal-management/library/categories/:code",
+            delete(goal_management::delete_library_category),
+        )
         // Goal Management - Library Templates
-        .route("/goal-management/library/templates", post(goal_management::create_library_template))
-        .route("/goal-management/library/templates", get(goal_management::list_library_templates))
-        .route("/goal-management/library/templates/:code", delete(goal_management::delete_library_template))
-
+        .route(
+            "/goal-management/library/templates",
+            post(goal_management::create_library_template),
+        )
+        .route(
+            "/goal-management/library/templates",
+            get(goal_management::list_library_templates),
+        )
+        .route(
+            "/goal-management/library/templates/:code",
+            delete(goal_management::delete_library_template),
+        )
         // Goal Management - Plans
-        .route("/goal-management/plans", post(goal_management::create_goal_plan))
-        .route("/goal-management/plans", get(goal_management::list_goal_plans))
-        .route("/goal-management/plans/id/:id", get(goal_management::get_goal_plan))
-        .route("/goal-management/plans/id/:id/status", post(goal_management::update_goal_plan_status))
-        .route("/goal-management/plans/code/:code", delete(goal_management::delete_goal_plan))
-
+        .route(
+            "/goal-management/plans",
+            post(goal_management::create_goal_plan),
+        )
+        .route(
+            "/goal-management/plans",
+            get(goal_management::list_goal_plans),
+        )
+        .route(
+            "/goal-management/plans/id/:id",
+            get(goal_management::get_goal_plan),
+        )
+        .route(
+            "/goal-management/plans/id/:id/status",
+            post(goal_management::update_goal_plan_status),
+        )
+        .route(
+            "/goal-management/plans/code/:code",
+            delete(goal_management::delete_goal_plan),
+        )
         // Goal Management - Goals
         .route("/goal-management/goals", post(goal_management::create_goal))
         .route("/goal-management/goals", get(goal_management::list_goals))
-        .route("/goal-management/goals/id/:id", get(goal_management::get_goal))
-        .route("/goal-management/goals/id/:id/progress", post(goal_management::update_goal_progress))
-        .route("/goal-management/goals/id/:id", delete(goal_management::delete_goal))
-
+        .route(
+            "/goal-management/goals/id/:id",
+            get(goal_management::get_goal),
+        )
+        .route(
+            "/goal-management/goals/id/:id/progress",
+            post(goal_management::update_goal_progress),
+        )
+        .route(
+            "/goal-management/goals/id/:id",
+            delete(goal_management::delete_goal),
+        )
         // Goal Management - Alignments
-        .route("/goal-management/alignments", post(goal_management::create_goal_alignment))
-        .route("/goal-management/alignments/goal/:goal_id", get(goal_management::list_goal_alignments))
-        .route("/goal-management/alignments/id/:id", delete(goal_management::delete_goal_alignment))
-
+        .route(
+            "/goal-management/alignments",
+            post(goal_management::create_goal_alignment),
+        )
+        .route(
+            "/goal-management/alignments/goal/:goal_id",
+            get(goal_management::list_goal_alignments),
+        )
+        .route(
+            "/goal-management/alignments/id/:id",
+            delete(goal_management::delete_goal_alignment),
+        )
         // Goal Management - Notes
-        .route("/goal-management/goals/:goal_id/notes", post(goal_management::create_goal_note))
-        .route("/goal-management/goals/:goal_id/notes", get(goal_management::list_goal_notes))
-        .route("/goal-management/notes/id/:id", delete(goal_management::delete_goal_note))
-
+        .route(
+            "/goal-management/goals/:goal_id/notes",
+            post(goal_management::create_goal_note),
+        )
+        .route(
+            "/goal-management/goals/:goal_id/notes",
+            get(goal_management::list_goal_notes),
+        )
+        .route(
+            "/goal-management/notes/id/:id",
+            delete(goal_management::delete_goal_note),
+        )
         // Goal Management - Dashboard
-        .route("/goal-management/dashboard", get(goal_management::get_goal_management_summary))
-
+        .route(
+            "/goal-management/dashboard",
+            get(goal_management::get_goal_management_summary),
+        )
         // ═══════════════════════════════════════════════════════════
         // Contract Lifecycle Management (Oracle Fusion Enterprise Contracts)
         // ═══════════════════════════════════════════════════════════
-
         // Contract Types
-        .route("/clm/contract-types", post(contract_lifecycle::create_contract_type))
-        .route("/clm/contract-types", get(contract_lifecycle::list_contract_types))
-        .route("/clm/contract-types/id/:id", get(contract_lifecycle::get_contract_type))
-        .route("/clm/contract-types/code/:code", delete(contract_lifecycle::delete_contract_type))
-
+        .route(
+            "/clm/contract-types",
+            post(contract_lifecycle::create_contract_type),
+        )
+        .route(
+            "/clm/contract-types",
+            get(contract_lifecycle::list_contract_types),
+        )
+        .route(
+            "/clm/contract-types/id/:id",
+            get(contract_lifecycle::get_contract_type),
+        )
+        .route(
+            "/clm/contract-types/code/:code",
+            delete(contract_lifecycle::delete_contract_type),
+        )
         // Clause Library
         .route("/clm/clauses", post(contract_lifecycle::create_clause))
         .route("/clm/clauses", get(contract_lifecycle::list_clauses))
-        .route("/clm/clauses/code/:code", delete(contract_lifecycle::delete_clause))
-
+        .route(
+            "/clm/clauses/code/:code",
+            delete(contract_lifecycle::delete_clause),
+        )
         // Contract Templates
         .route("/clm/templates", post(contract_lifecycle::create_template))
         .route("/clm/templates", get(contract_lifecycle::list_templates))
-        .route("/clm/templates/code/:code", delete(contract_lifecycle::delete_template))
-
+        .route(
+            "/clm/templates/code/:code",
+            delete(contract_lifecycle::delete_template),
+        )
         // Contracts
         .route("/clm/contracts", post(contract_lifecycle::create_contract))
         .route("/clm/contracts", get(contract_lifecycle::list_contracts))
-        .route("/clm/contracts/id/:id", get(contract_lifecycle::get_contract))
-        .route("/clm/contracts/id/:id/status", post(contract_lifecycle::transition_contract))
-        .route("/clm/contracts/number/:number", delete(contract_lifecycle::delete_contract))
-
+        .route(
+            "/clm/contracts/id/:id",
+            get(contract_lifecycle::get_contract),
+        )
+        .route(
+            "/clm/contracts/id/:id/status",
+            post(contract_lifecycle::transition_contract),
+        )
+        .route(
+            "/clm/contracts/number/:number",
+            delete(contract_lifecycle::delete_contract),
+        )
         // Contract Parties
-        .route("/clm/contracts/:contract_id/parties", post(contract_lifecycle::add_contract_party))
-        .route("/clm/contracts/:contract_id/parties", get(contract_lifecycle::list_contract_parties))
-        .route("/clm/parties/:id", delete(contract_lifecycle::remove_contract_party))
-
+        .route(
+            "/clm/contracts/:contract_id/parties",
+            post(contract_lifecycle::add_contract_party),
+        )
+        .route(
+            "/clm/contracts/:contract_id/parties",
+            get(contract_lifecycle::list_contract_parties),
+        )
+        .route(
+            "/clm/parties/:id",
+            delete(contract_lifecycle::remove_contract_party),
+        )
         // Contract Milestones
-        .route("/clm/contracts/:contract_id/milestones", post(contract_lifecycle::create_milestone))
-        .route("/clm/contracts/:contract_id/milestones", get(contract_lifecycle::list_milestones))
-        .route("/clm/milestones/:id/complete", post(contract_lifecycle::complete_milestone))
-        .route("/clm/milestones/:id", delete(contract_lifecycle::delete_milestone))
-
+        .route(
+            "/clm/contracts/:contract_id/milestones",
+            post(contract_lifecycle::create_milestone),
+        )
+        .route(
+            "/clm/contracts/:contract_id/milestones",
+            get(contract_lifecycle::list_milestones),
+        )
+        .route(
+            "/clm/milestones/:id/complete",
+            post(contract_lifecycle::complete_milestone),
+        )
+        .route(
+            "/clm/milestones/:id",
+            delete(contract_lifecycle::delete_milestone),
+        )
         // Contract Deliverables
-        .route("/clm/contracts/:contract_id/deliverables", post(contract_lifecycle::create_deliverable))
-        .route("/clm/contracts/:contract_id/deliverables", get(contract_lifecycle::list_deliverables))
-        .route("/clm/deliverables/:id/accept", post(contract_lifecycle::accept_deliverable))
-        .route("/clm/deliverables/:id/reject", post(contract_lifecycle::reject_deliverable))
-        .route("/clm/deliverables/:id", delete(contract_lifecycle::delete_deliverable))
-
+        .route(
+            "/clm/contracts/:contract_id/deliverables",
+            post(contract_lifecycle::create_deliverable),
+        )
+        .route(
+            "/clm/contracts/:contract_id/deliverables",
+            get(contract_lifecycle::list_deliverables),
+        )
+        .route(
+            "/clm/deliverables/:id/accept",
+            post(contract_lifecycle::accept_deliverable),
+        )
+        .route(
+            "/clm/deliverables/:id/reject",
+            post(contract_lifecycle::reject_deliverable),
+        )
+        .route(
+            "/clm/deliverables/:id",
+            delete(contract_lifecycle::delete_deliverable),
+        )
         // Contract Amendments
-        .route("/clm/contracts/:contract_id/amendments", post(contract_lifecycle::create_amendment))
-        .route("/clm/contracts/:contract_id/amendments", get(contract_lifecycle::list_amendments))
-        .route("/clm/amendments/:id/approve", post(contract_lifecycle::approve_amendment))
-        .route("/clm/amendments/:id/reject", post(contract_lifecycle::reject_amendment))
-
+        .route(
+            "/clm/contracts/:contract_id/amendments",
+            post(contract_lifecycle::create_amendment),
+        )
+        .route(
+            "/clm/contracts/:contract_id/amendments",
+            get(contract_lifecycle::list_amendments),
+        )
+        .route(
+            "/clm/amendments/:id/approve",
+            post(contract_lifecycle::approve_amendment),
+        )
+        .route(
+            "/clm/amendments/:id/reject",
+            post(contract_lifecycle::reject_amendment),
+        )
         // Contract Risk Assessments
-        .route("/clm/contracts/:contract_id/risks", post(contract_lifecycle::create_risk))
-        .route("/clm/contracts/:contract_id/risks", get(contract_lifecycle::list_risks))
+        .route(
+            "/clm/contracts/:contract_id/risks",
+            post(contract_lifecycle::create_risk),
+        )
+        .route(
+            "/clm/contracts/:contract_id/risks",
+            get(contract_lifecycle::list_risks),
+        )
         .route("/clm/risks/:id", delete(contract_lifecycle::delete_risk))
-
         // CLM Dashboard
         .route("/clm/dashboard", get(contract_lifecycle::get_clm_dashboard))
-
         // ═══════════════════════════════════════════════════════════
         // Risk Management & Internal Controls (Oracle Fusion GRC)
         // ═══════════════════════════════════════════════════════════
-
         // Risk Categories
         .route("/risk/categories", post(risk_management::create_category))
         .route("/risk/categories", get(risk_management::list_categories))
-        .route("/risk/categories/id/:id", get(risk_management::get_category))
-        .route("/risk/categories/code/:code", delete(risk_management::delete_category))
-
+        .route(
+            "/risk/categories/id/:id",
+            get(risk_management::get_category),
+        )
+        .route(
+            "/risk/categories/code/:code",
+            delete(risk_management::delete_category),
+        )
         // Risk Register
         .route("/risk/risks", post(risk_management::create_risk))
         .route("/risk/risks", get(risk_management::list_risks))
         .route("/risk/risks/id/:id", get(risk_management::get_risk))
-        .route("/risk/risks/id/:id/status", post(risk_management::update_risk_status))
-        .route("/risk/risks/id/:id/assess", post(risk_management::assess_risk))
-        .route("/risk/risks/number/:risk_number", delete(risk_management::delete_risk))
-
+        .route(
+            "/risk/risks/id/:id/status",
+            post(risk_management::update_risk_status),
+        )
+        .route(
+            "/risk/risks/id/:id/assess",
+            post(risk_management::assess_risk),
+        )
+        .route(
+            "/risk/risks/number/:risk_number",
+            delete(risk_management::delete_risk),
+        )
         // Control Registry
         .route("/risk/controls", post(risk_management::create_control))
         .route("/risk/controls", get(risk_management::list_controls))
         .route("/risk/controls/id/:id", get(risk_management::get_control))
-        .route("/risk/controls/id/:id/status", post(risk_management::update_control_status))
-        .route("/risk/controls/id/:id/effectiveness", post(risk_management::update_control_effectiveness))
-        .route("/risk/controls/number/:control_number", delete(risk_management::delete_control))
-
+        .route(
+            "/risk/controls/id/:id/status",
+            post(risk_management::update_control_status),
+        )
+        .route(
+            "/risk/controls/id/:id/effectiveness",
+            post(risk_management::update_control_effectiveness),
+        )
+        .route(
+            "/risk/controls/number/:control_number",
+            delete(risk_management::delete_control),
+        )
         // Risk-Control Mappings
         .route("/risk/mappings", post(risk_management::create_mapping))
-        .route("/risk/risks/id/:risk_id/mappings", get(risk_management::list_risk_mappings))
-        .route("/risk/controls/id/:control_id/mappings", get(risk_management::list_control_mappings))
-        .route("/risk/mappings/:id", delete(risk_management::delete_mapping))
-
+        .route(
+            "/risk/risks/id/:risk_id/mappings",
+            get(risk_management::list_risk_mappings),
+        )
+        .route(
+            "/risk/controls/id/:control_id/mappings",
+            get(risk_management::list_control_mappings),
+        )
+        .route(
+            "/risk/mappings/:id",
+            delete(risk_management::delete_mapping),
+        )
         // Control Tests
         .route("/risk/tests", post(risk_management::create_control_test))
         .route("/risk/tests/id/:id", get(risk_management::get_control_test))
-        .route("/risk/controls/id/:control_id/tests", get(risk_management::list_control_tests))
-        .route("/risk/tests/id/:id/start", post(risk_management::start_control_test))
-        .route("/risk/tests/id/:id/complete", post(risk_management::complete_control_test))
-        .route("/risk/tests/number/:test_number", delete(risk_management::delete_control_test))
-
+        .route(
+            "/risk/controls/id/:control_id/tests",
+            get(risk_management::list_control_tests),
+        )
+        .route(
+            "/risk/tests/id/:id/start",
+            post(risk_management::start_control_test),
+        )
+        .route(
+            "/risk/tests/id/:id/complete",
+            post(risk_management::complete_control_test),
+        )
+        .route(
+            "/risk/tests/number/:test_number",
+            delete(risk_management::delete_control_test),
+        )
         // Issues & Remediations
         .route("/risk/issues", post(risk_management::create_issue))
         .route("/risk/issues", get(risk_management::list_issues))
         .route("/risk/issues/id/:id", get(risk_management::get_issue))
-        .route("/risk/issues/id/:id/status", post(risk_management::update_issue_status))
-        .route("/risk/issues/id/:id/resolve", post(risk_management::resolve_issue))
-        .route("/risk/issues/number/:issue_number", delete(risk_management::delete_issue))
-
+        .route(
+            "/risk/issues/id/:id/status",
+            post(risk_management::update_issue_status),
+        )
+        .route(
+            "/risk/issues/id/:id/resolve",
+            post(risk_management::resolve_issue),
+        )
+        .route(
+            "/risk/issues/number/:issue_number",
+            delete(risk_management::delete_issue),
+        )
         // Risk Dashboard
         .route("/risk/dashboard", get(risk_management::get_risk_dashboard))
-
         // ========================================================================
         // Enterprise Asset Management (eAM) Routes
         // ========================================================================
         // Asset Locations
-        .route("/eam/locations", post(enterprise_asset_management::create_location))
-        .route("/eam/locations", get(enterprise_asset_management::list_locations))
-        .route("/eam/locations/id/:id", get(enterprise_asset_management::get_location))
-        .route("/eam/locations/code/:code", delete(enterprise_asset_management::delete_location))
-
+        .route(
+            "/eam/locations",
+            post(enterprise_asset_management::create_location),
+        )
+        .route(
+            "/eam/locations",
+            get(enterprise_asset_management::list_locations),
+        )
+        .route(
+            "/eam/locations/id/:id",
+            get(enterprise_asset_management::get_location),
+        )
+        .route(
+            "/eam/locations/code/:code",
+            delete(enterprise_asset_management::delete_location),
+        )
         // Asset Definitions
-        .route("/eam/assets", post(enterprise_asset_management::create_asset))
+        .route(
+            "/eam/assets",
+            post(enterprise_asset_management::create_asset),
+        )
         .route("/eam/assets", get(enterprise_asset_management::list_assets))
-        .route("/eam/assets/id/:id", get(enterprise_asset_management::get_asset))
-        .route("/eam/assets/id/:id/status", post(enterprise_asset_management::update_asset_status))
-        .route("/eam/assets/id/:id/meter", post(enterprise_asset_management::update_asset_meter))
-        .route("/eam/assets/number/:asset_number", delete(enterprise_asset_management::delete_asset))
-
+        .route(
+            "/eam/assets/id/:id",
+            get(enterprise_asset_management::get_asset),
+        )
+        .route(
+            "/eam/assets/id/:id/status",
+            post(enterprise_asset_management::update_asset_status),
+        )
+        .route(
+            "/eam/assets/id/:id/meter",
+            post(enterprise_asset_management::update_asset_meter),
+        )
+        .route(
+            "/eam/assets/number/:asset_number",
+            delete(enterprise_asset_management::delete_asset),
+        )
         // Work Orders
-        .route("/eam/work-orders", post(enterprise_asset_management::create_work_order))
-        .route("/eam/work-orders", get(enterprise_asset_management::list_work_orders))
-        .route("/eam/work-orders/id/:id", get(enterprise_asset_management::get_work_order))
-        .route("/eam/work-orders/id/:id/status", post(enterprise_asset_management::update_work_order_status))
-        .route("/eam/work-orders/id/:id/complete", post(enterprise_asset_management::complete_work_order))
-        .route("/eam/work-orders/number/:wo_number", delete(enterprise_asset_management::delete_work_order))
-
+        .route(
+            "/eam/work-orders",
+            post(enterprise_asset_management::create_work_order),
+        )
+        .route(
+            "/eam/work-orders",
+            get(enterprise_asset_management::list_work_orders),
+        )
+        .route(
+            "/eam/work-orders/id/:id",
+            get(enterprise_asset_management::get_work_order),
+        )
+        .route(
+            "/eam/work-orders/id/:id/status",
+            post(enterprise_asset_management::update_work_order_status),
+        )
+        .route(
+            "/eam/work-orders/id/:id/complete",
+            post(enterprise_asset_management::complete_work_order),
+        )
+        .route(
+            "/eam/work-orders/number/:wo_number",
+            delete(enterprise_asset_management::delete_work_order),
+        )
         // Preventive Maintenance Schedules
-        .route("/eam/pm-schedules", post(enterprise_asset_management::create_pm_schedule))
-        .route("/eam/pm-schedules", get(enterprise_asset_management::list_pm_schedules))
-        .route("/eam/pm-schedules/id/:id", get(enterprise_asset_management::get_pm_schedule))
-        .route("/eam/pm-schedules/id/:id/status", post(enterprise_asset_management::update_pm_schedule_status))
-        .route("/eam/pm-schedules/number/:schedule_number", delete(enterprise_asset_management::delete_pm_schedule))
-
+        .route(
+            "/eam/pm-schedules",
+            post(enterprise_asset_management::create_pm_schedule),
+        )
+        .route(
+            "/eam/pm-schedules",
+            get(enterprise_asset_management::list_pm_schedules),
+        )
+        .route(
+            "/eam/pm-schedules/id/:id",
+            get(enterprise_asset_management::get_pm_schedule),
+        )
+        .route(
+            "/eam/pm-schedules/id/:id/status",
+            post(enterprise_asset_management::update_pm_schedule_status),
+        )
+        .route(
+            "/eam/pm-schedules/number/:schedule_number",
+            delete(enterprise_asset_management::delete_pm_schedule),
+        )
         // Maintenance Dashboard
-        .route("/eam/dashboard", get(enterprise_asset_management::get_maintenance_dashboard))
-
+        .route(
+            "/eam/dashboard",
+            get(enterprise_asset_management::get_maintenance_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Product Configurator (Oracle Fusion Cloud SCM > Product Management > Configurator)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Configuration Models
-        .route("/configurator/models", post(product_configurator::create_model))
-        .route("/configurator/models", get(product_configurator::list_models))
-        .route("/configurator/models/:id", get(product_configurator::get_model))
-        .route("/configurator/models/:id/activate", post(product_configurator::activate_model))
-        .route("/configurator/models/:id/deactivate", post(product_configurator::deactivate_model))
-        .route("/configurator/models/number/:model_number", delete(product_configurator::delete_model))
-
+        .route(
+            "/configurator/models",
+            post(product_configurator::create_model),
+        )
+        .route(
+            "/configurator/models",
+            get(product_configurator::list_models),
+        )
+        .route(
+            "/configurator/models/:id",
+            get(product_configurator::get_model),
+        )
+        .route(
+            "/configurator/models/:id/activate",
+            post(product_configurator::activate_model),
+        )
+        .route(
+            "/configurator/models/:id/deactivate",
+            post(product_configurator::deactivate_model),
+        )
+        .route(
+            "/configurator/models/number/:model_number",
+            delete(product_configurator::delete_model),
+        )
         // Configuration Features
-        .route("/configurator/models/:model_id/features", post(product_configurator::create_feature))
-        .route("/configurator/models/:model_id/features", get(product_configurator::list_features))
-        .route("/configurator/features/:id", delete(product_configurator::delete_feature))
-
+        .route(
+            "/configurator/models/:model_id/features",
+            post(product_configurator::create_feature),
+        )
+        .route(
+            "/configurator/models/:model_id/features",
+            get(product_configurator::list_features),
+        )
+        .route(
+            "/configurator/features/:id",
+            delete(product_configurator::delete_feature),
+        )
         // Configuration Options
-        .route("/configurator/features/:feature_id/options", post(product_configurator::create_option))
-        .route("/configurator/features/:feature_id/options", get(product_configurator::list_options))
-        .route("/configurator/options/:id", delete(product_configurator::delete_option))
-
+        .route(
+            "/configurator/features/:feature_id/options",
+            post(product_configurator::create_option),
+        )
+        .route(
+            "/configurator/features/:feature_id/options",
+            get(product_configurator::list_options),
+        )
+        .route(
+            "/configurator/options/:id",
+            delete(product_configurator::delete_option),
+        )
         // Configuration Rules
-        .route("/configurator/models/:model_id/rules", post(product_configurator::create_rule))
-        .route("/configurator/models/:model_id/rules", get(product_configurator::list_rules))
-        .route("/configurator/rules/:id", delete(product_configurator::delete_rule))
-
+        .route(
+            "/configurator/models/:model_id/rules",
+            post(product_configurator::create_rule),
+        )
+        .route(
+            "/configurator/models/:model_id/rules",
+            get(product_configurator::list_rules),
+        )
+        .route(
+            "/configurator/rules/:id",
+            delete(product_configurator::delete_rule),
+        )
         // Configuration Instances
-        .route("/configurator/instances", post(product_configurator::create_instance))
-        .route("/configurator/instances", get(product_configurator::list_instances))
-        .route("/configurator/instances/:id", get(product_configurator::get_instance))
-        .route("/configurator/instances/:id/submit", post(product_configurator::submit_instance))
-        .route("/configurator/instances/:id/approve", post(product_configurator::approve_instance))
-        .route("/configurator/instances/:id/cancel", post(product_configurator::cancel_instance))
-        .route("/configurator/instances/number/:instance_number", delete(product_configurator::delete_instance))
-
+        .route(
+            "/configurator/instances",
+            post(product_configurator::create_instance),
+        )
+        .route(
+            "/configurator/instances",
+            get(product_configurator::list_instances),
+        )
+        .route(
+            "/configurator/instances/:id",
+            get(product_configurator::get_instance),
+        )
+        .route(
+            "/configurator/instances/:id/submit",
+            post(product_configurator::submit_instance),
+        )
+        .route(
+            "/configurator/instances/:id/approve",
+            post(product_configurator::approve_instance),
+        )
+        .route(
+            "/configurator/instances/:id/cancel",
+            post(product_configurator::cancel_instance),
+        )
+        .route(
+            "/configurator/instances/number/:instance_number",
+            delete(product_configurator::delete_instance),
+        )
         // Configurator Dashboard
-        .route("/configurator/dashboard", get(product_configurator::get_dashboard))
-
+        .route(
+            "/configurator/dashboard",
+            get(product_configurator::get_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Transportation Management (Oracle Fusion SCM > Transportation Management)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Carriers
-        .route("/transport/carriers", post(transportation_management::create_carrier))
-        .route("/transport/carriers", get(transportation_management::list_carriers))
-        .route("/transport/carriers/id/:id", get(transportation_management::get_carrier))
-        .route("/transport/carriers/id/:id/suspend", post(transportation_management::suspend_carrier))
-        .route("/transport/carriers/id/:id/reactivate", post(transportation_management::reactivate_carrier))
-        .route("/transport/carriers/id/:id/blacklist", post(transportation_management::blacklist_carrier))
-        .route("/transport/carriers/id/:id/performance", post(transportation_management::update_carrier_performance))
-        .route("/transport/carriers/code/:code", delete(transportation_management::delete_carrier))
-
+        .route(
+            "/transport/carriers",
+            post(transportation_management::create_carrier),
+        )
+        .route(
+            "/transport/carriers",
+            get(transportation_management::list_carriers),
+        )
+        .route(
+            "/transport/carriers/id/:id",
+            get(transportation_management::get_carrier),
+        )
+        .route(
+            "/transport/carriers/id/:id/suspend",
+            post(transportation_management::suspend_carrier),
+        )
+        .route(
+            "/transport/carriers/id/:id/reactivate",
+            post(transportation_management::reactivate_carrier),
+        )
+        .route(
+            "/transport/carriers/id/:id/blacklist",
+            post(transportation_management::blacklist_carrier),
+        )
+        .route(
+            "/transport/carriers/id/:id/performance",
+            post(transportation_management::update_carrier_performance),
+        )
+        .route(
+            "/transport/carriers/code/:code",
+            delete(transportation_management::delete_carrier),
+        )
         // Carrier Services
-        .route("/transport/carriers/:carrier_id/services", post(transportation_management::create_carrier_service))
-        .route("/transport/carriers/:carrier_id/services", get(transportation_management::list_carrier_services))
-        .route("/transport/services/:id/toggle", post(transportation_management::toggle_carrier_service))
-        .route("/transport/services/:id", delete(transportation_management::delete_carrier_service))
-
+        .route(
+            "/transport/carriers/:carrier_id/services",
+            post(transportation_management::create_carrier_service),
+        )
+        .route(
+            "/transport/carriers/:carrier_id/services",
+            get(transportation_management::list_carrier_services),
+        )
+        .route(
+            "/transport/services/:id/toggle",
+            post(transportation_management::toggle_carrier_service),
+        )
+        .route(
+            "/transport/services/:id",
+            delete(transportation_management::delete_carrier_service),
+        )
         // Transport Lanes
-        .route("/transport/lanes", post(transportation_management::create_lane))
-        .route("/transport/lanes", get(transportation_management::list_lanes))
-        .route("/transport/lanes/id/:id", get(transportation_management::get_lane))
-        .route("/transport/lanes/id/:id/deactivate", post(transportation_management::deactivate_lane))
-        .route("/transport/lanes/code/:code", delete(transportation_management::delete_lane))
-
+        .route(
+            "/transport/lanes",
+            post(transportation_management::create_lane),
+        )
+        .route(
+            "/transport/lanes",
+            get(transportation_management::list_lanes),
+        )
+        .route(
+            "/transport/lanes/id/:id",
+            get(transportation_management::get_lane),
+        )
+        .route(
+            "/transport/lanes/id/:id/deactivate",
+            post(transportation_management::deactivate_lane),
+        )
+        .route(
+            "/transport/lanes/code/:code",
+            delete(transportation_management::delete_lane),
+        )
         // Shipments
-        .route("/transport/shipments", post(transportation_management::create_shipment))
-        .route("/transport/shipments", get(transportation_management::list_shipments))
-        .route("/transport/shipments/id/:id", get(transportation_management::get_shipment))
-        .route("/transport/shipments/id/:id/book", post(transportation_management::book_shipment))
-        .route("/transport/shipments/id/:id/pickup", post(transportation_management::confirm_pickup))
-        .route("/transport/shipments/id/:id/transit", post(transportation_management::start_transit))
-        .route("/transport/shipments/id/:id/arrive", post(transportation_management::arrive_at_destination))
-        .route("/transport/shipments/id/:id/deliver", post(transportation_management::confirm_delivery))
-        .route("/transport/shipments/id/:id/cancel", post(transportation_management::cancel_shipment))
-        .route("/transport/shipments/id/:id/exception", post(transportation_management::mark_exception))
-        .route("/transport/shipments/id/:id/assign-carrier", post(transportation_management::assign_carrier))
-        .route("/transport/shipments/id/:id/tracking", post(transportation_management::update_tracking))
-        .route("/transport/shipments/number/:number", delete(transportation_management::delete_shipment))
-
+        .route(
+            "/transport/shipments",
+            post(transportation_management::create_shipment),
+        )
+        .route(
+            "/transport/shipments",
+            get(transportation_management::list_shipments),
+        )
+        .route(
+            "/transport/shipments/id/:id",
+            get(transportation_management::get_shipment),
+        )
+        .route(
+            "/transport/shipments/id/:id/book",
+            post(transportation_management::book_shipment),
+        )
+        .route(
+            "/transport/shipments/id/:id/pickup",
+            post(transportation_management::confirm_pickup),
+        )
+        .route(
+            "/transport/shipments/id/:id/transit",
+            post(transportation_management::start_transit),
+        )
+        .route(
+            "/transport/shipments/id/:id/arrive",
+            post(transportation_management::arrive_at_destination),
+        )
+        .route(
+            "/transport/shipments/id/:id/deliver",
+            post(transportation_management::confirm_delivery),
+        )
+        .route(
+            "/transport/shipments/id/:id/cancel",
+            post(transportation_management::cancel_shipment),
+        )
+        .route(
+            "/transport/shipments/id/:id/exception",
+            post(transportation_management::mark_exception),
+        )
+        .route(
+            "/transport/shipments/id/:id/assign-carrier",
+            post(transportation_management::assign_carrier),
+        )
+        .route(
+            "/transport/shipments/id/:id/tracking",
+            post(transportation_management::update_tracking),
+        )
+        .route(
+            "/transport/shipments/number/:number",
+            delete(transportation_management::delete_shipment),
+        )
         // Shipment Stops
-        .route("/transport/shipments/:shipment_id/stops", post(transportation_management::add_stop))
-        .route("/transport/shipments/:shipment_id/stops", get(transportation_management::list_stops))
-        .route("/transport/stops/:id/status", post(transportation_management::update_stop_status))
-
+        .route(
+            "/transport/shipments/:shipment_id/stops",
+            post(transportation_management::add_stop),
+        )
+        .route(
+            "/transport/shipments/:shipment_id/stops",
+            get(transportation_management::list_stops),
+        )
+        .route(
+            "/transport/stops/:id/status",
+            post(transportation_management::update_stop_status),
+        )
         // Shipment Lines
-        .route("/transport/shipments/:shipment_id/lines", post(transportation_management::add_shipment_line))
-        .route("/transport/shipments/:shipment_id/lines", get(transportation_management::list_shipment_lines))
-        .route("/transport/shipments/id/:id/recalculate", post(transportation_management::recalculate_shipment_totals))
-
+        .route(
+            "/transport/shipments/:shipment_id/lines",
+            post(transportation_management::add_shipment_line),
+        )
+        .route(
+            "/transport/shipments/:shipment_id/lines",
+            get(transportation_management::list_shipment_lines),
+        )
+        .route(
+            "/transport/shipments/id/:id/recalculate",
+            post(transportation_management::recalculate_shipment_totals),
+        )
         // Tracking Events
-        .route("/transport/shipments/:shipment_id/tracking-events", post(transportation_management::add_tracking_event))
-        .route("/transport/shipments/:shipment_id/tracking-events", get(transportation_management::list_tracking_events))
-
+        .route(
+            "/transport/shipments/:shipment_id/tracking-events",
+            post(transportation_management::add_tracking_event),
+        )
+        .route(
+            "/transport/shipments/:shipment_id/tracking-events",
+            get(transportation_management::list_tracking_events),
+        )
         // Freight Rates
-        .route("/transport/freight-rates", post(transportation_management::create_freight_rate))
-        .route("/transport/freight-rates", get(transportation_management::list_freight_rates))
-        .route("/transport/freight-rates/id/:id/expire", post(transportation_management::expire_freight_rate))
-        .route("/transport/freight-rates/code/:code", delete(transportation_management::delete_freight_rate))
-
+        .route(
+            "/transport/freight-rates",
+            post(transportation_management::create_freight_rate),
+        )
+        .route(
+            "/transport/freight-rates",
+            get(transportation_management::list_freight_rates),
+        )
+        .route(
+            "/transport/freight-rates/id/:id/expire",
+            post(transportation_management::expire_freight_rate),
+        )
+        .route(
+            "/transport/freight-rates/code/:code",
+            delete(transportation_management::delete_freight_rate),
+        )
         // Transportation Dashboard
-        .route("/transport/dashboard", get(transportation_management::get_transportation_dashboard))
-
+        .route(
+            "/transport/dashboard",
+            get(transportation_management::get_transportation_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Territory Management (Oracle Fusion CX Sales > Territory Management)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Territory CRUD
         .route("/territories", post(territory_management::create_territory))
         .route("/territories", get(territory_management::list_territories))
         .route("/territories/:id", get(territory_management::get_territory))
-        .route("/territories/:id", put(territory_management::update_territory))
-        .route("/territories/:id", delete(territory_management::delete_territory))
-        .route("/territories/:id/activate", post(territory_management::activate_territory))
-        .route("/territories/:id/deactivate", post(territory_management::deactivate_territory))
-
+        .route(
+            "/territories/:id",
+            put(territory_management::update_territory),
+        )
+        .route(
+            "/territories/:id",
+            delete(territory_management::delete_territory),
+        )
+        .route(
+            "/territories/:id/activate",
+            post(territory_management::activate_territory),
+        )
+        .route(
+            "/territories/:id/deactivate",
+            post(territory_management::deactivate_territory),
+        )
         // Territory Members
-        .route("/territories/:territory_id/members", post(territory_management::add_member))
-        .route("/territories/:territory_id/members", get(territory_management::list_members))
-        .route("/territories/members/:member_id", delete(territory_management::remove_member))
-
+        .route(
+            "/territories/:territory_id/members",
+            post(territory_management::add_member),
+        )
+        .route(
+            "/territories/:territory_id/members",
+            get(territory_management::list_members),
+        )
+        .route(
+            "/territories/members/:member_id",
+            delete(territory_management::remove_member),
+        )
         // Territory Routing Rules
-        .route("/territories/:territory_id/rules", post(territory_management::add_rule))
-        .route("/territories/:territory_id/rules", get(territory_management::list_rules))
-        .route("/territories/rules/:rule_id", delete(territory_management::remove_rule))
-
+        .route(
+            "/territories/:territory_id/rules",
+            post(territory_management::add_rule),
+        )
+        .route(
+            "/territories/:territory_id/rules",
+            get(territory_management::list_rules),
+        )
+        .route(
+            "/territories/rules/:rule_id",
+            delete(territory_management::remove_rule),
+        )
         // Entity Routing
-        .route("/territories/route", post(territory_management::route_entity))
-
+        .route(
+            "/territories/route",
+            post(territory_management::route_entity),
+        )
         // Territory Quotas
-        .route("/territories/:territory_id/quotas", post(territory_management::set_quota))
-        .route("/territories/:territory_id/quotas", get(territory_management::list_quotas))
-        .route("/territories/quotas/:quota_id/attainment", put(territory_management::update_attainment))
-        .route("/territories/quotas/:quota_id", delete(territory_management::delete_quota))
-
+        .route(
+            "/territories/:territory_id/quotas",
+            post(territory_management::set_quota),
+        )
+        .route(
+            "/territories/:territory_id/quotas",
+            get(territory_management::list_quotas),
+        )
+        .route(
+            "/territories/quotas/:quota_id/attainment",
+            put(territory_management::update_attainment),
+        )
+        .route(
+            "/territories/quotas/:quota_id",
+            delete(territory_management::delete_quota),
+        )
         // Territory Dashboard
-        .route("/territories/dashboard", get(territory_management::get_territory_dashboard))
-
+        .route(
+            "/territories/dashboard",
+            get(territory_management::get_territory_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Promotions Management (Oracle Fusion Trade Management > Trade Promotion)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Promotion CRUD
         .route("/promotions", post(promotions_management::create_promotion))
         .route("/promotions", get(promotions_management::list_promotions))
         .route("/promotions/:id", get(promotions_management::get_promotion))
-        .route("/promotions/:id", put(promotions_management::update_promotion))
-        .route("/promotions/:id", delete(promotions_management::delete_promotion))
-
+        .route(
+            "/promotions/:id",
+            put(promotions_management::update_promotion),
+        )
+        .route(
+            "/promotions/:id",
+            delete(promotions_management::delete_promotion),
+        )
         // Promotion Lifecycle
-        .route("/promotions/:id/activate", post(promotions_management::activate_promotion))
-        .route("/promotions/:id/hold", post(promotions_management::hold_promotion))
-        .route("/promotions/:id/complete", post(promotions_management::complete_promotion))
-        .route("/promotions/:id/cancel", post(promotions_management::cancel_promotion))
-
+        .route(
+            "/promotions/:id/activate",
+            post(promotions_management::activate_promotion),
+        )
+        .route(
+            "/promotions/:id/hold",
+            post(promotions_management::hold_promotion),
+        )
+        .route(
+            "/promotions/:id/complete",
+            post(promotions_management::complete_promotion),
+        )
+        .route(
+            "/promotions/:id/cancel",
+            post(promotions_management::cancel_promotion),
+        )
         // Promotional Offers
-        .route("/promotions/:promotion_id/offers", post(promotions_management::create_offer))
-        .route("/promotions/:promotion_id/offers", get(promotions_management::list_offers))
-        .route("/promotions/offers/:offer_id", delete(promotions_management::delete_offer))
-
+        .route(
+            "/promotions/:promotion_id/offers",
+            post(promotions_management::create_offer),
+        )
+        .route(
+            "/promotions/:promotion_id/offers",
+            get(promotions_management::list_offers),
+        )
+        .route(
+            "/promotions/offers/:offer_id",
+            delete(promotions_management::delete_offer),
+        )
         // Fund Allocation
-        .route("/promotions/:promotion_id/funds", post(promotions_management::create_fund))
-        .route("/promotions/:promotion_id/funds", get(promotions_management::list_funds))
-        .route("/promotions/funds/:fund_id/committed", put(promotions_management::update_fund_committed))
-        .route("/promotions/funds/:fund_id/spent", put(promotions_management::update_fund_spent))
-        .route("/promotions/funds/:fund_id", delete(promotions_management::delete_fund))
-
+        .route(
+            "/promotions/:promotion_id/funds",
+            post(promotions_management::create_fund),
+        )
+        .route(
+            "/promotions/:promotion_id/funds",
+            get(promotions_management::list_funds),
+        )
+        .route(
+            "/promotions/funds/:fund_id/committed",
+            put(promotions_management::update_fund_committed),
+        )
+        .route(
+            "/promotions/funds/:fund_id/spent",
+            put(promotions_management::update_fund_spent),
+        )
+        .route(
+            "/promotions/funds/:fund_id",
+            delete(promotions_management::delete_fund),
+        )
         // Claims Processing
-        .route("/promotions/:promotion_id/claims", post(promotions_management::create_claim))
-        .route("/promotions/:promotion_id/claims", get(promotions_management::list_claims))
-        .route("/promotions/claims/:claim_id", get(promotions_management::get_claim))
-        .route("/promotions/claims/:claim_id/review", post(promotions_management::review_claim))
-        .route("/promotions/claims/:claim_id/approve", post(promotions_management::approve_claim))
-        .route("/promotions/claims/:claim_id/reject", post(promotions_management::reject_claim))
-        .route("/promotions/claims/:claim_id/settle", post(promotions_management::settle_claim))
-        .route("/promotions/claims/:claim_id", delete(promotions_management::delete_claim))
-
+        .route(
+            "/promotions/:promotion_id/claims",
+            post(promotions_management::create_claim),
+        )
+        .route(
+            "/promotions/:promotion_id/claims",
+            get(promotions_management::list_claims),
+        )
+        .route(
+            "/promotions/claims/:claim_id",
+            get(promotions_management::get_claim),
+        )
+        .route(
+            "/promotions/claims/:claim_id/review",
+            post(promotions_management::review_claim),
+        )
+        .route(
+            "/promotions/claims/:claim_id/approve",
+            post(promotions_management::approve_claim),
+        )
+        .route(
+            "/promotions/claims/:claim_id/reject",
+            post(promotions_management::reject_claim),
+        )
+        .route(
+            "/promotions/claims/:claim_id/settle",
+            post(promotions_management::settle_claim),
+        )
+        .route(
+            "/promotions/claims/:claim_id",
+            delete(promotions_management::delete_claim),
+        )
         // Promotions Dashboard
-        .route("/promotions/dashboard", get(promotions_management::get_promotions_dashboard))
-
+        .route(
+            "/promotions/dashboard",
+            get(promotions_management::get_promotions_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Sustainability & ESG Management (Oracle Fusion Sustainability)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Facilities
-        .route("/sustainability/facilities", post(sustainability::create_facility))
-        .route("/sustainability/facilities", get(sustainability::list_facilities))
-        .route("/sustainability/facilities/id/:id", get(sustainability::get_facility))
-        .route("/sustainability/facilities/id/:id/status", post(sustainability::update_facility_status))
-        .route("/sustainability/facilities/code/:facility_code", delete(sustainability::delete_facility))
-
+        .route(
+            "/sustainability/facilities",
+            post(sustainability::create_facility),
+        )
+        .route(
+            "/sustainability/facilities",
+            get(sustainability::list_facilities),
+        )
+        .route(
+            "/sustainability/facilities/id/:id",
+            get(sustainability::get_facility),
+        )
+        .route(
+            "/sustainability/facilities/id/:id/status",
+            post(sustainability::update_facility_status),
+        )
+        .route(
+            "/sustainability/facilities/code/:facility_code",
+            delete(sustainability::delete_facility),
+        )
         // Emission Factors
-        .route("/sustainability/emission-factors", post(sustainability::create_emission_factor))
-        .route("/sustainability/emission-factors", get(sustainability::list_emission_factors))
-        .route("/sustainability/emission-factors/id/:id", get(sustainability::get_emission_factor))
-        .route("/sustainability/emission-factors/code/:factor_code", delete(sustainability::delete_emission_factor))
-
+        .route(
+            "/sustainability/emission-factors",
+            post(sustainability::create_emission_factor),
+        )
+        .route(
+            "/sustainability/emission-factors",
+            get(sustainability::list_emission_factors),
+        )
+        .route(
+            "/sustainability/emission-factors/id/:id",
+            get(sustainability::get_emission_factor),
+        )
+        .route(
+            "/sustainability/emission-factors/code/:factor_code",
+            delete(sustainability::delete_emission_factor),
+        )
         // Environmental Activities
-        .route("/sustainability/activities", post(sustainability::create_activity))
-        .route("/sustainability/activities", get(sustainability::list_activities))
-        .route("/sustainability/activities/id/:id", get(sustainability::get_activity))
-        .route("/sustainability/activities/id/:id/status", post(sustainability::update_activity_status))
-        .route("/sustainability/activities/number/:activity_number", delete(sustainability::delete_activity))
-
+        .route(
+            "/sustainability/activities",
+            post(sustainability::create_activity),
+        )
+        .route(
+            "/sustainability/activities",
+            get(sustainability::list_activities),
+        )
+        .route(
+            "/sustainability/activities/id/:id",
+            get(sustainability::get_activity),
+        )
+        .route(
+            "/sustainability/activities/id/:id/status",
+            post(sustainability::update_activity_status),
+        )
+        .route(
+            "/sustainability/activities/number/:activity_number",
+            delete(sustainability::delete_activity),
+        )
         // ESG Metrics
-        .route("/sustainability/metrics", post(sustainability::create_metric))
+        .route(
+            "/sustainability/metrics",
+            post(sustainability::create_metric),
+        )
         .route("/sustainability/metrics", get(sustainability::list_metrics))
-        .route("/sustainability/metrics/id/:id", get(sustainability::get_metric))
-        .route("/sustainability/metrics/code/:metric_code", delete(sustainability::delete_metric))
-
+        .route(
+            "/sustainability/metrics/id/:id",
+            get(sustainability::get_metric),
+        )
+        .route(
+            "/sustainability/metrics/code/:metric_code",
+            delete(sustainability::delete_metric),
+        )
         // ESG Metric Readings
-        .route("/sustainability/metric-readings", post(sustainability::create_metric_reading))
-        .route("/sustainability/metrics/:metric_id/readings", get(sustainability::list_metric_readings))
-        .route("/sustainability/metric-readings/id/:id", delete(sustainability::delete_metric_reading))
-
+        .route(
+            "/sustainability/metric-readings",
+            post(sustainability::create_metric_reading),
+        )
+        .route(
+            "/sustainability/metrics/:metric_id/readings",
+            get(sustainability::list_metric_readings),
+        )
+        .route(
+            "/sustainability/metric-readings/id/:id",
+            delete(sustainability::delete_metric_reading),
+        )
         // Sustainability Goals
         .route("/sustainability/goals", post(sustainability::create_goal))
         .route("/sustainability/goals", get(sustainability::list_goals))
-        .route("/sustainability/goals/id/:id", get(sustainability::get_goal))
-        .route("/sustainability/goals/id/:id/progress", post(sustainability::update_goal_progress))
-        .route("/sustainability/goals/id/:id/status", post(sustainability::update_goal_status))
-        .route("/sustainability/goals/code/:goal_code", delete(sustainability::delete_goal))
-
+        .route(
+            "/sustainability/goals/id/:id",
+            get(sustainability::get_goal),
+        )
+        .route(
+            "/sustainability/goals/id/:id/progress",
+            post(sustainability::update_goal_progress),
+        )
+        .route(
+            "/sustainability/goals/id/:id/status",
+            post(sustainability::update_goal_status),
+        )
+        .route(
+            "/sustainability/goals/code/:goal_code",
+            delete(sustainability::delete_goal),
+        )
         // Carbon Offsets
-        .route("/sustainability/carbon-offsets", post(sustainability::create_carbon_offset))
-        .route("/sustainability/carbon-offsets", get(sustainability::list_carbon_offsets))
-        .route("/sustainability/carbon-offsets/id/:id", get(sustainability::get_carbon_offset))
-        .route("/sustainability/carbon-offsets/id/:id/retire", post(sustainability::retire_carbon_offset))
-        .route("/sustainability/carbon-offsets/number/:offset_number", delete(sustainability::delete_carbon_offset))
-
+        .route(
+            "/sustainability/carbon-offsets",
+            post(sustainability::create_carbon_offset),
+        )
+        .route(
+            "/sustainability/carbon-offsets",
+            get(sustainability::list_carbon_offsets),
+        )
+        .route(
+            "/sustainability/carbon-offsets/id/:id",
+            get(sustainability::get_carbon_offset),
+        )
+        .route(
+            "/sustainability/carbon-offsets/id/:id/retire",
+            post(sustainability::retire_carbon_offset),
+        )
+        .route(
+            "/sustainability/carbon-offsets/number/:offset_number",
+            delete(sustainability::delete_carbon_offset),
+        )
         // Sustainability Dashboard
-        .route("/sustainability/dashboard", get(sustainability::get_sustainability_dashboard))
-
+        .route(
+            "/sustainability/dashboard",
+            get(sustainability::get_sustainability_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Project Billing (Oracle Fusion Project Management > Project Billing)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Bill Rate Schedules
-        .route("/project-billing/schedules", get(project_billing::list_schedules))
-        .route("/project-billing/schedules", post(project_billing::create_schedule))
-        .route("/project-billing/schedules/:id", get(project_billing::get_schedule))
-        .route("/project-billing/schedules/:id/activate", post(project_billing::activate_schedule))
-        .route("/project-billing/schedules/:id/deactivate", post(project_billing::deactivate_schedule))
-        .route("/project-billing/schedules/number/:schedule_number", delete(project_billing::delete_schedule))
-
+        .route(
+            "/project-billing/schedules",
+            get(project_billing::list_schedules),
+        )
+        .route(
+            "/project-billing/schedules",
+            post(project_billing::create_schedule),
+        )
+        .route(
+            "/project-billing/schedules/:id",
+            get(project_billing::get_schedule),
+        )
+        .route(
+            "/project-billing/schedules/:id/activate",
+            post(project_billing::activate_schedule),
+        )
+        .route(
+            "/project-billing/schedules/:id/deactivate",
+            post(project_billing::deactivate_schedule),
+        )
+        .route(
+            "/project-billing/schedules/number/:schedule_number",
+            delete(project_billing::delete_schedule),
+        )
         // Bill Rate Lines
-        .route("/project-billing/schedules/:schedule_id/rate-lines", get(project_billing::list_rate_lines))
-        .route("/project-billing/schedules/:schedule_id/rate-lines", post(project_billing::add_rate_line))
-        .route("/project-billing/schedules/:schedule_id/rate-lines/:id", delete(project_billing::delete_rate_line))
-        .route("/project-billing/schedules/:schedule_id/find-rate/:role_name", get(project_billing::find_rate_for_role))
-
+        .route(
+            "/project-billing/schedules/:schedule_id/rate-lines",
+            get(project_billing::list_rate_lines),
+        )
+        .route(
+            "/project-billing/schedules/:schedule_id/rate-lines",
+            post(project_billing::add_rate_line),
+        )
+        .route(
+            "/project-billing/schedules/:schedule_id/rate-lines/:id",
+            delete(project_billing::delete_rate_line),
+        )
+        .route(
+            "/project-billing/schedules/:schedule_id/find-rate/:role_name",
+            get(project_billing::find_rate_for_role),
+        )
         // Project Billing Configs
-        .route("/project-billing/configs", get(project_billing::list_billing_configs))
-        .route("/project-billing/configs", post(project_billing::create_billing_config))
-        .route("/project-billing/configs/:id", get(project_billing::get_billing_config))
-        .route("/project-billing/configs/project/:project_id", get(project_billing::get_billing_config_by_project))
-        .route("/project-billing/configs/:id/activate", post(project_billing::activate_billing_config))
-        .route("/project-billing/configs/:id/cancel", post(project_billing::cancel_billing_config))
-
+        .route(
+            "/project-billing/configs",
+            get(project_billing::list_billing_configs),
+        )
+        .route(
+            "/project-billing/configs",
+            post(project_billing::create_billing_config),
+        )
+        .route(
+            "/project-billing/configs/:id",
+            get(project_billing::get_billing_config),
+        )
+        .route(
+            "/project-billing/configs/project/:project_id",
+            get(project_billing::get_billing_config_by_project),
+        )
+        .route(
+            "/project-billing/configs/:id/activate",
+            post(project_billing::activate_billing_config),
+        )
+        .route(
+            "/project-billing/configs/:id/cancel",
+            post(project_billing::cancel_billing_config),
+        )
         // Billing Events
-        .route("/project-billing/events", get(project_billing::list_billing_events))
-        .route("/project-billing/events", post(project_billing::create_billing_event))
-        .route("/project-billing/events/:id", get(project_billing::get_billing_event))
-        .route("/project-billing/events/:id/complete", post(project_billing::complete_billing_event))
-        .route("/project-billing/events/:id/cancel", post(project_billing::cancel_billing_event))
-        .route("/project-billing/events/number/:event_number", delete(project_billing::delete_billing_event))
-
+        .route(
+            "/project-billing/events",
+            get(project_billing::list_billing_events),
+        )
+        .route(
+            "/project-billing/events",
+            post(project_billing::create_billing_event),
+        )
+        .route(
+            "/project-billing/events/:id",
+            get(project_billing::get_billing_event),
+        )
+        .route(
+            "/project-billing/events/:id/complete",
+            post(project_billing::complete_billing_event),
+        )
+        .route(
+            "/project-billing/events/:id/cancel",
+            post(project_billing::cancel_billing_event),
+        )
+        .route(
+            "/project-billing/events/number/:event_number",
+            delete(project_billing::delete_billing_event),
+        )
         // Project Invoices
-        .route("/project-billing/invoices", get(project_billing::list_invoices))
-        .route("/project-billing/invoices", post(project_billing::create_invoice))
-        .route("/project-billing/invoices/:id", get(project_billing::get_invoice))
-        .route("/project-billing/invoices/:invoice_id/lines", get(project_billing::get_invoice_lines))
-        .route("/project-billing/invoices/:id/submit", post(project_billing::submit_invoice))
-        .route("/project-billing/invoices/:id/approve", post(project_billing::approve_invoice))
-        .route("/project-billing/invoices/:id/reject", post(project_billing::reject_invoice))
-        .route("/project-billing/invoices/:id/post", post(project_billing::post_invoice))
-        .route("/project-billing/invoices/:id/cancel", post(project_billing::cancel_invoice))
-
+        .route(
+            "/project-billing/invoices",
+            get(project_billing::list_invoices),
+        )
+        .route(
+            "/project-billing/invoices",
+            post(project_billing::create_invoice),
+        )
+        .route(
+            "/project-billing/invoices/:id",
+            get(project_billing::get_invoice),
+        )
+        .route(
+            "/project-billing/invoices/:invoice_id/lines",
+            get(project_billing::get_invoice_lines),
+        )
+        .route(
+            "/project-billing/invoices/:id/submit",
+            post(project_billing::submit_invoice),
+        )
+        .route(
+            "/project-billing/invoices/:id/approve",
+            post(project_billing::approve_invoice),
+        )
+        .route(
+            "/project-billing/invoices/:id/reject",
+            post(project_billing::reject_invoice),
+        )
+        .route(
+            "/project-billing/invoices/:id/post",
+            post(project_billing::post_invoice),
+        )
+        .route(
+            "/project-billing/invoices/:id/cancel",
+            post(project_billing::cancel_invoice),
+        )
         // Project Billing Dashboard
-        .route("/project-billing/dashboard", get(project_billing::get_project_billing_dashboard))
-
+        .route(
+            "/project-billing/dashboard",
+            get(project_billing::get_project_billing_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Quality Management (Oracle Fusion Quality Management)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Inspection Plans
         .route("/quality/plans", get(quality_management::list_plans))
         .route("/quality/plans", post(quality_management::create_plan))
         .route("/quality/plans/:code", get(quality_management::get_plan))
-        .route("/quality/plans/:code", delete(quality_management::delete_plan))
-
+        .route(
+            "/quality/plans/:code",
+            delete(quality_management::delete_plan),
+        )
         // Plan Criteria
-        .route("/quality/plans/:plan_id/criteria", post(quality_management::create_criterion))
-        .route("/quality/plans/:plan_id/criteria", get(quality_management::list_criteria))
-        .route("/quality/criteria/:id", delete(quality_management::delete_criterion))
-
+        .route(
+            "/quality/plans/:plan_id/criteria",
+            post(quality_management::create_criterion),
+        )
+        .route(
+            "/quality/plans/:plan_id/criteria",
+            get(quality_management::list_criteria),
+        )
+        .route(
+            "/quality/criteria/:id",
+            delete(quality_management::delete_criterion),
+        )
         // Inspections
-        .route("/quality/inspections", get(quality_management::list_inspections))
-        .route("/quality/inspections", post(quality_management::create_inspection))
-        .route("/quality/inspections/:id", get(quality_management::get_inspection))
-        .route("/quality/inspections/:id/start", post(quality_management::start_inspection))
-        .route("/quality/inspections/:id/complete", post(quality_management::complete_inspection))
-        .route("/quality/inspections/:id/cancel", post(quality_management::cancel_inspection))
-
+        .route(
+            "/quality/inspections",
+            get(quality_management::list_inspections),
+        )
+        .route(
+            "/quality/inspections",
+            post(quality_management::create_inspection),
+        )
+        .route(
+            "/quality/inspections/:id",
+            get(quality_management::get_inspection),
+        )
+        .route(
+            "/quality/inspections/:id/start",
+            post(quality_management::start_inspection),
+        )
+        .route(
+            "/quality/inspections/:id/complete",
+            post(quality_management::complete_inspection),
+        )
+        .route(
+            "/quality/inspections/:id/cancel",
+            post(quality_management::cancel_inspection),
+        )
         // Inspection Results
-        .route("/quality/inspections/:inspection_id/results", post(quality_management::create_result))
-        .route("/quality/inspections/:inspection_id/results", get(quality_management::list_results))
-
+        .route(
+            "/quality/inspections/:inspection_id/results",
+            post(quality_management::create_result),
+        )
+        .route(
+            "/quality/inspections/:inspection_id/results",
+            get(quality_management::list_results),
+        )
         // Non-Conformance Reports
         .route("/quality/ncrs", get(quality_management::list_ncrs))
         .route("/quality/ncrs", post(quality_management::create_ncr))
         .route("/quality/ncrs/:id", get(quality_management::get_ncr))
-        .route("/quality/ncrs/:id/investigate", post(quality_management::investigate_ncr))
-        .route("/quality/ncrs/:id/corrective-action", post(quality_management::start_ncr_corrective_action))
-        .route("/quality/ncrs/:id/resolve", post(quality_management::resolve_ncr))
-        .route("/quality/ncrs/:id/close", post(quality_management::close_ncr))
-
+        .route(
+            "/quality/ncrs/:id/investigate",
+            post(quality_management::investigate_ncr),
+        )
+        .route(
+            "/quality/ncrs/:id/corrective-action",
+            post(quality_management::start_ncr_corrective_action),
+        )
+        .route(
+            "/quality/ncrs/:id/resolve",
+            post(quality_management::resolve_ncr),
+        )
+        .route(
+            "/quality/ncrs/:id/close",
+            post(quality_management::close_ncr),
+        )
         // Corrective & Preventive Actions
-        .route("/quality/ncrs/:ncr_id/actions", post(quality_management::create_corrective_action))
-        .route("/quality/ncrs/:ncr_id/actions", get(quality_management::list_corrective_actions))
-        .route("/quality/actions/:id", get(quality_management::get_corrective_action))
-        .route("/quality/actions/:id/start", post(quality_management::start_corrective_action))
-        .route("/quality/actions/:id/complete", post(quality_management::complete_corrective_action))
-        .route("/quality/actions/:id/verify", post(quality_management::verify_corrective_action))
-
+        .route(
+            "/quality/ncrs/:ncr_id/actions",
+            post(quality_management::create_corrective_action),
+        )
+        .route(
+            "/quality/ncrs/:ncr_id/actions",
+            get(quality_management::list_corrective_actions),
+        )
+        .route(
+            "/quality/actions/:id",
+            get(quality_management::get_corrective_action),
+        )
+        .route(
+            "/quality/actions/:id/start",
+            post(quality_management::start_corrective_action),
+        )
+        .route(
+            "/quality/actions/:id/complete",
+            post(quality_management::complete_corrective_action),
+        )
+        .route(
+            "/quality/actions/:id/verify",
+            post(quality_management::verify_corrective_action),
+        )
         // Quality Holds
         .route("/quality/holds", get(quality_management::list_holds))
         .route("/quality/holds", post(quality_management::create_hold))
         .route("/quality/holds/:id", get(quality_management::get_hold))
-        .route("/quality/holds/:id/release", post(quality_management::release_hold))
-
+        .route(
+            "/quality/holds/:id/release",
+            post(quality_management::release_hold),
+        )
         // Quality Dashboard
-        .route("/quality/dashboard", get(quality_management::get_quality_dashboard))
-
+        .route(
+            "/quality/dashboard",
+            get(quality_management::get_quality_dashboard),
+        )
         // ================================================================
         // Cost Accounting (Oracle Fusion Cost Management)
         // ================================================================
-
         // Cost Books
-        .route("/cost-accounting/books", post(cost_accounting::create_cost_book))
-        .route("/cost-accounting/books", get(cost_accounting::list_cost_books))
-        .route("/cost-accounting/books/:id", get(cost_accounting::get_cost_book))
-        .route("/cost-accounting/books/:id", put(cost_accounting::update_cost_book))
-        .route("/cost-accounting/books/:id", delete(cost_accounting::delete_cost_book))
-        .route("/cost-accounting/books/:id/deactivate", post(cost_accounting::deactivate_cost_book))
-        .route("/cost-accounting/books/:id/activate", post(cost_accounting::activate_cost_book))
-
+        .route(
+            "/cost-accounting/books",
+            post(cost_accounting::create_cost_book),
+        )
+        .route(
+            "/cost-accounting/books",
+            get(cost_accounting::list_cost_books),
+        )
+        .route(
+            "/cost-accounting/books/:id",
+            get(cost_accounting::get_cost_book),
+        )
+        .route(
+            "/cost-accounting/books/:id",
+            put(cost_accounting::update_cost_book),
+        )
+        .route(
+            "/cost-accounting/books/:id",
+            delete(cost_accounting::delete_cost_book),
+        )
+        .route(
+            "/cost-accounting/books/:id/deactivate",
+            post(cost_accounting::deactivate_cost_book),
+        )
+        .route(
+            "/cost-accounting/books/:id/activate",
+            post(cost_accounting::activate_cost_book),
+        )
         // Cost Elements
-        .route("/cost-accounting/elements", post(cost_accounting::create_cost_element))
-        .route("/cost-accounting/elements", get(cost_accounting::list_cost_elements))
-        .route("/cost-accounting/elements/:id", get(cost_accounting::get_cost_element))
-        .route("/cost-accounting/elements/:id", put(cost_accounting::update_cost_element))
-        .route("/cost-accounting/elements/:id", delete(cost_accounting::delete_cost_element))
-
+        .route(
+            "/cost-accounting/elements",
+            post(cost_accounting::create_cost_element),
+        )
+        .route(
+            "/cost-accounting/elements",
+            get(cost_accounting::list_cost_elements),
+        )
+        .route(
+            "/cost-accounting/elements/:id",
+            get(cost_accounting::get_cost_element),
+        )
+        .route(
+            "/cost-accounting/elements/:id",
+            put(cost_accounting::update_cost_element),
+        )
+        .route(
+            "/cost-accounting/elements/:id",
+            delete(cost_accounting::delete_cost_element),
+        )
         // Cost Profiles
-        .route("/cost-accounting/profiles", post(cost_accounting::create_cost_profile))
-        .route("/cost-accounting/profiles", get(cost_accounting::list_cost_profiles))
-        .route("/cost-accounting/profiles/:id", get(cost_accounting::get_cost_profile))
-        .route("/cost-accounting/profiles/:id", delete(cost_accounting::delete_cost_profile))
-
+        .route(
+            "/cost-accounting/profiles",
+            post(cost_accounting::create_cost_profile),
+        )
+        .route(
+            "/cost-accounting/profiles",
+            get(cost_accounting::list_cost_profiles),
+        )
+        .route(
+            "/cost-accounting/profiles/:id",
+            get(cost_accounting::get_cost_profile),
+        )
+        .route(
+            "/cost-accounting/profiles/:id",
+            delete(cost_accounting::delete_cost_profile),
+        )
         // Standard Costs
-        .route("/cost-accounting/standard-costs", post(cost_accounting::create_standard_cost))
-        .route("/cost-accounting/standard-costs", get(cost_accounting::list_standard_costs))
-        .route("/cost-accounting/standard-costs/:id", get(cost_accounting::get_standard_cost))
-        .route("/cost-accounting/standard-costs/:id", put(cost_accounting::update_standard_cost))
-        .route("/cost-accounting/standard-costs/:id/supersede", post(cost_accounting::supersede_standard_cost))
-        .route("/cost-accounting/standard-costs/:id", delete(cost_accounting::delete_standard_cost))
-
+        .route(
+            "/cost-accounting/standard-costs",
+            post(cost_accounting::create_standard_cost),
+        )
+        .route(
+            "/cost-accounting/standard-costs",
+            get(cost_accounting::list_standard_costs),
+        )
+        .route(
+            "/cost-accounting/standard-costs/:id",
+            get(cost_accounting::get_standard_cost),
+        )
+        .route(
+            "/cost-accounting/standard-costs/:id",
+            put(cost_accounting::update_standard_cost),
+        )
+        .route(
+            "/cost-accounting/standard-costs/:id/supersede",
+            post(cost_accounting::supersede_standard_cost),
+        )
+        .route(
+            "/cost-accounting/standard-costs/:id",
+            delete(cost_accounting::delete_standard_cost),
+        )
         // Cost Adjustments
-        .route("/cost-accounting/adjustments", post(cost_accounting::create_cost_adjustment))
-        .route("/cost-accounting/adjustments", get(cost_accounting::list_cost_adjustments))
-        .route("/cost-accounting/adjustments/:id", get(cost_accounting::get_cost_adjustment))
-        .route("/cost-accounting/adjustments/:id/submit", post(cost_accounting::submit_adjustment))
-        .route("/cost-accounting/adjustments/:id/approve", post(cost_accounting::approve_adjustment))
-        .route("/cost-accounting/adjustments/:id/reject", post(cost_accounting::reject_adjustment))
-        .route("/cost-accounting/adjustments/:id/post", post(cost_accounting::post_adjustment))
-        .route("/cost-accounting/adjustments/:id", delete(cost_accounting::delete_cost_adjustment))
-
+        .route(
+            "/cost-accounting/adjustments",
+            post(cost_accounting::create_cost_adjustment),
+        )
+        .route(
+            "/cost-accounting/adjustments",
+            get(cost_accounting::list_cost_adjustments),
+        )
+        .route(
+            "/cost-accounting/adjustments/:id",
+            get(cost_accounting::get_cost_adjustment),
+        )
+        .route(
+            "/cost-accounting/adjustments/:id/submit",
+            post(cost_accounting::submit_adjustment),
+        )
+        .route(
+            "/cost-accounting/adjustments/:id/approve",
+            post(cost_accounting::approve_adjustment),
+        )
+        .route(
+            "/cost-accounting/adjustments/:id/reject",
+            post(cost_accounting::reject_adjustment),
+        )
+        .route(
+            "/cost-accounting/adjustments/:id/post",
+            post(cost_accounting::post_adjustment),
+        )
+        .route(
+            "/cost-accounting/adjustments/:id",
+            delete(cost_accounting::delete_cost_adjustment),
+        )
         // Cost Adjustment Lines
-        .route("/cost-accounting/adjustments/:adjustment_id/lines", post(cost_accounting::add_adjustment_line))
-        .route("/cost-accounting/adjustments/:adjustment_id/lines", get(cost_accounting::list_adjustment_lines))
-        .route("/cost-accounting/adjustment-lines/:id", delete(cost_accounting::delete_adjustment_line))
-
+        .route(
+            "/cost-accounting/adjustments/:adjustment_id/lines",
+            post(cost_accounting::add_adjustment_line),
+        )
+        .route(
+            "/cost-accounting/adjustments/:adjustment_id/lines",
+            get(cost_accounting::list_adjustment_lines),
+        )
+        .route(
+            "/cost-accounting/adjustment-lines/:id",
+            delete(cost_accounting::delete_adjustment_line),
+        )
         // Cost Variances
-        .route("/cost-accounting/variances", post(cost_accounting::create_cost_variance))
-        .route("/cost-accounting/variances", get(cost_accounting::list_cost_variances))
-        .route("/cost-accounting/variances/:id", get(cost_accounting::get_cost_variance))
-        .route("/cost-accounting/variances/:id/analyze", post(cost_accounting::analyze_variance))
-
+        .route(
+            "/cost-accounting/variances",
+            post(cost_accounting::create_cost_variance),
+        )
+        .route(
+            "/cost-accounting/variances",
+            get(cost_accounting::list_cost_variances),
+        )
+        .route(
+            "/cost-accounting/variances/:id",
+            get(cost_accounting::get_cost_variance),
+        )
+        .route(
+            "/cost-accounting/variances/:id/analyze",
+            post(cost_accounting::analyze_variance),
+        )
         // Cost Accounting Dashboard
-        .route("/cost-accounting/dashboard", get(cost_accounting::get_cost_accounting_dashboard))
-
+        .route(
+            "/cost-accounting/dashboard",
+            get(cost_accounting::get_cost_accounting_dashboard),
+        )
         // ================================================================
         // Accounts Payable (Oracle Fusion Payables)
         // ================================================================
         .route("/ap/invoices", post(accounts_payable::create_ap_invoice))
         .route("/ap/invoices", get(accounts_payable::list_ap_invoices))
         .route("/ap/invoices/:id", get(accounts_payable::get_ap_invoice))
-        .route("/ap/invoices/:id/submit", post(accounts_payable::submit_ap_invoice))
-        .route("/ap/invoices/:id/approve", post(accounts_payable::approve_ap_invoice))
-        .route("/ap/invoices/:id/cancel", post(accounts_payable::cancel_ap_invoice))
+        .route(
+            "/ap/invoices/:id/submit",
+            post(accounts_payable::submit_ap_invoice),
+        )
+        .route(
+            "/ap/invoices/:id/approve",
+            post(accounts_payable::approve_ap_invoice),
+        )
+        .route(
+            "/ap/invoices/:id/cancel",
+            post(accounts_payable::cancel_ap_invoice),
+        )
         // Invoice Lines
-        .route("/ap/invoices/:invoice_id/lines", post(accounts_payable::add_ap_invoice_line))
-        .route("/ap/invoices/:invoice_id/lines", get(accounts_payable::list_ap_invoice_lines))
-        .route("/ap/invoices/:invoice_id/lines/:line_id", delete(accounts_payable::delete_ap_invoice_line))
+        .route(
+            "/ap/invoices/:invoice_id/lines",
+            post(accounts_payable::add_ap_invoice_line),
+        )
+        .route(
+            "/ap/invoices/:invoice_id/lines",
+            get(accounts_payable::list_ap_invoice_lines),
+        )
+        .route(
+            "/ap/invoices/:invoice_id/lines/:line_id",
+            delete(accounts_payable::delete_ap_invoice_line),
+        )
         // Invoice Distributions
-        .route("/ap/invoices/:invoice_id/distributions", post(accounts_payable::add_ap_distribution))
-        .route("/ap/invoices/:invoice_id/distributions", get(accounts_payable::list_ap_distributions))
+        .route(
+            "/ap/invoices/:invoice_id/distributions",
+            post(accounts_payable::add_ap_distribution),
+        )
+        .route(
+            "/ap/invoices/:invoice_id/distributions",
+            get(accounts_payable::list_ap_distributions),
+        )
         // Invoice Holds
-        .route("/ap/invoices/:invoice_id/holds", post(accounts_payable::apply_ap_hold))
-        .route("/ap/invoices/:invoice_id/holds", get(accounts_payable::list_ap_holds))
-        .route("/ap/holds/:hold_id/release", post(accounts_payable::release_ap_hold))
+        .route(
+            "/ap/invoices/:invoice_id/holds",
+            post(accounts_payable::apply_ap_hold),
+        )
+        .route(
+            "/ap/invoices/:invoice_id/holds",
+            get(accounts_payable::list_ap_holds),
+        )
+        .route(
+            "/ap/holds/:hold_id/release",
+            post(accounts_payable::release_ap_hold),
+        )
         // Payments
         .route("/ap/payments", post(accounts_payable::create_ap_payment))
         .route("/ap/payments", get(accounts_payable::list_ap_payments))
         .route("/ap/payments/:id", get(accounts_payable::get_ap_payment))
-        .route("/ap/payments/:id/confirm", post(accounts_payable::confirm_ap_payment))
+        .route(
+            "/ap/payments/:id/confirm",
+            post(accounts_payable::confirm_ap_payment),
+        )
         // AP Aging
         .route("/ap/aging", get(accounts_payable::get_ap_aging))
-
         // ========================================================================
         // Supply Chain Planning (MRP)
         // ========================================================================
         // Planning Scenarios
-        .route("/scp/scenarios", post(supply_chain_planning::create_scenario))
+        .route(
+            "/scp/scenarios",
+            post(supply_chain_planning::create_scenario),
+        )
         .route("/scp/scenarios", get(supply_chain_planning::list_scenarios))
-        .route("/scp/scenarios/:id", get(supply_chain_planning::get_scenario))
-        .route("/scp/scenarios/:id/run", post(supply_chain_planning::run_mrp))
-        .route("/scp/scenarios/:id/cancel", post(supply_chain_planning::cancel_scenario))
+        .route(
+            "/scp/scenarios/:id",
+            get(supply_chain_planning::get_scenario),
+        )
+        .route(
+            "/scp/scenarios/:id/run",
+            post(supply_chain_planning::run_mrp),
+        )
+        .route(
+            "/scp/scenarios/:id/cancel",
+            post(supply_chain_planning::cancel_scenario),
+        )
         // Planning Parameters
-        .route("/scp/parameters", post(supply_chain_planning::upsert_parameter))
-        .route("/scp/parameters", get(supply_chain_planning::list_parameters))
-        .route("/scp/parameters/:item_id", delete(supply_chain_planning::delete_parameter))
+        .route(
+            "/scp/parameters",
+            post(supply_chain_planning::upsert_parameter),
+        )
+        .route(
+            "/scp/parameters",
+            get(supply_chain_planning::list_parameters),
+        )
+        .route(
+            "/scp/parameters/:item_id",
+            delete(supply_chain_planning::delete_parameter),
+        )
         // Supply/Demand Entries
-        .route("/scp/supply-demand", post(supply_chain_planning::create_supply_demand))
-        .route("/scp/scenarios/:scenario_id/supply-demand", get(supply_chain_planning::list_supply_demand))
+        .route(
+            "/scp/supply-demand",
+            post(supply_chain_planning::create_supply_demand),
+        )
+        .route(
+            "/scp/scenarios/:scenario_id/supply-demand",
+            get(supply_chain_planning::list_supply_demand),
+        )
         // Planned Orders
-        .route("/scp/scenarios/:scenario_id/orders", get(supply_chain_planning::list_planned_orders))
-        .route("/scp/orders/:id", get(supply_chain_planning::get_planned_order))
-        .route("/scp/orders/:id/firm", post(supply_chain_planning::firm_planned_order))
-        .route("/scp/orders/:id/cancel", post(supply_chain_planning::cancel_planned_order))
+        .route(
+            "/scp/scenarios/:scenario_id/orders",
+            get(supply_chain_planning::list_planned_orders),
+        )
+        .route(
+            "/scp/orders/:id",
+            get(supply_chain_planning::get_planned_order),
+        )
+        .route(
+            "/scp/orders/:id/firm",
+            post(supply_chain_planning::firm_planned_order),
+        )
+        .route(
+            "/scp/orders/:id/cancel",
+            post(supply_chain_planning::cancel_planned_order),
+        )
         // Planning Exceptions
-        .route("/scp/scenarios/:scenario_id/exceptions", get(supply_chain_planning::list_exceptions))
-        .route("/scp/exceptions/:id/resolve", post(supply_chain_planning::resolve_exception))
-        .route("/scp/exceptions/:id/dismiss", post(supply_chain_planning::dismiss_exception))
+        .route(
+            "/scp/scenarios/:scenario_id/exceptions",
+            get(supply_chain_planning::list_exceptions),
+        )
+        .route(
+            "/scp/exceptions/:id/resolve",
+            post(supply_chain_planning::resolve_exception),
+        )
+        .route(
+            "/scp/exceptions/:id/dismiss",
+            post(supply_chain_planning::dismiss_exception),
+        )
         // Planning Dashboard
         .route("/scp/dashboard", get(supply_chain_planning::get_dashboard))
-
         // ========================================================================
         // Workplace Health & Safety (EHS)
         // ========================================================================
-        .route("/health-safety/incidents", post(health_safety::create_incident))
-        .route("/health-safety/incidents", get(health_safety::list_incidents))
-        .route("/health-safety/incidents/id/:id", get(health_safety::get_incident))
-        .route("/health-safety/incidents/id/:id/status", post(health_safety::update_incident_status))
-        .route("/health-safety/incidents/id/:id/investigation", post(health_safety::update_incident_investigation))
-        .route("/health-safety/incidents/id/:id/close", post(health_safety::close_incident))
-        .route("/health-safety/incidents/number/:incident_number", delete(health_safety::delete_incident))
-
+        .route(
+            "/health-safety/incidents",
+            post(health_safety::create_incident),
+        )
+        .route(
+            "/health-safety/incidents",
+            get(health_safety::list_incidents),
+        )
+        .route(
+            "/health-safety/incidents/id/:id",
+            get(health_safety::get_incident),
+        )
+        .route(
+            "/health-safety/incidents/id/:id/status",
+            post(health_safety::update_incident_status),
+        )
+        .route(
+            "/health-safety/incidents/id/:id/investigation",
+            post(health_safety::update_incident_investigation),
+        )
+        .route(
+            "/health-safety/incidents/id/:id/close",
+            post(health_safety::close_incident),
+        )
+        .route(
+            "/health-safety/incidents/number/:incident_number",
+            delete(health_safety::delete_incident),
+        )
         .route("/health-safety/hazards", post(health_safety::create_hazard))
         .route("/health-safety/hazards", get(health_safety::list_hazards))
-        .route("/health-safety/hazards/id/:id", get(health_safety::get_hazard))
-        .route("/health-safety/hazards/id/:id/status", post(health_safety::update_hazard_status))
-        .route("/health-safety/hazards/id/:id/residual-risk", post(health_safety::assess_hazard_residual_risk))
-        .route("/health-safety/hazards/code/:hazard_code", delete(health_safety::delete_hazard))
-
-        .route("/health-safety/inspections", post(health_safety::create_inspection))
-        .route("/health-safety/inspections", get(health_safety::list_inspections))
-        .route("/health-safety/inspections/id/:id", get(health_safety::get_inspection))
-        .route("/health-safety/inspections/id/:id/complete", post(health_safety::complete_inspection))
-        .route("/health-safety/inspections/id/:id/status", post(health_safety::update_inspection_status))
-        .route("/health-safety/inspections/number/:inspection_number", delete(health_safety::delete_inspection))
-
-        .route("/health-safety/corrective-actions", post(health_safety::create_corrective_action))
-        .route("/health-safety/corrective-actions", get(health_safety::list_corrective_actions))
-        .route("/health-safety/corrective-actions/id/:id", get(health_safety::get_corrective_action))
-        .route("/health-safety/corrective-actions/id/:id/status", post(health_safety::update_corrective_action_status))
-        .route("/health-safety/corrective-actions/id/:id/complete", post(health_safety::complete_corrective_action))
-        .route("/health-safety/corrective-actions/number/:action_number", delete(health_safety::delete_corrective_action))
-
-        .route("/health-safety/dashboard", get(health_safety::get_health_safety_dashboard))
-
+        .route(
+            "/health-safety/hazards/id/:id",
+            get(health_safety::get_hazard),
+        )
+        .route(
+            "/health-safety/hazards/id/:id/status",
+            post(health_safety::update_hazard_status),
+        )
+        .route(
+            "/health-safety/hazards/id/:id/residual-risk",
+            post(health_safety::assess_hazard_residual_risk),
+        )
+        .route(
+            "/health-safety/hazards/code/:hazard_code",
+            delete(health_safety::delete_hazard),
+        )
+        .route(
+            "/health-safety/inspections",
+            post(health_safety::create_inspection),
+        )
+        .route(
+            "/health-safety/inspections",
+            get(health_safety::list_inspections),
+        )
+        .route(
+            "/health-safety/inspections/id/:id",
+            get(health_safety::get_inspection),
+        )
+        .route(
+            "/health-safety/inspections/id/:id/complete",
+            post(health_safety::complete_inspection),
+        )
+        .route(
+            "/health-safety/inspections/id/:id/status",
+            post(health_safety::update_inspection_status),
+        )
+        .route(
+            "/health-safety/inspections/number/:inspection_number",
+            delete(health_safety::delete_inspection),
+        )
+        .route(
+            "/health-safety/corrective-actions",
+            post(health_safety::create_corrective_action),
+        )
+        .route(
+            "/health-safety/corrective-actions",
+            get(health_safety::list_corrective_actions),
+        )
+        .route(
+            "/health-safety/corrective-actions/id/:id",
+            get(health_safety::get_corrective_action),
+        )
+        .route(
+            "/health-safety/corrective-actions/id/:id/status",
+            post(health_safety::update_corrective_action_status),
+        )
+        .route(
+            "/health-safety/corrective-actions/id/:id/complete",
+            post(health_safety::complete_corrective_action),
+        )
+        .route(
+            "/health-safety/corrective-actions/number/:action_number",
+            delete(health_safety::delete_corrective_action),
+        )
+        .route(
+            "/health-safety/dashboard",
+            get(health_safety::get_health_safety_dashboard),
+        )
         // ══════════════════════════════════════════════════════════════════════
         // Funds Reservation & Budgetary Control (Oracle Fusion: Budgetary Control)
         // ══════════════════════════════════════════════════════════════════════
-        .route("/funds-reservation/reservations", post(funds_reservation::create_reservation))
-        .route("/funds-reservation/reservations", get(funds_reservation::list_reservations))
-        .route("/funds-reservation/reservations/id/:id", get(funds_reservation::get_reservation))
-        .route("/funds-reservation/reservations/number/:number", get(funds_reservation::get_reservation_by_number))
-        .route("/funds-reservation/reservations/id/:id/consume", post(funds_reservation::consume_reservation))
-        .route("/funds-reservation/reservations/id/:id/release", post(funds_reservation::release_reservation))
-        .route("/funds-reservation/reservations/id/:id/cancel", post(funds_reservation::cancel_reservation))
-        .route("/funds-reservation/reservations/number/:number", delete(funds_reservation::delete_reservation))
-        .route("/funds-reservation/reservations/id/:reservation_id/lines", post(funds_reservation::create_reservation_line))
-        .route("/funds-reservation/reservations/id/:reservation_id/lines", get(funds_reservation::list_reservation_lines))
-        .route("/funds-reservation/fund-availability", get(funds_reservation::check_fund_availability))
-        .route("/funds-reservation/dashboard", get(funds_reservation::get_dashboard))
-
+        .route(
+            "/funds-reservation/reservations",
+            post(funds_reservation::create_reservation),
+        )
+        .route(
+            "/funds-reservation/reservations",
+            get(funds_reservation::list_reservations),
+        )
+        .route(
+            "/funds-reservation/reservations/id/:id",
+            get(funds_reservation::get_reservation),
+        )
+        .route(
+            "/funds-reservation/reservations/number/:number",
+            get(funds_reservation::get_reservation_by_number),
+        )
+        .route(
+            "/funds-reservation/reservations/id/:id/consume",
+            post(funds_reservation::consume_reservation),
+        )
+        .route(
+            "/funds-reservation/reservations/id/:id/release",
+            post(funds_reservation::release_reservation),
+        )
+        .route(
+            "/funds-reservation/reservations/id/:id/cancel",
+            post(funds_reservation::cancel_reservation),
+        )
+        .route(
+            "/funds-reservation/reservations/number/:number",
+            delete(funds_reservation::delete_reservation),
+        )
+        .route(
+            "/funds-reservation/reservations/id/:reservation_id/lines",
+            post(funds_reservation::create_reservation_line),
+        )
+        .route(
+            "/funds-reservation/reservations/id/:reservation_id/lines",
+            get(funds_reservation::list_reservation_lines),
+        )
+        .route(
+            "/funds-reservation/fund-availability",
+            get(funds_reservation::check_fund_availability),
+        )
+        .route(
+            "/funds-reservation/dashboard",
+            get(funds_reservation::get_dashboard),
+        )
         // ══════════════════════════════════════════════════════════════════════
         // Rebate Management (Oracle Fusion: Trade Management > Rebates)
         // ══════════════════════════════════════════════════════════════════════
         // Agreements
-        .route("/rebate/agreements", post(rebate_management::create_agreement))
-        .route("/rebate/agreements", get(rebate_management::list_agreements))
-        .route("/rebate/agreements/:id", get(rebate_management::get_agreement))
-        .route("/rebate/agreements/:id/activate", post(rebate_management::activate_agreement))
-        .route("/rebate/agreements/:id/hold", post(rebate_management::hold_agreement))
-        .route("/rebate/agreements/:id/terminate", post(rebate_management::terminate_agreement))
-        .route("/rebate/agreements/number/:number", delete(rebate_management::delete_agreement))
+        .route(
+            "/rebate/agreements",
+            post(rebate_management::create_agreement),
+        )
+        .route(
+            "/rebate/agreements",
+            get(rebate_management::list_agreements),
+        )
+        .route(
+            "/rebate/agreements/:id",
+            get(rebate_management::get_agreement),
+        )
+        .route(
+            "/rebate/agreements/:id/activate",
+            post(rebate_management::activate_agreement),
+        )
+        .route(
+            "/rebate/agreements/:id/hold",
+            post(rebate_management::hold_agreement),
+        )
+        .route(
+            "/rebate/agreements/:id/terminate",
+            post(rebate_management::terminate_agreement),
+        )
+        .route(
+            "/rebate/agreements/number/:number",
+            delete(rebate_management::delete_agreement),
+        )
         // Tiers
-        .route("/rebate/agreements/:agreement_id/tiers", post(rebate_management::create_tier))
-        .route("/rebate/agreements/:agreement_id/tiers", get(rebate_management::list_tiers))
+        .route(
+            "/rebate/agreements/:agreement_id/tiers",
+            post(rebate_management::create_tier),
+        )
+        .route(
+            "/rebate/agreements/:agreement_id/tiers",
+            get(rebate_management::list_tiers),
+        )
         .route("/rebate/tiers/:id", delete(rebate_management::delete_tier))
         // Transactions
-        .route("/rebate/agreements/:agreement_id/transactions", post(rebate_management::create_transaction))
-        .route("/rebate/transactions/:id", get(rebate_management::get_transaction))
-        .route("/rebate/agreements/:agreement_id/transactions", get(rebate_management::list_transactions))
-        .route("/rebate/transactions/:id/status", post(rebate_management::update_transaction_status))
-        .route("/rebate/transactions/number/:number", delete(rebate_management::delete_transaction))
+        .route(
+            "/rebate/agreements/:agreement_id/transactions",
+            post(rebate_management::create_transaction),
+        )
+        .route(
+            "/rebate/transactions/:id",
+            get(rebate_management::get_transaction),
+        )
+        .route(
+            "/rebate/agreements/:agreement_id/transactions",
+            get(rebate_management::list_transactions),
+        )
+        .route(
+            "/rebate/transactions/:id/status",
+            post(rebate_management::update_transaction_status),
+        )
+        .route(
+            "/rebate/transactions/number/:number",
+            delete(rebate_management::delete_transaction),
+        )
         // Accruals
-        .route("/rebate/agreements/:agreement_id/accruals", post(rebate_management::create_accrual))
+        .route(
+            "/rebate/agreements/:agreement_id/accruals",
+            post(rebate_management::create_accrual),
+        )
         .route("/rebate/accruals/:id", get(rebate_management::get_accrual))
-        .route("/rebate/agreements/:agreement_id/accruals", get(rebate_management::list_accruals))
-        .route("/rebate/accruals/:id/post", post(rebate_management::post_accrual))
-        .route("/rebate/accruals/:id/reverse", post(rebate_management::reverse_accrual))
-        .route("/rebate/accruals/number/:number", delete(rebate_management::delete_accrual))
+        .route(
+            "/rebate/agreements/:agreement_id/accruals",
+            get(rebate_management::list_accruals),
+        )
+        .route(
+            "/rebate/accruals/:id/post",
+            post(rebate_management::post_accrual),
+        )
+        .route(
+            "/rebate/accruals/:id/reverse",
+            post(rebate_management::reverse_accrual),
+        )
+        .route(
+            "/rebate/accruals/number/:number",
+            delete(rebate_management::delete_accrual),
+        )
         // Settlements
-        .route("/rebate/agreements/:agreement_id/settlements", post(rebate_management::create_settlement))
-        .route("/rebate/settlements/:id", get(rebate_management::get_settlement))
-        .route("/rebate/agreements/:agreement_id/settlements", get(rebate_management::list_settlements))
-        .route("/rebate/settlements/:id/approve", post(rebate_management::approve_settlement))
-        .route("/rebate/settlements/:id/pay", post(rebate_management::pay_settlement))
-        .route("/rebate/settlements/:id/cancel", post(rebate_management::cancel_settlement))
-        .route("/rebate/settlements/number/:number", delete(rebate_management::delete_settlement))
-        .route("/rebate/settlements/:settlement_id/lines", get(rebate_management::list_settlement_lines))
+        .route(
+            "/rebate/agreements/:agreement_id/settlements",
+            post(rebate_management::create_settlement),
+        )
+        .route(
+            "/rebate/settlements/:id",
+            get(rebate_management::get_settlement),
+        )
+        .route(
+            "/rebate/agreements/:agreement_id/settlements",
+            get(rebate_management::list_settlements),
+        )
+        .route(
+            "/rebate/settlements/:id/approve",
+            post(rebate_management::approve_settlement),
+        )
+        .route(
+            "/rebate/settlements/:id/pay",
+            post(rebate_management::pay_settlement),
+        )
+        .route(
+            "/rebate/settlements/:id/cancel",
+            post(rebate_management::cancel_settlement),
+        )
+        .route(
+            "/rebate/settlements/number/:number",
+            delete(rebate_management::delete_settlement),
+        )
+        .route(
+            "/rebate/settlements/:settlement_id/lines",
+            get(rebate_management::list_settlement_lines),
+        )
         // Dashboard
-        .route("/rebate/dashboard", get(rebate_management::get_rebate_dashboard))
-
+        .route(
+            "/rebate/dashboard",
+            get(rebate_management::get_rebate_dashboard),
+        )
         // ══════════════════════════════════════════════════════════════════════
         // Project Resource Management (Oracle Fusion: Project Management)
         // ══════════════════════════════════════════════════════════════════════
         // Profiles
-        .route("/resource/profiles", post(project_resource_management::create_profile))
-        .route("/resource/profiles", get(project_resource_management::list_profiles))
-        .route("/resource/profiles/id/:id", get(project_resource_management::get_profile))
-        .route("/resource/profiles/id/:id/availability", post(project_resource_management::update_availability))
-        .route("/resource/profiles/number/:number", delete(project_resource_management::delete_profile))
+        .route(
+            "/resource/profiles",
+            post(project_resource_management::create_profile),
+        )
+        .route(
+            "/resource/profiles",
+            get(project_resource_management::list_profiles),
+        )
+        .route(
+            "/resource/profiles/id/:id",
+            get(project_resource_management::get_profile),
+        )
+        .route(
+            "/resource/profiles/id/:id/availability",
+            post(project_resource_management::update_availability),
+        )
+        .route(
+            "/resource/profiles/number/:number",
+            delete(project_resource_management::delete_profile),
+        )
         // Requests
-        .route("/resource/requests", post(project_resource_management::create_request))
-        .route("/resource/requests", get(project_resource_management::list_requests))
-        .route("/resource/requests/id/:id", get(project_resource_management::get_request))
-        .route("/resource/requests/id/:id/submit", post(project_resource_management::submit_request))
-        .route("/resource/requests/id/:id/fulfill", post(project_resource_management::fulfill_request))
-        .route("/resource/requests/id/:id/cancel", post(project_resource_management::cancel_request))
-        .route("/resource/requests/number/:number", delete(project_resource_management::delete_request))
+        .route(
+            "/resource/requests",
+            post(project_resource_management::create_request),
+        )
+        .route(
+            "/resource/requests",
+            get(project_resource_management::list_requests),
+        )
+        .route(
+            "/resource/requests/id/:id",
+            get(project_resource_management::get_request),
+        )
+        .route(
+            "/resource/requests/id/:id/submit",
+            post(project_resource_management::submit_request),
+        )
+        .route(
+            "/resource/requests/id/:id/fulfill",
+            post(project_resource_management::fulfill_request),
+        )
+        .route(
+            "/resource/requests/id/:id/cancel",
+            post(project_resource_management::cancel_request),
+        )
+        .route(
+            "/resource/requests/number/:number",
+            delete(project_resource_management::delete_request),
+        )
         // Assignments
-        .route("/resource/assignments", post(project_resource_management::create_assignment))
-        .route("/resource/assignments", get(project_resource_management::list_assignments))
-        .route("/resource/assignments/id/:id", get(project_resource_management::get_assignment))
-        .route("/resource/assignments/id/:id/activate", post(project_resource_management::activate_assignment))
-        .route("/resource/assignments/id/:id/complete", post(project_resource_management::complete_assignment))
-        .route("/resource/assignments/id/:id/cancel", post(project_resource_management::cancel_assignment))
-        .route("/resource/assignments/number/:number", delete(project_resource_management::delete_assignment))
+        .route(
+            "/resource/assignments",
+            post(project_resource_management::create_assignment),
+        )
+        .route(
+            "/resource/assignments",
+            get(project_resource_management::list_assignments),
+        )
+        .route(
+            "/resource/assignments/id/:id",
+            get(project_resource_management::get_assignment),
+        )
+        .route(
+            "/resource/assignments/id/:id/activate",
+            post(project_resource_management::activate_assignment),
+        )
+        .route(
+            "/resource/assignments/id/:id/complete",
+            post(project_resource_management::complete_assignment),
+        )
+        .route(
+            "/resource/assignments/id/:id/cancel",
+            post(project_resource_management::cancel_assignment),
+        )
+        .route(
+            "/resource/assignments/number/:number",
+            delete(project_resource_management::delete_assignment),
+        )
         // Utilization
-        .route("/resource/utilization", post(project_resource_management::create_utilization_entry))
-        .route("/resource/utilization", get(project_resource_management::list_utilization_entries))
-        .route("/resource/utilization/id/:id/approve", post(project_resource_management::approve_utilization_entry))
-        .route("/resource/utilization/id/:id/reject", post(project_resource_management::reject_utilization_entry))
-        .route("/resource/utilization/id/:id", delete(project_resource_management::delete_utilization_entry))
+        .route(
+            "/resource/utilization",
+            post(project_resource_management::create_utilization_entry),
+        )
+        .route(
+            "/resource/utilization",
+            get(project_resource_management::list_utilization_entries),
+        )
+        .route(
+            "/resource/utilization/id/:id/approve",
+            post(project_resource_management::approve_utilization_entry),
+        )
+        .route(
+            "/resource/utilization/id/:id/reject",
+            post(project_resource_management::reject_utilization_entry),
+        )
+        .route(
+            "/resource/utilization/id/:id",
+            delete(project_resource_management::delete_utilization_entry),
+        )
         // Dashboard
-        .route("/resource/dashboard", get(project_resource_management::get_resource_dashboard))
-
+        .route(
+            "/resource/dashboard",
+            get(project_resource_management::get_resource_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Loyalty Management (Oracle Fusion CX > Loyalty Management)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Programs
-        .route("/loyalty/programs", post(loyalty_management::create_program))
+        .route(
+            "/loyalty/programs",
+            post(loyalty_management::create_program),
+        )
         .route("/loyalty/programs", get(loyalty_management::list_programs))
-        .route("/loyalty/programs/:id", get(loyalty_management::get_program))
-        .route("/loyalty/programs/:id/activate", post(loyalty_management::activate_program))
-        .route("/loyalty/programs/:id/suspend", post(loyalty_management::suspend_program))
-        .route("/loyalty/programs/:id/close", post(loyalty_management::close_program))
-        .route("/loyalty/programs/number/:number", delete(loyalty_management::delete_program))
-
+        .route(
+            "/loyalty/programs/:id",
+            get(loyalty_management::get_program),
+        )
+        .route(
+            "/loyalty/programs/:id/activate",
+            post(loyalty_management::activate_program),
+        )
+        .route(
+            "/loyalty/programs/:id/suspend",
+            post(loyalty_management::suspend_program),
+        )
+        .route(
+            "/loyalty/programs/:id/close",
+            post(loyalty_management::close_program),
+        )
+        .route(
+            "/loyalty/programs/number/:number",
+            delete(loyalty_management::delete_program),
+        )
         // Tiers
-        .route("/loyalty/programs/:program_id/tiers", post(loyalty_management::create_tier))
-        .route("/loyalty/programs/:program_id/tiers", get(loyalty_management::list_tiers))
-        .route("/loyalty/tiers/:tier_id", delete(loyalty_management::delete_tier))
-
+        .route(
+            "/loyalty/programs/:program_id/tiers",
+            post(loyalty_management::create_tier),
+        )
+        .route(
+            "/loyalty/programs/:program_id/tiers",
+            get(loyalty_management::list_tiers),
+        )
+        .route(
+            "/loyalty/tiers/:tier_id",
+            delete(loyalty_management::delete_tier),
+        )
         // Members
-        .route("/loyalty/programs/:program_id/members", post(loyalty_management::enroll_member))
+        .route(
+            "/loyalty/programs/:program_id/members",
+            post(loyalty_management::enroll_member),
+        )
         .route("/loyalty/members/:id", get(loyalty_management::get_member))
-        .route("/loyalty/programs/:program_id/members", get(loyalty_management::list_members))
-        .route("/loyalty/members/:id/suspend", post(loyalty_management::suspend_member))
-        .route("/loyalty/members/:id/reactivate", post(loyalty_management::reactivate_member))
-        .route("/loyalty/members/number/:number", delete(loyalty_management::delete_member))
-
+        .route(
+            "/loyalty/programs/:program_id/members",
+            get(loyalty_management::list_members),
+        )
+        .route(
+            "/loyalty/members/:id/suspend",
+            post(loyalty_management::suspend_member),
+        )
+        .route(
+            "/loyalty/members/:id/reactivate",
+            post(loyalty_management::reactivate_member),
+        )
+        .route(
+            "/loyalty/members/number/:number",
+            delete(loyalty_management::delete_member),
+        )
         // Point Transactions
-        .route("/loyalty/programs/:program_id/accrue", post(loyalty_management::accrue_points))
-        .route("/loyalty/programs/:program_id/adjust", post(loyalty_management::adjust_points))
-        .route("/loyalty/transactions/:id/reverse", post(loyalty_management::reverse_transaction))
-        .route("/loyalty/members/:member_id/transactions", get(loyalty_management::list_transactions))
-        .route("/loyalty/transactions/number/:number", delete(loyalty_management::delete_transaction))
-
+        .route(
+            "/loyalty/programs/:program_id/accrue",
+            post(loyalty_management::accrue_points),
+        )
+        .route(
+            "/loyalty/programs/:program_id/adjust",
+            post(loyalty_management::adjust_points),
+        )
+        .route(
+            "/loyalty/transactions/:id/reverse",
+            post(loyalty_management::reverse_transaction),
+        )
+        .route(
+            "/loyalty/members/:member_id/transactions",
+            get(loyalty_management::list_transactions),
+        )
+        .route(
+            "/loyalty/transactions/number/:number",
+            delete(loyalty_management::delete_transaction),
+        )
         // Rewards
-        .route("/loyalty/programs/:program_id/rewards", post(loyalty_management::create_reward))
-        .route("/loyalty/programs/:program_id/rewards", get(loyalty_management::list_rewards))
-        .route("/loyalty/rewards/:id/deactivate", post(loyalty_management::deactivate_reward))
-        .route("/loyalty/rewards/code/:code", delete(loyalty_management::delete_reward))
-
+        .route(
+            "/loyalty/programs/:program_id/rewards",
+            post(loyalty_management::create_reward),
+        )
+        .route(
+            "/loyalty/programs/:program_id/rewards",
+            get(loyalty_management::list_rewards),
+        )
+        .route(
+            "/loyalty/rewards/:id/deactivate",
+            post(loyalty_management::deactivate_reward),
+        )
+        .route(
+            "/loyalty/rewards/code/:code",
+            delete(loyalty_management::delete_reward),
+        )
         // Redemptions
-        .route("/loyalty/programs/:program_id/redeem", post(loyalty_management::redeem_reward))
-        .route("/loyalty/redemptions/:id/fulfill", post(loyalty_management::fulfill_redemption))
-        .route("/loyalty/redemptions/:id/cancel", post(loyalty_management::cancel_redemption))
-        .route("/loyalty/members/:member_id/redemptions", get(loyalty_management::list_redemptions))
-
+        .route(
+            "/loyalty/programs/:program_id/redeem",
+            post(loyalty_management::redeem_reward),
+        )
+        .route(
+            "/loyalty/redemptions/:id/fulfill",
+            post(loyalty_management::fulfill_redemption),
+        )
+        .route(
+            "/loyalty/redemptions/:id/cancel",
+            post(loyalty_management::cancel_redemption),
+        )
+        .route(
+            "/loyalty/members/:member_id/redemptions",
+            get(loyalty_management::list_redemptions),
+        )
         // Dashboard
-        .route("/loyalty/dashboard", get(loyalty_management::get_loyalty_dashboard))
-
+        .route(
+            "/loyalty/dashboard",
+            get(loyalty_management::get_loyalty_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // General Ledger (Oracle Fusion GL > Chart of Accounts, Journal Entries)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Chart of Accounts
         .route("/gl/accounts", get(general_ledger::list_gl_accounts))
         .route("/gl/accounts", post(general_ledger::create_gl_account))
         .route("/gl/accounts/:id", get(general_ledger::get_gl_account))
-
         // Journal Entries
-        .route("/gl/journal-entries", get(general_ledger::list_journal_entries))
-        .route("/gl/journal-entries", post(general_ledger::create_journal_entry))
-        .route("/gl/journal-entries/:id", get(general_ledger::get_journal_entry))
-
+        .route(
+            "/gl/journal-entries",
+            get(general_ledger::list_journal_entries),
+        )
+        .route(
+            "/gl/journal-entries",
+            post(general_ledger::create_journal_entry),
+        )
+        .route(
+            "/gl/journal-entries/:id",
+            get(general_ledger::get_journal_entry),
+        )
         // Journal Lines
-        .route("/gl/journal-entries/:entry_id/lines", get(general_ledger::list_journal_lines))
-        .route("/gl/journal-entries/:entry_id/lines", post(general_ledger::add_journal_line))
-
+        .route(
+            "/gl/journal-entries/:entry_id/lines",
+            get(general_ledger::list_journal_lines),
+        )
+        .route(
+            "/gl/journal-entries/:entry_id/lines",
+            post(general_ledger::add_journal_line),
+        )
         // Journal Entry Workflow
-        .route("/gl/journal-entries/:id/post", post(general_ledger::post_journal_entry))
-        .route("/gl/journal-entries/:id/reverse", post(general_ledger::reverse_journal_entry))
-
+        .route(
+            "/gl/journal-entries/:id/post",
+            post(general_ledger::post_journal_entry),
+        )
+        .route(
+            "/gl/journal-entries/:id/reverse",
+            post(general_ledger::reverse_journal_entry),
+        )
         // Trial Balance
-        .route("/gl/trial-balance", get(general_ledger::generate_trial_balance))
-
+        .route(
+            "/gl/trial-balance",
+            get(general_ledger::generate_trial_balance),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Accounts Receivable (Oracle Fusion Receivables)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // AR Transactions
-        .route("/ar/transactions", get(accounts_receivable::list_ar_transactions))
-        .route("/ar/transactions", post(accounts_receivable::create_ar_transaction))
-        .route("/ar/transactions/:id", get(accounts_receivable::get_ar_transaction))
-        .route("/ar/transactions/:id/complete", post(accounts_receivable::complete_ar_transaction))
-        .route("/ar/transactions/:id/post", post(accounts_receivable::post_ar_transaction))
-        .route("/ar/transactions/:id/cancel", post(accounts_receivable::cancel_ar_transaction))
-
+        .route(
+            "/ar/transactions",
+            get(accounts_receivable::list_ar_transactions),
+        )
+        .route(
+            "/ar/transactions",
+            post(accounts_receivable::create_ar_transaction),
+        )
+        .route(
+            "/ar/transactions/:id",
+            get(accounts_receivable::get_ar_transaction),
+        )
+        .route(
+            "/ar/transactions/:id/complete",
+            post(accounts_receivable::complete_ar_transaction),
+        )
+        .route(
+            "/ar/transactions/:id/post",
+            post(accounts_receivable::post_ar_transaction),
+        )
+        .route(
+            "/ar/transactions/:id/cancel",
+            post(accounts_receivable::cancel_ar_transaction),
+        )
         // AR Transaction Lines
-        .route("/ar/transactions/:transaction_id/lines", get(accounts_receivable::list_transaction_lines))
-        .route("/ar/transactions/:transaction_id/lines", post(accounts_receivable::add_transaction_line))
-
+        .route(
+            "/ar/transactions/:transaction_id/lines",
+            get(accounts_receivable::list_transaction_lines),
+        )
+        .route(
+            "/ar/transactions/:transaction_id/lines",
+            post(accounts_receivable::add_transaction_line),
+        )
         // AR Receipts
         .route("/ar/receipts", get(accounts_receivable::list_receipts))
         .route("/ar/receipts", post(accounts_receivable::create_receipt))
-        .route("/ar/receipts/:id/confirm", post(accounts_receivable::confirm_receipt))
-        .route("/ar/receipts/:receipt_id/apply/:transaction_id", post(accounts_receivable::apply_receipt))
-        .route("/ar/receipts/:id/reverse", post(accounts_receivable::reverse_receipt))
-
+        .route(
+            "/ar/receipts/:id/confirm",
+            post(accounts_receivable::confirm_receipt),
+        )
+        .route(
+            "/ar/receipts/:receipt_id/apply/:transaction_id",
+            post(accounts_receivable::apply_receipt),
+        )
+        .route(
+            "/ar/receipts/:id/reverse",
+            post(accounts_receivable::reverse_receipt),
+        )
         // AR Credit Memos
-        .route("/ar/credit-memos", post(accounts_receivable::create_credit_memo))
-        .route("/ar/credit-memos/:id/approve", post(accounts_receivable::approve_credit_memo))
-        .route("/ar/credit-memos/:memo_id/apply/:transaction_id", post(accounts_receivable::apply_credit_memo))
-
+        .route(
+            "/ar/credit-memos",
+            post(accounts_receivable::create_credit_memo),
+        )
+        .route(
+            "/ar/credit-memos/:id/approve",
+            post(accounts_receivable::approve_credit_memo),
+        )
+        .route(
+            "/ar/credit-memos/:memo_id/apply/:transaction_id",
+            post(accounts_receivable::apply_credit_memo),
+        )
         // AR Aging
         .route("/ar/aging", get(accounts_receivable::get_ar_aging))
-
         // ═════════════════════════════════════════════════════════════════════════════════
         // Payment Management (Oracle Fusion Payments)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         .route("/payments", get(payment_management::list_payments))
         .route("/payments", post(payment_management::create_payment))
         .route("/payments/:id", get(payment_management::get_payment))
-        .route("/payments/:id/issue", post(payment_management::issue_payment))
-        .route("/payments/:id/clear", post(payment_management::clear_payment))
+        .route(
+            "/payments/:id/issue",
+            post(payment_management::issue_payment),
+        )
+        .route(
+            "/payments/:id/clear",
+            post(payment_management::clear_payment),
+        )
         .route("/payments/:id/void", post(payment_management::void_payment))
-
         // ═════════════════════════════════════════════════════════════════════════════════
         // Netting (Oracle Fusion Netting)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         .route("/netting/agreements", get(netting::list_netting_agreements))
-        .route("/netting/agreements", post(netting::create_netting_agreement))
-        .route("/netting/agreements/:id", get(netting::get_netting_agreement))
-        .route("/netting/agreements/:id/activate", post(netting::activate_netting_agreement))
+        .route(
+            "/netting/agreements",
+            post(netting::create_netting_agreement),
+        )
+        .route(
+            "/netting/agreements/:id",
+            get(netting::get_netting_agreement),
+        )
+        .route(
+            "/netting/agreements/:id/activate",
+            post(netting::activate_netting_agreement),
+        )
         .route("/netting/batches", post(netting::create_netting_batch))
-        .route("/netting/batches/:id/submit", post(netting::submit_netting_batch))
-        .route("/netting/batches/:id/approve", post(netting::approve_netting_batch))
-        .route("/netting/batches/:id/settle", post(netting::settle_netting_batch))
+        .route(
+            "/netting/batches/:id/submit",
+            post(netting::submit_netting_batch),
+        )
+        .route(
+            "/netting/batches/:id/approve",
+            post(netting::approve_netting_batch),
+        )
+        .route(
+            "/netting/batches/:id/settle",
+            post(netting::settle_netting_batch),
+        )
         .route("/netting/dashboard", get(netting::get_netting_dashboard))
-
         // ═════════════════════════════════════════════════════════════════════════════════
         // Financial Statements (Oracle Fusion GL > Financial Statements)
         // ═════════════════════════════════════════════════════════════════════════════════
-
-        .route("/financial-statements", get(financial_statements::list_financial_statements))
-        .route("/financial-statements/generate", post(financial_statements::generate_financial_statement))
-        .route("/financial-statements/:id", get(financial_statements::get_financial_statement))
-
+        .route(
+            "/financial-statements",
+            get(financial_statements::list_financial_statements),
+        )
+        .route(
+            "/financial-statements/generate",
+            post(financial_statements::generate_financial_statement),
+        )
+        .route(
+            "/financial-statements/:id",
+            get(financial_statements::get_financial_statement),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Journal Import (Oracle Fusion GL > Import Journals)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Import Formats
-        .route("/journal-import/formats", get(journal_import::list_import_formats))
-        .route("/journal-import/formats", post(journal_import::create_import_format))
-        .route("/journal-import/formats/:id", get(journal_import::get_import_format))
-        .route("/journal-import/formats/:id", delete(journal_import::delete_import_format))
-
+        .route(
+            "/journal-import/formats",
+            get(journal_import::list_import_formats),
+        )
+        .route(
+            "/journal-import/formats",
+            post(journal_import::create_import_format),
+        )
+        .route(
+            "/journal-import/formats/:id",
+            get(journal_import::get_import_format),
+        )
+        .route(
+            "/journal-import/formats/:id",
+            delete(journal_import::delete_import_format),
+        )
         // Column Mappings
-        .route("/journal-import/formats/:format_id/mappings", post(journal_import::add_column_mapping))
-        .route("/journal-import/formats/:format_id/mappings", get(journal_import::list_column_mappings))
-
+        .route(
+            "/journal-import/formats/:format_id/mappings",
+            post(journal_import::add_column_mapping),
+        )
+        .route(
+            "/journal-import/formats/:format_id/mappings",
+            get(journal_import::list_column_mappings),
+        )
         // Import Batches
-        .route("/journal-import/batches", get(journal_import::list_import_batches))
-        .route("/journal-import/batches", post(journal_import::create_import_batch))
-        .route("/journal-import/batches/:id", get(journal_import::get_import_batch))
-        .route("/journal-import/batches/:id", delete(journal_import::delete_import_batch))
-
+        .route(
+            "/journal-import/batches",
+            get(journal_import::list_import_batches),
+        )
+        .route(
+            "/journal-import/batches",
+            post(journal_import::create_import_batch),
+        )
+        .route(
+            "/journal-import/batches/:id",
+            get(journal_import::get_import_batch),
+        )
+        .route(
+            "/journal-import/batches/:id",
+            delete(journal_import::delete_import_batch),
+        )
         // Import Data Rows
-        .route("/journal-import/batches/:batch_id/rows", post(journal_import::add_import_row))
-        .route("/journal-import/batches/:batch_id/rows", get(journal_import::list_import_rows))
-
+        .route(
+            "/journal-import/batches/:batch_id/rows",
+            post(journal_import::add_import_row),
+        )
+        .route(
+            "/journal-import/batches/:batch_id/rows",
+            get(journal_import::list_import_rows),
+        )
         // Import Processing
-        .route("/journal-import/batches/:batch_id/validate", post(journal_import::validate_import_batch))
-        .route("/journal-import/batches/:batch_id/import", post(journal_import::import_batch))
-
+        .route(
+            "/journal-import/batches/:batch_id/validate",
+            post(journal_import::validate_import_batch),
+        )
+        .route(
+            "/journal-import/batches/:batch_id/import",
+            post(journal_import::import_batch),
+        )
         // Journal Import Dashboard
-        .route("/journal-import/dashboard", get(journal_import::get_journal_import_dashboard))
-
+        .route(
+            "/journal-import/dashboard",
+            get(journal_import::get_journal_import_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Inflation Adjustment (IAS 29) (Oracle Fusion GL > Inflation Adjustment)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Inflation Indices
-        .route("/inflation/indices", post(inflation_adjustment::create_inflation_index))
-        .route("/inflation/indices", get(inflation_adjustment::list_inflation_indices))
-        .route("/inflation/indices/:id", get(inflation_adjustment::get_inflation_index))
-
+        .route(
+            "/inflation/indices",
+            post(inflation_adjustment::create_inflation_index),
+        )
+        .route(
+            "/inflation/indices",
+            get(inflation_adjustment::list_inflation_indices),
+        )
+        .route(
+            "/inflation/indices/:id",
+            get(inflation_adjustment::get_inflation_index),
+        )
         // Index Rates
-        .route("/inflation/rates", post(inflation_adjustment::add_index_rate))
-
+        .route(
+            "/inflation/rates",
+            post(inflation_adjustment::add_index_rate),
+        )
         // Adjustment Runs
-        .route("/inflation/runs", post(inflation_adjustment::create_adjustment_run))
-        .route("/inflation/runs/:id/submit", post(inflation_adjustment::submit_adjustment_run))
-        .route("/inflation/runs/:id/approve", post(inflation_adjustment::approve_adjustment_run))
-
+        .route(
+            "/inflation/runs",
+            post(inflation_adjustment::create_adjustment_run),
+        )
+        .route(
+            "/inflation/runs/:id/submit",
+            post(inflation_adjustment::submit_adjustment_run),
+        )
+        .route(
+            "/inflation/runs/:id/approve",
+            post(inflation_adjustment::approve_adjustment_run),
+        )
         // Dashboard
-        .route("/inflation/dashboard", get(inflation_adjustment::get_inflation_dashboard))
-
+        .route(
+            "/inflation/dashboard",
+            get(inflation_adjustment::get_inflation_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Impairment Management (IAS 36/ASC 360) (Oracle Fusion Fixed Assets > Impairment)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Impairment Indicators
-        .route("/impairment/indicators", post(impairment_management::create_impairment_indicator))
-        .route("/impairment/indicators", get(impairment_management::list_impairment_indicators))
-
+        .route(
+            "/impairment/indicators",
+            post(impairment_management::create_impairment_indicator),
+        )
+        .route(
+            "/impairment/indicators",
+            get(impairment_management::list_impairment_indicators),
+        )
         // Impairment Tests
-        .route("/impairment/tests", post(impairment_management::create_impairment_test))
-        .route("/impairment/tests", get(impairment_management::list_impairment_tests))
-        .route("/impairment/tests/:id/submit", post(impairment_management::submit_impairment_test))
-        .route("/impairment/tests/:id/approve", post(impairment_management::approve_impairment_test))
-
+        .route(
+            "/impairment/tests",
+            post(impairment_management::create_impairment_test),
+        )
+        .route(
+            "/impairment/tests",
+            get(impairment_management::list_impairment_tests),
+        )
+        .route(
+            "/impairment/tests/:id/submit",
+            post(impairment_management::submit_impairment_test),
+        )
+        .route(
+            "/impairment/tests/:id/approve",
+            post(impairment_management::approve_impairment_test),
+        )
         // Dashboard
-        .route("/impairment/dashboard", get(impairment_management::get_impairment_dashboard))
-
+        .route(
+            "/impairment/dashboard",
+            get(impairment_management::get_impairment_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Bank Account Transfers (Oracle Fusion Cash Management > Bank Transfers)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Transfer Types
-        .route("/bank-transfers/types", post(bank_account_transfer::create_bank_transfer_type))
-
+        .route(
+            "/bank-transfers/types",
+            post(bank_account_transfer::create_bank_transfer_type),
+        )
         // Transfers
-        .route("/bank-transfers", post(bank_account_transfer::create_bank_transfer))
-        .route("/bank-transfers", get(bank_account_transfer::list_bank_transfers))
-        .route("/bank-transfers/:id", get(bank_account_transfer::get_bank_transfer))
-        .route("/bank-transfers/:id/submit", post(bank_account_transfer::submit_bank_transfer))
-        .route("/bank-transfers/:id/approve", post(bank_account_transfer::approve_bank_transfer))
-        .route("/bank-transfers/:id/complete", post(bank_account_transfer::complete_bank_transfer))
-
+        .route(
+            "/bank-transfers",
+            post(bank_account_transfer::create_bank_transfer),
+        )
+        .route(
+            "/bank-transfers",
+            get(bank_account_transfer::list_bank_transfers),
+        )
+        .route(
+            "/bank-transfers/:id",
+            get(bank_account_transfer::get_bank_transfer),
+        )
+        .route(
+            "/bank-transfers/:id/submit",
+            post(bank_account_transfer::submit_bank_transfer),
+        )
+        .route(
+            "/bank-transfers/:id/approve",
+            post(bank_account_transfer::approve_bank_transfer),
+        )
+        .route(
+            "/bank-transfers/:id/complete",
+            post(bank_account_transfer::complete_bank_transfer),
+        )
         // Dashboard
-        .route("/bank-transfers/dashboard", get(bank_account_transfer::get_bank_transfer_dashboard))
-
+        .route(
+            "/bank-transfers/dashboard",
+            get(bank_account_transfer::get_bank_transfer_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Tax Reporting & Filing (Oracle Fusion Tax > Tax Reporting)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Tax Return Templates
-        .route("/tax-reporting/templates", post(tax_reporting::create_tax_template))
-        .route("/tax-reporting/templates", get(tax_reporting::list_tax_templates))
-
+        .route(
+            "/tax-reporting/templates",
+            post(tax_reporting::create_tax_template),
+        )
+        .route(
+            "/tax-reporting/templates",
+            get(tax_reporting::list_tax_templates),
+        )
         // Tax Returns
-        .route("/tax-reporting/returns", post(tax_reporting::create_tax_return))
-        .route("/tax-reporting/returns", get(tax_reporting::list_tax_returns))
-        .route("/tax-reporting/returns/:id", get(tax_reporting::get_tax_return))
-        .route("/tax-reporting/returns/:id/file", post(tax_reporting::file_tax_return))
-        .route("/tax-reporting/returns/:id/pay", post(tax_reporting::pay_tax_return))
-
+        .route(
+            "/tax-reporting/returns",
+            post(tax_reporting::create_tax_return),
+        )
+        .route(
+            "/tax-reporting/returns",
+            get(tax_reporting::list_tax_returns),
+        )
+        .route(
+            "/tax-reporting/returns/:id",
+            get(tax_reporting::get_tax_return),
+        )
+        .route(
+            "/tax-reporting/returns/:id/file",
+            post(tax_reporting::file_tax_return),
+        )
+        .route(
+            "/tax-reporting/returns/:id/pay",
+            post(tax_reporting::pay_tax_return),
+        )
         // Dashboard
-        .route("/tax-reporting/dashboard", get(tax_reporting::get_tax_reporting_dashboard))
-
+        .route(
+            "/tax-reporting/dashboard",
+            get(tax_reporting::get_tax_reporting_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Subscription Management (Oracle Fusion Subscription Management)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Product Catalog
         .route("/subscription/products", post(subscription::create_product))
         .route("/subscription/products", get(subscription::list_products))
-        .route("/subscription/products/:code", get(subscription::get_product))
-        .route("/subscription/products/:code", delete(subscription::delete_product))
-
+        .route(
+            "/subscription/products/:code",
+            get(subscription::get_product),
+        )
+        .route(
+            "/subscription/products/:code",
+            delete(subscription::delete_product),
+        )
         // Price Tiers
-        .route("/subscription/products/:product_id/price-tiers", post(subscription::create_price_tier))
-
+        .route(
+            "/subscription/products/:product_id/price-tiers",
+            post(subscription::create_price_tier),
+        )
         // Subscriptions
-        .route("/subscription/subscriptions", post(subscription::create_subscription))
-        .route("/subscription/subscriptions", get(subscription::list_subscriptions))
-        .route("/subscription/subscriptions/:id", get(subscription::get_subscription))
-        .route("/subscription/subscriptions/:id/activate", post(subscription::activate_subscription))
-        .route("/subscription/subscriptions/:id/suspend", post(subscription::suspend_subscription))
-        .route("/subscription/subscriptions/:id/reactivate", post(subscription::reactivate_subscription))
-        .route("/subscription/subscriptions/:id/cancel", post(subscription::cancel_subscription))
-        .route("/subscription/subscriptions/:id/renew", post(subscription::renew_subscription))
-
+        .route(
+            "/subscription/subscriptions",
+            post(subscription::create_subscription),
+        )
+        .route(
+            "/subscription/subscriptions",
+            get(subscription::list_subscriptions),
+        )
+        .route(
+            "/subscription/subscriptions/:id",
+            get(subscription::get_subscription),
+        )
+        .route(
+            "/subscription/subscriptions/:id/activate",
+            post(subscription::activate_subscription),
+        )
+        .route(
+            "/subscription/subscriptions/:id/suspend",
+            post(subscription::suspend_subscription),
+        )
+        .route(
+            "/subscription/subscriptions/:id/reactivate",
+            post(subscription::reactivate_subscription),
+        )
+        .route(
+            "/subscription/subscriptions/:id/cancel",
+            post(subscription::cancel_subscription),
+        )
+        .route(
+            "/subscription/subscriptions/:id/renew",
+            post(subscription::renew_subscription),
+        )
         // Amendments
-        .route("/subscription/subscriptions/:id/amendments", post(subscription::create_amendment))
-        .route("/subscription/subscriptions/:id/amendments", get(subscription::list_amendments))
-        .route("/subscription/amendments/:id/apply", post(subscription::apply_amendment))
-        .route("/subscription/amendments/:id/cancel", post(subscription::cancel_amendment))
-
+        .route(
+            "/subscription/subscriptions/:id/amendments",
+            post(subscription::create_amendment),
+        )
+        .route(
+            "/subscription/subscriptions/:id/amendments",
+            get(subscription::list_amendments),
+        )
+        .route(
+            "/subscription/amendments/:id/apply",
+            post(subscription::apply_amendment),
+        )
+        .route(
+            "/subscription/amendments/:id/cancel",
+            post(subscription::cancel_amendment),
+        )
         // Billing & Revenue Schedules
-        .route("/subscription/subscriptions/:id/billing-schedule", get(subscription::list_billing_schedule))
-        .route("/subscription/subscriptions/:id/revenue-schedule", get(subscription::list_revenue_schedule))
-        .route("/subscription/revenue-lines/:line_id/recognize", post(subscription::recognize_revenue))
-
+        .route(
+            "/subscription/subscriptions/:id/billing-schedule",
+            get(subscription::list_billing_schedule),
+        )
+        .route(
+            "/subscription/subscriptions/:id/revenue-schedule",
+            get(subscription::list_revenue_schedule),
+        )
+        .route(
+            "/subscription/revenue-lines/:line_id/recognize",
+            post(subscription::recognize_revenue),
+        )
         // Dashboard
-        .route("/subscription/dashboard", get(subscription::get_subscription_dashboard))
-
+        .route(
+            "/subscription/dashboard",
+            get(subscription::get_subscription_dashboard),
+        )
         // Financial Consolidation (Oracle Fusion: General Ledger > Financial Consolidation)
-        .route("/financial-consolidation/ledgers", post(financial_consolidation::create_ledger))
-        .route("/financial-consolidation/ledgers", get(financial_consolidation::list_ledgers))
-        .route("/financial-consolidation/ledgers/:code", get(financial_consolidation::get_ledger))
-        .route("/financial-consolidation/ledgers/:ledger_id/entities", post(financial_consolidation::add_entity))
-        .route("/financial-consolidation/ledgers/:ledger_id/entities", get(financial_consolidation::list_entities))
-        .route("/financial-consolidation/scenarios", post(financial_consolidation::create_scenario))
-        .route("/financial-consolidation/scenarios", get(financial_consolidation::list_scenarios))
-        .route("/financial-consolidation/scenarios/:scenario_id/execute", post(financial_consolidation::execute_consolidation))
-        .route("/financial-consolidation/scenarios/:scenario_id/approve", post(financial_consolidation::approve_scenario))
-        .route("/financial-consolidation/scenarios/:scenario_id/post", post(financial_consolidation::post_scenario))
-        .route("/financial-consolidation/scenarios/:scenario_id/reverse", post(financial_consolidation::reverse_scenario))
-        .route("/financial-consolidation/elimination-rules", post(financial_consolidation::create_elimination_rule))
-        .route("/financial-consolidation/elimination-rules", get(financial_consolidation::list_elimination_rules))
-        .route("/financial-consolidation/dashboard", get(financial_consolidation::get_consolidation_dashboard))
-
+        .route(
+            "/financial-consolidation/ledgers",
+            post(financial_consolidation::create_ledger),
+        )
+        .route(
+            "/financial-consolidation/ledgers",
+            get(financial_consolidation::list_ledgers),
+        )
+        .route(
+            "/financial-consolidation/ledgers/:code",
+            get(financial_consolidation::get_ledger),
+        )
+        .route(
+            "/financial-consolidation/ledgers/:ledger_id/entities",
+            post(financial_consolidation::add_entity),
+        )
+        .route(
+            "/financial-consolidation/ledgers/:ledger_id/entities",
+            get(financial_consolidation::list_entities),
+        )
+        .route(
+            "/financial-consolidation/scenarios",
+            post(financial_consolidation::create_scenario),
+        )
+        .route(
+            "/financial-consolidation/scenarios",
+            get(financial_consolidation::list_scenarios),
+        )
+        .route(
+            "/financial-consolidation/scenarios/:scenario_id/execute",
+            post(financial_consolidation::execute_consolidation),
+        )
+        .route(
+            "/financial-consolidation/scenarios/:scenario_id/approve",
+            post(financial_consolidation::approve_scenario),
+        )
+        .route(
+            "/financial-consolidation/scenarios/:scenario_id/post",
+            post(financial_consolidation::post_scenario),
+        )
+        .route(
+            "/financial-consolidation/scenarios/:scenario_id/reverse",
+            post(financial_consolidation::reverse_scenario),
+        )
+        .route(
+            "/financial-consolidation/elimination-rules",
+            post(financial_consolidation::create_elimination_rule),
+        )
+        .route(
+            "/financial-consolidation/elimination-rules",
+            get(financial_consolidation::list_elimination_rules),
+        )
+        .route(
+            "/financial-consolidation/dashboard",
+            get(financial_consolidation::get_consolidation_dashboard),
+        )
         // Joint Venture Management (Oracle Fusion: Financials > Joint Venture Management)
-        .route("/joint-venture/ventures", post(joint_venture::create_venture))
+        .route(
+            "/joint-venture/ventures",
+            post(joint_venture::create_venture),
+        )
         .route("/joint-venture/ventures", get(joint_venture::list_ventures))
-        .route("/joint-venture/ventures/:id", get(joint_venture::get_venture))
-        .route("/joint-venture/ventures/:id/activate", post(joint_venture::activate_venture))
-        .route("/joint-venture/ventures/:id/close", post(joint_venture::close_venture))
-        .route("/joint-venture/ventures/:venture_id/partners", post(joint_venture::add_partner))
-        .route("/joint-venture/ventures/:venture_id/partners", get(joint_venture::list_partners))
-        .route("/joint-venture/ventures/:venture_id/afes", post(joint_venture::create_afe))
-        .route("/joint-venture/ventures/:venture_id/afes", get(joint_venture::list_afes))
-        .route("/joint-venture/afes/:id/submit", post(joint_venture::submit_afe))
-        .route("/joint-venture/afes/:id/approve", post(joint_venture::approve_afe))
-        .route("/joint-venture/ventures/:venture_id/cost-distributions", post(joint_venture::create_cost_distribution))
-        .route("/joint-venture/ventures/:venture_id/cost-distributions", get(joint_venture::list_cost_distributions))
-        .route("/joint-venture/cost-distributions/:id/post", post(joint_venture::post_cost_distribution))
-        .route("/joint-venture/dashboard", get(joint_venture::get_joint_venture_dashboard))
-
+        .route(
+            "/joint-venture/ventures/:id",
+            get(joint_venture::get_venture),
+        )
+        .route(
+            "/joint-venture/ventures/:id/activate",
+            post(joint_venture::activate_venture),
+        )
+        .route(
+            "/joint-venture/ventures/:id/close",
+            post(joint_venture::close_venture),
+        )
+        .route(
+            "/joint-venture/ventures/:venture_id/partners",
+            post(joint_venture::add_partner),
+        )
+        .route(
+            "/joint-venture/ventures/:venture_id/partners",
+            get(joint_venture::list_partners),
+        )
+        .route(
+            "/joint-venture/ventures/:venture_id/afes",
+            post(joint_venture::create_afe),
+        )
+        .route(
+            "/joint-venture/ventures/:venture_id/afes",
+            get(joint_venture::list_afes),
+        )
+        .route(
+            "/joint-venture/afes/:id/submit",
+            post(joint_venture::submit_afe),
+        )
+        .route(
+            "/joint-venture/afes/:id/approve",
+            post(joint_venture::approve_afe),
+        )
+        .route(
+            "/joint-venture/ventures/:venture_id/cost-distributions",
+            post(joint_venture::create_cost_distribution),
+        )
+        .route(
+            "/joint-venture/ventures/:venture_id/cost-distributions",
+            get(joint_venture::list_cost_distributions),
+        )
+        .route(
+            "/joint-venture/cost-distributions/:id/post",
+            post(joint_venture::post_cost_distribution),
+        )
+        .route(
+            "/joint-venture/dashboard",
+            get(joint_venture::get_joint_venture_dashboard),
+        )
         // Deferred Revenue/Cost Management (Oracle Fusion: Revenue Management > Deferral Schedules)
-        .route("/deferred-revenue/templates", post(deferred_revenue::create_template))
-        .route("/deferred-revenue/templates", get(deferred_revenue::list_templates))
-        .route("/deferred-revenue/templates/:code", get(deferred_revenue::get_template))
-        .route("/deferred-revenue/templates/:code", delete(deferred_revenue::delete_template))
-        .route("/deferred-revenue/schedules", post(deferred_revenue::create_schedule))
-        .route("/deferred-revenue/schedules", get(deferred_revenue::list_schedules))
-        .route("/deferred-revenue/schedules/:id", get(deferred_revenue::get_schedule))
-        .route("/deferred-revenue/schedules/:schedule_id/lines", get(deferred_revenue::list_schedule_lines))
-        .route("/deferred-revenue/schedules/recognize", post(deferred_revenue::recognize_pending))
-        .route("/deferred-revenue/schedules/:id/hold", post(deferred_revenue::hold_schedule))
-        .route("/deferred-revenue/schedules/:id/resume", post(deferred_revenue::resume_schedule))
-        .route("/deferred-revenue/schedules/:id/cancel", post(deferred_revenue::cancel_schedule))
-        .route("/deferred-revenue/dashboard", get(deferred_revenue::get_deferred_revenue_dashboard))
-
+        .route(
+            "/deferred-revenue/templates",
+            post(deferred_revenue::create_template),
+        )
+        .route(
+            "/deferred-revenue/templates",
+            get(deferred_revenue::list_templates),
+        )
+        .route(
+            "/deferred-revenue/templates/:code",
+            get(deferred_revenue::get_template),
+        )
+        .route(
+            "/deferred-revenue/templates/:code",
+            delete(deferred_revenue::delete_template),
+        )
+        .route(
+            "/deferred-revenue/schedules",
+            post(deferred_revenue::create_schedule),
+        )
+        .route(
+            "/deferred-revenue/schedules",
+            get(deferred_revenue::list_schedules),
+        )
+        .route(
+            "/deferred-revenue/schedules/:id",
+            get(deferred_revenue::get_schedule),
+        )
+        .route(
+            "/deferred-revenue/schedules/:schedule_id/lines",
+            get(deferred_revenue::list_schedule_lines),
+        )
+        .route(
+            "/deferred-revenue/schedules/recognize",
+            post(deferred_revenue::recognize_pending),
+        )
+        .route(
+            "/deferred-revenue/schedules/:id/hold",
+            post(deferred_revenue::hold_schedule),
+        )
+        .route(
+            "/deferred-revenue/schedules/:id/resume",
+            post(deferred_revenue::resume_schedule),
+        )
+        .route(
+            "/deferred-revenue/schedules/:id/cancel",
+            post(deferred_revenue::cancel_schedule),
+        )
+        .route(
+            "/deferred-revenue/dashboard",
+            get(deferred_revenue::get_deferred_revenue_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Revenue Management (ASC 606 / IFRS 15)
         // ═══════════════════════════════════════════════════════
-        .route("/revenue-management/contracts", post(revenue_management::create_contract))
-        .route("/revenue-management/contracts", get(revenue_management::list_contracts))
-        .route("/revenue-management/contracts/:number", get(revenue_management::get_contract))
-        .route("/revenue-management/contracts/:id/activate", post(revenue_management::activate_contract))
-        .route("/revenue-management/contracts/:id/cancel", post(revenue_management::cancel_contract))
-        .route("/revenue-management/obligations", post(revenue_management::create_obligation))
-        .route("/revenue-management/contracts/:contract_id/obligations", get(revenue_management::list_obligations))
-        .route("/revenue-management/contracts/:contract_id/allocate", post(revenue_management::allocate_transaction_price))
-        .route("/revenue-management/ssp", post(revenue_management::create_ssp))
-        .route("/revenue-management/ssp", get(revenue_management::list_ssps))
-        .route("/revenue-management/obligations/:obligation_id/satisfy", post(revenue_management::satisfy_obligation))
-        .route("/revenue-management/contracts/:contract_id/events", get(revenue_management::list_recognition_events))
-        .route("/revenue-management/dashboard", get(revenue_management::get_revenue_management_dashboard))
-
+        .route(
+            "/revenue-management/contracts",
+            post(revenue_management::create_contract),
+        )
+        .route(
+            "/revenue-management/contracts",
+            get(revenue_management::list_contracts),
+        )
+        .route(
+            "/revenue-management/contracts/:number",
+            get(revenue_management::get_contract),
+        )
+        .route(
+            "/revenue-management/contracts/:id/activate",
+            post(revenue_management::activate_contract),
+        )
+        .route(
+            "/revenue-management/contracts/:id/cancel",
+            post(revenue_management::cancel_contract),
+        )
+        .route(
+            "/revenue-management/obligations",
+            post(revenue_management::create_obligation),
+        )
+        .route(
+            "/revenue-management/contracts/:contract_id/obligations",
+            get(revenue_management::list_obligations),
+        )
+        .route(
+            "/revenue-management/contracts/:contract_id/allocate",
+            post(revenue_management::allocate_transaction_price),
+        )
+        .route(
+            "/revenue-management/ssp",
+            post(revenue_management::create_ssp),
+        )
+        .route(
+            "/revenue-management/ssp",
+            get(revenue_management::list_ssps),
+        )
+        .route(
+            "/revenue-management/obligations/:obligation_id/satisfy",
+            post(revenue_management::satisfy_obligation),
+        )
+        .route(
+            "/revenue-management/contracts/:contract_id/events",
+            get(revenue_management::list_recognition_events),
+        )
+        .route(
+            "/revenue-management/dashboard",
+            get(revenue_management::get_revenue_management_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Cash Flow Forecasting
         // ═══════════════════════════════════════════════════════
-        .route("/cash-flow-forecasts", post(cash_flow_forecast::create_forecast))
-        .route("/cash-flow-forecasts", get(cash_flow_forecast::list_forecasts))
-        .route("/cash-flow-forecasts/:id", get(cash_flow_forecast::get_forecast))
-        .route("/cash-flow-forecasts/:id/activate", post(cash_flow_forecast::activate_forecast))
-        .route("/cash-flow-forecasts/:id/approve", post(cash_flow_forecast::approve_forecast))
-        .route("/cash-flow-forecasts/scenarios", post(cash_flow_forecast::create_scenario))
-        .route("/cash-flow-forecasts/:forecast_id/scenarios", get(cash_flow_forecast::list_scenarios))
-        .route("/cash-flow-forecasts/entries", post(cash_flow_forecast::create_entry))
-        .route("/cash-flow-forecasts/:forecast_id/entries", get(cash_flow_forecast::list_entries))
-        .route("/cash-flow-forecasts/dashboard", get(cash_flow_forecast::get_cash_forecast_dashboard))
-
+        .route(
+            "/cash-flow-forecasts",
+            post(cash_flow_forecast::create_forecast),
+        )
+        .route(
+            "/cash-flow-forecasts",
+            get(cash_flow_forecast::list_forecasts),
+        )
+        .route(
+            "/cash-flow-forecasts/:id",
+            get(cash_flow_forecast::get_forecast),
+        )
+        .route(
+            "/cash-flow-forecasts/:id/activate",
+            post(cash_flow_forecast::activate_forecast),
+        )
+        .route(
+            "/cash-flow-forecasts/:id/approve",
+            post(cash_flow_forecast::approve_forecast),
+        )
+        .route(
+            "/cash-flow-forecasts/scenarios",
+            post(cash_flow_forecast::create_scenario),
+        )
+        .route(
+            "/cash-flow-forecasts/:forecast_id/scenarios",
+            get(cash_flow_forecast::list_scenarios),
+        )
+        .route(
+            "/cash-flow-forecasts/entries",
+            post(cash_flow_forecast::create_entry),
+        )
+        .route(
+            "/cash-flow-forecasts/:forecast_id/entries",
+            get(cash_flow_forecast::list_entries),
+        )
+        .route(
+            "/cash-flow-forecasts/dashboard",
+            get(cash_flow_forecast::get_cash_forecast_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Regulatory Reporting
         // ═══════════════════════════════════════════════════════
-        .route("/regulatory-templates", post(regulatory_reporting::create_reg_template))
-        .route("/regulatory-templates", get(regulatory_reporting::list_reg_templates))
-        .route("/regulatory-templates/:code", delete(regulatory_reporting::delete_reg_template))
-        .route("/regulatory-reports", post(regulatory_reporting::create_reg_report))
-        .route("/regulatory-reports", get(regulatory_reporting::list_reg_reports))
-        .route("/regulatory-reports/:id/review", post(regulatory_reporting::submit_for_review))
-        .route("/regulatory-reports/:id/approve", post(regulatory_reporting::approve_reg_report))
-        .route("/regulatory-reports/:id/reject", post(regulatory_reporting::reject_reg_report))
-        .route("/regulatory-filings", post(regulatory_reporting::create_filing))
-        .route("/regulatory-filings", get(regulatory_reporting::list_filings))
-        .route("/regulatory-reporting/dashboard", get(regulatory_reporting::get_regulatory_dashboard))
-
+        .route(
+            "/regulatory-templates",
+            post(regulatory_reporting::create_reg_template),
+        )
+        .route(
+            "/regulatory-templates",
+            get(regulatory_reporting::list_reg_templates),
+        )
+        .route(
+            "/regulatory-templates/:code",
+            delete(regulatory_reporting::delete_reg_template),
+        )
+        .route(
+            "/regulatory-reports",
+            post(regulatory_reporting::create_reg_report),
+        )
+        .route(
+            "/regulatory-reports",
+            get(regulatory_reporting::list_reg_reports),
+        )
+        .route(
+            "/regulatory-reports/:id/review",
+            post(regulatory_reporting::submit_for_review),
+        )
+        .route(
+            "/regulatory-reports/:id/approve",
+            post(regulatory_reporting::approve_reg_report),
+        )
+        .route(
+            "/regulatory-reports/:id/reject",
+            post(regulatory_reporting::reject_reg_report),
+        )
+        .route(
+            "/regulatory-filings",
+            post(regulatory_reporting::create_filing),
+        )
+        .route(
+            "/regulatory-filings",
+            get(regulatory_reporting::list_filings),
+        )
+        .route(
+            "/regulatory-reporting/dashboard",
+            get(regulatory_reporting::get_regulatory_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Advance Payments (Supplier Prepayments)
         // ═══════════════════════════════════════════════════════
         .route("/advance-payments", post(advance_payment::create_advance))
         .route("/advance-payments", get(advance_payment::list_advances))
         .route("/advance-payments/:id", get(advance_payment::get_advance))
-        .route("/advance-payments/:id/approve", post(advance_payment::approve_advance))
-        .route("/advance-payments/:id/pay", post(advance_payment::pay_advance))
-        .route("/advance-payments/:id/cancel", post(advance_payment::cancel_advance))
-        .route("/advance-payments/apply", post(advance_payment::apply_to_invoice))
-        .route("/advance-payments/dashboard", get(advance_payment::get_advance_dashboard))
-
+        .route(
+            "/advance-payments/:id/approve",
+            post(advance_payment::approve_advance),
+        )
+        .route(
+            "/advance-payments/:id/pay",
+            post(advance_payment::pay_advance),
+        )
+        .route(
+            "/advance-payments/:id/cancel",
+            post(advance_payment::cancel_advance),
+        )
+        .route(
+            "/advance-payments/apply",
+            post(advance_payment::apply_to_invoice),
+        )
+        .route(
+            "/advance-payments/dashboard",
+            get(advance_payment::get_advance_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Customer Deposits
         // ═══════════════════════════════════════════════════════
         .route("/customer-deposits", post(customer_deposit::create_deposit))
         .route("/customer-deposits", get(customer_deposit::list_deposits))
         .route("/customer-deposits/:id", get(customer_deposit::get_deposit))
-        .route("/customer-deposits/:id/receive", post(customer_deposit::receive_deposit))
-        .route("/customer-deposits/:id/refund", post(customer_deposit::refund_deposit))
-        .route("/customer-deposits/:id/cancel", post(customer_deposit::cancel_deposit))
-        .route("/customer-deposits/apply", post(customer_deposit::apply_deposit_to_invoice))
-        .route("/customer-deposits/dashboard", get(customer_deposit::get_deposit_dashboard))
-
+        .route(
+            "/customer-deposits/:id/receive",
+            post(customer_deposit::receive_deposit),
+        )
+        .route(
+            "/customer-deposits/:id/refund",
+            post(customer_deposit::refund_deposit),
+        )
+        .route(
+            "/customer-deposits/:id/cancel",
+            post(customer_deposit::cancel_deposit),
+        )
+        .route(
+            "/customer-deposits/apply",
+            post(customer_deposit::apply_deposit_to_invoice),
+        )
+        .route(
+            "/customer-deposits/dashboard",
+            get(customer_deposit::get_deposit_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Cash Position
         // ═══════════════════════════════════════════════════════
         .route("/cash-positions", post(cash_position::record_position))
         .route("/cash-positions", get(cash_position::list_positions))
-        .route("/cash-positions/dashboard", get(cash_position::get_cash_position_dashboard))
-
+        .route(
+            "/cash-positions/dashboard",
+            get(cash_position::get_cash_position_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Accounting Hub
         // ═══════════════════════════════════════════════════════
-        .route("/accounting-hub/rules", post(accounting_hub::create_mapping_rule))
-        .route("/accounting-hub/rules", get(accounting_hub::list_mapping_rules))
-        .route("/accounting-hub/rules/:code", delete(accounting_hub::delete_mapping_rule))
-        .route("/accounting-hub/dashboard", get(accounting_hub::get_accounting_hub_dashboard))
-
+        .route(
+            "/accounting-hub/rules",
+            post(accounting_hub::create_mapping_rule),
+        )
+        .route(
+            "/accounting-hub/rules",
+            get(accounting_hub::list_mapping_rules),
+        )
+        .route(
+            "/accounting-hub/rules/:code",
+            delete(accounting_hub::delete_mapping_rule),
+        )
+        .route(
+            "/accounting-hub/dashboard",
+            get(accounting_hub::get_accounting_hub_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Financial Controls
         // ═══════════════════════════════════════════════════════
-        .route("/financial-controls/rules", post(financial_controls::create_control_rule))
-        .route("/financial-controls/rules", get(financial_controls::list_control_rules))
-        .route("/financial-controls/rules/:code", delete(financial_controls::delete_control_rule))
-        .route("/financial-controls/dashboard", get(financial_controls::get_financial_controls_dashboard))
-
+        .route(
+            "/financial-controls/rules",
+            post(financial_controls::create_control_rule),
+        )
+        .route(
+            "/financial-controls/rules",
+            get(financial_controls::list_control_rules),
+        )
+        .route(
+            "/financial-controls/rules/:code",
+            delete(financial_controls::delete_control_rule),
+        )
+        .route(
+            "/financial-controls/dashboard",
+            get(financial_controls::get_financial_controls_dashboard),
+        )
         // ════════════════════════════════════════════════════════════════════════════════
         // Payment Terms Management (Oracle Fusion: Financials > Payment Terms)
         // ════════════════════════════════════════════════════════════════════════════════
         .route("/payment-terms", post(payment_terms::create_term))
         .route("/payment-terms", get(payment_terms::list_terms))
         .route("/payment-terms/:id", get(payment_terms::get_term))
-        .route("/payment-terms/:id/activate", post(payment_terms::activate_term))
-        .route("/payment-terms/:id/deactivate", post(payment_terms::deactivate_term))
+        .route(
+            "/payment-terms/:id/activate",
+            post(payment_terms::activate_term),
+        )
+        .route(
+            "/payment-terms/:id/deactivate",
+            post(payment_terms::deactivate_term),
+        )
         .route("/payment-terms/:id", delete(payment_terms::delete_term))
-        .route("/payment-terms/:term_id/discount-schedules", post(payment_terms::create_discount_schedule))
-        .route("/payment-terms/:term_id/discount-schedules", get(payment_terms::list_discount_schedules))
-        .route("/payment-terms/:term_id/discount-schedules/:schedule_id", delete(payment_terms::delete_discount_schedule))
-        .route("/payment-terms/:term_id/installments", post(payment_terms::create_installment))
-        .route("/payment-terms/:term_id/installments", get(payment_terms::list_installments))
-        .route("/payment-terms/:term_id/installments/:installment_id", delete(payment_terms::delete_installment))
-        .route("/payment-terms/dashboard", get(payment_terms::get_payment_terms_dashboard))
-
+        .route(
+            "/payment-terms/:term_id/discount-schedules",
+            post(payment_terms::create_discount_schedule),
+        )
+        .route(
+            "/payment-terms/:term_id/discount-schedules",
+            get(payment_terms::list_discount_schedules),
+        )
+        .route(
+            "/payment-terms/:term_id/discount-schedules/:schedule_id",
+            delete(payment_terms::delete_discount_schedule),
+        )
+        .route(
+            "/payment-terms/:term_id/installments",
+            post(payment_terms::create_installment),
+        )
+        .route(
+            "/payment-terms/:term_id/installments",
+            get(payment_terms::list_installments),
+        )
+        .route(
+            "/payment-terms/:term_id/installments/:installment_id",
+            delete(payment_terms::delete_installment),
+        )
+        .route(
+            "/payment-terms/dashboard",
+            get(payment_terms::get_payment_terms_dashboard),
+        )
         // ════════════════════════════════════════════════════════════════════════════════
         // Lockbox Processing (Oracle Fusion: AR > Lockbox)
         // ════════════════════════════════════════════════════════════════════════════════
         .route("/lockbox/batches", post(lockbox::create_batch))
         .route("/lockbox/batches", get(lockbox::list_batches))
         .route("/lockbox/batches/:id", get(lockbox::get_batch))
-        .route("/lockbox/batches/:id/validate", post(lockbox::validate_batch))
+        .route(
+            "/lockbox/batches/:id/validate",
+            post(lockbox::validate_batch),
+        )
         .route("/lockbox/batches/:id/apply", post(lockbox::apply_batch))
-        .route("/lockbox/batches/:batch_id/receipts", post(lockbox::create_receipt))
-        .route("/lockbox/batches/:batch_id/receipts", get(lockbox::list_receipts))
-        .route("/lockbox/receipts/:receipt_id/apply", post(lockbox::manual_apply_receipt))
-        .route("/lockbox/receipts/:receipt_id/applications", get(lockbox::list_applications))
+        .route(
+            "/lockbox/batches/:batch_id/receipts",
+            post(lockbox::create_receipt),
+        )
+        .route(
+            "/lockbox/batches/:batch_id/receipts",
+            get(lockbox::list_receipts),
+        )
+        .route(
+            "/lockbox/receipts/:receipt_id/apply",
+            post(lockbox::manual_apply_receipt),
+        )
+        .route(
+            "/lockbox/receipts/:receipt_id/applications",
+            get(lockbox::list_applications),
+        )
         .route("/lockbox/formats", post(lockbox::create_format))
         .route("/lockbox/formats", get(lockbox::list_formats))
         .route("/lockbox/dashboard", get(lockbox::get_lockbox_dashboard))
-
         // ════════════════════════════════════════════════════════════════════════════════
         // AR Aging Analysis (Oracle Fusion: AR > Aging Reports)
         // ════════════════════════════════════════════════════════════════════════════════
         .route("/ar-aging/definitions", post(ar_aging::create_definition))
         .route("/ar-aging/definitions", get(ar_aging::list_definitions))
         .route("/ar-aging/definitions/:id", get(ar_aging::get_definition))
-        .route("/ar-aging/definitions/:id", delete(ar_aging::delete_definition))
-        .route("/ar-aging/definitions/:def_id/buckets", post(ar_aging::create_bucket))
-        .route("/ar-aging/definitions/:def_id/buckets", get(ar_aging::list_buckets))
+        .route(
+            "/ar-aging/definitions/:id",
+            delete(ar_aging::delete_definition),
+        )
+        .route(
+            "/ar-aging/definitions/:def_id/buckets",
+            post(ar_aging::create_bucket),
+        )
+        .route(
+            "/ar-aging/definitions/:def_id/buckets",
+            get(ar_aging::list_buckets),
+        )
         .route("/ar-aging/snapshots", post(ar_aging::create_snapshot))
         .route("/ar-aging/snapshots", get(ar_aging::list_snapshots))
         .route("/ar-aging/snapshots/:id", get(ar_aging::get_snapshot))
-        .route("/ar-aging/snapshots/:snapshot_id/lines", get(ar_aging::list_snapshot_lines))
-        .route("/ar-aging/snapshots/:snapshot_id/summary", get(ar_aging::get_aging_summary))
+        .route(
+            "/ar-aging/snapshots/:snapshot_id/lines",
+            get(ar_aging::list_snapshot_lines),
+        )
+        .route(
+            "/ar-aging/snapshots/:snapshot_id/summary",
+            get(ar_aging::get_aging_summary),
+        )
         .route("/ar-aging/dashboard", get(ar_aging::get_ar_aging_dashboard))
-
         // ============================================================================
         // Mass Additions (Oracle Fusion: Fixed Assets > Mass Additions)
         // ============================================================================
-        .route("/mass-additions", post(mass_additions::create_mass_addition))
+        .route(
+            "/mass-additions",
+            post(mass_additions::create_mass_addition),
+        )
         .route("/mass-additions", get(mass_additions::list_mass_additions))
-        .route("/mass-additions/:id", get(mass_additions::get_mass_addition))
-        .route("/mass-additions/:id/hold", post(mass_additions::hold_mass_addition))
-        .route("/mass-additions/:id/release", post(mass_additions::release_mass_addition))
-        .route("/mass-additions/:id/reject", post(mass_additions::reject_mass_addition))
-        .route("/mass-additions/:id/merge", post(mass_additions::merge_mass_addition))
-        .route("/mass-additions/:id/convert", post(mass_additions::convert_mass_addition))
-        .route("/mass-additions/dashboard", get(mass_additions::get_mass_addition_dashboard))
-
+        .route(
+            "/mass-additions/:id",
+            get(mass_additions::get_mass_addition),
+        )
+        .route(
+            "/mass-additions/:id/hold",
+            post(mass_additions::hold_mass_addition),
+        )
+        .route(
+            "/mass-additions/:id/release",
+            post(mass_additions::release_mass_addition),
+        )
+        .route(
+            "/mass-additions/:id/reject",
+            post(mass_additions::reject_mass_addition),
+        )
+        .route(
+            "/mass-additions/:id/merge",
+            post(mass_additions::merge_mass_addition),
+        )
+        .route(
+            "/mass-additions/:id/convert",
+            post(mass_additions::convert_mass_addition),
+        )
+        .route(
+            "/mass-additions/dashboard",
+            get(mass_additions::get_mass_addition_dashboard),
+        )
         // ============================================================================
         // Asset Reclassification (Oracle Fusion: Fixed Assets > Reclassification)
         // ============================================================================
-        .route("/asset-reclassifications", post(asset_reclassification::create_reclassification))
-        .route("/asset-reclassifications", get(asset_reclassification::list_reclassifications))
-        .route("/asset-reclassifications/:id", get(asset_reclassification::get_reclassification))
-        .route("/asset-reclassifications/:id/approve", post(asset_reclassification::approve_reclassification))
-        .route("/asset-reclassifications/:id/complete", post(asset_reclassification::complete_reclassification))
-        .route("/asset-reclassifications/dashboard", get(asset_reclassification::get_reclassification_dashboard))
-
+        .route(
+            "/asset-reclassifications",
+            post(asset_reclassification::create_reclassification),
+        )
+        .route(
+            "/asset-reclassifications",
+            get(asset_reclassification::list_reclassifications),
+        )
+        .route(
+            "/asset-reclassifications/:id",
+            get(asset_reclassification::get_reclassification),
+        )
+        .route(
+            "/asset-reclassifications/:id/approve",
+            post(asset_reclassification::approve_reclassification),
+        )
+        .route(
+            "/asset-reclassifications/:id/complete",
+            post(asset_reclassification::complete_reclassification),
+        )
+        .route(
+            "/asset-reclassifications/dashboard",
+            get(asset_reclassification::get_reclassification_dashboard),
+        )
         // ============================================================================
         // GL Budget Transfers (Oracle Fusion: General Ledger > Budget Transfers)
         // ============================================================================
-        .route("/gl-budget-transfers", post(gl_budget_transfer::create_budget_transfer))
-        .route("/gl-budget-transfers", get(gl_budget_transfer::list_budget_transfers))
-        .route("/gl-budget-transfers/:id", get(gl_budget_transfer::get_budget_transfer))
-        .route("/gl-budget-transfers/:id/submit", post(gl_budget_transfer::submit_budget_transfer))
-        .route("/gl-budget-transfers/:id/approve", post(gl_budget_transfer::approve_budget_transfer))
-        .route("/gl-budget-transfers/:id/complete", post(gl_budget_transfer::complete_budget_transfer))
-        .route("/gl-budget-transfers/dashboard", get(gl_budget_transfer::get_budget_transfer_dashboard))
-
+        .route(
+            "/gl-budget-transfers",
+            post(gl_budget_transfer::create_budget_transfer),
+        )
+        .route(
+            "/gl-budget-transfers",
+            get(gl_budget_transfer::list_budget_transfers),
+        )
+        .route(
+            "/gl-budget-transfers/:id",
+            get(gl_budget_transfer::get_budget_transfer),
+        )
+        .route(
+            "/gl-budget-transfers/:id/submit",
+            post(gl_budget_transfer::submit_budget_transfer),
+        )
+        .route(
+            "/gl-budget-transfers/:id/approve",
+            post(gl_budget_transfer::approve_budget_transfer),
+        )
+        .route(
+            "/gl-budget-transfers/:id/complete",
+            post(gl_budget_transfer::complete_budget_transfer),
+        )
+        .route(
+            "/gl-budget-transfers/dashboard",
+            get(gl_budget_transfer::get_budget_transfer_dashboard),
+        )
         // ============================================================================
         // Payment Formats (Oracle Fusion: Payables > Payment Formats)
         // ============================================================================
-        .route("/payment-formats", post(payment_format::create_payment_format))
-        .route("/payment-formats", get(payment_format::list_payment_formats))
-        .route("/payment-formats/:id", get(payment_format::get_payment_format))
-        .route("/payment-formats/:id/deactivate", post(payment_format::deactivate_payment_format))
-        .route("/payment-formats/:id/activate", post(payment_format::activate_payment_format))
-        .route("/payment-formats/dashboard", get(payment_format::get_payment_format_dashboard))
-
+        .route(
+            "/payment-formats",
+            post(payment_format::create_payment_format),
+        )
+        .route(
+            "/payment-formats",
+            get(payment_format::list_payment_formats),
+        )
+        .route(
+            "/payment-formats/:id",
+            get(payment_format::get_payment_format),
+        )
+        .route(
+            "/payment-formats/:id/deactivate",
+            post(payment_format::deactivate_payment_format),
+        )
+        .route(
+            "/payment-formats/:id/activate",
+            post(payment_format::activate_payment_format),
+        )
+        .route(
+            "/payment-formats/dashboard",
+            get(payment_format::get_payment_format_dashboard),
+        )
         // ============================================================================
         // Financial Dimension Sets (Oracle Fusion: GL > Dimension Sets)
         // ============================================================================
-        .route("/financial-dimension-sets", post(financial_dimension_set::create_dimension_set))
-        .route("/financial-dimension-sets", get(financial_dimension_set::list_dimension_sets))
-        .route("/financial-dimension-sets/:id", get(financial_dimension_set::get_dimension_set))
-        .route("/financial-dimension-sets/:id/deactivate", post(financial_dimension_set::deactivate_dimension_set))
-        .route("/financial-dimension-sets/dashboard", get(financial_dimension_set::get_dimension_set_dashboard))
-
+        .route(
+            "/financial-dimension-sets",
+            post(financial_dimension_set::create_dimension_set),
+        )
+        .route(
+            "/financial-dimension-sets",
+            get(financial_dimension_set::list_dimension_sets),
+        )
+        .route(
+            "/financial-dimension-sets/:id",
+            get(financial_dimension_set::get_dimension_set),
+        )
+        .route(
+            "/financial-dimension-sets/:id/deactivate",
+            post(financial_dimension_set::deactivate_dimension_set),
+        )
+        .route(
+            "/financial-dimension-sets/dashboard",
+            get(financial_dimension_set::get_dimension_set_dashboard),
+        )
         // ============================================================================
         // Receipt Write-Off (Oracle Fusion: Receivables > Write-Offs)
         // ============================================================================
-        .route("/receipt-write-offs/reasons", post(receipt_write_off::create_reason))
-        .route("/receipt-write-offs/reasons", get(receipt_write_off::list_reasons))
-        .route("/receipt-write-offs/requests", post(receipt_write_off::create_write_off_request))
-        .route("/receipt-write-offs/requests", get(receipt_write_off::list_write_off_requests))
-        .route("/receipt-write-offs/requests/:id/approve", post(receipt_write_off::approve_write_off_request))
-        .route("/receipt-write-offs/requests/:id/post", post(receipt_write_off::post_write_off_request))
-        .route("/receipt-write-offs/dashboard", get(receipt_write_off::get_write_off_dashboard))
-
+        .route(
+            "/receipt-write-offs/reasons",
+            post(receipt_write_off::create_reason),
+        )
+        .route(
+            "/receipt-write-offs/reasons",
+            get(receipt_write_off::list_reasons),
+        )
+        .route(
+            "/receipt-write-offs/requests",
+            post(receipt_write_off::create_write_off_request),
+        )
+        .route(
+            "/receipt-write-offs/requests",
+            get(receipt_write_off::list_write_off_requests),
+        )
+        .route(
+            "/receipt-write-offs/requests/:id/approve",
+            post(receipt_write_off::approve_write_off_request),
+        )
+        .route(
+            "/receipt-write-offs/requests/:id/post",
+            post(receipt_write_off::post_write_off_request),
+        )
+        .route(
+            "/receipt-write-offs/dashboard",
+            get(receipt_write_off::get_write_off_dashboard),
+        )
         // ============================================================================
         // Prepayment Application (Oracle Fusion: Payables > Prepayments)
         // ============================================================================
-        .route("/prepayment-applications", post(prepayment_application::apply_prepayment))
-        .route("/prepayment-applications", get(prepayment_application::list_prepayments))
-        .route("/prepayment-applications/:id", get(prepayment_application::get_prepayment))
-        .route("/prepayment-applications/:id/confirm", post(prepayment_application::confirm_prepayment))
-        .route("/prepayment-applications/:id/cancel", post(prepayment_application::cancel_prepayment))
-        .route("/prepayment-applications/dashboard", get(prepayment_application::get_prepayment_dashboard))
-
+        .route(
+            "/prepayment-applications",
+            post(prepayment_application::apply_prepayment),
+        )
+        .route(
+            "/prepayment-applications",
+            get(prepayment_application::list_prepayments),
+        )
+        .route(
+            "/prepayment-applications/:id",
+            get(prepayment_application::get_prepayment),
+        )
+        .route(
+            "/prepayment-applications/:id/confirm",
+            post(prepayment_application::confirm_prepayment),
+        )
+        .route(
+            "/prepayment-applications/:id/cancel",
+            post(prepayment_application::cancel_prepayment),
+        )
+        .route(
+            "/prepayment-applications/dashboard",
+            get(prepayment_application::get_prepayment_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Suspense Account Processing (Oracle Fusion GL > Suspense Accounts)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Suspense Definitions
-        .route("/suspense/definitions", post(suspense_account::create_definition))
-        .route("/suspense/definitions", get(suspense_account::list_definitions))
-        .route("/suspense/definitions/:id", get(suspense_account::get_definition))
-        .route("/suspense/definitions/:id/activate", post(suspense_account::activate_definition))
-        .route("/suspense/definitions/:id/deactivate", post(suspense_account::deactivate_definition))
-        .route("/suspense/definitions/:id", delete(suspense_account::delete_definition))
-
+        .route(
+            "/suspense/definitions",
+            post(suspense_account::create_definition),
+        )
+        .route(
+            "/suspense/definitions",
+            get(suspense_account::list_definitions),
+        )
+        .route(
+            "/suspense/definitions/:id",
+            get(suspense_account::get_definition),
+        )
+        .route(
+            "/suspense/definitions/:id/activate",
+            post(suspense_account::activate_definition),
+        )
+        .route(
+            "/suspense/definitions/:id/deactivate",
+            post(suspense_account::deactivate_definition),
+        )
+        .route(
+            "/suspense/definitions/:id",
+            delete(suspense_account::delete_definition),
+        )
         // Suspense Entries
         .route("/suspense/entries", post(suspense_account::create_entry))
         .route("/suspense/entries", get(suspense_account::list_entries))
         .route("/suspense/entries/:id", get(suspense_account::get_entry))
-        .route("/suspense/entries/:id/reverse", post(suspense_account::reverse_entry))
-        .route("/suspense/entries/:id/write-off", post(suspense_account::write_off_entry))
-        .route("/suspense/definitions/:def_id/entries", get(suspense_account::list_entries_by_definition))
-
+        .route(
+            "/suspense/entries/:id/reverse",
+            post(suspense_account::reverse_entry),
+        )
+        .route(
+            "/suspense/entries/:id/write-off",
+            post(suspense_account::write_off_entry),
+        )
+        .route(
+            "/suspense/definitions/:def_id/entries",
+            get(suspense_account::list_entries_by_definition),
+        )
         // Clearing Batches
-        .route("/suspense/clearing-batches", post(suspense_account::create_clearing_batch))
-        .route("/suspense/clearing-batches", get(suspense_account::list_clearing_batches))
-        .route("/suspense/clearing-batches/:id", get(suspense_account::get_clearing_batch))
-        .route("/suspense/clearing-batches/:batch_id/lines", post(suspense_account::add_clearing_line))
-        .route("/suspense/clearing-batches/:batch_id/lines", get(suspense_account::list_clearing_lines))
-        .route("/suspense/clearing-batches/:id/submit", post(suspense_account::submit_clearing_batch))
-        .route("/suspense/clearing-batches/:id/approve", post(suspense_account::approve_clearing_batch))
-        .route("/suspense/clearing-batches/:id/post", post(suspense_account::post_clearing_batch))
-
+        .route(
+            "/suspense/clearing-batches",
+            post(suspense_account::create_clearing_batch),
+        )
+        .route(
+            "/suspense/clearing-batches",
+            get(suspense_account::list_clearing_batches),
+        )
+        .route(
+            "/suspense/clearing-batches/:id",
+            get(suspense_account::get_clearing_batch),
+        )
+        .route(
+            "/suspense/clearing-batches/:batch_id/lines",
+            post(suspense_account::add_clearing_line),
+        )
+        .route(
+            "/suspense/clearing-batches/:batch_id/lines",
+            get(suspense_account::list_clearing_lines),
+        )
+        .route(
+            "/suspense/clearing-batches/:id/submit",
+            post(suspense_account::submit_clearing_batch),
+        )
+        .route(
+            "/suspense/clearing-batches/:id/approve",
+            post(suspense_account::approve_clearing_batch),
+        )
+        .route(
+            "/suspense/clearing-batches/:id/post",
+            post(suspense_account::post_clearing_batch),
+        )
         // Aging & Dashboard
-        .route("/suspense/aging-snapshot", post(suspense_account::create_aging_snapshot))
-        .route("/suspense/dashboard", get(suspense_account::get_suspense_dashboard))
-
+        .route(
+            "/suspense/aging-snapshot",
+            post(suspense_account::create_aging_snapshot),
+        )
+        .route(
+            "/suspense/dashboard",
+            get(suspense_account::get_suspense_dashboard),
+        )
         // ═════════════════════════════════════════════════════════════════════════════════
         // Interest Invoice Management (Oracle Fusion: Receivables > Late Charges)
         // ═════════════════════════════════════════════════════════════════════════════════
-
         // Interest Rate Schedules
-        .route("/interest-invoices/schedules", get(interest_invoice::list_schedules))
-        .route("/interest-invoices/schedules", post(interest_invoice::create_schedule))
-        .route("/interest-invoices/schedules/:schedule_code", get(interest_invoice::get_schedule))
-        .route("/interest-invoices/schedules/:id/activate", post(interest_invoice::activate_schedule))
-        .route("/interest-invoices/schedules/:id/deactivate", post(interest_invoice::deactivate_schedule))
-        .route("/interest-invoices/schedules/:schedule_code", delete(interest_invoice::delete_schedule))
-
+        .route(
+            "/interest-invoices/schedules",
+            get(interest_invoice::list_schedules),
+        )
+        .route(
+            "/interest-invoices/schedules",
+            post(interest_invoice::create_schedule),
+        )
+        .route(
+            "/interest-invoices/schedules/:schedule_code",
+            get(interest_invoice::get_schedule),
+        )
+        .route(
+            "/interest-invoices/schedules/:id/activate",
+            post(interest_invoice::activate_schedule),
+        )
+        .route(
+            "/interest-invoices/schedules/:id/deactivate",
+            post(interest_invoice::deactivate_schedule),
+        )
+        .route(
+            "/interest-invoices/schedules/:schedule_code",
+            delete(interest_invoice::delete_schedule),
+        )
         // Overdue Invoices
-        .route("/interest-invoices/overdue", post(interest_invoice::register_overdue_invoice))
-        .route("/interest-invoices/overdue", get(interest_invoice::list_overdue_invoices))
-        .route("/interest-invoices/overdue/:id/close", post(interest_invoice::close_overdue_invoice))
-
+        .route(
+            "/interest-invoices/overdue",
+            post(interest_invoice::register_overdue_invoice),
+        )
+        .route(
+            "/interest-invoices/overdue",
+            get(interest_invoice::list_overdue_invoices),
+        )
+        .route(
+            "/interest-invoices/overdue/:id/close",
+            post(interest_invoice::close_overdue_invoice),
+        )
         // Interest Calculation
-        .route("/interest-invoices/calculate", post(interest_invoice::calculate_interest))
-        .route("/interest-invoices/runs", get(interest_invoice::list_calculation_runs))
-        .route("/interest-invoices/runs/:id", get(interest_invoice::get_calculation_run))
-        .route("/interest-invoices/runs/:run_id/lines", get(interest_invoice::list_calculation_lines))
-        .route("/interest-invoices/runs/:id/cancel", post(interest_invoice::cancel_calculation_run))
-
+        .route(
+            "/interest-invoices/calculate",
+            post(interest_invoice::calculate_interest),
+        )
+        .route(
+            "/interest-invoices/runs",
+            get(interest_invoice::list_calculation_runs),
+        )
+        .route(
+            "/interest-invoices/runs/:id",
+            get(interest_invoice::get_calculation_run),
+        )
+        .route(
+            "/interest-invoices/runs/:run_id/lines",
+            get(interest_invoice::list_calculation_lines),
+        )
+        .route(
+            "/interest-invoices/runs/:id/cancel",
+            post(interest_invoice::cancel_calculation_run),
+        )
         // Interest Invoices
-        .route("/interest-invoices/invoices", get(interest_invoice::list_interest_invoices))
-        .route("/interest-invoices/runs/:run_id/generate", post(interest_invoice::generate_interest_invoices))
-        .route("/interest-invoices/invoices/:invoice_number", get(interest_invoice::get_interest_invoice))
-        .route("/interest-invoices/invoices/:id/post", post(interest_invoice::post_interest_invoice))
-        .route("/interest-invoices/invoices/:id/reverse", post(interest_invoice::reverse_interest_invoice))
-        .route("/interest-invoices/invoices/:id/cancel", post(interest_invoice::cancel_interest_invoice))
-        .route("/interest-invoices/invoices/:invoice_id/lines", get(interest_invoice::list_interest_invoice_lines))
-
+        .route(
+            "/interest-invoices/invoices",
+            get(interest_invoice::list_interest_invoices),
+        )
+        .route(
+            "/interest-invoices/runs/:run_id/generate",
+            post(interest_invoice::generate_interest_invoices),
+        )
+        .route(
+            "/interest-invoices/invoices/:invoice_number",
+            get(interest_invoice::get_interest_invoice),
+        )
+        .route(
+            "/interest-invoices/invoices/:id/post",
+            post(interest_invoice::post_interest_invoice),
+        )
+        .route(
+            "/interest-invoices/invoices/:id/reverse",
+            post(interest_invoice::reverse_interest_invoice),
+        )
+        .route(
+            "/interest-invoices/invoices/:id/cancel",
+            post(interest_invoice::cancel_interest_invoice),
+        )
+        .route(
+            "/interest-invoices/invoices/:invoice_id/lines",
+            get(interest_invoice::list_interest_invoice_lines),
+        )
         // Dashboard
-        .route("/interest-invoices/dashboard", get(interest_invoice::get_interest_invoice_dashboard))
-
+        .route(
+            "/interest-invoices/dashboard",
+            get(interest_invoice::get_interest_invoice_dashboard),
+        )
         // ========================================================================
         // Expense Policy Compliance (Oracle Fusion: Expenses > Policies > Compliance)
         // ========================================================================
         // Policy Rules
-        .route("/expense-compliance/rules", get(expense_policy_compliance::list_rules))
-        .route("/expense-compliance/rules", post(expense_policy_compliance::create_rule))
-        .route("/expense-compliance/rules/:rule_code", get(expense_policy_compliance::get_rule))
-        .route("/expense-compliance/rules/:id/activate", post(expense_policy_compliance::activate_rule))
-        .route("/expense-compliance/rules/:id/deactivate", post(expense_policy_compliance::deactivate_rule))
-        .route("/expense-compliance/rules/:rule_code", delete(expense_policy_compliance::delete_rule))
+        .route(
+            "/expense-compliance/rules",
+            get(expense_policy_compliance::list_rules),
+        )
+        .route(
+            "/expense-compliance/rules",
+            post(expense_policy_compliance::create_rule),
+        )
+        .route(
+            "/expense-compliance/rules/:rule_code",
+            get(expense_policy_compliance::get_rule),
+        )
+        .route(
+            "/expense-compliance/rules/:id/activate",
+            post(expense_policy_compliance::activate_rule),
+        )
+        .route(
+            "/expense-compliance/rules/:id/deactivate",
+            post(expense_policy_compliance::deactivate_rule),
+        )
+        .route(
+            "/expense-compliance/rules/:rule_code",
+            delete(expense_policy_compliance::delete_rule),
+        )
         // Compliance Audits
-        .route("/expense-compliance/audits", get(expense_policy_compliance::list_audits))
-        .route("/expense-compliance/audits", post(expense_policy_compliance::create_audit))
-        .route("/expense-compliance/audits/:id", get(expense_policy_compliance::get_audit))
-        .route("/expense-compliance/audits/:id/evaluate", post(expense_policy_compliance::evaluate_compliance))
-        .route("/expense-compliance/audits/:id/complete", post(expense_policy_compliance::complete_audit_review))
-        .route("/expense-compliance/audits/:id/escalate", post(expense_policy_compliance::escalate_audit))
+        .route(
+            "/expense-compliance/audits",
+            get(expense_policy_compliance::list_audits),
+        )
+        .route(
+            "/expense-compliance/audits",
+            post(expense_policy_compliance::create_audit),
+        )
+        .route(
+            "/expense-compliance/audits/:id",
+            get(expense_policy_compliance::get_audit),
+        )
+        .route(
+            "/expense-compliance/audits/:id/evaluate",
+            post(expense_policy_compliance::evaluate_compliance),
+        )
+        .route(
+            "/expense-compliance/audits/:id/complete",
+            post(expense_policy_compliance::complete_audit_review),
+        )
+        .route(
+            "/expense-compliance/audits/:id/escalate",
+            post(expense_policy_compliance::escalate_audit),
+        )
         // Violations
-        .route("/expense-compliance/audits/:audit_id/violations", get(expense_policy_compliance::list_violations))
-        .route("/expense-compliance/violations/:id/resolve", post(expense_policy_compliance::resolve_violation))
-        .route("/expense-compliance/violations/open", get(expense_policy_compliance::list_open_violations))
+        .route(
+            "/expense-compliance/audits/:audit_id/violations",
+            get(expense_policy_compliance::list_violations),
+        )
+        .route(
+            "/expense-compliance/violations/:id/resolve",
+            post(expense_policy_compliance::resolve_violation),
+        )
+        .route(
+            "/expense-compliance/violations/open",
+            get(expense_policy_compliance::list_open_violations),
+        )
         // Dashboard
-        .route("/expense-compliance/dashboard", get(expense_policy_compliance::get_dashboard))
-
+        .route(
+            "/expense-compliance/dashboard",
+            get(expense_policy_compliance::get_dashboard),
+        )
         // ============================================================================
         // Bank Guarantee Management (Oracle Fusion: Treasury > Bank Guarantees)
         // ============================================================================
         .route("/bank-guarantees", get(bank_guarantee::list_guarantees))
         .route("/bank-guarantees", post(bank_guarantee::create_guarantee))
-        .route("/bank-guarantes/:guarantee_number", get(bank_guarantee::get_guarantee))
-        .route("/bank-guarantees/:guarantee_number", delete(bank_guarantee::delete_guarantee))
-        .route("/bank-guarantees/:id/submit", post(bank_guarantee::submit_for_approval))
-        .route("/bank-guarantees/:id/approve", post(bank_guarantee::approve_guarantee))
-        .route("/bank-guarantees/:id/issue", post(bank_guarantee::issue_guarantee))
-        .route("/bank-guarantees/:id/activate", post(bank_guarantee::activate_guarantee))
-        .route("/bank-guarantees/:id/invoke", post(bank_guarantee::invoke_guarantee))
-        .route("/bank-guarantees/:id/release", post(bank_guarantee::release_guarantee))
-        .route("/bank-guarantees/:id/cancel", post(bank_guarantee::cancel_guarantee))
-        .route("/bank-guarantees/process-expired", post(bank_guarantee::process_expired))
-        .route("/bank-guarantees/:guarantee_id/amendments", get(bank_guarantee::list_amendments))
-        .route("/bank-guarantees/:guarantee_id/amendments", post(bank_guarantee::create_amendment))
-        .route("/bank-guarantees/amendments/:amendment_id/approve", post(bank_guarantee::approve_amendment))
-        .route("/bank-guarantees/amendments/:amendment_id/reject", post(bank_guarantee::reject_amendment))
-        .route("/bank-guarantees/dashboard", get(bank_guarantee::get_dashboard))
-
+        .route(
+            "/bank-guarantes/:guarantee_number",
+            get(bank_guarantee::get_guarantee),
+        )
+        .route(
+            "/bank-guarantees/:guarantee_number",
+            delete(bank_guarantee::delete_guarantee),
+        )
+        .route(
+            "/bank-guarantees/:id/submit",
+            post(bank_guarantee::submit_for_approval),
+        )
+        .route(
+            "/bank-guarantees/:id/approve",
+            post(bank_guarantee::approve_guarantee),
+        )
+        .route(
+            "/bank-guarantees/:id/issue",
+            post(bank_guarantee::issue_guarantee),
+        )
+        .route(
+            "/bank-guarantees/:id/activate",
+            post(bank_guarantee::activate_guarantee),
+        )
+        .route(
+            "/bank-guarantees/:id/invoke",
+            post(bank_guarantee::invoke_guarantee),
+        )
+        .route(
+            "/bank-guarantees/:id/release",
+            post(bank_guarantee::release_guarantee),
+        )
+        .route(
+            "/bank-guarantees/:id/cancel",
+            post(bank_guarantee::cancel_guarantee),
+        )
+        .route(
+            "/bank-guarantees/process-expired",
+            post(bank_guarantee::process_expired),
+        )
+        .route(
+            "/bank-guarantees/:guarantee_id/amendments",
+            get(bank_guarantee::list_amendments),
+        )
+        .route(
+            "/bank-guarantees/:guarantee_id/amendments",
+            post(bank_guarantee::create_amendment),
+        )
+        .route(
+            "/bank-guarantees/amendments/:amendment_id/approve",
+            post(bank_guarantee::approve_amendment),
+        )
+        .route(
+            "/bank-guarantees/amendments/:amendment_id/reject",
+            post(bank_guarantee::reject_amendment),
+        )
+        .route(
+            "/bank-guarantees/dashboard",
+            get(bank_guarantee::get_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════════════════════════
         // Letter of Credit Management (Oracle Fusion: Treasury > Trade Finance > LCs)
         // ═══════════════════════════════════════════════════════════════════════════════
-
         // LC CRUD
         .route("/letters-of-credit", get(letter_of_credit::list_lcs))
         .route("/letters-of-credit", post(letter_of_credit::create_lc))
-        .route("/letters-of-credit/:lc_number", get(letter_of_credit::get_lc))
-        .route("/letters-of-credit/:lc_number", delete(letter_of_credit::delete_lc))
-
+        .route(
+            "/letters-of-credit/:lc_number",
+            get(letter_of_credit::get_lc),
+        )
+        .route(
+            "/letters-of-credit/:lc_number",
+            delete(letter_of_credit::delete_lc),
+        )
         // LC Lifecycle
-        .route("/letters-of-credit/:id/issue", post(letter_of_credit::issue_lc))
-        .route("/letters-of-credit/:id/advise", post(letter_of_credit::advise_lc))
-        .route("/letters-of-credit/:id/confirm", post(letter_of_credit::confirm_lc))
-        .route("/letters-of-credit/:id/accept", post(letter_of_credit::accept_lc))
+        .route(
+            "/letters-of-credit/:id/issue",
+            post(letter_of_credit::issue_lc),
+        )
+        .route(
+            "/letters-of-credit/:id/advise",
+            post(letter_of_credit::advise_lc),
+        )
+        .route(
+            "/letters-of-credit/:id/confirm",
+            post(letter_of_credit::confirm_lc),
+        )
+        .route(
+            "/letters-of-credit/:id/accept",
+            post(letter_of_credit::accept_lc),
+        )
         .route("/letters-of-credit/:id/pay", post(letter_of_credit::pay_lc))
-        .route("/letters-of-credit/:id/cancel", post(letter_of_credit::cancel_lc))
-        .route("/letters-of-credit/process-expired", post(letter_of_credit::process_expired))
-
+        .route(
+            "/letters-of-credit/:id/cancel",
+            post(letter_of_credit::cancel_lc),
+        )
+        .route(
+            "/letters-of-credit/process-expired",
+            post(letter_of_credit::process_expired),
+        )
         // LC Amendments
-        .route("/letters-of-credit/:lc_id/amendments", get(letter_of_credit::list_amendments))
-        .route("/letters-of-credit/:lc_id/amendments", post(letter_of_credit::create_amendment))
-        .route("/letters-of-credit/amendments/:amendment_id/approve", post(letter_of_credit::approve_amendment))
-        .route("/letters-of-credit/amendments/:amendment_id/reject", post(letter_of_credit::reject_amendment))
-
+        .route(
+            "/letters-of-credit/:lc_id/amendments",
+            get(letter_of_credit::list_amendments),
+        )
+        .route(
+            "/letters-of-credit/:lc_id/amendments",
+            post(letter_of_credit::create_amendment),
+        )
+        .route(
+            "/letters-of-credit/amendments/:amendment_id/approve",
+            post(letter_of_credit::approve_amendment),
+        )
+        .route(
+            "/letters-of-credit/amendments/:amendment_id/reject",
+            post(letter_of_credit::reject_amendment),
+        )
         // LC Required Documents
-        .route("/letters-of-credit/:lc_id/required-documents", get(letter_of_credit::list_required_documents))
-        .route("/letters-of-credit/:lc_id/required-documents", post(letter_of_credit::add_required_document))
-        .route("/letters-of-credit/required-documents/:doc_id", delete(letter_of_credit::delete_required_document))
-
+        .route(
+            "/letters-of-credit/:lc_id/required-documents",
+            get(letter_of_credit::list_required_documents),
+        )
+        .route(
+            "/letters-of-credit/:lc_id/required-documents",
+            post(letter_of_credit::add_required_document),
+        )
+        .route(
+            "/letters-of-credit/required-documents/:doc_id",
+            delete(letter_of_credit::delete_required_document),
+        )
         // LC Shipments
-        .route("/letters-of-credit/:lc_id/shipments", get(letter_of_credit::list_shipments))
-        .route("/letters-of-credit/:lc_id/shipments", post(letter_of_credit::create_shipment))
-        .route("/letters-of-credit/shipments/:shipment_id/:status", post(letter_of_credit::update_shipment_status))
-
+        .route(
+            "/letters-of-credit/:lc_id/shipments",
+            get(letter_of_credit::list_shipments),
+        )
+        .route(
+            "/letters-of-credit/:lc_id/shipments",
+            post(letter_of_credit::create_shipment),
+        )
+        .route(
+            "/letters-of-credit/shipments/:shipment_id/:status",
+            post(letter_of_credit::update_shipment_status),
+        )
         // LC Presentations
-        .route("/letters-of-credit/:lc_id/presentations", get(letter_of_credit::list_presentations))
-        .route("/letters-of-credit/:lc_id/presentations", post(letter_of_credit::create_presentation))
-        .route("/letters-of-credit/presentations/:presentation_id/accept", post(letter_of_credit::accept_presentation))
-        .route("/letters-of-credit/presentations/:presentation_id/pay", post(letter_of_credit::pay_presentation))
-        .route("/letters-of-credit/presentations/:presentation_id/reject", post(letter_of_credit::reject_presentation))
-
+        .route(
+            "/letters-of-credit/:lc_id/presentations",
+            get(letter_of_credit::list_presentations),
+        )
+        .route(
+            "/letters-of-credit/:lc_id/presentations",
+            post(letter_of_credit::create_presentation),
+        )
+        .route(
+            "/letters-of-credit/presentations/:presentation_id/accept",
+            post(letter_of_credit::accept_presentation),
+        )
+        .route(
+            "/letters-of-credit/presentations/:presentation_id/pay",
+            post(letter_of_credit::pay_presentation),
+        )
+        .route(
+            "/letters-of-credit/presentations/:presentation_id/reject",
+            post(letter_of_credit::reject_presentation),
+        )
         // LC Presentation Documents
-        .route("/letters-of-credit/presentations/:presentation_id/documents", get(letter_of_credit::list_presentation_documents))
-        .route("/letters-of-credit/presentations/:presentation_id/documents", post(letter_of_credit::add_presentation_document))
-
+        .route(
+            "/letters-of-credit/presentations/:presentation_id/documents",
+            get(letter_of_credit::list_presentation_documents),
+        )
+        .route(
+            "/letters-of-credit/presentations/:presentation_id/documents",
+            post(letter_of_credit::add_presentation_document),
+        )
         // LC Dashboard
-        .route("/letters-of-credit/dashboard", get(letter_of_credit::get_dashboard))
-
+        .route(
+            "/letters-of-credit/dashboard",
+            get(letter_of_credit::get_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════════════════════════
         // Hedge Management (Oracle Fusion: Treasury > Hedge Management)
         // ═══════════════════════════════════════════════════════════════════════════════
-
         // Derivative Instruments
-        .route("/hedge/derivatives", post(hedge_management::create_derivative))
-        .route("/hedge/derivatives", get(hedge_management::list_derivatives))
-        .route("/hedge/derivatives/:instrument_number", get(hedge_management::get_derivative))
-        .route("/hedge/derivatives/:id/activate", post(hedge_management::activate_derivative))
-        .route("/hedge/derivatives/:id/mature", post(hedge_management::mature_derivative))
-        .route("/hedge/derivatives/:id/settle", post(hedge_management::settle_derivative))
-        .route("/hedge/derivatives/:id/cancel", post(hedge_management::cancel_derivative))
-        .route("/hedge/derivatives/:id/valuation", post(hedge_management::update_derivative_valuation))
-        .route("/hedge/derivatives/:instrument_number", delete(hedge_management::delete_derivative))
-
+        .route(
+            "/hedge/derivatives",
+            post(hedge_management::create_derivative),
+        )
+        .route(
+            "/hedge/derivatives",
+            get(hedge_management::list_derivatives),
+        )
+        .route(
+            "/hedge/derivatives/:instrument_number",
+            get(hedge_management::get_derivative),
+        )
+        .route(
+            "/hedge/derivatives/:id/activate",
+            post(hedge_management::activate_derivative),
+        )
+        .route(
+            "/hedge/derivatives/:id/mature",
+            post(hedge_management::mature_derivative),
+        )
+        .route(
+            "/hedge/derivatives/:id/settle",
+            post(hedge_management::settle_derivative),
+        )
+        .route(
+            "/hedge/derivatives/:id/cancel",
+            post(hedge_management::cancel_derivative),
+        )
+        .route(
+            "/hedge/derivatives/:id/valuation",
+            post(hedge_management::update_derivative_valuation),
+        )
+        .route(
+            "/hedge/derivatives/:instrument_number",
+            delete(hedge_management::delete_derivative),
+        )
         // Hedge Relationships
-        .route("/hedge/relationships", post(hedge_management::create_hedge_relationship))
-        .route("/hedge/relationships", get(hedge_management::list_hedge_relationships))
-        .route("/hedge/relationships/:hedge_id", get(hedge_management::get_hedge_relationship))
-        .route("/hedge/relationships/:id/designate", post(hedge_management::designate_hedge))
-        .route("/hedge/relationships/:id/activate", post(hedge_management::activate_hedge))
-        .route("/hedge/relationships/:id/de-designate", post(hedge_management::de_designate_hedge))
-        .route("/hedge/relationships/:id/terminate", post(hedge_management::terminate_hedge))
-        .route("/hedge/relationships/:hedge_id", delete(hedge_management::delete_hedge_relationship))
-
+        .route(
+            "/hedge/relationships",
+            post(hedge_management::create_hedge_relationship),
+        )
+        .route(
+            "/hedge/relationships",
+            get(hedge_management::list_hedge_relationships),
+        )
+        .route(
+            "/hedge/relationships/:hedge_id",
+            get(hedge_management::get_hedge_relationship),
+        )
+        .route(
+            "/hedge/relationships/:id/designate",
+            post(hedge_management::designate_hedge),
+        )
+        .route(
+            "/hedge/relationships/:id/activate",
+            post(hedge_management::activate_hedge),
+        )
+        .route(
+            "/hedge/relationships/:id/de-designate",
+            post(hedge_management::de_designate_hedge),
+        )
+        .route(
+            "/hedge/relationships/:id/terminate",
+            post(hedge_management::terminate_hedge),
+        )
+        .route(
+            "/hedge/relationships/:hedge_id",
+            delete(hedge_management::delete_hedge_relationship),
+        )
         // Effectiveness Testing
-        .route("/hedge/effectiveness-tests", post(hedge_management::run_effectiveness_test))
-        .route("/hedge/effectiveness-tests/:id", get(hedge_management::get_effectiveness_test))
-        .route("/hedge/relationships/:hedge_relationship_id/tests", get(hedge_management::list_effectiveness_tests))
-
+        .route(
+            "/hedge/effectiveness-tests",
+            post(hedge_management::run_effectiveness_test),
+        )
+        .route(
+            "/hedge/effectiveness-tests/:id",
+            get(hedge_management::get_effectiveness_test),
+        )
+        .route(
+            "/hedge/relationships/:hedge_relationship_id/tests",
+            get(hedge_management::list_effectiveness_tests),
+        )
         // Documentation
-        .route("/hedge/documentation", post(hedge_management::create_documentation))
-        .route("/hedge/documentation", get(hedge_management::list_documentation))
-        .route("/hedge/documentation/:document_number", get(hedge_management::get_documentation))
-        .route("/hedge/documentation/:id/approve", post(hedge_management::approve_documentation))
-        .route("/hedge/documentation/:document_number", delete(hedge_management::delete_documentation))
-
+        .route(
+            "/hedge/documentation",
+            post(hedge_management::create_documentation),
+        )
+        .route(
+            "/hedge/documentation",
+            get(hedge_management::list_documentation),
+        )
+        .route(
+            "/hedge/documentation/:document_number",
+            get(hedge_management::get_documentation),
+        )
+        .route(
+            "/hedge/documentation/:id/approve",
+            post(hedge_management::approve_documentation),
+        )
+        .route(
+            "/hedge/documentation/:document_number",
+            delete(hedge_management::delete_documentation),
+        )
         // Dashboard
-        .route("/hedge/dashboard", get(hedge_management::get_hedge_dashboard))
-
+        .route(
+            "/hedge/dashboard",
+            get(hedge_management::get_hedge_dashboard),
+        )
         // Payment Risk & Fraud Detection
-        .route("/payment-risk/profiles", post(payment_risk::create_risk_profile))
-        .route("/payment-risk/profiles", get(payment_risk::list_risk_profiles))
-        .route("/payment-risk/profiles/:code", get(payment_risk::get_risk_profile))
-        .route("/payment-risk/profiles/:id/activate", post(payment_risk::set_risk_profile_active))
-        .route("/payment-risk/profiles/:code", delete(payment_risk::delete_risk_profile))
-        .route("/payment-risk/alerts", post(payment_risk::create_fraud_alert))
+        .route(
+            "/payment-risk/profiles",
+            post(payment_risk::create_risk_profile),
+        )
+        .route(
+            "/payment-risk/profiles",
+            get(payment_risk::list_risk_profiles),
+        )
+        .route(
+            "/payment-risk/profiles/:code",
+            get(payment_risk::get_risk_profile),
+        )
+        .route(
+            "/payment-risk/profiles/:id/activate",
+            post(payment_risk::set_risk_profile_active),
+        )
+        .route(
+            "/payment-risk/profiles/:code",
+            delete(payment_risk::delete_risk_profile),
+        )
+        .route(
+            "/payment-risk/alerts",
+            post(payment_risk::create_fraud_alert),
+        )
         .route("/payment-risk/alerts", get(payment_risk::list_fraud_alerts))
-        .route("/payment-risk/alerts/:alert_number", get(payment_risk::get_fraud_alert))
-        .route("/payment-risk/alerts/:id/transition", post(payment_risk::transition_fraud_alert))
-        .route("/payment-risk/alerts/:id/assign", post(payment_risk::assign_fraud_alert))
-        .route("/payment-risk/screening", post(payment_risk::create_screening_result))
-        .route("/payment-risk/screening", get(payment_risk::list_screening_results))
-        .route("/payment-risk/screening/:screening_id", get(payment_risk::get_screening_result))
-        .route("/payment-risk/screening/:id/review", post(payment_risk::review_screening_result))
-        .route("/payment-risk/assessments", post(payment_risk::create_assessment))
-        .route("/payment-risk/assessments", get(payment_risk::list_assessments))
-        .route("/payment-risk/assessments/:assessment_number", get(payment_risk::get_assessment))
-        .route("/payment-risk/assessments/:id/transition", post(payment_risk::transition_assessment))
-        .route("/payment-risk/assessments/:assessment_number", delete(payment_risk::delete_assessment))
-
+        .route(
+            "/payment-risk/alerts/:alert_number",
+            get(payment_risk::get_fraud_alert),
+        )
+        .route(
+            "/payment-risk/alerts/:id/transition",
+            post(payment_risk::transition_fraud_alert),
+        )
+        .route(
+            "/payment-risk/alerts/:id/assign",
+            post(payment_risk::assign_fraud_alert),
+        )
+        .route(
+            "/payment-risk/screening",
+            post(payment_risk::create_screening_result),
+        )
+        .route(
+            "/payment-risk/screening",
+            get(payment_risk::list_screening_results),
+        )
+        .route(
+            "/payment-risk/screening/:screening_id",
+            get(payment_risk::get_screening_result),
+        )
+        .route(
+            "/payment-risk/screening/:id/review",
+            post(payment_risk::review_screening_result),
+        )
+        .route(
+            "/payment-risk/assessments",
+            post(payment_risk::create_assessment),
+        )
+        .route(
+            "/payment-risk/assessments",
+            get(payment_risk::list_assessments),
+        )
+        .route(
+            "/payment-risk/assessments/:assessment_number",
+            get(payment_risk::get_assessment),
+        )
+        .route(
+            "/payment-risk/assessments/:id/transition",
+            post(payment_risk::transition_assessment),
+        )
+        .route(
+            "/payment-risk/assessments/:assessment_number",
+            delete(payment_risk::delete_assessment),
+        )
         // ═══════════════════════════════════════════════════════════════════════════════
         // Cash Concentration / Pooling (Oracle Fusion: Treasury > Cash Pooling)
         // ═══════════════════════════════════════════════════════════════════════════════
-
         // Cash Pools
         .route("/cash-pooling/pools", post(cash_concentration::create_pool))
         .route("/cash-pooling/pools", get(cash_concentration::list_pools))
-        .route("/cash-pooling/pools/:pool_code", get(cash_concentration::get_pool))
-        .route("/cash-pooling/pools/:id/activate", post(cash_concentration::activate_pool))
-        .route("/cash-pooling/pools/:id/suspend", post(cash_concentration::suspend_pool))
-        .route("/cash-pooling/pools/:id/close", post(cash_concentration::close_pool))
-        .route("/cash-pooling/pools/:pool_code", delete(cash_concentration::delete_pool))
-
+        .route(
+            "/cash-pooling/pools/:pool_code",
+            get(cash_concentration::get_pool),
+        )
+        .route(
+            "/cash-pooling/pools/:id/activate",
+            post(cash_concentration::activate_pool),
+        )
+        .route(
+            "/cash-pooling/pools/:id/suspend",
+            post(cash_concentration::suspend_pool),
+        )
+        .route(
+            "/cash-pooling/pools/:id/close",
+            post(cash_concentration::close_pool),
+        )
+        .route(
+            "/cash-pooling/pools/:pool_code",
+            delete(cash_concentration::delete_pool),
+        )
         // Participants
-        .route("/cash-pooling/pools/:pool_id/participants", post(cash_concentration::add_participant))
-        .route("/cash-pooling/pools/:pool_id/participants", get(cash_concentration::list_participants))
-        .route("/cash-pooling/pools/:pool_id/participants/:participant_code", delete(cash_concentration::remove_participant))
-
+        .route(
+            "/cash-pooling/pools/:pool_id/participants",
+            post(cash_concentration::add_participant),
+        )
+        .route(
+            "/cash-pooling/pools/:pool_id/participants",
+            get(cash_concentration::list_participants),
+        )
+        .route(
+            "/cash-pooling/pools/:pool_id/participants/:participant_code",
+            delete(cash_concentration::remove_participant),
+        )
         // Sweep Rules
-        .route("/cash-pooling/pools/:pool_id/rules", post(cash_concentration::create_sweep_rule))
-        .route("/cash-pooling/pools/:pool_id/rules", get(cash_concentration::list_sweep_rules))
-        .route("/cash-pooling/pools/:pool_id/rules/:rule_code", delete(cash_concentration::delete_sweep_rule))
-
+        .route(
+            "/cash-pooling/pools/:pool_id/rules",
+            post(cash_concentration::create_sweep_rule),
+        )
+        .route(
+            "/cash-pooling/pools/:pool_id/rules",
+            get(cash_concentration::list_sweep_rules),
+        )
+        .route(
+            "/cash-pooling/pools/:pool_id/rules/:rule_code",
+            delete(cash_concentration::delete_sweep_rule),
+        )
         // Sweep Execution
-        .route("/cash-pooling/pools/:pool_id/sweep", post(cash_concentration::execute_sweep))
-        .route("/cash-pooling/sweeps/:id", get(cash_concentration::get_sweep_run))
-        .route("/cash-pooling/pools/:pool_id/sweeps", get(cash_concentration::list_sweep_runs))
-        .route("/cash-pooling/sweeps/:sweep_run_id/lines", get(cash_concentration::list_sweep_run_lines))
-
+        .route(
+            "/cash-pooling/pools/:pool_id/sweep",
+            post(cash_concentration::execute_sweep),
+        )
+        .route(
+            "/cash-pooling/sweeps/:id",
+            get(cash_concentration::get_sweep_run),
+        )
+        .route(
+            "/cash-pooling/pools/:pool_id/sweeps",
+            get(cash_concentration::list_sweep_runs),
+        )
+        .route(
+            "/cash-pooling/sweeps/:sweep_run_id/lines",
+            get(cash_concentration::list_sweep_run_lines),
+        )
         // Dashboard
-        .route("/cash-pooling/dashboard", get(cash_concentration::get_cash_pooling_dashboard))
-
+        .route(
+            "/cash-pooling/dashboard",
+            get(cash_concentration::get_cash_pooling_dashboard),
+        )
         // ========================================================================
         // Customer Statement / Balance Forward Billing (Oracle Fusion: AR > Billing)
         // ========================================================================
-        .route("/customer-statements", post(customer_statement::create_statement))
-        .route("/customer-statements", get(customer_statement::list_statements))
-        .route("/customer-statements/number/:statement_number", get(customer_statement::get_statement_by_number))
-        .route("/customer-statements/:id", get(customer_statement::get_statement))
-        .route("/customer-statements/:id/generate", post(customer_statement::generate_statement))
-        .route("/customer-statements/:id/send", post(customer_statement::send_statement))
-        .route("/customer-statements/:id/view", post(customer_statement::mark_viewed))
-        .route("/customer-statements/:id/archive", post(customer_statement::archive_statement))
-        .route("/customer-statements/:id/cancel", post(customer_statement::cancel_statement))
-        .route("/customer-statements/:id/resend", post(customer_statement::resend_statement))
-        .route("/customer-statements/:statement_id/lines", post(customer_statement::add_statement_line))
-        .route("/customer-statements/:statement_id/lines", get(customer_statement::list_statement_lines))
-        .route("/customer-statements/:statement_id/lines/:line_id", delete(customer_statement::remove_statement_line))
-        .route("/customer-statements/dashboard", get(customer_statement::get_statement_summary))
-
+        .route(
+            "/customer-statements",
+            post(customer_statement::create_statement),
+        )
+        .route(
+            "/customer-statements",
+            get(customer_statement::list_statements),
+        )
+        .route(
+            "/customer-statements/number/:statement_number",
+            get(customer_statement::get_statement_by_number),
+        )
+        .route(
+            "/customer-statements/:id",
+            get(customer_statement::get_statement),
+        )
+        .route(
+            "/customer-statements/:id/generate",
+            post(customer_statement::generate_statement),
+        )
+        .route(
+            "/customer-statements/:id/send",
+            post(customer_statement::send_statement),
+        )
+        .route(
+            "/customer-statements/:id/view",
+            post(customer_statement::mark_viewed),
+        )
+        .route(
+            "/customer-statements/:id/archive",
+            post(customer_statement::archive_statement),
+        )
+        .route(
+            "/customer-statements/:id/cancel",
+            post(customer_statement::cancel_statement),
+        )
+        .route(
+            "/customer-statements/:id/resend",
+            post(customer_statement::resend_statement),
+        )
+        .route(
+            "/customer-statements/:statement_id/lines",
+            post(customer_statement::add_statement_line),
+        )
+        .route(
+            "/customer-statements/:statement_id/lines",
+            get(customer_statement::list_statement_lines),
+        )
+        .route(
+            "/customer-statements/:statement_id/lines/:line_id",
+            delete(customer_statement::remove_statement_line),
+        )
+        .route(
+            "/customer-statements/dashboard",
+            get(customer_statement::get_statement_summary),
+        )
         // Remittance Batches (Oracle Fusion: AR > Receipts > Remittance Batches)
         .route("/remittance-batches", post(remittance_batch::create_batch))
         .route("/remittance-batches", get(remittance_batch::list_batches))
-        .route("/remittance-batches/number/:batch_number", get(remittance_batch::get_batch_by_number))
+        .route(
+            "/remittance-batches/number/:batch_number",
+            get(remittance_batch::get_batch_by_number),
+        )
         .route("/remittance-batches/:id", get(remittance_batch::get_batch))
-        .route("/remittance-batches/:id/approve", post(remittance_batch::approve_batch))
-        .route("/remittance-batches/:id/format", post(remittance_batch::format_batch))
-        .route("/remittance-batches/:id/transmit", post(remittance_batch::transmit_batch))
-        .route("/remittance-batches/:id/confirm", post(remittance_batch::confirm_batch))
-        .route("/remittance-batches/:id/settle", post(remittance_batch::settle_batch))
-        .route("/remittance-batches/:id/reverse", post(remittance_batch::reverse_batch))
-        .route("/remittance-batches/:id/cancel", post(remittance_batch::cancel_batch))
-        .route("/remittance-batches/:batch_id/receipts", post(remittance_batch::add_receipt))
-        .route("/remittance-batches/:batch_id/receipts", get(remittance_batch::list_batch_receipts))
-        .route("/remittance-batches/:batch_id/receipts/:receipt_id", delete(remittance_batch::remove_receipt))
-        .route("/remittance-batches/:id/advice", post(remittance_batch::mark_advice_sent))
-        .route("/remittance-batches/dashboard", get(remittance_batch::get_batch_summary))
-
+        .route(
+            "/remittance-batches/:id/approve",
+            post(remittance_batch::approve_batch),
+        )
+        .route(
+            "/remittance-batches/:id/format",
+            post(remittance_batch::format_batch),
+        )
+        .route(
+            "/remittance-batches/:id/transmit",
+            post(remittance_batch::transmit_batch),
+        )
+        .route(
+            "/remittance-batches/:id/confirm",
+            post(remittance_batch::confirm_batch),
+        )
+        .route(
+            "/remittance-batches/:id/settle",
+            post(remittance_batch::settle_batch),
+        )
+        .route(
+            "/remittance-batches/:id/reverse",
+            post(remittance_batch::reverse_batch),
+        )
+        .route(
+            "/remittance-batches/:id/cancel",
+            post(remittance_batch::cancel_batch),
+        )
+        .route(
+            "/remittance-batches/:batch_id/receipts",
+            post(remittance_batch::add_receipt),
+        )
+        .route(
+            "/remittance-batches/:batch_id/receipts",
+            get(remittance_batch::list_batch_receipts),
+        )
+        .route(
+            "/remittance-batches/:batch_id/receipts/:receipt_id",
+            delete(remittance_batch::remove_receipt),
+        )
+        .route(
+            "/remittance-batches/:id/advice",
+            post(remittance_batch::mark_advice_sent),
+        )
+        .route(
+            "/remittance-batches/dashboard",
+            get(remittance_batch::get_batch_summary),
+        )
         // Chargebacks (Oracle Fusion: Receivables > Chargebacks)
-        .route("/chargebacks", post(chargeback_management::create_chargeback))
+        .route(
+            "/chargebacks",
+            post(chargeback_management::create_chargeback),
+        )
         .route("/chargebacks", get(chargeback_management::list_chargebacks))
-        .route("/chargebacks/number/:number", get(chargeback_management::get_chargeback_by_number))
-        .route("/chargebacks/number/:number", delete(chargeback_management::delete_chargeback))
-        .route("/chargebacks/:id", get(chargeback_management::get_chargeback))
-        .route("/chargebacks/:id/transition", post(chargeback_management::transition_chargeback))
-        .route("/chargebacks/:id/assign", post(chargeback_management::assign_chargeback))
-        .route("/chargebacks/:id/notes", put(chargeback_management::update_notes))
-        .route("/chargebacks/:chargeback_id/lines", post(chargeback_management::add_line))
-        .route("/chargebacks/:chargeback_id/lines", get(chargeback_management::list_lines))
-        .route("/chargebacks/:chargeback_id/lines/:line_id", delete(chargeback_management::remove_line))
-        .route("/chargebacks/:chargeback_id/activities", get(chargeback_management::list_activities))
-        .route("/chargebacks/dashboard", get(chargeback_management::get_dashboard))
-
+        .route(
+            "/chargebacks/number/:number",
+            get(chargeback_management::get_chargeback_by_number),
+        )
+        .route(
+            "/chargebacks/number/:number",
+            delete(chargeback_management::delete_chargeback),
+        )
+        .route(
+            "/chargebacks/:id",
+            get(chargeback_management::get_chargeback),
+        )
+        .route(
+            "/chargebacks/:id/transition",
+            post(chargeback_management::transition_chargeback),
+        )
+        .route(
+            "/chargebacks/:id/assign",
+            post(chargeback_management::assign_chargeback),
+        )
+        .route(
+            "/chargebacks/:id/notes",
+            put(chargeback_management::update_notes),
+        )
+        .route(
+            "/chargebacks/:chargeback_id/lines",
+            post(chargeback_management::add_line),
+        )
+        .route(
+            "/chargebacks/:chargeback_id/lines",
+            get(chargeback_management::list_lines),
+        )
+        .route(
+            "/chargebacks/:chargeback_id/lines/:line_id",
+            delete(chargeback_management::remove_line),
+        )
+        .route(
+            "/chargebacks/:chargeback_id/activities",
+            get(chargeback_management::list_activities),
+        )
+        .route(
+            "/chargebacks/dashboard",
+            get(chargeback_management::get_dashboard),
+        )
         // Finance Charge Management (Oracle Fusion: Receivables > Finance Charges)
-        .route("/finance-charges/terms", post(finance_charge_management::create_term))
-        .route("/finance-charges/terms", get(finance_charge_management::list_terms))
-        .route("/finance-charges/terms/:id", get(finance_charge_management::get_term))
-        .route("/finance-charges/runs", post(finance_charge_management::create_run))
-        .route("/finance-charges/runs", get(finance_charge_management::list_runs))
-        .route("/finance-charges/runs/:id", get(finance_charge_management::get_run))
-        .route("/finance-charges/runs/number/:number", get(finance_charge_management::get_run_by_number))
-        .route("/finance-charges/runs/number/:number", delete(finance_charge_management::delete_run))
-        .route("/finance-charges/runs/:id/transition", post(finance_charge_management::transition_run))
-        .route("/finance-charges/runs/:run_id/lines", post(finance_charge_management::add_charge_line))
-        .route("/finance-charges/runs/:run_id/lines", get(finance_charge_management::list_lines))
-        .route("/finance-charges/lines/:line_id/waive", post(finance_charge_management::waive_line))
-        .route("/finance-charges/runs/:run_id/generate-invoices", post(finance_charge_management::generate_invoices))
-        .route("/finance-charges/invoices", get(finance_charge_management::list_invoices))
-        .route("/finance-charges/invoices/:id", get(finance_charge_management::get_invoice))
-        .route("/finance-charges/invoices/:id/transition", post(finance_charge_management::transition_invoice))
-        .route("/finance-charges/dashboard", get(finance_charge_management::get_dashboard))
-
+        .route(
+            "/finance-charges/terms",
+            post(finance_charge_management::create_term),
+        )
+        .route(
+            "/finance-charges/terms",
+            get(finance_charge_management::list_terms),
+        )
+        .route(
+            "/finance-charges/terms/:id",
+            get(finance_charge_management::get_term),
+        )
+        .route(
+            "/finance-charges/runs",
+            post(finance_charge_management::create_run),
+        )
+        .route(
+            "/finance-charges/runs",
+            get(finance_charge_management::list_runs),
+        )
+        .route(
+            "/finance-charges/runs/:id",
+            get(finance_charge_management::get_run),
+        )
+        .route(
+            "/finance-charges/runs/number/:number",
+            get(finance_charge_management::get_run_by_number),
+        )
+        .route(
+            "/finance-charges/runs/number/:number",
+            delete(finance_charge_management::delete_run),
+        )
+        .route(
+            "/finance-charges/runs/:id/transition",
+            post(finance_charge_management::transition_run),
+        )
+        .route(
+            "/finance-charges/runs/:run_id/lines",
+            post(finance_charge_management::add_charge_line),
+        )
+        .route(
+            "/finance-charges/runs/:run_id/lines",
+            get(finance_charge_management::list_lines),
+        )
+        .route(
+            "/finance-charges/lines/:line_id/waive",
+            post(finance_charge_management::waive_line),
+        )
+        .route(
+            "/finance-charges/runs/:run_id/generate-invoices",
+            post(finance_charge_management::generate_invoices),
+        )
+        .route(
+            "/finance-charges/invoices",
+            get(finance_charge_management::list_invoices),
+        )
+        .route(
+            "/finance-charges/invoices/:id",
+            get(finance_charge_management::get_invoice),
+        )
+        .route(
+            "/finance-charges/invoices/:id/transition",
+            post(finance_charge_management::transition_invoice),
+        )
+        .route(
+            "/finance-charges/dashboard",
+            get(finance_charge_management::get_dashboard),
+        )
         // ========================================================================
         // Profitability Analysis (Oracle Fusion: Financials > Profitability Analysis)
         // ========================================================================
         // Segments
-        .route("/profitability/segments", post(profitability_analysis::create_segment))
-        .route("/profitability/segments", get(profitability_analysis::list_segments))
-        .route("/profitability/segments/:id", get(profitability_analysis::get_segment))
-        .route("/profitability/segments/code/:code", delete(profitability_analysis::delete_segment))
+        .route(
+            "/profitability/segments",
+            post(profitability_analysis::create_segment),
+        )
+        .route(
+            "/profitability/segments",
+            get(profitability_analysis::list_segments),
+        )
+        .route(
+            "/profitability/segments/:id",
+            get(profitability_analysis::get_segment),
+        )
+        .route(
+            "/profitability/segments/code/:code",
+            delete(profitability_analysis::delete_segment),
+        )
         // Runs
-        .route("/profitability/runs", post(profitability_analysis::create_run))
-        .route("/profitability/runs", get(profitability_analysis::list_runs))
-        .route("/profitability/runs/:id", get(profitability_analysis::get_run))
-        .route("/profitability/runs/:id/transition", post(profitability_analysis::transition_run))
-        .route("/profitability/runs/number/:run_number", delete(profitability_analysis::delete_run))
+        .route(
+            "/profitability/runs",
+            post(profitability_analysis::create_run),
+        )
+        .route(
+            "/profitability/runs",
+            get(profitability_analysis::list_runs),
+        )
+        .route(
+            "/profitability/runs/:id",
+            get(profitability_analysis::get_run),
+        )
+        .route(
+            "/profitability/runs/:id/transition",
+            post(profitability_analysis::transition_run),
+        )
+        .route(
+            "/profitability/runs/number/:run_number",
+            delete(profitability_analysis::delete_run),
+        )
         // Run Lines
-        .route("/profitability/runs/:run_id/lines", post(profitability_analysis::add_run_line))
-        .route("/profitability/runs/:run_id/lines", get(profitability_analysis::list_run_lines))
-        .route("/profitability/runs/:run_id/lines/:line_id", delete(profitability_analysis::remove_run_line))
+        .route(
+            "/profitability/runs/:run_id/lines",
+            post(profitability_analysis::add_run_line),
+        )
+        .route(
+            "/profitability/runs/:run_id/lines",
+            get(profitability_analysis::list_run_lines),
+        )
+        .route(
+            "/profitability/runs/:run_id/lines/:line_id",
+            delete(profitability_analysis::remove_run_line),
+        )
         // Templates
-        .route("/profitability/templates", post(profitability_analysis::create_template))
-        .route("/profitability/templates", get(profitability_analysis::list_templates))
-        .route("/profitability/templates/:code", delete(profitability_analysis::delete_template))
+        .route(
+            "/profitability/templates",
+            post(profitability_analysis::create_template),
+        )
+        .route(
+            "/profitability/templates",
+            get(profitability_analysis::list_templates),
+        )
+        .route(
+            "/profitability/templates/:code",
+            delete(profitability_analysis::delete_template),
+        )
         // Dashboard
-        .route("/profitability/dashboard", get(profitability_analysis::get_dashboard))
-
+        .route(
+            "/profitability/dashboard",
+            get(profitability_analysis::get_dashboard),
+        )
         // ========================================================================
         // Recurring Invoice Management (Oracle Fusion: Payables > Recurring Invoices)
         // ========================================================================
-        .route("/recurring-invoices", post(recurring_invoice::create_template))
-        .route("/recurring-invoices", get(recurring_invoice::list_templates))
-        .route("/recurring-invoices/number/:template_number", delete(recurring_invoice::delete_template))
-        .route("/recurring-invoices/:id", get(recurring_invoice::get_template))
-        .route("/recurring-invoices/:id/transition", post(recurring_invoice::transition_template))
-        .route("/recurring-invoices/:template_id/lines", post(recurring_invoice::add_template_line))
-        .route("/recurring-invoices/:template_id/lines", get(recurring_invoice::list_template_lines))
-        .route("/recurring-invoices/:template_id/lines/:line_id", delete(recurring_invoice::remove_template_line))
-        .route("/recurring-invoices/:template_id/generate", post(recurring_invoice::generate_invoice))
-        .route("/recurring-invoices/generations", get(recurring_invoice::list_generations))
-        .route("/recurring-invoices/dashboard", get(recurring_invoice::get_dashboard))
-
+        .route(
+            "/recurring-invoices",
+            post(recurring_invoice::create_template),
+        )
+        .route(
+            "/recurring-invoices",
+            get(recurring_invoice::list_templates),
+        )
+        .route(
+            "/recurring-invoices/number/:template_number",
+            delete(recurring_invoice::delete_template),
+        )
+        .route(
+            "/recurring-invoices/:id",
+            get(recurring_invoice::get_template),
+        )
+        .route(
+            "/recurring-invoices/:id/transition",
+            post(recurring_invoice::transition_template),
+        )
+        .route(
+            "/recurring-invoices/:template_id/lines",
+            post(recurring_invoice::add_template_line),
+        )
+        .route(
+            "/recurring-invoices/:template_id/lines",
+            get(recurring_invoice::list_template_lines),
+        )
+        .route(
+            "/recurring-invoices/:template_id/lines/:line_id",
+            delete(recurring_invoice::remove_template_line),
+        )
+        .route(
+            "/recurring-invoices/:template_id/generate",
+            post(recurring_invoice::generate_invoice),
+        )
+        .route(
+            "/recurring-invoices/generations",
+            get(recurring_invoice::list_generations),
+        )
+        .route(
+            "/recurring-invoices/dashboard",
+            get(recurring_invoice::get_dashboard),
+        )
         // ========================================================================
         // Payment Settlement & Clearing (Oracle Fusion: Payables > Settlement)
         // ========================================================================
         .route("/settlements", post(payment_settlement::create_batch))
         .route("/settlements", get(payment_settlement::list_batches))
-        .route("/settlements/number/:number", get(payment_settlement::get_batch_by_number))
-        .route("/settlements/number/:number", delete(payment_settlement::delete_batch))
+        .route(
+            "/settlements/number/:number",
+            get(payment_settlement::get_batch_by_number),
+        )
+        .route(
+            "/settlements/number/:number",
+            delete(payment_settlement::delete_batch),
+        )
         .route("/settlements/:id", get(payment_settlement::get_batch))
-        .route("/settlements/:id/submit", post(payment_settlement::submit_batch))
-        .route("/settlements/:id/approve", post(payment_settlement::approve_batch))
-        .route("/settlements/:id/settle", post(payment_settlement::settle_batch))
-        .route("/settlements/:id/cancel", post(payment_settlement::cancel_batch))
-        .route("/settlements/:batch_id/lines", post(payment_settlement::add_line))
-        .route("/settlements/:batch_id/lines", get(payment_settlement::list_lines))
-        .route("/settlements/:batch_id/lines/:line_id", delete(payment_settlement::remove_line))
-        .route("/settlements/:batch_id/activities", get(payment_settlement::list_activities))
-        .route("/settlements/dashboard", get(payment_settlement::get_dashboard))
-
+        .route(
+            "/settlements/:id/submit",
+            post(payment_settlement::submit_batch),
+        )
+        .route(
+            "/settlements/:id/approve",
+            post(payment_settlement::approve_batch),
+        )
+        .route(
+            "/settlements/:id/settle",
+            post(payment_settlement::settle_batch),
+        )
+        .route(
+            "/settlements/:id/cancel",
+            post(payment_settlement::cancel_batch),
+        )
+        .route(
+            "/settlements/:batch_id/lines",
+            post(payment_settlement::add_line),
+        )
+        .route(
+            "/settlements/:batch_id/lines",
+            get(payment_settlement::list_lines),
+        )
+        .route(
+            "/settlements/:batch_id/lines/:line_id",
+            delete(payment_settlement::remove_line),
+        )
+        .route(
+            "/settlements/:batch_id/activities",
+            get(payment_settlement::list_activities),
+        )
+        .route(
+            "/settlements/dashboard",
+            get(payment_settlement::get_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Payment Process Requests (Oracle Fusion: Payables > Payment Process Requests)
         // ═══════════════════════════════════════════════════════
-        .route("/payment-process-requests", post(payment_process_request::create_request))
-        .route("/payment-process-requests", get(payment_process_request::list_requests))
-        .route("/payment-process-requests/number/:number", get(payment_process_request::get_request_by_number))
-        .route("/payment-process-requests/number/:number", delete(payment_process_request::delete_request))
-        .route("/payment-process-requests/:id", get(payment_process_request::get_request))
-        .route("/payment-process-requests/:id/submit", post(payment_process_request::submit_request))
-        .route("/payment-process-requests/:id/complete-selection", post(payment_process_request::complete_selection))
-        .route("/payment-process-requests/:id/format", post(payment_process_request::format_payments))
-        .route("/payment-process-requests/:id/confirm", post(payment_process_request::confirm_payments))
-        .route("/payment-process-requests/:id/cancel", post(payment_process_request::cancel_request))
-        .route("/payment-process-requests/:ppr_id/documents", post(payment_process_request::add_document))
-        .route("/payment-process-requests/:ppr_id/documents", get(payment_process_request::list_documents))
-        .route("/payment-process-requests/:ppr_id/documents/:doc_id", delete(payment_process_request::remove_document))
-        .route("/payment-process-requests/:ppr_id/activities", get(payment_process_request::list_activities))
-        .route("/payment-process-requests/dashboard", get(payment_process_request::get_dashboard))
-
+        .route(
+            "/payment-process-requests",
+            post(payment_process_request::create_request),
+        )
+        .route(
+            "/payment-process-requests",
+            get(payment_process_request::list_requests),
+        )
+        .route(
+            "/payment-process-requests/number/:number",
+            get(payment_process_request::get_request_by_number),
+        )
+        .route(
+            "/payment-process-requests/number/:number",
+            delete(payment_process_request::delete_request),
+        )
+        .route(
+            "/payment-process-requests/:id",
+            get(payment_process_request::get_request),
+        )
+        .route(
+            "/payment-process-requests/:id/submit",
+            post(payment_process_request::submit_request),
+        )
+        .route(
+            "/payment-process-requests/:id/complete-selection",
+            post(payment_process_request::complete_selection),
+        )
+        .route(
+            "/payment-process-requests/:id/format",
+            post(payment_process_request::format_payments),
+        )
+        .route(
+            "/payment-process-requests/:id/confirm",
+            post(payment_process_request::confirm_payments),
+        )
+        .route(
+            "/payment-process-requests/:id/cancel",
+            post(payment_process_request::cancel_request),
+        )
+        .route(
+            "/payment-process-requests/:ppr_id/documents",
+            post(payment_process_request::add_document),
+        )
+        .route(
+            "/payment-process-requests/:ppr_id/documents",
+            get(payment_process_request::list_documents),
+        )
+        .route(
+            "/payment-process-requests/:ppr_id/documents/:doc_id",
+            delete(payment_process_request::remove_document),
+        )
+        .route(
+            "/payment-process-requests/:ppr_id/activities",
+            get(payment_process_request::list_activities),
+        )
+        .route(
+            "/payment-process-requests/dashboard",
+            get(payment_process_request::get_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════════════════════════
         // AP Invoice Batch Processing (Oracle Fusion: Payables > Invoice Batches)
         // ═══════════════════════════════════════════════════════════════════════════════
         .route("/invoice-batches", post(invoice_batch::create_batch))
         .route("/invoice-batches", get(invoice_batch::list_batches))
-        .route("/invoice-batches/number/:number", get(invoice_batch::get_batch_by_number))
-        .route("/invoice-batches/number/:number", delete(invoice_batch::delete_batch))
+        .route(
+            "/invoice-batches/number/:number",
+            get(invoice_batch::get_batch_by_number),
+        )
+        .route(
+            "/invoice-batches/number/:number",
+            delete(invoice_batch::delete_batch),
+        )
         .route("/invoice-batches/:id", get(invoice_batch::get_batch))
-        .route("/invoice-batches/:id/submit", post(invoice_batch::submit_batch))
-        .route("/invoice-batches/:id/approve", post(invoice_batch::approve_batch))
+        .route(
+            "/invoice-batches/:id/submit",
+            post(invoice_batch::submit_batch),
+        )
+        .route(
+            "/invoice-batches/:id/approve",
+            post(invoice_batch::approve_batch),
+        )
         .route("/invoice-batches/:id/post", post(invoice_batch::post_batch))
-        .route("/invoice-batches/:id/cancel", post(invoice_batch::cancel_batch))
-        .route("/invoice-batches/:id/invoices", post(invoice_batch::add_invoice))
-        .route("/invoice-batches/:id/invoices", delete(invoice_batch::remove_invoice))
-        .route("/invoice-batches/:id/validate", post(invoice_batch::validate_batch))
-        .route("/invoice-batches/:id/activities", get(invoice_batch::list_activities))
-        .route("/invoice-batches/dashboard", get(invoice_batch::get_dashboard))
-
+        .route(
+            "/invoice-batches/:id/cancel",
+            post(invoice_batch::cancel_batch),
+        )
+        .route(
+            "/invoice-batches/:id/invoices",
+            post(invoice_batch::add_invoice),
+        )
+        .route(
+            "/invoice-batches/:id/invoices",
+            delete(invoice_batch::remove_invoice),
+        )
+        .route(
+            "/invoice-batches/:id/validate",
+            post(invoice_batch::validate_batch),
+        )
+        .route(
+            "/invoice-batches/:id/activities",
+            get(invoice_batch::list_activities),
+        )
+        .route(
+            "/invoice-batches/dashboard",
+            get(invoice_batch::get_dashboard),
+        )
         // ═══════════════════════════════════════════════════════════════════════════
         // Withholding Tax Management (Oracle Fusion: Financials > Payables > Withholding Tax)
         // ═══════════════════════════════════════════════════════════════════════════
-
         // Tax Codes
-        .route("/withholding-tax/codes", post(withholding_tax::create_tax_code))
-        .route("/withholding-tax/codes", get(withholding_tax::list_tax_codes))
-        .route("/withholding-tax/codes/:code", get(withholding_tax::get_tax_code))
-        .route("/withholding-tax/codes/:code", delete(withholding_tax::delete_tax_code))
-
+        .route(
+            "/withholding-tax/codes",
+            post(withholding_tax::create_tax_code),
+        )
+        .route(
+            "/withholding-tax/codes",
+            get(withholding_tax::list_tax_codes),
+        )
+        .route(
+            "/withholding-tax/codes/:code",
+            get(withholding_tax::get_tax_code),
+        )
+        .route(
+            "/withholding-tax/codes/:code",
+            delete(withholding_tax::delete_tax_code),
+        )
         // Tax Groups
-        .route("/withholding-tax/groups", post(withholding_tax::create_tax_group))
-        .route("/withholding-tax/groups", get(withholding_tax::list_tax_groups))
-        .route("/withholding-tax/groups/:code", get(withholding_tax::get_tax_group))
-        .route("/withholding-tax/groups/:code", delete(withholding_tax::delete_tax_group))
-
+        .route(
+            "/withholding-tax/groups",
+            post(withholding_tax::create_tax_group),
+        )
+        .route(
+            "/withholding-tax/groups",
+            get(withholding_tax::list_tax_groups),
+        )
+        .route(
+            "/withholding-tax/groups/:code",
+            get(withholding_tax::get_tax_group),
+        )
+        .route(
+            "/withholding-tax/groups/:code",
+            delete(withholding_tax::delete_tax_group),
+        )
         // Supplier Assignments
-        .route("/withholding-tax/suppliers/assign", post(withholding_tax::assign_supplier))
-        .route("/withholding-tax/suppliers", get(withholding_tax::list_supplier_assignments))
-        .route("/withholding-tax/suppliers/:supplier_id", get(withholding_tax::get_supplier_assignment))
-        .route("/withholding-tax/suppliers/:supplier_id", delete(withholding_tax::remove_supplier_assignment))
-
+        .route(
+            "/withholding-tax/suppliers/assign",
+            post(withholding_tax::assign_supplier),
+        )
+        .route(
+            "/withholding-tax/suppliers",
+            get(withholding_tax::list_supplier_assignments),
+        )
+        .route(
+            "/withholding-tax/suppliers/:supplier_id",
+            get(withholding_tax::get_supplier_assignment),
+        )
+        .route(
+            "/withholding-tax/suppliers/:supplier_id",
+            delete(withholding_tax::remove_supplier_assignment),
+        )
         // Withholding Computation
-        .route("/withholding-tax/compute", post(withholding_tax::compute_withholding))
-
+        .route(
+            "/withholding-tax/compute",
+            post(withholding_tax::compute_withholding),
+        )
         // Withholding Lines
-        .route("/withholding-tax/lines/payment/:payment_id", get(withholding_tax::get_withholding_lines_by_payment))
-        .route("/withholding-tax/lines/remit", post(withholding_tax::remit_withholding))
-
+        .route(
+            "/withholding-tax/lines/payment/:payment_id",
+            get(withholding_tax::get_withholding_lines_by_payment),
+        )
+        .route(
+            "/withholding-tax/lines/remit",
+            post(withholding_tax::remit_withholding),
+        )
         // Certificates
-        .route("/withholding-tax/certificates", post(withholding_tax::generate_certificate))
-        .route("/withholding-tax/certificates", get(withholding_tax::list_certificates))
-        .route("/withholding-tax/certificates/number/:number", get(withholding_tax::get_certificate_by_number))
-        .route("/withholding-tax/certificates/:id", get(withholding_tax::get_certificate))
-        .route("/withholding-tax/certificates/:id/issue", post(withholding_tax::issue_certificate))
-        .route("/withholding-tax/certificates/:id/cancel", post(withholding_tax::cancel_certificate))
-
+        .route(
+            "/withholding-tax/certificates",
+            post(withholding_tax::generate_certificate),
+        )
+        .route(
+            "/withholding-tax/certificates",
+            get(withholding_tax::list_certificates),
+        )
+        .route(
+            "/withholding-tax/certificates/number/:number",
+            get(withholding_tax::get_certificate_by_number),
+        )
+        .route(
+            "/withholding-tax/certificates/:id",
+            get(withholding_tax::get_certificate),
+        )
+        .route(
+            "/withholding-tax/certificates/:id/issue",
+            post(withholding_tax::issue_certificate),
+        )
+        .route(
+            "/withholding-tax/certificates/:id/cancel",
+            post(withholding_tax::cancel_certificate),
+        )
         // Dashboard
-        .route("/withholding-tax/dashboard", get(withholding_tax::get_withholding_dashboard))
-
+        .route(
+            "/withholding-tax/dashboard",
+            get(withholding_tax::get_withholding_dashboard),
+        )
         // ============================================================================
         // Tax Registration Management (Oracle Fusion: Tax > Tax Registrations)
         // ============================================================================
-        .route("/tax-registrations", post(tax_registration::create_registration))
-        .route("/tax-registrations", get(tax_registration::list_registrations))
-        .route("/tax-registrations/number/:number", get(tax_registration::get_registration_by_number))
-        .route("/tax-registrations/:id", get(tax_registration::get_registration))
-        .route("/tax-registrations/:id/activate", post(tax_registration::activate_registration))
-        .route("/tax-registrations/:id/suspend", post(tax_registration::suspend_registration))
-        .route("/tax-registrations/:id/reactivate", post(tax_registration::reactivate_registration))
-        .route("/tax-registrations/:id/deregister", post(tax_registration::deregister))
-        .route("/tax-registrations/:id/validate", post(tax_registration::validate_registration))
-        .route("/tax-registrations/dashboard", get(tax_registration::get_summary))
-
+        .route(
+            "/tax-registrations",
+            post(tax_registration::create_registration),
+        )
+        .route(
+            "/tax-registrations",
+            get(tax_registration::list_registrations),
+        )
+        .route(
+            "/tax-registrations/number/:number",
+            get(tax_registration::get_registration_by_number),
+        )
+        .route(
+            "/tax-registrations/:id",
+            get(tax_registration::get_registration),
+        )
+        .route(
+            "/tax-registrations/:id/activate",
+            post(tax_registration::activate_registration),
+        )
+        .route(
+            "/tax-registrations/:id/suspend",
+            post(tax_registration::suspend_registration),
+        )
+        .route(
+            "/tax-registrations/:id/reactivate",
+            post(tax_registration::reactivate_registration),
+        )
+        .route(
+            "/tax-registrations/:id/deregister",
+            post(tax_registration::deregister),
+        )
+        .route(
+            "/tax-registrations/:id/validate",
+            post(tax_registration::validate_registration),
+        )
+        .route(
+            "/tax-registrations/dashboard",
+            get(tax_registration::get_summary),
+        )
         // ============================================================================
         // Doubtful Account Allowance (Oracle Fusion: Receivables > Collections > Allowance for Doubtful Accounts)
         // ============================================================================
         // Policies
-        .route("/doubtful-account-policies", post(doubtful_account_allowance::create_policy))
-        .route("/doubtful-account-policies", get(doubtful_account_allowance::list_policies))
-        .route("/doubtful-account-policies/code/:code", get(doubtful_account_allowance::get_policy_by_code))
-        .route("/doubtful-account-policies/:id", get(doubtful_account_allowance::get_policy))
-        .route("/doubtful-account-policies/:id/deactivate", post(doubtful_account_allowance::deactivate_policy))
-        .route("/doubtful-account-policies/:id/reactivate", post(doubtful_account_allowance::reactivate_policy))
+        .route(
+            "/doubtful-account-policies",
+            post(doubtful_account_allowance::create_policy),
+        )
+        .route(
+            "/doubtful-account-policies",
+            get(doubtful_account_allowance::list_policies),
+        )
+        .route(
+            "/doubtful-account-policies/code/:code",
+            get(doubtful_account_allowance::get_policy_by_code),
+        )
+        .route(
+            "/doubtful-account-policies/:id",
+            get(doubtful_account_allowance::get_policy),
+        )
+        .route(
+            "/doubtful-account-policies/:id/deactivate",
+            post(doubtful_account_allowance::deactivate_policy),
+        )
+        .route(
+            "/doubtful-account-policies/:id/reactivate",
+            post(doubtful_account_allowance::reactivate_policy),
+        )
         // Aging Buckets
-        .route("/doubtful-account-policies/:policy_id/aging-buckets", post(doubtful_account_allowance::create_aging_bucket))
-        .route("/doubtful-account-policies/:policy_id/aging-buckets", get(doubtful_account_allowance::list_aging_buckets))
+        .route(
+            "/doubtful-account-policies/:policy_id/aging-buckets",
+            post(doubtful_account_allowance::create_aging_bucket),
+        )
+        .route(
+            "/doubtful-account-policies/:policy_id/aging-buckets",
+            get(doubtful_account_allowance::list_aging_buckets),
+        )
         // Provision Runs
-        .route("/doubtful-account-provision-runs", post(doubtful_account_allowance::create_provision_run))
-        .route("/doubtful-account-provision-runs", get(doubtful_account_allowance::list_provision_runs))
-        .route("/doubtful-account-provision-runs/number/:number", get(doubtful_account_allowance::get_provision_run_by_number))
-        .route("/doubtful-account-provision-runs/:id", get(doubtful_account_allowance::get_provision_run))
-        .route("/doubtful-account-provision-runs/:id/calculate", post(doubtful_account_allowance::calculate_provision))
-        .route("/doubtful-account-provision-runs/:id/post", post(doubtful_account_allowance::post_provision))
-        .route("/doubtful-account-provision-runs/:id/reverse", post(doubtful_account_allowance::reverse_provision))
-        .route("/doubtful-account-provision-runs/:id/cancel", post(doubtful_account_allowance::cancel_provision))
-        .route("/doubtful-account-provision-runs/:id/details", get(doubtful_account_allowance::list_provision_details))
-        .route("/doubtful-account-provision-runs/:id/activities", get(doubtful_account_allowance::list_run_activities))
+        .route(
+            "/doubtful-account-provision-runs",
+            post(doubtful_account_allowance::create_provision_run),
+        )
+        .route(
+            "/doubtful-account-provision-runs",
+            get(doubtful_account_allowance::list_provision_runs),
+        )
+        .route(
+            "/doubtful-account-provision-runs/number/:number",
+            get(doubtful_account_allowance::get_provision_run_by_number),
+        )
+        .route(
+            "/doubtful-account-provision-runs/:id",
+            get(doubtful_account_allowance::get_provision_run),
+        )
+        .route(
+            "/doubtful-account-provision-runs/:id/calculate",
+            post(doubtful_account_allowance::calculate_provision),
+        )
+        .route(
+            "/doubtful-account-provision-runs/:id/post",
+            post(doubtful_account_allowance::post_provision),
+        )
+        .route(
+            "/doubtful-account-provision-runs/:id/reverse",
+            post(doubtful_account_allowance::reverse_provision),
+        )
+        .route(
+            "/doubtful-account-provision-runs/:id/cancel",
+            post(doubtful_account_allowance::cancel_provision),
+        )
+        .route(
+            "/doubtful-account-provision-runs/:id/details",
+            get(doubtful_account_allowance::list_provision_details),
+        )
+        .route(
+            "/doubtful-account-provision-runs/:id/activities",
+            get(doubtful_account_allowance::list_run_activities),
+        )
         // Dashboard
-        .route("/doubtful-account/dashboard", get(doubtful_account_allowance::get_dashboard))
-
+        .route(
+            "/doubtful-account/dashboard",
+            get(doubtful_account_allowance::get_dashboard),
+        )
         // Invoice Matching (Oracle Fusion: Financials > Payables > Invoice Matching)
         .route("/invoice-matches", post(invoice_matching::create_match))
         .route("/invoice-matches", get(invoice_matching::list_matches))
-        .route("/invoice-matches/dashboard", get(invoice_matching::get_invoice_matching_dashboard))
+        .route(
+            "/invoice-matches/dashboard",
+            get(invoice_matching::get_invoice_matching_dashboard),
+        )
         .route("/invoice-matches/:id", get(invoice_matching::get_match))
-        .route("/invoice-matches/:id/hold", post(invoice_matching::hold_match))
-        .route("/invoice-matches/:id/override", post(invoice_matching::override_match))
-        .route("/invoice-matches/:id/confirm", post(invoice_matching::confirm_match))
-        .route("/invoice-matches/:id/cancel", post(invoice_matching::cancel_match))
-        .route("/invoice-matches/lines", post(invoice_matching::add_match_line))
-        .route("/invoice-matches/:id/lines", get(invoice_matching::list_match_lines))
-        .route("/invoice-matches/lines/:line_id/override", post(invoice_matching::override_match_line))
-
+        .route(
+            "/invoice-matches/:id/hold",
+            post(invoice_matching::hold_match),
+        )
+        .route(
+            "/invoice-matches/:id/override",
+            post(invoice_matching::override_match),
+        )
+        .route(
+            "/invoice-matches/:id/confirm",
+            post(invoice_matching::confirm_match),
+        )
+        .route(
+            "/invoice-matches/:id/cancel",
+            post(invoice_matching::cancel_match),
+        )
+        .route(
+            "/invoice-matches/lines",
+            post(invoice_matching::add_match_line),
+        )
+        .route(
+            "/invoice-matches/:id/lines",
+            get(invoice_matching::list_match_lines),
+        )
+        .route(
+            "/invoice-matches/lines/:line_id/override",
+            post(invoice_matching::override_match_line),
+        )
         // Distribution Sets (Oracle Fusion: Financials > Payables > Distribution Sets)
-        .route("/distribution-sets", post(distribution_set::create_distribution_set))
-        .route("/distribution-sets", get(distribution_set::list_distribution_sets))
-        .route("/distribution-sets/dashboard", get(distribution_set::get_distribution_set_dashboard))
-        .route("/distribution-sets/usage", get(distribution_set::list_distribution_set_usage))
-        .route("/distribution-sets/:id", get(distribution_set::get_distribution_set))
-        .route("/distribution-sets/:id/activate", post(distribution_set::activate_distribution_set))
-        .route("/distribution-sets/:id/deactivate", post(distribution_set::deactivate_distribution_set))
-        .route("/distribution-sets/:id", delete(distribution_set::delete_distribution_set))
-        .route("/distribution-sets/:set_id/lines", post(distribution_set::add_distribution_line))
-        .route("/distribution-sets/:set_id/lines", get(distribution_set::list_distribution_lines))
-        .route("/distribution-sets/lines/:line_id", delete(distribution_set::remove_distribution_line))
-        .route("/distribution-sets/:set_id/apply", post(distribution_set::apply_to_invoice))
-
+        .route(
+            "/distribution-sets",
+            post(distribution_set::create_distribution_set),
+        )
+        .route(
+            "/distribution-sets",
+            get(distribution_set::list_distribution_sets),
+        )
+        .route(
+            "/distribution-sets/dashboard",
+            get(distribution_set::get_distribution_set_dashboard),
+        )
+        .route(
+            "/distribution-sets/usage",
+            get(distribution_set::list_distribution_set_usage),
+        )
+        .route(
+            "/distribution-sets/:id",
+            get(distribution_set::get_distribution_set),
+        )
+        .route(
+            "/distribution-sets/:id/activate",
+            post(distribution_set::activate_distribution_set),
+        )
+        .route(
+            "/distribution-sets/:id/deactivate",
+            post(distribution_set::deactivate_distribution_set),
+        )
+        .route(
+            "/distribution-sets/:id",
+            delete(distribution_set::delete_distribution_set),
+        )
+        .route(
+            "/distribution-sets/:set_id/lines",
+            post(distribution_set::add_distribution_line),
+        )
+        .route(
+            "/distribution-sets/:set_id/lines",
+            get(distribution_set::list_distribution_lines),
+        )
+        .route(
+            "/distribution-sets/lines/:line_id",
+            delete(distribution_set::remove_distribution_line),
+        )
+        .route(
+            "/distribution-sets/:set_id/apply",
+            post(distribution_set::apply_to_invoice),
+        )
         // Cash Flow Statement routes
-        .route("/cash-flow-statements", post(cash_flow_statement::create_cash_flow_statement))
-        .route("/cash-flow-statements", get(cash_flow_statement::list_cash_flow_statements))
-        .route("/cash-flow-statements/dashboard", get(cash_flow_statement::get_cash_flow_statement_dashboard))
-        .route("/cash-flow-statements/:id", get(cash_flow_statement::get_cash_flow_statement))
-        .route("/cash-flow-statements/:id/calculate", post(cash_flow_statement::calculate_cash_flow_statement))
-        .route("/cash-flow-statements/:id/review", post(cash_flow_statement::review_cash_flow_statement))
-        .route("/cash-flow-statements/:id/publish", post(cash_flow_statement::publish_cash_flow_statement))
-        .route("/cash-flow-statements/:id/archive", post(cash_flow_statement::archive_cash_flow_statement))
-        .route("/cash-flow-statements/:statement_id/lines", post(cash_flow_statement::add_cash_flow_line))
-        .route("/cash-flow-statements/:statement_id/lines", get(cash_flow_statement::list_cash_flow_lines))
-        .route("/cash-flow-statements/lines/:line_id", delete(cash_flow_statement::remove_cash_flow_line))
-
+        .route(
+            "/cash-flow-statements",
+            post(cash_flow_statement::create_cash_flow_statement),
+        )
+        .route(
+            "/cash-flow-statements",
+            get(cash_flow_statement::list_cash_flow_statements),
+        )
+        .route(
+            "/cash-flow-statements/dashboard",
+            get(cash_flow_statement::get_cash_flow_statement_dashboard),
+        )
+        .route(
+            "/cash-flow-statements/:id",
+            get(cash_flow_statement::get_cash_flow_statement),
+        )
+        .route(
+            "/cash-flow-statements/:id/calculate",
+            post(cash_flow_statement::calculate_cash_flow_statement),
+        )
+        .route(
+            "/cash-flow-statements/:id/review",
+            post(cash_flow_statement::review_cash_flow_statement),
+        )
+        .route(
+            "/cash-flow-statements/:id/publish",
+            post(cash_flow_statement::publish_cash_flow_statement),
+        )
+        .route(
+            "/cash-flow-statements/:id/archive",
+            post(cash_flow_statement::archive_cash_flow_statement),
+        )
+        .route(
+            "/cash-flow-statements/:statement_id/lines",
+            post(cash_flow_statement::add_cash_flow_line),
+        )
+        .route(
+            "/cash-flow-statements/:statement_id/lines",
+            get(cash_flow_statement::list_cash_flow_lines),
+        )
+        .route(
+            "/cash-flow-statements/lines/:line_id",
+            delete(cash_flow_statement::remove_cash_flow_line),
+        )
         // Third-Party Payment routes
-        .route("/third-party-payments", post(third_party_payment::create_payment))
-        .route("/third-party-payments", get(third_party_payment::list_payments))
-        .route("/third-party-payments/dashboard", get(third_party_payment::get_dashboard))
-        .route("/third-party-payments/:id", get(third_party_payment::get_payment))
-        .route("/third-party-payments/:id/submit", post(third_party_payment::submit_payment))
-        .route("/third-party-payments/:id/approve", post(third_party_payment::approve_payment))
-        .route("/third-party-payments/:id/reject", post(third_party_payment::reject_payment))
-        .route("/third-party-payments/:id/hold", post(third_party_payment::place_on_hold))
-        .route("/third-party-payments/:id/release", post(third_party_payment::release_hold))
-        .route("/third-party-payments/:id/pay", post(third_party_payment::record_payment))
-        .route("/third-party-payments/:id/cancel", post(third_party_payment::cancel_payment))
-        .route("/third-party-payments/lines", post(third_party_payment::add_line))
-        .route("/third-party-payments/:id/lines", get(third_party_payment::list_lines))
-        .route("/third-party-payments/lines/:line_id", delete(third_party_payment::remove_line))
-
+        .route(
+            "/third-party-payments",
+            post(third_party_payment::create_payment),
+        )
+        .route(
+            "/third-party-payments",
+            get(third_party_payment::list_payments),
+        )
+        .route(
+            "/third-party-payments/dashboard",
+            get(third_party_payment::get_dashboard),
+        )
+        .route(
+            "/third-party-payments/:id",
+            get(third_party_payment::get_payment),
+        )
+        .route(
+            "/third-party-payments/:id/submit",
+            post(third_party_payment::submit_payment),
+        )
+        .route(
+            "/third-party-payments/:id/approve",
+            post(third_party_payment::approve_payment),
+        )
+        .route(
+            "/third-party-payments/:id/reject",
+            post(third_party_payment::reject_payment),
+        )
+        .route(
+            "/third-party-payments/:id/hold",
+            post(third_party_payment::place_on_hold),
+        )
+        .route(
+            "/third-party-payments/:id/release",
+            post(third_party_payment::release_hold),
+        )
+        .route(
+            "/third-party-payments/:id/pay",
+            post(third_party_payment::record_payment),
+        )
+        .route(
+            "/third-party-payments/:id/cancel",
+            post(third_party_payment::cancel_payment),
+        )
+        .route(
+            "/third-party-payments/lines",
+            post(third_party_payment::add_line),
+        )
+        .route(
+            "/third-party-payments/:id/lines",
+            get(third_party_payment::list_lines),
+        )
+        .route(
+            "/third-party-payments/lines/:line_id",
+            delete(third_party_payment::remove_line),
+        )
         // ════════════════════════════════════════════════════════════════════════════════
         // Automatic Offsets (Intercompany Balancing) (Oracle Fusion GL > Automatic Offsets)
         // ════════════════════════════════════════════════════════════════════════════════
-
         // Offset Templates
-        .route("/auto-offsets/templates", post(auto_offset::create_offset_template))
-        .route("/auto-offsets/templates", get(auto_offset::list_offset_templates))
-        .route("/auto-offsets/templates/:id", get(auto_offset::get_offset_template))
-        .route("/auto-offsets/templates/:id/activate", post(auto_offset::activate_offset_template))
-        .route("/auto-offsets/templates/:id/deactivate", post(auto_offset::deactivate_offset_template))
-        .route("/auto-offsets/templates/:id", delete(auto_offset::delete_offset_template))
-
+        .route(
+            "/auto-offsets/templates",
+            post(auto_offset::create_offset_template),
+        )
+        .route(
+            "/auto-offsets/templates",
+            get(auto_offset::list_offset_templates),
+        )
+        .route(
+            "/auto-offsets/templates/:id",
+            get(auto_offset::get_offset_template),
+        )
+        .route(
+            "/auto-offsets/templates/:id/activate",
+            post(auto_offset::activate_offset_template),
+        )
+        .route(
+            "/auto-offsets/templates/:id/deactivate",
+            post(auto_offset::deactivate_offset_template),
+        )
+        .route(
+            "/auto-offsets/templates/:id",
+            delete(auto_offset::delete_offset_template),
+        )
         // Template Lines
-        .route("/auto-offsets/templates/:template_id/lines", post(auto_offset::add_offset_template_line))
-        .route("/auto-offsets/templates/:template_id/lines", get(auto_offset::list_offset_template_lines))
-        .route("/auto-offsets/template-lines/:line_id", delete(auto_offset::delete_offset_template_line))
-
+        .route(
+            "/auto-offsets/templates/:template_id/lines",
+            post(auto_offset::add_offset_template_line),
+        )
+        .route(
+            "/auto-offsets/templates/:template_id/lines",
+            get(auto_offset::list_offset_template_lines),
+        )
+        .route(
+            "/auto-offsets/template-lines/:line_id",
+            delete(auto_offset::delete_offset_template_line),
+        )
         // Offset Generation
-        .route("/auto-offsets/generate", post(auto_offset::generate_offsets))
-        .route("/auto-offsets/generations", get(auto_offset::list_offset_generations))
-        .route("/auto-offsets/generations/:id", get(auto_offset::get_offset_generation))
-        .route("/auto-offsets/generations/:id/post", post(auto_offset::post_offset_generation))
-        .route("/auto-offsets/generations/:id/reverse", post(auto_offset::reverse_offset_generation))
-        .route("/auto-offsets/generations/:id/cancel", post(auto_offset::cancel_offset_generation))
-
+        .route(
+            "/auto-offsets/generate",
+            post(auto_offset::generate_offsets),
+        )
+        .route(
+            "/auto-offsets/generations",
+            get(auto_offset::list_offset_generations),
+        )
+        .route(
+            "/auto-offsets/generations/:id",
+            get(auto_offset::get_offset_generation),
+        )
+        .route(
+            "/auto-offsets/generations/:id/post",
+            post(auto_offset::post_offset_generation),
+        )
+        .route(
+            "/auto-offsets/generations/:id/reverse",
+            post(auto_offset::reverse_offset_generation),
+        )
+        .route(
+            "/auto-offsets/generations/:id/cancel",
+            post(auto_offset::cancel_offset_generation),
+        )
         // Offset Lines & Activities
-        .route("/auto-offsets/generations/:generation_id/lines", get(auto_offset::list_offset_lines))
-        .route("/auto-offsets/generations/:generation_id/activities", get(auto_offset::list_offset_activities))
-
+        .route(
+            "/auto-offsets/generations/:generation_id/lines",
+            get(auto_offset::list_offset_lines),
+        )
+        .route(
+            "/auto-offsets/generations/:generation_id/activities",
+            get(auto_offset::list_offset_activities),
+        )
         // Dashboard
-        .route("/auto-offsets/dashboard", get(auto_offset::get_auto_offset_dashboard))
-
+        .route(
+            "/auto-offsets/dashboard",
+            get(auto_offset::get_auto_offset_dashboard),
+        )
         // ════════════════════════════════════════════════════════════════════════════════
         // Average Balance Processing (Oracle Fusion GL > Average Balances)
         // ════════════════════════════════════════════════════════════════════════════════
-
         // Books
         .route("/avg-balance/books", post(average_balance::create_book))
         .route("/avg-balance/books", get(average_balance::list_books))
         .route("/avg-balance/books/:id", get(average_balance::get_book))
-        .route("/avg-balance/books/:id/activate", post(average_balance::activate_book))
-        .route("/avg-balance/books/:id/deactivate", post(average_balance::deactivate_book))
-        .route("/avg-balance/books/:id", delete(average_balance::delete_book))
-
+        .route(
+            "/avg-balance/books/:id/activate",
+            post(average_balance::activate_book),
+        )
+        .route(
+            "/avg-balance/books/:id/deactivate",
+            post(average_balance::deactivate_book),
+        )
+        .route(
+            "/avg-balance/books/:id",
+            delete(average_balance::delete_book),
+        )
         // Book Accounts
-        .route("/avg-balance/books/:book_id/accounts", post(average_balance::add_account))
-        .route("/avg-balance/books/:book_id/accounts", get(average_balance::list_accounts))
-        .route("/avg-balance/accounts/:account_id", delete(average_balance::remove_account))
-
+        .route(
+            "/avg-balance/books/:book_id/accounts",
+            post(average_balance::add_account),
+        )
+        .route(
+            "/avg-balance/books/:book_id/accounts",
+            get(average_balance::list_accounts),
+        )
+        .route(
+            "/avg-balance/accounts/:account_id",
+            delete(average_balance::remove_account),
+        )
         // Daily Balances
-        .route("/avg-balance/books/:book_id/daily-balances", post(average_balance::upsert_daily_balance))
-        .route("/avg-balance/books/:book_id/daily-balances", get(average_balance::list_daily_balances))
-
+        .route(
+            "/avg-balance/books/:book_id/daily-balances",
+            post(average_balance::upsert_daily_balance),
+        )
+        .route(
+            "/avg-balance/books/:book_id/daily-balances",
+            get(average_balance::list_daily_balances),
+        )
         // Calculations
-        .route("/avg-balance/books/:book_id/calculate", post(average_balance::calculate_average_balance))
-        .route("/avg-balance/calculations/:id", get(average_balance::get_calculation))
-        .route("/avg-balance/books/:book_id/calculations", get(average_balance::list_calculations))
-        .route("/avg-balance/calculations/:id/approve", post(average_balance::approve_calculation))
-        .route("/avg-balance/calculations/:id/post", post(average_balance::post_calculation))
-
+        .route(
+            "/avg-balance/books/:book_id/calculate",
+            post(average_balance::calculate_average_balance),
+        )
+        .route(
+            "/avg-balance/calculations/:id",
+            get(average_balance::get_calculation),
+        )
+        .route(
+            "/avg-balance/books/:book_id/calculations",
+            get(average_balance::list_calculations),
+        )
+        .route(
+            "/avg-balance/calculations/:id/approve",
+            post(average_balance::approve_calculation),
+        )
+        .route(
+            "/avg-balance/calculations/:id/post",
+            post(average_balance::post_calculation),
+        )
         // Dashboard
-        .route("/avg-balance/dashboard", get(average_balance::get_dashboard))
-
+        .route(
+            "/avg-balance/dashboard",
+            get(average_balance::get_dashboard),
+        )
         // ════════════════════════════════════════════════════════════════════════════════
         // Cash Receipt Management (Oracle Fusion AR > Receipts)
         // ════════════════════════════════════════════════════════════════════════════════
-
         // Receipt Batches
         .route("/cash-receipts/batches", post(cash_receipt::create_batch))
         .route("/cash-receipts/batches", get(cash_receipt::list_batches))
         .route("/cash-receipts/batches/:id", get(cash_receipt::get_batch))
-        .route("/cash-receipts/batches/:id/confirm", post(cash_receipt::confirm_batch))
-        .route("/cash-receipts/batches/:id/close", post(cash_receipt::close_batch))
-        .route("/cash-receipts/batches/:id/cancel", post(cash_receipt::cancel_batch))
-        .route("/cash-receipts/batches/:id", delete(cash_receipt::delete_batch))
-
+        .route(
+            "/cash-receipts/batches/:id/confirm",
+            post(cash_receipt::confirm_batch),
+        )
+        .route(
+            "/cash-receipts/batches/:id/close",
+            post(cash_receipt::close_batch),
+        )
+        .route(
+            "/cash-receipts/batches/:id/cancel",
+            post(cash_receipt::cancel_batch),
+        )
+        .route(
+            "/cash-receipts/batches/:id",
+            delete(cash_receipt::delete_batch),
+        )
         // Cash Receipts
         .route("/cash-receipts", post(cash_receipt::create_receipt))
         .route("/cash-receipts", get(cash_receipt::list_receipts))
         .route("/cash-receipts/:id", get(cash_receipt::get_receipt))
-        .route("/cash-receipts/:id/identify", post(cash_receipt::identify_receipt))
-        .route("/cash-receipts/:id/reverse", post(cash_receipt::reverse_receipt))
-
+        .route(
+            "/cash-receipts/:id/identify",
+            post(cash_receipt::identify_receipt),
+        )
+        .route(
+            "/cash-receipts/:id/reverse",
+            post(cash_receipt::reverse_receipt),
+        )
         // Receipt Applications
-        .route("/cash-receipts/applications", post(cash_receipt::apply_receipt))
-        .route("/cash-receipts/:receipt_id/applications", get(cash_receipt::list_applications))
-        .route("/cash-receipts/applications/:id/unapply", post(cash_receipt::unapply_receipt))
-
+        .route(
+            "/cash-receipts/applications",
+            post(cash_receipt::apply_receipt),
+        )
+        .route(
+            "/cash-receipts/:receipt_id/applications",
+            get(cash_receipt::list_applications),
+        )
+        .route(
+            "/cash-receipts/applications/:id/unapply",
+            post(cash_receipt::unapply_receipt),
+        )
         // Dashboard
         .route("/cash-receipts/dashboard", get(cash_receipt::get_dashboard))
-
         // ════════════════════════════════════════════════════════════════════════════════
         // Statistical Accounting (Oracle Fusion GL > Statistical Accounting)
         // ════════════════════════════════════════════════════════════════════════════════
-
         // Units
-        .route("/statistical-units", post(statistical_accounting::create_unit))
-        .route("/statistical-units", get(statistical_accounting::list_units))
-        .route("/statistical-units/code/:code", get(statistical_accounting::get_unit_by_code))
-        .route("/statistical-units/:id", get(statistical_accounting::get_unit))
-        .route("/statistical-units/:id/activate", post(statistical_accounting::activate_unit))
-        .route("/statistical-units/:id/deactivate", post(statistical_accounting::deactivate_unit))
-
+        .route(
+            "/statistical-units",
+            post(statistical_accounting::create_unit),
+        )
+        .route(
+            "/statistical-units",
+            get(statistical_accounting::list_units),
+        )
+        .route(
+            "/statistical-units/code/:code",
+            get(statistical_accounting::get_unit_by_code),
+        )
+        .route(
+            "/statistical-units/:id",
+            get(statistical_accounting::get_unit),
+        )
+        .route(
+            "/statistical-units/:id/activate",
+            post(statistical_accounting::activate_unit),
+        )
+        .route(
+            "/statistical-units/:id/deactivate",
+            post(statistical_accounting::deactivate_unit),
+        )
         // Entries
-        .route("/statistical-entries", post(statistical_accounting::create_entry))
-        .route("/statistical-entries", get(statistical_accounting::list_entries))
-        .route("/statistical-entries/:id", get(statistical_accounting::get_entry))
-        .route("/statistical-entries/:id/post", post(statistical_accounting::post_entry))
-        .route("/statistical-entries/:id/reverse", post(statistical_accounting::reverse_entry))
-
+        .route(
+            "/statistical-entries",
+            post(statistical_accounting::create_entry),
+        )
+        .route(
+            "/statistical-entries",
+            get(statistical_accounting::list_entries),
+        )
+        .route(
+            "/statistical-entries/:id",
+            get(statistical_accounting::get_entry),
+        )
+        .route(
+            "/statistical-entries/:id/post",
+            post(statistical_accounting::post_entry),
+        )
+        .route(
+            "/statistical-entries/:id/reverse",
+            post(statistical_accounting::reverse_entry),
+        )
         // Balance
-        .route("/statistical-balances", get(statistical_accounting::get_balance))
-
+        .route(
+            "/statistical-balances",
+            get(statistical_accounting::get_balance),
+        )
         // Dashboard
-        .route("/statistical-accounting/dashboard", get(statistical_accounting::get_dashboard))
-
+        .route(
+            "/statistical-accounting/dashboard",
+            get(statistical_accounting::get_dashboard),
+        )
         // ════════════════════════════════════════════════════════════════════════════════
         // Receivables Factoring (Oracle Fusion: Treasury > Receivables Factoring)
         // ════════════════════════════════════════════════════════════════════════════════
-
         // Factor Companies
-        .route("/factoring/factor-companies", post(receivables_factoring::create_factor_company))
-        .route("/factoring/factor-companies", get(receivables_factoring::list_factor_companies))
-        .route("/factoring/factor-companies/code/:code", get(receivables_factoring::get_factor_company_by_code))
-        .route("/factoring/factor-companies/:id", get(receivables_factoring::get_factor_company))
-        .route("/factoring/factor-companies/:id/deactivate", post(receivables_factoring::deactivate_factor_company))
-        .route("/factoring/factor-companies/:id/activate", post(receivables_factoring::activate_factor_company))
-
+        .route(
+            "/factoring/factor-companies",
+            post(receivables_factoring::create_factor_company),
+        )
+        .route(
+            "/factoring/factor-companies",
+            get(receivables_factoring::list_factor_companies),
+        )
+        .route(
+            "/factoring/factor-companies/code/:code",
+            get(receivables_factoring::get_factor_company_by_code),
+        )
+        .route(
+            "/factoring/factor-companies/:id",
+            get(receivables_factoring::get_factor_company),
+        )
+        .route(
+            "/factoring/factor-companies/:id/deactivate",
+            post(receivables_factoring::deactivate_factor_company),
+        )
+        .route(
+            "/factoring/factor-companies/:id/activate",
+            post(receivables_factoring::activate_factor_company),
+        )
         // Factoring Agreements
-        .route("/factoring/agreements", post(receivables_factoring::create_agreement))
-        .route("/factoring/agreements", get(receivables_factoring::list_agreements))
-        .route("/factoring/agreements/:id", get(receivables_factoring::get_agreement))
-        .route("/factoring/agreements/:id/activate", post(receivables_factoring::activate_agreement))
-        .route("/factoring/agreements/:id/suspend", post(receivables_factoring::suspend_agreement))
-        .route("/factoring/agreements/:id/terminate", post(receivables_factoring::terminate_agreement))
-
+        .route(
+            "/factoring/agreements",
+            post(receivables_factoring::create_agreement),
+        )
+        .route(
+            "/factoring/agreements",
+            get(receivables_factoring::list_agreements),
+        )
+        .route(
+            "/factoring/agreements/:id",
+            get(receivables_factoring::get_agreement),
+        )
+        .route(
+            "/factoring/agreements/:id/activate",
+            post(receivables_factoring::activate_agreement),
+        )
+        .route(
+            "/factoring/agreements/:id/suspend",
+            post(receivables_factoring::suspend_agreement),
+        )
+        .route(
+            "/factoring/agreements/:id/terminate",
+            post(receivables_factoring::terminate_agreement),
+        )
         // Factoring Requests
-        .route("/factoring/requests", post(receivables_factoring::create_factoring_request))
-        .route("/factoring/requests", get(receivables_factoring::list_factoring_requests))
-        .route("/factoring/requests/:id", get(receivables_factoring::get_factoring_request))
-        .route("/factoring/requests/:id/submit", post(receivables_factoring::submit_factoring_request))
-        .route("/factoring/requests/:id/approve", post(receivables_factoring::approve_factoring_request))
-        .route("/factoring/requests/:id/fund", post(receivables_factoring::fund_factoring_request))
-        .route("/factoring/requests/:id/settle", post(receivables_factoring::settle_factoring_request))
-        .route("/factoring/requests/:id/cancel", post(receivables_factoring::cancel_factoring_request))
-
+        .route(
+            "/factoring/requests",
+            post(receivables_factoring::create_factoring_request),
+        )
+        .route(
+            "/factoring/requests",
+            get(receivables_factoring::list_factoring_requests),
+        )
+        .route(
+            "/factoring/requests/:id",
+            get(receivables_factoring::get_factoring_request),
+        )
+        .route(
+            "/factoring/requests/:id/submit",
+            post(receivables_factoring::submit_factoring_request),
+        )
+        .route(
+            "/factoring/requests/:id/approve",
+            post(receivables_factoring::approve_factoring_request),
+        )
+        .route(
+            "/factoring/requests/:id/fund",
+            post(receivables_factoring::fund_factoring_request),
+        )
+        .route(
+            "/factoring/requests/:id/settle",
+            post(receivables_factoring::settle_factoring_request),
+        )
+        .route(
+            "/factoring/requests/:id/cancel",
+            post(receivables_factoring::cancel_factoring_request),
+        )
         // Request Lines
-        .route("/factoring/requests/:request_id/lines", post(receivables_factoring::add_request_line))
-        .route("/factoring/requests/:request_id/lines", get(receivables_factoring::list_request_lines))
-
+        .route(
+            "/factoring/requests/:request_id/lines",
+            post(receivables_factoring::add_request_line),
+        )
+        .route(
+            "/factoring/requests/:request_id/lines",
+            get(receivables_factoring::list_request_lines),
+        )
         // Settlements
-        .route("/factoring/settlements", post(receivables_factoring::create_settlement))
-        .route("/factoring/settlements", get(receivables_factoring::list_settlements))
-        .route("/factoring/settlements/:id/process", post(receivables_factoring::process_settlement))
-
+        .route(
+            "/factoring/settlements",
+            post(receivables_factoring::create_settlement),
+        )
+        .route(
+            "/factoring/settlements",
+            get(receivables_factoring::list_settlements),
+        )
+        .route(
+            "/factoring/settlements/:id/process",
+            post(receivables_factoring::process_settlement),
+        )
         // Dashboard
-        .route("/factoring/dashboard", get(receivables_factoring::get_factoring_dashboard))
-
+        .route(
+            "/factoring/dashboard",
+            get(receivables_factoring::get_factoring_dashboard),
+        )
         // ========================================================================
         // Document Sequencing (Oracle Fusion: GL > Setup > Document Sequencing)
         // ========================================================================
-        .route("/document-sequences", post(document_sequencing::create_sequence))
-        .route("/document-sequences", get(document_sequencing::list_sequences))
-        .route("/document-sequences/code/:code", get(document_sequencing::get_sequence_by_code))
-        .route("/document-sequences/code/:code", delete(document_sequencing::delete_sequence))
-        .route("/document-sequences/:id", get(document_sequencing::get_sequence))
-        .route("/document-sequences/:id/activate", post(document_sequencing::activate_sequence))
-        .route("/document-sequences/:id/deactivate", post(document_sequencing::deactivate_sequence))
-        .route("/document-sequences/generate", post(document_sequencing::generate_number))
-        .route("/document-sequences/generate-direct", post(document_sequencing::generate_number_direct))
-        .route("/document-sequences/assignments", post(document_sequencing::create_assignment))
-        .route("/document-sequences/assignments", get(document_sequencing::list_assignments))
-        .route("/document-sequences/assignments/:id", get(document_sequencing::get_assignment))
-        .route("/document-sequences/assignments/:id/deactivate", post(document_sequencing::deactivate_assignment))
-        .route("/document-sequences/assignments/:id", delete(document_sequencing::delete_assignment))
-        .route("/document-sequences/audit", get(document_sequencing::list_audit_entries))
-        .route("/document-sequences/audit/:document_id", get(document_sequencing::get_audit_by_document))
-        .route("/document-sequences/dashboard", get(document_sequencing::get_document_sequencing_dashboard))
-
+        .route(
+            "/document-sequences",
+            post(document_sequencing::create_sequence),
+        )
+        .route(
+            "/document-sequences",
+            get(document_sequencing::list_sequences),
+        )
+        .route(
+            "/document-sequences/code/:code",
+            get(document_sequencing::get_sequence_by_code),
+        )
+        .route(
+            "/document-sequences/code/:code",
+            delete(document_sequencing::delete_sequence),
+        )
+        .route(
+            "/document-sequences/:id",
+            get(document_sequencing::get_sequence),
+        )
+        .route(
+            "/document-sequences/:id/activate",
+            post(document_sequencing::activate_sequence),
+        )
+        .route(
+            "/document-sequences/:id/deactivate",
+            post(document_sequencing::deactivate_sequence),
+        )
+        .route(
+            "/document-sequences/generate",
+            post(document_sequencing::generate_number),
+        )
+        .route(
+            "/document-sequences/generate-direct",
+            post(document_sequencing::generate_number_direct),
+        )
+        .route(
+            "/document-sequences/assignments",
+            post(document_sequencing::create_assignment),
+        )
+        .route(
+            "/document-sequences/assignments",
+            get(document_sequencing::list_assignments),
+        )
+        .route(
+            "/document-sequences/assignments/:id",
+            get(document_sequencing::get_assignment),
+        )
+        .route(
+            "/document-sequences/assignments/:id/deactivate",
+            post(document_sequencing::deactivate_assignment),
+        )
+        .route(
+            "/document-sequences/assignments/:id",
+            delete(document_sequencing::delete_assignment),
+        )
+        .route(
+            "/document-sequences/audit",
+            get(document_sequencing::list_audit_entries),
+        )
+        .route(
+            "/document-sequences/audit/:document_id",
+            get(document_sequencing::get_audit_by_document),
+        )
+        .route(
+            "/document-sequences/dashboard",
+            get(document_sequencing::get_document_sequencing_dashboard),
+        )
         // ========================================================================
         // Transaction Calendars (Oracle Fusion: GL > Setup > Transaction Calendars)
         // ========================================================================
-        .route("/transaction-calendars", post(transaction_calendar::create_calendar))
-        .route("/transaction-calendars", get(transaction_calendar::list_calendars))
-        .route("/transaction-calendars/code/:code", get(transaction_calendar::get_calendar_by_code))
-        .route("/transaction-calendars/code/:code", delete(transaction_calendar::delete_calendar))
-        .route("/transaction-calendars/:id", get(transaction_calendar::get_calendar))
-        .route("/transaction-calendars/:id/activate", post(transaction_calendar::activate_calendar))
-        .route("/transaction-calendars/:id/deactivate", post(transaction_calendar::deactivate_calendar))
-        .route("/transaction-calendars/:id/exceptions", post(transaction_calendar::create_exception))
-        .route("/transaction-calendars/:id/exceptions", get(transaction_calendar::list_exceptions))
-        .route("/transaction-calendars/:id/exceptions/range", get(transaction_calendar::list_exceptions_range))
-        .route("/transaction-calendars/:calendar_id/is-business-day", post(transaction_calendar::is_business_day))
-        .route("/transaction-calendars/:calendar_id/next-business-day", post(transaction_calendar::next_business_day))
-        .route("/transaction-calendars/:calendar_id/previous-business-day", post(transaction_calendar::previous_business_day))
-        .route("/transaction-calendars/:calendar_id/add-business-days", post(transaction_calendar::add_business_days))
-        .route("/transaction-calendars/calculations", get(transaction_calendar::list_calculations))
-        .route("/transaction-calendars/dashboard", get(transaction_calendar::get_transaction_calendar_dashboard))
-        .route("/transaction-calendars/exceptions/:id", delete(transaction_calendar::delete_exception))
-
+        .route(
+            "/transaction-calendars",
+            post(transaction_calendar::create_calendar),
+        )
+        .route(
+            "/transaction-calendars",
+            get(transaction_calendar::list_calendars),
+        )
+        .route(
+            "/transaction-calendars/code/:code",
+            get(transaction_calendar::get_calendar_by_code),
+        )
+        .route(
+            "/transaction-calendars/code/:code",
+            delete(transaction_calendar::delete_calendar),
+        )
+        .route(
+            "/transaction-calendars/:id",
+            get(transaction_calendar::get_calendar),
+        )
+        .route(
+            "/transaction-calendars/:id/activate",
+            post(transaction_calendar::activate_calendar),
+        )
+        .route(
+            "/transaction-calendars/:id/deactivate",
+            post(transaction_calendar::deactivate_calendar),
+        )
+        .route(
+            "/transaction-calendars/:id/exceptions",
+            post(transaction_calendar::create_exception),
+        )
+        .route(
+            "/transaction-calendars/:id/exceptions",
+            get(transaction_calendar::list_exceptions),
+        )
+        .route(
+            "/transaction-calendars/:id/exceptions/range",
+            get(transaction_calendar::list_exceptions_range),
+        )
+        .route(
+            "/transaction-calendars/:calendar_id/is-business-day",
+            post(transaction_calendar::is_business_day),
+        )
+        .route(
+            "/transaction-calendars/:calendar_id/next-business-day",
+            post(transaction_calendar::next_business_day),
+        )
+        .route(
+            "/transaction-calendars/:calendar_id/previous-business-day",
+            post(transaction_calendar::previous_business_day),
+        )
+        .route(
+            "/transaction-calendars/:calendar_id/add-business-days",
+            post(transaction_calendar::add_business_days),
+        )
+        .route(
+            "/transaction-calendars/calculations",
+            get(transaction_calendar::list_calculations),
+        )
+        .route(
+            "/transaction-calendars/dashboard",
+            get(transaction_calendar::get_transaction_calendar_dashboard),
+        )
+        .route(
+            "/transaction-calendars/exceptions/:id",
+            delete(transaction_calendar::delete_exception),
+        )
         // ========================================================================
         // Asset Retirement (Oracle Fusion: Fixed Assets > Asset Retirements)
         // ========================================================================
-        .route("/asset-retirements", post(asset_retirement::create_retirement))
-        .route("/asset-retirements", get(asset_retirement::list_retirements))
-        .route("/asset-retirements/dashboard", get(asset_retirement::get_retirement_dashboard))
-        .route("/asset-retirements/:id", get(asset_retirement::get_retirement))
-        .route("/asset-retirements/:id/approve", post(asset_retirement::approve_retirement))
-        .route("/asset-retirements/:id/complete", post(asset_retirement::complete_retirement))
-        .route("/asset-retirements/:id/reverse", post(asset_retirement::reverse_retirement))
-        .route("/asset-retirements/:id/cancel", post(asset_retirement::cancel_retirement))
-
+        .route(
+            "/asset-retirements",
+            post(asset_retirement::create_retirement),
+        )
+        .route(
+            "/asset-retirements",
+            get(asset_retirement::list_retirements),
+        )
+        .route(
+            "/asset-retirements/dashboard",
+            get(asset_retirement::get_retirement_dashboard),
+        )
+        .route(
+            "/asset-retirements/:id",
+            get(asset_retirement::get_retirement),
+        )
+        .route(
+            "/asset-retirements/:id/approve",
+            post(asset_retirement::approve_retirement),
+        )
+        .route(
+            "/asset-retirements/:id/complete",
+            post(asset_retirement::complete_retirement),
+        )
+        .route(
+            "/asset-retirements/:id/reverse",
+            post(asset_retirement::reverse_retirement),
+        )
+        .route(
+            "/asset-retirements/:id/cancel",
+            post(asset_retirement::cancel_retirement),
+        )
         // ════════════════════════════════════════════════════════════════════════════════
         // Direct Debit Mandate Management (Oracle Fusion AR > Direct Debit Mandates)
         // ════════════════════════════════════════════════════════════════════════════════
-
         // Mandates
-        .route("/direct-debit-mandates", post(direct_debit_mandate::create_mandate))
-        .route("/direct-debit-mandates", get(direct_debit_mandate::list_mandates))
-        .route("/direct-debit-mandates/:id", get(direct_debit_mandate::get_mandate))
-        .route("/direct-debit-mandates/:id/activate", post(direct_debit_mandate::activate_mandate))
-        .route("/direct-debit-mandates/:id/cancel", post(direct_debit_mandate::cancel_mandate))
-        .route("/direct-debit-mandates/:id/revoke", post(direct_debit_mandate::revoke_mandate))
-
+        .route(
+            "/direct-debit-mandates",
+            post(direct_debit_mandate::create_mandate),
+        )
+        .route(
+            "/direct-debit-mandates",
+            get(direct_debit_mandate::list_mandates),
+        )
+        .route(
+            "/direct-debit-mandates/:id",
+            get(direct_debit_mandate::get_mandate),
+        )
+        .route(
+            "/direct-debit-mandates/:id/activate",
+            post(direct_debit_mandate::activate_mandate),
+        )
+        .route(
+            "/direct-debit-mandates/:id/cancel",
+            post(direct_debit_mandate::cancel_mandate),
+        )
+        .route(
+            "/direct-debit-mandates/:id/revoke",
+            post(direct_debit_mandate::revoke_mandate),
+        )
         // Collections
-        .route("/direct-debit-collections", post(direct_debit_mandate::create_collection))
-        .route("/direct-debit-collections/:id", get(direct_debit_mandate::get_collection))
-        .route("/direct-debit-collections/:id/submit", post(direct_debit_mandate::submit_collection))
-        .route("/direct-debit-collections/:id/complete", post(direct_debit_mandate::complete_collection))
-        .route("/direct-debit-collections/:id/fail", post(direct_debit_mandate::fail_collection))
-        .route("/direct-debit-collections/:id/return", post(direct_debit_mandate::return_collection))
-        .route("/direct-debit-collections/:id/reverse", post(direct_debit_mandate::reverse_collection))
-        .route("/direct-debit-mandates/:mandate_id/collections", get(direct_debit_mandate::list_collections))
-
+        .route(
+            "/direct-debit-collections",
+            post(direct_debit_mandate::create_collection),
+        )
+        .route(
+            "/direct-debit-collections/:id",
+            get(direct_debit_mandate::get_collection),
+        )
+        .route(
+            "/direct-debit-collections/:id/submit",
+            post(direct_debit_mandate::submit_collection),
+        )
+        .route(
+            "/direct-debit-collections/:id/complete",
+            post(direct_debit_mandate::complete_collection),
+        )
+        .route(
+            "/direct-debit-collections/:id/fail",
+            post(direct_debit_mandate::fail_collection),
+        )
+        .route(
+            "/direct-debit-collections/:id/return",
+            post(direct_debit_mandate::return_collection),
+        )
+        .route(
+            "/direct-debit-collections/:id/reverse",
+            post(direct_debit_mandate::reverse_collection),
+        )
+        .route(
+            "/direct-debit-mandates/:mandate_id/collections",
+            get(direct_debit_mandate::list_collections),
+        )
         // Dashboard
-        .route("/direct-debit-mandates/dashboard", get(direct_debit_mandate::get_dashboard))
-
+        .route(
+            "/direct-debit-mandates/dashboard",
+            get(direct_debit_mandate::get_dashboard),
+        )
         // ═══════════════════════════════════════════════════════
         // Multi-Period Accounting (Oracle Fusion: GL > Multi-Period Accounting)
         // ═══════════════════════════════════════════════════════
-
         // MPA Templates
-        .route("/mpa/templates", post(multi_period_accounting::create_template))
-        .route("/mpa/templates", get(multi_period_accounting::list_templates))
-        .route("/mpa/templates/:id", get(multi_period_accounting::get_template))
-        .route("/mpa/templates/:id/activate", post(multi_period_accounting::activate_template))
-        .route("/mpa/templates/:id/deactivate", post(multi_period_accounting::deactivate_template))
-        .route("/mpa/templates/:template_id/lines", post(multi_period_accounting::add_template_line))
-        .route("/mpa/templates/:template_id/lines", get(multi_period_accounting::list_template_lines))
-
+        .route(
+            "/mpa/templates",
+            post(multi_period_accounting::create_template),
+        )
+        .route(
+            "/mpa/templates",
+            get(multi_period_accounting::list_templates),
+        )
+        .route(
+            "/mpa/templates/:id",
+            get(multi_period_accounting::get_template),
+        )
+        .route(
+            "/mpa/templates/:id/activate",
+            post(multi_period_accounting::activate_template),
+        )
+        .route(
+            "/mpa/templates/:id/deactivate",
+            post(multi_period_accounting::deactivate_template),
+        )
+        .route(
+            "/mpa/templates/:template_id/lines",
+            post(multi_period_accounting::add_template_line),
+        )
+        .route(
+            "/mpa/templates/:template_id/lines",
+            get(multi_period_accounting::list_template_lines),
+        )
         // MPA Schedules
-        .route("/mpa/schedules", post(multi_period_accounting::create_schedule))
-        .route("/mpa/schedules", get(multi_period_accounting::list_schedules))
-        .route("/mpa/schedules/:id", get(multi_period_accounting::get_schedule))
-        .route("/mpa/schedules/:id/activate", post(multi_period_accounting::activate_schedule))
-        .route("/mpa/schedules/:id/hold", post(multi_period_accounting::hold_schedule))
-        .route("/mpa/schedules/:id/cancel", post(multi_period_accounting::cancel_schedule))
-
+        .route(
+            "/mpa/schedules",
+            post(multi_period_accounting::create_schedule),
+        )
+        .route(
+            "/mpa/schedules",
+            get(multi_period_accounting::list_schedules),
+        )
+        .route(
+            "/mpa/schedules/:id",
+            get(multi_period_accounting::get_schedule),
+        )
+        .route(
+            "/mpa/schedules/:id/activate",
+            post(multi_period_accounting::activate_schedule),
+        )
+        .route(
+            "/mpa/schedules/:id/hold",
+            post(multi_period_accounting::hold_schedule),
+        )
+        .route(
+            "/mpa/schedules/:id/cancel",
+            post(multi_period_accounting::cancel_schedule),
+        )
         // MPA Schedule Lines
-        .route("/mpa/schedules/:schedule_id/lines", get(multi_period_accounting::list_schedule_lines))
-        .route("/mpa/lines/:line_id/recognize", post(multi_period_accounting::recognize_line))
-        .route("/mpa/lines/:line_id/reverse", post(multi_period_accounting::reverse_line))
-
+        .route(
+            "/mpa/schedules/:schedule_id/lines",
+            get(multi_period_accounting::list_schedule_lines),
+        )
+        .route(
+            "/mpa/lines/:line_id/recognize",
+            post(multi_period_accounting::recognize_line),
+        )
+        .route(
+            "/mpa/lines/:line_id/reverse",
+            post(multi_period_accounting::reverse_line),
+        )
         // MPA Dashboard
-        .route("/mpa/dashboard", get(multi_period_accounting::get_dashboard))
-
+        .route(
+            "/mpa/dashboard",
+            get(multi_period_accounting::get_dashboard),
+        )
         // ════════════════════════════════════════════════════════════════════════════════
         // Dunning Letter Management (Oracle Fusion: AR > Dunning Letters)
         // ════════════════════════════════════════════════════════════════════════════════
-
         // Letter Sets
-        .route("/dunning/letter-sets", post(dunning_letter_management::create_letter_set))
-        .route("/dunning/letter-sets", get(dunning_letter_management::list_letter_sets))
-        .route("/dunning/letter-sets/:id", get(dunning_letter_management::get_letter_set))
-        .route("/dunning/letter-sets/:id/activate", post(dunning_letter_management::activate_letter_set))
-        .route("/dunning/letter-sets/:id/deactivate", post(dunning_letter_management::deactivate_letter_set))
-
+        .route(
+            "/dunning/letter-sets",
+            post(dunning_letter_management::create_letter_set),
+        )
+        .route(
+            "/dunning/letter-sets",
+            get(dunning_letter_management::list_letter_sets),
+        )
+        .route(
+            "/dunning/letter-sets/:id",
+            get(dunning_letter_management::get_letter_set),
+        )
+        .route(
+            "/dunning/letter-sets/:id/activate",
+            post(dunning_letter_management::activate_letter_set),
+        )
+        .route(
+            "/dunning/letter-sets/:id/deactivate",
+            post(dunning_letter_management::deactivate_letter_set),
+        )
         // Letter Set Lines
-        .route("/dunning/letter-sets/:set_id/lines", post(dunning_letter_management::add_letter_set_line))
-        .route("/dunning/letter-sets/:set_id/lines", get(dunning_letter_management::list_letter_set_lines))
-
+        .route(
+            "/dunning/letter-sets/:set_id/lines",
+            post(dunning_letter_management::add_letter_set_line),
+        )
+        .route(
+            "/dunning/letter-sets/:set_id/lines",
+            get(dunning_letter_management::list_letter_set_lines),
+        )
         // Dunning Profiles
-        .route("/dunning/profiles", post(dunning_letter_management::create_profile))
-        .route("/dunning/profiles", get(dunning_letter_management::list_profiles))
-        .route("/dunning/profiles/:id", get(dunning_letter_management::get_profile))
-        .route("/dunning/profiles/:id/enable", post(dunning_letter_management::enable_profile))
-        .route("/dunning/profiles/:id/disable", post(dunning_letter_management::disable_profile))
-        .route("/dunning/profiles/:id/hold", post(dunning_letter_management::hold_profile))
-
+        .route(
+            "/dunning/profiles",
+            post(dunning_letter_management::create_profile),
+        )
+        .route(
+            "/dunning/profiles",
+            get(dunning_letter_management::list_profiles),
+        )
+        .route(
+            "/dunning/profiles/:id",
+            get(dunning_letter_management::get_profile),
+        )
+        .route(
+            "/dunning/profiles/:id/enable",
+            post(dunning_letter_management::enable_profile),
+        )
+        .route(
+            "/dunning/profiles/:id/disable",
+            post(dunning_letter_management::disable_profile),
+        )
+        .route(
+            "/dunning/profiles/:id/hold",
+            post(dunning_letter_management::hold_profile),
+        )
         // Dunning Runs
         .route("/dunning/runs", post(dunning_letter_management::create_run))
         .route("/dunning/runs", get(dunning_letter_management::list_runs))
         .route("/dunning/runs/:id", get(dunning_letter_management::get_run))
-        .route("/dunning/runs/:id/submit", post(dunning_letter_management::submit_run))
-        .route("/dunning/runs/:id/complete", post(dunning_letter_management::complete_run))
-        .route("/dunning/runs/:id/cancel", post(dunning_letter_management::cancel_run))
-
+        .route(
+            "/dunning/runs/:id/submit",
+            post(dunning_letter_management::submit_run),
+        )
+        .route(
+            "/dunning/runs/:id/complete",
+            post(dunning_letter_management::complete_run),
+        )
+        .route(
+            "/dunning/runs/:id/cancel",
+            post(dunning_letter_management::cancel_run),
+        )
         // Run Results
-        .route("/dunning/runs/:run_id/results", post(dunning_letter_management::add_run_result))
-        .route("/dunning/runs/:run_id/results", get(dunning_letter_management::list_run_results))
-        .route("/dunning/results/:id", get(dunning_letter_management::get_run_result))
-        .route("/dunning/results/:id/send", post(dunning_letter_management::mark_result_sent))
-        .route("/dunning/results/:id/fail", post(dunning_letter_management::mark_result_failed))
-
+        .route(
+            "/dunning/runs/:run_id/results",
+            post(dunning_letter_management::add_run_result),
+        )
+        .route(
+            "/dunning/runs/:run_id/results",
+            get(dunning_letter_management::list_run_results),
+        )
+        .route(
+            "/dunning/results/:id",
+            get(dunning_letter_management::get_run_result),
+        )
+        .route(
+            "/dunning/results/:id/send",
+            post(dunning_letter_management::mark_result_sent),
+        )
+        .route(
+            "/dunning/results/:id/fail",
+            post(dunning_letter_management::mark_result_failed),
+        )
         // Dashboard
-        .route("/dunning/dashboard", get(dunning_letter_management::get_dashboard))
-
+        .route(
+            "/dunning/dashboard",
+            get(dunning_letter_management::get_dashboard),
+        )
         .layer(middleware::from_fn(auth_middleware))
 }
 
@@ -5128,17 +9777,13 @@ pub fn admin_routes() -> Router<Arc<AppState>> {
         .route("/schema", post(create_entity))
         .route("/schema/:entity", put(update_entity))
         .route("/schema/:entity", delete(delete_entity))
-        
         .route("/workflows", post(create_workflow))
         .route("/workflows/:entity", put(update_workflow))
-        
         .route("/config", get(get_config))
         .route("/config/:key", get(get_config_value))
         .route("/config/:key", put(set_config_value))
-        
         // Oracle Fusion: Duplicate detection rules
         .route("/duplicate-rules", post(create_duplicate_rule))
-        
         .route("/cache/clear", post(clear_cache))
         .route("/cache/invalidate/:entity", post(invalidate_entity_cache))
         .layer(middleware::from_fn(admin_auth_middleware))

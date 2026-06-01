@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Advanced Controls
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::FinancialControlsEngine;
 pub use repository::{FinancialControlsRepository, PostgresFinancialControlsRepository};

@@ -2,11 +2,8 @@
 //!
 //! Storage interface for tax registration data.
 
-use atlas_shared::{
-    TaxRegistration, TaxRegistrationSummary,
-    AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{AtlasResult, TaxRegistration, TaxRegistrationSummary};
 use uuid::Uuid;
 
 /// Repository trait for tax registration data storage
@@ -74,7 +71,7 @@ pub struct PostgresTaxRegistrationRepository {
 }
 
 impl PostgresTaxRegistrationRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: sqlx::PgPool) -> Self {
         Self { _pool: pool }
     }
@@ -158,7 +155,9 @@ impl TaxRegistrationRepository for PostgresTaxRegistrationRepository {
         _status: &str,
         _effective_to: Option<chrono::NaiveDate>,
     ) -> AtlasResult<TaxRegistration> {
-        Err(atlas_shared::AtlasError::EntityNotFound("Not implemented".to_string()))
+        Err(atlas_shared::AtlasError::EntityNotFound(
+            "Not implemented".to_string(),
+        ))
     }
 
     async fn get_summary(&self, org_id: Uuid) -> AtlasResult<TaxRegistrationSummary> {

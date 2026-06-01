@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Procurement > Supplier Qualification > Initiatives
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::SupplierQualificationEngine;
-pub use repository::{SupplierQualificationRepository, PostgresSupplierQualificationRepository};
+pub use repository::{PostgresSupplierQualificationRepository, SupplierQualificationRepository};

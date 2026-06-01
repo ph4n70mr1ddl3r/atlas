@@ -3,11 +3,11 @@
 //! `PostgreSQL` storage for work schedules, overtime rules, time cards,
 //! time entries, history, and labor distributions.
 
-use atlas_shared::{
-    WorkSchedule, OvertimeRule, TimeCard, TimeEntry, TimeCardHistory,
-    LaborDistribution, AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, LaborDistribution, OvertimeRule, TimeCard, TimeCardHistory, TimeEntry,
+    WorkSchedule,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -32,7 +32,11 @@ pub trait TimeAndLaborRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<WorkSchedule>;
 
-    async fn get_work_schedule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<WorkSchedule>>;
+    async fn get_work_schedule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<WorkSchedule>>;
     async fn get_schedule_by_id(&self, id: Uuid) -> AtlasResult<Option<WorkSchedule>>;
     async fn list_work_schedules(&self, org_id: Uuid) -> AtlasResult<Vec<WorkSchedule>>;
     async fn delete_work_schedule(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
@@ -57,7 +61,11 @@ pub trait TimeAndLaborRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<OvertimeRule>;
 
-    async fn get_overtime_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<OvertimeRule>>;
+    async fn get_overtime_rule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<OvertimeRule>>;
     async fn get_overtime_rule_by_id(&self, id: Uuid) -> AtlasResult<Option<OvertimeRule>>;
     async fn list_overtime_rules(&self, org_id: Uuid) -> AtlasResult<Vec<OvertimeRule>>;
     async fn delete_overtime_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
@@ -77,7 +85,11 @@ pub trait TimeAndLaborRepository: Send + Sync {
     ) -> AtlasResult<TimeCard>;
 
     async fn get_time_card(&self, id: Uuid) -> AtlasResult<Option<TimeCard>>;
-    async fn get_time_card_by_number(&self, org_id: Uuid, card_number: &str) -> AtlasResult<Option<TimeCard>>;
+    async fn get_time_card_by_number(
+        &self,
+        org_id: Uuid,
+        card_number: &str,
+    ) -> AtlasResult<Option<TimeCard>>;
     async fn list_time_cards(
         &self,
         org_id: Uuid,
@@ -154,9 +166,13 @@ pub trait TimeAndLaborRepository: Send + Sync {
         allocated_hours: &str,
     ) -> AtlasResult<LaborDistribution>;
 
-    async fn list_labor_distributions_by_entry(&self, time_entry_id: Uuid) -> AtlasResult<Vec<LaborDistribution>>;
+    async fn list_labor_distributions_by_entry(
+        &self,
+        time_entry_id: Uuid,
+    ) -> AtlasResult<Vec<LaborDistribution>>;
     async fn delete_labor_distribution(&self, id: Uuid) -> AtlasResult<()>;
-    async fn delete_labor_distribution_org_scoped(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()>;
+    async fn delete_labor_distribution_org_scoped(&self, org_id: Uuid, id: Uuid)
+        -> AtlasResult<()>;
     async fn get_labor_distribution(&self, id: Uuid) -> AtlasResult<Option<LaborDistribution>>;
 }
 
@@ -166,7 +182,7 @@ pub struct PostgresTimeAndLaborRepository {
 }
 
 impl PostgresTimeAndLaborRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -341,9 +357,18 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(schedule_type)
-        .bind(standard_hours_per_day).bind(standard_hours_per_week).bind(work_days_per_week)
-        .bind(start_time).bind(end_time).bind(break_duration_minutes).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(schedule_type)
+        .bind(standard_hours_per_day)
+        .bind(standard_hours_per_week)
+        .bind(work_days_per_week)
+        .bind(start_time)
+        .bind(end_time)
+        .bind(break_duration_minutes)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -351,7 +376,11 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         Ok(self.row_to_schedule(&row))
     }
 
-    async fn get_work_schedule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<WorkSchedule>> {
+    async fn get_work_schedule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<WorkSchedule>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.work_schedules WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -434,11 +463,21 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(threshold_type)
-        .bind(daily_threshold_hours).bind(weekly_threshold_hours).bind(overtime_multiplier)
-        .bind(double_time_threshold_hours).bind(double_time_multiplier)
-        .bind(include_holidays).bind(include_weekends)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(threshold_type)
+        .bind(daily_threshold_hours)
+        .bind(weekly_threshold_hours)
+        .bind(overtime_multiplier)
+        .bind(double_time_threshold_hours)
+        .bind(double_time_multiplier)
+        .bind(include_holidays)
+        .bind(include_weekends)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -446,7 +485,11 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         Ok(self.row_to_overtime_rule(&row))
     }
 
-    async fn get_overtime_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<OvertimeRule>> {
+    async fn get_overtime_rule(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<OvertimeRule>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.overtime_rules WHERE organization_id = $1 AND code = $2 AND is_active = true"
         )
@@ -516,9 +559,15 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(employee_id).bind(employee_name).bind(card_number)
-        .bind(period_start).bind(period_end)
-        .bind(schedule_id).bind(overtime_rule_id).bind(created_by)
+        .bind(org_id)
+        .bind(employee_id)
+        .bind(employee_name)
+        .bind(card_number)
+        .bind(period_start)
+        .bind(period_end)
+        .bind(schedule_id)
+        .bind(overtime_rule_id)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -535,11 +584,16 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         Ok(row.map(|r| self.row_to_time_card(&r)))
     }
 
-    async fn get_time_card_by_number(&self, org_id: Uuid, card_number: &str) -> AtlasResult<Option<TimeCard>> {
+    async fn get_time_card_by_number(
+        &self,
+        org_id: Uuid,
+        card_number: &str,
+    ) -> AtlasResult<Option<TimeCard>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.time_cards WHERE organization_id = $1 AND card_number = $2"
+            "SELECT * FROM _atlas.time_cards WHERE organization_id = $1 AND card_number = $2",
         )
-        .bind(org_id).bind(card_number)
+        .bind(org_id)
+        .bind(card_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -598,7 +652,10 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(approved_by).bind(rejected_reason)
+        .bind(id)
+        .bind(status)
+        .bind(approved_by)
+        .bind(rejected_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -621,8 +678,11 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(regular_hours).bind(overtime_hours)
-        .bind(double_time_hours).bind(total_hours)
+        .bind(id)
+        .bind(regular_hours)
+        .bind(overtime_hours)
+        .bind(double_time_hours)
+        .bind(total_hours)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -664,11 +724,23 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(time_card_id).bind(entry_date).bind(entry_type)
-        .bind(start_time).bind(end_time).bind(duration_hours)
-        .bind(project_id).bind(project_name).bind(department_id).bind(department_name)
-        .bind(task_name).bind(location).bind(cost_center).bind(labor_category)
-        .bind(comments).bind(created_by)
+        .bind(org_id)
+        .bind(time_card_id)
+        .bind(entry_date)
+        .bind(entry_type)
+        .bind(start_time)
+        .bind(end_time)
+        .bind(duration_hours)
+        .bind(project_id)
+        .bind(project_name)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(task_name)
+        .bind(location)
+        .bind(cost_center)
+        .bind(labor_category)
+        .bind(comments)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -725,8 +797,12 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
             VALUES ($1, $2, $3, $4, $5, $6)
             ",
         )
-        .bind(time_card_id).bind(action).bind(from_status).bind(to_status)
-        .bind(performed_by).bind(comment)
+        .bind(time_card_id)
+        .bind(action)
+        .bind(from_status)
+        .bind(to_status)
+        .bind(performed_by)
+        .bind(comment)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -771,9 +847,15 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(time_entry_id).bind(distribution_percent)
-        .bind(cost_center).bind(project_id).bind(project_name)
-        .bind(department_id).bind(department_name).bind(gl_account_code)
+        .bind(org_id)
+        .bind(time_entry_id)
+        .bind(distribution_percent)
+        .bind(cost_center)
+        .bind(project_id)
+        .bind(project_name)
+        .bind(department_id)
+        .bind(department_name)
+        .bind(gl_account_code)
         .bind(allocated_hours)
         .fetch_one(&self.pool)
         .await
@@ -782,9 +864,12 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         Ok(self.row_to_distribution(&row))
     }
 
-    async fn list_labor_distributions_by_entry(&self, time_entry_id: Uuid) -> AtlasResult<Vec<LaborDistribution>> {
+    async fn list_labor_distributions_by_entry(
+        &self,
+        time_entry_id: Uuid,
+    ) -> AtlasResult<Vec<LaborDistribution>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.labor_distributions WHERE time_entry_id = $1 ORDER BY created_at"
+            "SELECT * FROM _atlas.labor_distributions WHERE time_entry_id = $1 ORDER BY created_at",
         )
         .bind(time_entry_id)
         .fetch_all(&self.pool)
@@ -811,22 +896,27 @@ impl TimeAndLaborRepository for PostgresTimeAndLaborRepository {
         Ok(row.map(|r| self.row_to_distribution(&r)))
     }
 
-    async fn delete_labor_distribution_org_scoped(&self, org_id: Uuid, id: Uuid) -> AtlasResult<()> {
+    async fn delete_labor_distribution_org_scoped(
+        &self,
+        org_id: Uuid,
+        id: Uuid,
+    ) -> AtlasResult<()> {
         let result = sqlx::query(
             r"
             DELETE FROM _atlas.labor_distributions
             WHERE id = $1 AND organization_id = $2
             ",
         )
-        .bind(id).bind(org_id)
+        .bind(id)
+        .bind(org_id)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            return Err(AtlasError::EntityNotFound(
-                format!("Labor distribution {id} not found")
-            ));
+            return Err(AtlasError::EntityNotFound(format!(
+                "Labor distribution {id} not found"
+            )));
         }
         Ok(())
     }

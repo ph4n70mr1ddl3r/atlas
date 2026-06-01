@@ -8,11 +8,11 @@
 //! - Health & Safety dashboard
 //! - Validation edge cases and error handling
 
+use super::common::helpers::*;
 use axum::body::Body;
 use http::{Request, StatusCode};
 use serde_json::json;
 use tower::util::ServiceExt;
-use super::common::helpers::*;
 
 async fn setup_health_safety_test() -> (std::sync::Arc<atlas_gateway::AppState>, axum::Router) {
     let state = build_test_state().await;
@@ -458,7 +458,10 @@ async fn test_update_incident_investigation() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/health-safety/incidents/id/{}/investigation", id))
+                .uri(&format!(
+                    "/api/v1/health-safety/incidents/id/{}/investigation",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -731,7 +734,10 @@ async fn test_assess_residual_risk() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/health-safety/hazards/id/{}/residual-risk", id))
+                .uri(&format!(
+                    "/api/v1/health-safety/hazards/id/{}/residual-risk",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -863,7 +869,10 @@ async fn test_complete_inspection() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/health-safety/inspections/id/{}/complete", id))
+                .uri(&format!(
+                    "/api/v1/health-safety/inspections/id/{}/complete",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -1064,7 +1073,10 @@ async fn test_update_capa_status() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/health-safety/corrective-actions/id/{}/status", id))
+                .uri(&format!(
+                    "/api/v1/health-safety/corrective-actions/id/{}/status",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -1094,7 +1106,10 @@ async fn test_complete_capa() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/health-safety/corrective-actions/id/{}/complete", id))
+                .uri(&format!(
+                    "/api/v1/health-safety/corrective-actions/id/{}/complete",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(
@@ -1130,7 +1145,10 @@ async fn test_complete_capa_bad_effectiveness() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/health-safety/corrective-actions/id/{}/complete", id))
+                .uri(&format!(
+                    "/api/v1/health-safety/corrective-actions/id/{}/complete",
+                    id
+                ))
                 .header("Content-Type", "application/json")
                 .header(&k, &v)
                 .body(Body::from(

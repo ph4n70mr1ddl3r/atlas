@@ -5,8 +5,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Receivables
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::AccountsReceivableEngine;
 pub use repository::{AccountsReceivableRepository, PostgresAccountsReceivableRepository};

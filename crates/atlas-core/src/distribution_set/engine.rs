@@ -10,7 +10,10 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > Payables > Setup > Distribution Sets
 
-use super::{DistributionSetRepository, AtlasResult, DistributionSet, DistributionSetLine, DistributionSetUsage, DistributionSetDashboard};
+use super::{
+    AtlasResult, DistributionSet, DistributionSetDashboard, DistributionSetLine,
+    DistributionSetRepository, DistributionSetUsage,
+};
 use atlas_shared::AtlasError;
 use std::sync::Arc;
 use tracing::info;
@@ -55,11 +58,14 @@ impl DistributionSetEngine {
         if !VALID_DISTRIBUTION_TYPES.contains(&distribution_type) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid distribution_type '{}'. Must be one of: {}",
-                distribution_type, VALID_DISTRIBUTION_TYPES.join(", ")
+                distribution_type,
+                VALID_DISTRIBUTION_TYPES.join(", ")
             )));
         }
         if currency_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Currency code is required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code is required".into(),
+            ));
         }
 
         // Validate effective dates
@@ -78,12 +84,24 @@ impl DistributionSetEngine {
             )));
         }
 
-        info!("Distribution Set Engine: Creating set '{}' ({})", set_code, set_name);
-        self.repository.create_set(
-            org_id, set_code, set_name, description,
-            distribution_type, currency_code, is_default,
-            effective_from, effective_to, created_by,
-        ).await
+        info!(
+            "Distribution Set Engine: Creating set '{}' ({})",
+            set_code, set_name
+        );
+        self.repository
+            .create_set(
+                org_id,
+                set_code,
+                set_name,
+                description,
+                distribution_type,
+                currency_code,
+                is_default,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a distribution set by ID
@@ -98,12 +116,17 @@ impl DistributionSetEngine {
         status: Option<&str>,
         distribution_type: Option<&str>,
     ) -> AtlasResult<Vec<DistributionSet>> {
-        self.repository.list_sets(org_id, status, distribution_type).await
+        self.repository
+            .list_sets(org_id, status, distribution_type)
+            .await
     }
 
     /// Activate a distribution set
     pub async fn activate_set(&self, id: Uuid) -> AtlasResult<DistributionSet> {
-        let set = self.repository.get_set(id).await?
+        let set = self
+            .repository
+            .get_set(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Distribution set not found".into()))?;
 
         if set.status == "active" {
@@ -120,7 +143,8 @@ impl DistributionSetEngine {
 
         // For percentage type, validate total is 100%
         if set.distribution_type == "percentage" {
-            let total_pct: f64 = lines.iter()
+            let total_pct: f64 = lines
+                .iter()
                 .map(|l| l.percentage.parse::<f64>().unwrap_or(0.0))
                 .sum();
             if (total_pct - 100.0).abs() > 0.01 {
@@ -136,11 +160,16 @@ impl DistributionSetEngine {
 
     /// Deactivate a distribution set
     pub async fn deactivate_set(&self, id: Uuid) -> AtlasResult<DistributionSet> {
-        let set = self.repository.get_set(id).await?
+        let set = self
+            .repository
+            .get_set(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Distribution set not found".into()))?;
 
         if set.status == "inactive" {
-            return Err(AtlasError::ValidationFailed("Set is already inactive".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Set is already inactive".into(),
+            ));
         }
 
         info!("Distribution Set Engine: Deactivating set {}", id);
@@ -149,7 +178,10 @@ impl DistributionSetEngine {
 
     /// Delete a distribution set (only allowed for inactive sets)
     pub async fn delete_set(&self, id: Uuid) -> AtlasResult<()> {
-        let set = self.repository.get_set(id).await?
+        let set = self
+            .repository
+            .get_set(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Distribution set not found".into()))?;
 
         if set.status == "active" {
@@ -185,7 +217,10 @@ impl DistributionSetEngine {
         department: Option<&str>,
         project_code: Option<&str>,
     ) -> AtlasResult<DistributionSetLine> {
-        let set = self.repository.get_set(distribution_set_id).await?
+        let set = self
+            .repository
+            .get_set(distribution_set_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Distribution set not found".into()))?;
 
         if set.status != "active" && set.status != "inactive" {
@@ -195,13 +230,15 @@ impl DistributionSetEngine {
         }
 
         if account_combination.is_empty() {
-            return Err(AtlasError::ValidationFailed("Account combination is required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Account combination is required".into(),
+            ));
         }
 
         // Validate percentage
-        let pct: f64 = percentage.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Percentage must be a valid number".into(),
-        ))?;
+        let pct: f64 = percentage.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Percentage must be a valid number".into())
+        })?;
         if !(0.0..=100.0).contains(&pct) {
             return Err(AtlasError::ValidationFailed(
                 "Percentage must be between 0 and 100".into(),
@@ -214,7 +251,8 @@ impl DistributionSetEngine {
 
         // Validate total won't exceed 100%
         if set.distribution_type == "percentage" {
-            let current_total: f64 = existing_lines.iter()
+            let current_total: f64 = existing_lines
+                .iter()
                 .map(|l| l.percentage.parse::<f64>().unwrap_or(0.0))
                 .sum();
             let new_total = current_total + pct;
@@ -227,9 +265,9 @@ impl DistributionSetEngine {
 
         // Validate amount
         if let Some(amt_str) = amount {
-            let amt: f64 = amt_str.parse().map_err(|_| AtlasError::ValidationFailed(
-                "Amount must be a valid number".into(),
-            ))?;
+            let amt: f64 = amt_str.parse().map_err(|_| {
+                AtlasError::ValidationFailed("Amount must be a valid number".into())
+            })?;
             if amt < 0.0 {
                 return Err(AtlasError::ValidationFailed(
                     "Amount cannot be negative".into(),
@@ -237,48 +275,67 @@ impl DistributionSetEngine {
             }
         }
 
-        let line = self.repository.add_line(
-            org_id, distribution_set_id, line_number,
-            account_combination, account_description,
-            segment1, segment2, segment3, segment4, segment5,
-            percentage, amount, description,
-            cost_center, department, project_code,
-        ).await?;
+        let line = self
+            .repository
+            .add_line(
+                org_id,
+                distribution_set_id,
+                line_number,
+                account_combination,
+                account_description,
+                segment1,
+                segment2,
+                segment3,
+                segment4,
+                segment5,
+                percentage,
+                amount,
+                description,
+                cost_center,
+                department,
+                project_code,
+            )
+            .await?;
 
         // Recalculate total percentage on the set
         let all_lines = self.repository.list_lines(distribution_set_id).await?;
-        let total_pct: f64 = all_lines.iter()
+        let total_pct: f64 = all_lines
+            .iter()
             .map(|l| l.percentage.parse::<f64>().unwrap_or(0.0))
             .sum();
-        self.repository.update_set_total_percentage(
-            distribution_set_id,
-            &format!("{total_pct:.4}"),
-        ).await?;
+        self.repository
+            .update_set_total_percentage(distribution_set_id, &format!("{total_pct:.4}"))
+            .await?;
 
         Ok(line)
     }
 
     /// List lines for a distribution set
-    pub async fn list_lines(&self, distribution_set_id: Uuid) -> AtlasResult<Vec<DistributionSetLine>> {
+    pub async fn list_lines(
+        &self,
+        distribution_set_id: Uuid,
+    ) -> AtlasResult<Vec<DistributionSetLine>> {
         self.repository.list_lines(distribution_set_id).await
     }
 
     /// Remove a line from a distribution set
     pub async fn remove_line(&self, line_id: Uuid) -> AtlasResult<()> {
-        let line = self.repository.get_line(line_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound("Distribution set line not found".into()))?;
+        let line =
+            self.repository.get_line(line_id).await?.ok_or_else(|| {
+                AtlasError::EntityNotFound("Distribution set line not found".into())
+            })?;
 
         self.repository.delete_line(line_id).await?;
 
         // Recalculate total percentage
         let all_lines = self.repository.list_lines(line.distribution_set_id).await?;
-        let total_pct: f64 = all_lines.iter()
+        let total_pct: f64 = all_lines
+            .iter()
             .map(|l| l.percentage.parse::<f64>().unwrap_or(0.0))
             .sum();
-        self.repository.update_set_total_percentage(
-            line.distribution_set_id,
-            &format!("{total_pct:.4}"),
-        ).await?;
+        self.repository
+            .update_set_total_percentage(line.distribution_set_id, &format!("{total_pct:.4}"))
+            .await?;
 
         Ok(())
     }
@@ -297,7 +354,10 @@ impl DistributionSetEngine {
         invoice_amount: &str,
         applied_by: Option<Uuid>,
     ) -> AtlasResult<Vec<DistributionSetLine>> {
-        let set = self.repository.get_set(distribution_set_id).await?
+        let set = self
+            .repository
+            .get_set(distribution_set_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound("Distribution set not found".into()))?;
 
         if set.status != "active" {
@@ -306,9 +366,9 @@ impl DistributionSetEngine {
             ));
         }
 
-        let total: f64 = invoice_amount.parse().map_err(|_| AtlasError::ValidationFailed(
-            "Invoice amount must be a valid number".into(),
-        ))?;
+        let total: f64 = invoice_amount.parse().map_err(|_| {
+            AtlasError::ValidationFailed("Invoice amount must be a valid number".into())
+        })?;
         if total <= 0.0 {
             return Err(AtlasError::ValidationFailed(
                 "Invoice amount must be positive".into(),
@@ -323,14 +383,24 @@ impl DistributionSetEngine {
         }
 
         // Log the usage
-        self.repository.log_usage(
-            org_id, distribution_set_id, &set.set_code,
-            "ap_invoice", invoice_id, invoice_number,
-            applied_by, lines.len() as i32, Some(invoice_amount),
-        ).await?;
+        self.repository
+            .log_usage(
+                org_id,
+                distribution_set_id,
+                &set.set_code,
+                "ap_invoice",
+                invoice_id,
+                invoice_number,
+                applied_by,
+                lines.len() as i32,
+                Some(invoice_amount),
+            )
+            .await?;
 
         // Update usage count
-        self.repository.update_set_usage(distribution_set_id).await?;
+        self.repository
+            .update_set_usage(distribution_set_id)
+            .await?;
 
         info!(
             "Distribution Set Engine: Applied set '{}' to invoice {} ({} lines)",
@@ -352,7 +422,9 @@ impl DistributionSetEngine {
         org_id: Uuid,
         distribution_set_id: Option<Uuid>,
     ) -> AtlasResult<Vec<DistributionSetUsage>> {
-        self.repository.list_usage(org_id, distribution_set_id).await
+        self.repository
+            .list_usage(org_id, distribution_set_id)
+            .await
     }
 
     // ========================================================================
@@ -369,12 +441,13 @@ impl DistributionSetEngine {
     // ========================================================================
 
     /// Calculate distributed amounts from percentage lines
-    #[must_use] 
+    #[must_use]
     pub fn calculate_distribution_amounts(
         total_amount: f64,
         lines: &[(Uuid, f64)], // (line_id, percentage)
     ) -> Vec<(Uuid, f64)> {
-        let mut results: Vec<(Uuid, f64)> = lines.iter()
+        let mut results: Vec<(Uuid, f64)> = lines
+            .iter()
             .map(|(id, pct)| (*id, total_amount * (pct / 100.0)))
             .collect();
 

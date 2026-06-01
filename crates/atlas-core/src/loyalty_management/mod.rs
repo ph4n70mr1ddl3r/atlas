@@ -12,8 +12,8 @@
 //!
 //! Oracle Fusion equivalent: CX > Loyalty Management > Programs, Members, Rewards
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::LoyaltyManagementEngine;
 pub use repository::{LoyaltyManagementRepository, PostgresLoyaltyManagementRepository};

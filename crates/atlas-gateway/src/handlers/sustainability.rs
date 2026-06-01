@@ -19,8 +19,8 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::auth::Claims;
+use crate::AppState;
 
 // ============================================================================
 // Facilities
@@ -53,7 +53,9 @@ pub async fn create_facility(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let facility = state.shared.sustainability_engine
+    let facility = state
+        .shared
+        .sustainability_engine
         .create_facility(
             org_id,
             &payload.facility_code,
@@ -92,7 +94,9 @@ pub async fn get_facility(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let facility = state.shared.sustainability_engine
+    let facility = state
+        .shared
+        .sustainability_engine
         .get_facility(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -115,8 +119,14 @@ pub async fn list_facilities(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let facilities = state.shared.sustainability_engine
-        .list_facilities(org_id, params.status.as_deref(), params.facility_type.as_deref())
+    let facilities = state
+        .shared
+        .sustainability_engine
+        .list_facilities(
+            org_id,
+            params.status.as_deref(),
+            params.facility_type.as_deref(),
+        )
         .await
         .map_err(|e| {
             tracing::error!("List facilities error: {}", e);
@@ -136,11 +146,11 @@ pub async fn update_facility_status(
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _claims = claims;
-    let status = payload["status"]
-        .as_str()
-        .ok_or(StatusCode::BAD_REQUEST)?;
+    let status = payload["status"].as_str().ok_or(StatusCode::BAD_REQUEST)?;
 
-    let facility = state.shared.sustainability_engine
+    let facility = state
+        .shared
+        .sustainability_engine
         .update_facility_status(id, status)
         .await
         .map_err(|e| {
@@ -162,7 +172,9 @@ pub async fn delete_facility(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.shared.sustainability_engine
+    state
+        .shared
+        .sustainability_engine
         .delete_facility(org_id, &facility_code)
         .await
         .map_err(|e| {
@@ -213,7 +225,9 @@ pub async fn create_emission_factor(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let ef = state.shared.sustainability_engine
+    let ef = state
+        .shared
+        .sustainability_engine
         .create_emission_factor(
             org_id,
             &payload.factor_code,
@@ -251,7 +265,9 @@ pub async fn get_emission_factor(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let ef = state.shared.sustainability_engine
+    let ef = state
+        .shared
+        .sustainability_engine
         .get_emission_factor(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -275,7 +291,9 @@ pub async fn list_emission_factors(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let factors = state.shared.sustainability_engine
+    let factors = state
+        .shared
+        .sustainability_engine
         .list_emission_factors(
             org_id,
             params.scope.as_deref(),
@@ -301,7 +319,9 @@ pub async fn delete_emission_factor(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.shared.sustainability_engine
+    state
+        .shared
+        .sustainability_engine
         .delete_emission_factor(org_id, &factor_code)
         .await
         .map_err(|e| {
@@ -356,7 +376,9 @@ pub async fn create_activity(
     let activity_date = chrono::NaiveDate::parse_from_str(&payload.activity_date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let activity = state.shared.sustainability_engine
+    let activity = state
+        .shared
+        .sustainability_engine
         .create_activity(
             org_id,
             &payload.activity_number,
@@ -403,7 +425,9 @@ pub async fn get_activity(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let activity = state.shared.sustainability_engine
+    let activity = state
+        .shared
+        .sustainability_engine
         .get_activity(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -428,7 +452,9 @@ pub async fn list_activities(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let activities = state.shared.sustainability_engine
+    let activities = state
+        .shared
+        .sustainability_engine
         .list_activities(
             org_id,
             params.scope.as_deref(),
@@ -455,11 +481,11 @@ pub async fn update_activity_status(
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _claims = claims;
-    let status = payload["status"]
-        .as_str()
-        .ok_or(StatusCode::BAD_REQUEST)?;
+    let status = payload["status"].as_str().ok_or(StatusCode::BAD_REQUEST)?;
 
-    let activity = state.shared.sustainability_engine
+    let activity = state
+        .shared
+        .sustainability_engine
         .update_activity_status(id, status)
         .await
         .map_err(|e| {
@@ -481,7 +507,9 @@ pub async fn delete_activity(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.shared.sustainability_engine
+    state
+        .shared
+        .sustainability_engine
         .delete_activity(org_id, &activity_number)
         .await
         .map_err(|e| {
@@ -525,7 +553,9 @@ pub async fn create_metric(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let metric = state.shared.sustainability_engine
+    let metric = state
+        .shared
+        .sustainability_engine
         .create_metric(
             org_id,
             &payload.metric_code,
@@ -563,7 +593,9 @@ pub async fn get_metric(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let metric = state.shared.sustainability_engine
+    let metric = state
+        .shared
+        .sustainability_engine
         .get_metric(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -586,7 +618,9 @@ pub async fn list_metrics(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let metrics = state.shared.sustainability_engine
+    let metrics = state
+        .shared
+        .sustainability_engine
         .list_metrics(org_id, params.pillar.as_deref(), params.category.as_deref())
         .await
         .map_err(|e| {
@@ -607,7 +641,9 @@ pub async fn delete_metric(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.shared.sustainability_engine
+    state
+        .shared
+        .sustainability_engine
         .delete_metric(org_id, &metric_code)
         .await
         .map_err(|e| {
@@ -648,7 +684,9 @@ pub async fn create_metric_reading(
     let reading_date = chrono::NaiveDate::parse_from_str(&payload.reading_date, "%Y-%m-%d")
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let reading = state.shared.sustainability_engine
+    let reading = state
+        .shared
+        .sustainability_engine
         .create_metric_reading(
             org_id,
             payload.metric_id,
@@ -690,7 +728,9 @@ pub async fn list_metric_readings(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let readings = state.shared.sustainability_engine
+    let readings = state
+        .shared
+        .sustainability_engine
         .list_metric_readings(metric_id, from_date, to_date)
         .await
         .map_err(|e| {
@@ -714,7 +754,9 @@ pub async fn delete_metric_reading(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    state.shared.sustainability_engine
+    state
+        .shared
+        .sustainability_engine
         .delete_metric_reading(id)
         .await
         .map_err(|e| {
@@ -774,7 +816,9 @@ pub async fn create_goal(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let goal = state.shared.sustainability_engine
+    let goal = state
+        .shared
+        .sustainability_engine
         .create_goal(
             org_id,
             &payload.goal_code,
@@ -820,7 +864,9 @@ pub async fn get_goal(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let goal = state.shared.sustainability_engine
+    let goal = state
+        .shared
+        .sustainability_engine
         .get_goal(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -843,8 +889,14 @@ pub async fn list_goals(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let goals = state.shared.sustainability_engine
-        .list_goals(org_id, params.goal_type.as_deref(), params.status.as_deref())
+    let goals = state
+        .shared
+        .sustainability_engine
+        .list_goals(
+            org_id,
+            params.goal_type.as_deref(),
+            params.status.as_deref(),
+        )
         .await
         .map_err(|e| {
             tracing::error!("List goals error: {}", e);
@@ -868,7 +920,9 @@ pub async fn update_goal_progress(
         .as_f64()
         .ok_or(StatusCode::BAD_REQUEST)?;
 
-    let goal = state.shared.sustainability_engine
+    let goal = state
+        .shared
+        .sustainability_engine
         .update_goal_progress(id, current_value)
         .await
         .map_err(|e| {
@@ -889,11 +943,11 @@ pub async fn update_goal_status(
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let _claims = claims;
-    let status = payload["status"]
-        .as_str()
-        .ok_or(StatusCode::BAD_REQUEST)?;
+    let status = payload["status"].as_str().ok_or(StatusCode::BAD_REQUEST)?;
 
-    let goal = state.shared.sustainability_engine
+    let goal = state
+        .shared
+        .sustainability_engine
         .update_goal_status(id, status)
         .await
         .map_err(|e| {
@@ -915,7 +969,9 @@ pub async fn delete_goal(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.shared.sustainability_engine
+    state
+        .shared
+        .sustainability_engine
         .delete_goal(org_id, &goal_code)
         .await
         .map_err(|e| {
@@ -972,7 +1028,9 @@ pub async fn create_carbon_offset(
         .as_deref()
         .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok());
 
-    let offset = state.shared.sustainability_engine
+    let offset = state
+        .shared
+        .sustainability_engine
         .create_carbon_offset(
             org_id,
             &payload.offset_number,
@@ -1016,7 +1074,9 @@ pub async fn get_carbon_offset(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let offset = state.shared.sustainability_engine
+    let offset = state
+        .shared
+        .sustainability_engine
         .get_carbon_offset(id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -1039,8 +1099,14 @@ pub async fn list_carbon_offsets(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let offsets = state.shared.sustainability_engine
-        .list_carbon_offsets(org_id, params.status.as_deref(), params.project_type.as_deref())
+    let offsets = state
+        .shared
+        .sustainability_engine
+        .list_carbon_offsets(
+            org_id,
+            params.status.as_deref(),
+            params.project_type.as_deref(),
+        )
         .await
         .map_err(|e| {
             tracing::error!("List carbon offsets error: {}", e);
@@ -1064,7 +1130,9 @@ pub async fn retire_carbon_offset(
         .as_f64()
         .ok_or(StatusCode::BAD_REQUEST)?;
 
-    let offset = state.shared.sustainability_engine
+    let offset = state
+        .shared
+        .sustainability_engine
         .retire_carbon_offset(id, retire_quantity)
         .await
         .map_err(|e| {
@@ -1086,7 +1154,9 @@ pub async fn delete_carbon_offset(
 ) -> Result<StatusCode, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state.shared.sustainability_engine
+    state
+        .shared
+        .sustainability_engine
         .delete_carbon_offset(org_id, &offset_number)
         .await
         .map_err(|e| {
@@ -1110,7 +1180,9 @@ pub async fn get_sustainability_dashboard(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let dashboard = state.shared.sustainability_engine
+    let dashboard = state
+        .shared
+        .sustainability_engine
         .get_dashboard(org_id)
         .await
         .map_err(|e| {

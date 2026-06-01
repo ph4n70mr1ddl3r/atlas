@@ -1044,5 +1044,3 @@ pub struct RegulatoryReportingDashboard {
     pub upcoming_filings: i32,
     pub filings_by_authority: serde_json::Value,
 }
-
-

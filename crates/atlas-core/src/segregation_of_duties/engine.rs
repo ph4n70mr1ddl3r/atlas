@@ -5,12 +5,11 @@
 //!
 //! Oracle Fusion equivalent: Advanced Access Control > Segregation of Duties
 
-use atlas_shared::{
-    SodRule, SodViolation, SodMitigatingControl, SodRoleAssignment,
-    SodConflictCheckResult, SodConflictDetail,
-    AtlasError, AtlasResult,
-};
 use super::SegregationOfDutiesRepository;
+use atlas_shared::{
+    AtlasError, AtlasResult, SodConflictCheckResult, SodConflictDetail, SodMitigatingControl,
+    SodRoleAssignment, SodRule, SodViolation,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -97,13 +96,15 @@ impl SegregationOfDutiesEngine {
 
         if !VALID_ENFORCEMENT_MODES.contains(&enforcement_mode) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid enforcement_mode '{}'. Must be one of: {}", enforcement_mode,
+                "Invalid enforcement_mode '{}'. Must be one of: {}",
+                enforcement_mode,
                 VALID_ENFORCEMENT_MODES.join(", ")
             )));
         }
         if !VALID_RISK_LEVELS.contains(&risk_level) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid risk_level '{}'. Must be one of: {}", risk_level,
+                "Invalid risk_level '{}'. Must be one of: {}",
+                risk_level,
                 VALID_RISK_LEVELS.join(", ")
             )));
         }
@@ -116,20 +117,37 @@ impl SegregationOfDutiesEngine {
         }
 
         // Check uniqueness
-        if self.repository.get_rule(org_id, &code_upper).await?.is_some() {
+        if self
+            .repository
+            .get_rule(org_id, &code_upper)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
                 "SoD rule with code '{code_upper}' already exists"
             )));
         }
 
-        info!("Creating SoD rule '{}' ({}) for org {}", code_upper, name, org_id);
+        info!(
+            "Creating SoD rule '{}' ({}) for org {}",
+            code_upper, name, org_id
+        );
 
-        self.repository.create_rule(
-            org_id, &code_upper, name, description,
-            first_duties, second_duties,
-            enforcement_mode, risk_level,
-            effective_from, effective_to, created_by,
-        ).await
+        self.repository
+            .create_rule(
+                org_id,
+                &code_upper,
+                name,
+                description,
+                first_duties,
+                second_duties,
+                enforcement_mode,
+                risk_level,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a rule by code
@@ -149,11 +167,15 @@ impl SegregationOfDutiesEngine {
 
     /// Activate a rule
     pub async fn activate_rule(&self, id: Uuid) -> AtlasResult<SodRule> {
-        let rule = self.get_rule_by_id(id).await?
+        let rule = self
+            .get_rule_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("SoD rule {id} not found")))?;
 
         if rule.is_active {
-            return Err(AtlasError::WorkflowError("Rule is already active".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Rule is already active".to_string(),
+            ));
         }
 
         info!("Activating SoD rule {}", rule.code);
@@ -162,11 +184,15 @@ impl SegregationOfDutiesEngine {
 
     /// Deactivate a rule
     pub async fn deactivate_rule(&self, id: Uuid) -> AtlasResult<SodRule> {
-        let rule = self.get_rule_by_id(id).await?
+        let rule = self
+            .get_rule_by_id(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("SoD rule {id} not found")))?;
 
         if !rule.is_active {
-            return Err(AtlasError::WorkflowError("Rule is already inactive".to_string()));
+            return Err(AtlasError::WorkflowError(
+                "Rule is already inactive".to_string(),
+            ));
         }
 
         info!("Deactivating SoD rule {}", rule.code);
@@ -176,7 +202,9 @@ impl SegregationOfDutiesEngine {
     /// Delete a rule
     pub async fn delete_rule(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         info!("Deleting SoD rule {}", code);
-        self.repository.delete_rule(org_id, &code.to_uppercase()).await
+        self.repository
+            .delete_rule(org_id, &code.to_uppercase())
+            .await
     }
 
     // ========================================================================
@@ -194,29 +222,41 @@ impl SegregationOfDutiesEngine {
         assigned_by: Option<Uuid>,
     ) -> AtlasResult<SodRoleAssignment> {
         if role_name.is_empty() {
-            return Err(AtlasError::ValidationFailed("Role name is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Role name is required".to_string(),
+            ));
         }
         if duty_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("Duty code is required".to_string()));
+            return Err(AtlasError::ValidationFailed(
+                "Duty code is required".to_string(),
+            ));
         }
 
         // Check for SoD conflicts with preventive enforcement
-        let conflict_result = self.check_conflicts_for_assignment(org_id, user_id, duty_code).await?;
+        let conflict_result = self
+            .check_conflicts_for_assignment(org_id, user_id, duty_code)
+            .await?;
         if conflict_result.would_be_blocked {
             return Err(AtlasError::ValidationFailed(format!(
                 "Role assignment blocked by SoD rule(s): {}",
-                conflict_result.conflicts.iter()
+                conflict_result
+                    .conflicts
+                    .iter()
                     .map(|c| format!("{} ({})", c.rule_code, c.rule_name))
                     .collect::<Vec<_>>()
                     .join(", ")
             )));
         }
 
-        info!("Assigning role '{}' (duty: {}) to user {}", role_name, duty_code, user_id);
+        info!(
+            "Assigning role '{}' (duty: {}) to user {}",
+            role_name, duty_code, user_id
+        );
 
-        let assignment = self.repository.create_role_assignment(
-            org_id, user_id, role_name, duty_code, assigned_by,
-        ).await?;
+        let assignment = self
+            .repository
+            .create_role_assignment(org_id, user_id, role_name, duty_code, assigned_by)
+            .await?;
 
         // After assignment, check for detective violations
         let detective_violations = self.detect_violations_for_user(org_id, user_id).await?;
@@ -226,19 +266,34 @@ impl SegregationOfDutiesEngine {
     }
 
     /// Get all active role assignments for a user
-    pub async fn get_user_assignments(&self, org_id: Uuid, user_id: Uuid) -> AtlasResult<Vec<SodRoleAssignment>> {
-        self.repository.get_role_assignments_for_user(org_id, user_id).await
+    pub async fn get_user_assignments(
+        &self,
+        org_id: Uuid,
+        user_id: Uuid,
+    ) -> AtlasResult<Vec<SodRoleAssignment>> {
+        self.repository
+            .get_role_assignments_for_user(org_id, user_id)
+            .await
     }
 
     /// List all role assignments
-    pub async fn list_role_assignments(&self, org_id: Uuid, user_id: Option<Uuid>) -> AtlasResult<Vec<SodRoleAssignment>> {
+    pub async fn list_role_assignments(
+        &self,
+        org_id: Uuid,
+        user_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<SodRoleAssignment>> {
         self.repository.list_role_assignments(org_id, user_id).await
     }
 
     /// Remove a role assignment
-    pub async fn remove_role_assignment(&self, assignment_id: Uuid) -> AtlasResult<SodRoleAssignment> {
+    pub async fn remove_role_assignment(
+        &self,
+        assignment_id: Uuid,
+    ) -> AtlasResult<SodRoleAssignment> {
         info!("Deactivating role assignment {}", assignment_id);
-        self.repository.deactivate_role_assignment(assignment_id).await
+        self.repository
+            .deactivate_role_assignment(assignment_id)
+            .await
     }
 
     // ========================================================================
@@ -254,8 +309,12 @@ impl SegregationOfDutiesEngine {
         proposed_duty: &str,
     ) -> AtlasResult<SodConflictCheckResult> {
         let rules = self.repository.list_rules(org_id, true).await?;
-        let existing_assignments = self.repository.get_role_assignments_for_user(org_id, user_id).await?;
-        let existing_duties: Vec<String> = existing_assignments.iter()
+        let existing_assignments = self
+            .repository
+            .get_role_assignments_for_user(org_id, user_id)
+            .await?;
+        let existing_duties: Vec<String> = existing_assignments
+            .iter()
             .map(|a| a.duty_code.clone())
             .collect();
 
@@ -267,7 +326,8 @@ impl SegregationOfDutiesEngine {
 
             if proposed_in_first {
                 // Check if user already has any duty from second_duties
-                let matched: Vec<String> = existing_duties.iter()
+                let matched: Vec<String> = existing_duties
+                    .iter()
                     .filter(|d| rule.second_duties.contains(d))
                     .cloned()
                     .collect();
@@ -286,7 +346,8 @@ impl SegregationOfDutiesEngine {
 
             if proposed_in_second {
                 // Check if user already has any duty from first_duties
-                let matched: Vec<String> = existing_duties.iter()
+                let matched: Vec<String> = existing_duties
+                    .iter()
                     .filter(|d| rule.first_duties.contains(d))
                     .cloned()
                     .collect();
@@ -321,38 +382,55 @@ impl SegregationOfDutiesEngine {
         user_id: Uuid,
     ) -> AtlasResult<Vec<SodViolation>> {
         let rules = self.repository.list_rules(org_id, true).await?;
-        let assignments = self.repository.get_role_assignments_for_user(org_id, user_id).await?;
-        let user_duties: Vec<String> = assignments.iter()
-            .map(|a| a.duty_code.clone())
-            .collect();
+        let assignments = self
+            .repository
+            .get_role_assignments_for_user(org_id, user_id)
+            .await?;
+        let user_duties: Vec<String> = assignments.iter().map(|a| a.duty_code.clone()).collect();
 
         let mut violations = Vec::new();
 
         for rule in &rules {
-            let first_matched: Vec<String> = user_duties.iter()
+            let first_matched: Vec<String> = user_duties
+                .iter()
                 .filter(|d| rule.first_duties.contains(d))
                 .cloned()
                 .collect();
-            let second_matched: Vec<String> = user_duties.iter()
+            let second_matched: Vec<String> = user_duties
+                .iter()
                 .filter(|d| rule.second_duties.contains(d))
                 .cloned()
                 .collect();
 
             if !first_matched.is_empty() && !second_matched.is_empty() {
                 // Check if there's already an open violation
-                let existing = self.repository.find_existing_violation(rule.id, user_id).await?;
+                let existing = self
+                    .repository
+                    .find_existing_violation(rule.id, user_id)
+                    .await?;
                 if existing.is_none() {
-                    let violation = self.repository.create_violation(
-                        org_id, rule.id, &rule.code, user_id,
-                        first_matched, second_matched,
-                    ).await?;
+                    let violation = self
+                        .repository
+                        .create_violation(
+                            org_id,
+                            rule.id,
+                            &rule.code,
+                            user_id,
+                            first_matched,
+                            second_matched,
+                        )
+                        .await?;
                     violations.push(violation);
                 }
             }
         }
 
         if !violations.is_empty() {
-            info!("Detected {} new SoD violations for user {}", violations.len(), user_id);
+            info!(
+                "Detected {} new SoD violations for user {}",
+                violations.len(),
+                user_id
+            );
         }
 
         Ok(violations)
@@ -366,9 +444,7 @@ impl SegregationOfDutiesEngine {
         let assignments = self.repository.list_role_assignments(org_id, None).await?;
 
         // Get unique user IDs
-        let mut user_ids: Vec<Uuid> = assignments.iter()
-            .map(|a| a.user_id)
-            .collect();
+        let mut user_ids: Vec<Uuid> = assignments.iter().map(|a| a.user_id).collect();
         user_ids.sort();
         user_ids.dedup();
 
@@ -378,7 +454,10 @@ impl SegregationOfDutiesEngine {
             total_new += new_violations.len() as i32;
         }
 
-        info!("Full detection complete: {} new violations found", total_new);
+        info!(
+            "Full detection complete: {} new violations found",
+            total_new
+        );
         Ok(total_new)
     }
 
@@ -399,7 +478,9 @@ impl SegregationOfDutiesEngine {
         status: Option<&str>,
         risk_level: Option<&str>,
     ) -> AtlasResult<Vec<SodViolation>> {
-        self.repository.list_violations(org_id, user_id, status, risk_level).await
+        self.repository
+            .list_violations(org_id, user_id, status, risk_level)
+            .await
     }
 
     /// Resolve a violation (e.g., because a conflicting role was removed)
@@ -408,10 +489,13 @@ impl SegregationOfDutiesEngine {
         violation_id: Uuid,
         resolved_by: Uuid,
     ) -> AtlasResult<SodViolation> {
-        let violation = self.repository.get_violation(violation_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("SoD violation {violation_id} not found")
-            ))?;
+        let violation = self
+            .repository
+            .get_violation(violation_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("SoD violation {violation_id} not found"))
+            })?;
 
         if violation.violation_status == "resolved" {
             return Err(AtlasError::WorkflowError(
@@ -419,8 +503,13 @@ impl SegregationOfDutiesEngine {
             ));
         }
 
-        info!("Resolving SoD violation {} by {}", violation_id, resolved_by);
-        self.repository.update_violation_status(violation_id, "resolved", Some(resolved_by)).await
+        info!(
+            "Resolving SoD violation {} by {}",
+            violation_id, resolved_by
+        );
+        self.repository
+            .update_violation_status(violation_id, "resolved", Some(resolved_by))
+            .await
     }
 
     /// Mark a violation as an accepted exception
@@ -429,19 +518,28 @@ impl SegregationOfDutiesEngine {
         violation_id: Uuid,
         accepted_by: Uuid,
     ) -> AtlasResult<SodViolation> {
-        let violation = self.repository.get_violation(violation_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("SoD violation {violation_id} not found")
-            ))?;
+        let violation = self
+            .repository
+            .get_violation(violation_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("SoD violation {violation_id} not found"))
+            })?;
 
         if violation.violation_status != "open" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot accept exception for violation in '{}' status. Must be 'open'.", violation.violation_status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot accept exception for violation in '{}' status. Must be 'open'.",
+                violation.violation_status
+            )));
         }
 
-        info!("Accepting SoD violation {} as exception by {}", violation_id, accepted_by);
-        self.repository.update_violation_status(violation_id, "exception", Some(accepted_by)).await
+        info!(
+            "Accepting SoD violation {} as exception by {}",
+            violation_id, accepted_by
+        );
+        self.repository
+            .update_violation_status(violation_id, "exception", Some(accepted_by))
+            .await
     }
 
     // ========================================================================
@@ -462,10 +560,13 @@ impl SegregationOfDutiesEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<SodMitigatingControl> {
         // Verify violation exists
-        let violation = self.repository.get_violation(violation_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("SoD violation {violation_id} not found")
-            ))?;
+        let violation = self
+            .repository
+            .get_violation(violation_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("SoD violation {violation_id} not found"))
+            })?;
 
         if violation.violation_status != "open" {
             return Err(AtlasError::WorkflowError(
@@ -486,18 +587,30 @@ impl SegregationOfDutiesEngine {
         if !VALID_REVIEW_FREQUENCIES.contains(&review_frequency) {
             return Err(AtlasError::ValidationFailed(format!(
                 "Invalid review_frequency '{}'. Must be one of: {}",
-                review_frequency, VALID_REVIEW_FREQUENCIES.join(", ")
+                review_frequency,
+                VALID_REVIEW_FREQUENCIES.join(", ")
             )));
         }
 
-        info!("Adding mitigating control '{}' to violation {}", control_name, violation_id);
+        info!(
+            "Adding mitigating control '{}' to violation {}",
+            control_name, violation_id
+        );
 
-        let control = self.repository.create_mitigating_control(
-            org_id, violation_id,
-            control_name, control_description,
-            control_owner_id, review_frequency,
-            effective_from, effective_to, created_by,
-        ).await?;
+        let control = self
+            .repository
+            .create_mitigating_control(
+                org_id,
+                violation_id,
+                control_name,
+                control_description,
+                control_owner_id,
+                review_frequency,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await?;
 
         // Auto-approve if creator is the control owner
         // Otherwise leave as pending_approval
@@ -510,11 +623,16 @@ impl SegregationOfDutiesEngine {
         &self,
         violation_id: Uuid,
     ) -> AtlasResult<Vec<SodMitigatingControl>> {
-        self.repository.get_mitigating_controls_for_violation(violation_id).await
+        self.repository
+            .get_mitigating_controls_for_violation(violation_id)
+            .await
     }
 
     /// List all mitigating controls
-    pub async fn list_mitigating_controls(&self, org_id: Uuid) -> AtlasResult<Vec<SodMitigatingControl>> {
+    pub async fn list_mitigating_controls(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<Vec<SodMitigatingControl>> {
         self.repository.list_mitigating_controls(org_id).await
     }
 
@@ -524,32 +642,56 @@ impl SegregationOfDutiesEngine {
         control_id: Uuid,
         approved_by: Uuid,
     ) -> AtlasResult<SodMitigatingControl> {
-        let _control = self.repository.get_mitigating_controls_for_violation(Uuid::nil()).await?;
+        let _control = self
+            .repository
+            .get_mitigating_controls_for_violation(Uuid::nil())
+            .await?;
         // We need to look up the control - but our repo only has list/get by violation
         // So let's approve directly and let the repo handle it
-        let control = self.repository.approve_mitigating_control(control_id, approved_by).await?;
+        let control = self
+            .repository
+            .approve_mitigating_control(control_id, approved_by)
+            .await?;
 
         // Update the violation status to mitigated
-        self.repository.update_violation_status(control.violation_id, "mitigated", Some(approved_by)).await?;
+        self.repository
+            .update_violation_status(control.violation_id, "mitigated", Some(approved_by))
+            .await?;
 
-        info!("Approved mitigating control {} for violation {}", control_id, control.violation_id);
+        info!(
+            "Approved mitigating control {} for violation {}",
+            control_id, control.violation_id
+        );
         Ok(control)
     }
 
     /// Revoke a mitigating control
-    pub async fn revoke_mitigating_control(&self, control_id: Uuid) -> AtlasResult<SodMitigatingControl> {
+    pub async fn revoke_mitigating_control(
+        &self,
+        control_id: Uuid,
+    ) -> AtlasResult<SodMitigatingControl> {
         info!("Revoking mitigating control {}", control_id);
-        let control = self.repository.revoke_mitigating_control(control_id).await?;
+        let control = self
+            .repository
+            .revoke_mitigating_control(control_id)
+            .await?;
 
         // Reopen the violation if it was mitigated
         let violation = self.repository.get_violation(control.violation_id).await?;
         if let Some(v) = violation {
             if v.violation_status == "mitigated" {
                 // Check if there are any other active mitigating controls
-                let controls = self.repository.get_mitigating_controls_for_violation(control.violation_id).await?;
-                let has_active = controls.iter().any(|c| c.status == "active" && c.id != control_id);
+                let controls = self
+                    .repository
+                    .get_mitigating_controls_for_violation(control.violation_id)
+                    .await?;
+                let has_active = controls
+                    .iter()
+                    .any(|c| c.status == "active" && c.id != control_id);
                 if !has_active {
-                    self.repository.update_violation_status(control.violation_id, "open", None).await?;
+                    self.repository
+                        .update_violation_status(control.violation_id, "open", None)
+                        .await?;
                 }
             }
         }
@@ -562,7 +704,10 @@ impl SegregationOfDutiesEngine {
     // ========================================================================
 
     /// Get `SoD` compliance dashboard summary
-    pub async fn get_dashboard(&self, org_id: Uuid) -> AtlasResult<atlas_shared::SodDashboardSummary> {
+    pub async fn get_dashboard(
+        &self,
+        org_id: Uuid,
+    ) -> AtlasResult<atlas_shared::SodDashboardSummary> {
         self.repository.get_dashboard_summary(org_id).await
     }
 }
@@ -616,7 +761,8 @@ mod tests {
         let first = vec!["create_vendor".to_string(), "approve_payment".to_string()];
         let second = vec!["create_vendor".to_string()];
         // "create_vendor" appears in both -> should be an error
-        let overlap: Vec<String> = first.iter()
+        let overlap: Vec<String> = first
+            .iter()
             .filter(|d| second.contains(d))
             .cloned()
             .collect();
@@ -638,7 +784,8 @@ mod tests {
         assert!(proposed_in_second);
 
         // existing has a duty from first_duties
-        let matched: Vec<String> = existing_duties.iter()
+        let matched: Vec<String> = existing_duties
+            .iter()
             .filter(|d| first_duties.contains(d))
             .cloned()
             .collect();
@@ -655,7 +802,8 @@ mod tests {
         let proposed_in_second = second_duties.iter().any(|d| d == proposed_duty);
         assert!(proposed_in_second);
 
-        let matched: Vec<String> = existing_duties.iter()
+        let matched: Vec<String> = existing_duties
+            .iter()
             .filter(|d| first_duties.contains(d))
             .cloned()
             .collect();
@@ -665,32 +813,30 @@ mod tests {
     #[test]
     fn test_would_be_blocked_logic() {
         // Preventive rules block, detective rules don't
-        let conflicts = vec![
-            SodConflictDetail {
-                rule_id: Uuid::new_v4(),
-                rule_code: "RULE1".to_string(),
-                rule_name: "Test Rule 1".to_string(),
-                risk_level: "high".to_string(),
-                enforcement_mode: "detective".to_string(),
-                conflicting_duty: "approve_payment".to_string(),
-                existing_duties_causing_conflict: vec!["create_vendor".to_string()],
-            },
-        ];
+        let conflicts = vec![SodConflictDetail {
+            rule_id: Uuid::new_v4(),
+            rule_code: "RULE1".to_string(),
+            rule_name: "Test Rule 1".to_string(),
+            risk_level: "high".to_string(),
+            enforcement_mode: "detective".to_string(),
+            conflicting_duty: "approve_payment".to_string(),
+            existing_duties_causing_conflict: vec!["create_vendor".to_string()],
+        }];
         let blocked = conflicts.iter().any(|c| c.enforcement_mode == "preventive");
         assert!(!blocked);
 
-        let conflicts_with_preventive = vec![
-            SodConflictDetail {
-                rule_id: Uuid::new_v4(),
-                rule_code: "RULE2".to_string(),
-                rule_name: "Test Rule 2".to_string(),
-                risk_level: "high".to_string(),
-                enforcement_mode: "preventive".to_string(),
-                conflicting_duty: "approve_payment".to_string(),
-                existing_duties_causing_conflict: vec!["create_vendor".to_string()],
-            },
-        ];
-        let blocked2 = conflicts_with_preventive.iter().any(|c| c.enforcement_mode == "preventive");
+        let conflicts_with_preventive = vec![SodConflictDetail {
+            rule_id: Uuid::new_v4(),
+            rule_code: "RULE2".to_string(),
+            rule_name: "Test Rule 2".to_string(),
+            risk_level: "high".to_string(),
+            enforcement_mode: "preventive".to_string(),
+            conflicting_duty: "approve_payment".to_string(),
+            existing_duties_causing_conflict: vec!["create_vendor".to_string()],
+        }];
+        let blocked2 = conflicts_with_preventive
+            .iter()
+            .any(|c| c.enforcement_mode == "preventive");
         assert!(blocked2);
     }
 }

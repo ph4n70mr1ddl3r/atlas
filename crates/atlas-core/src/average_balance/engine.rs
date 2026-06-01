@@ -9,7 +9,10 @@
 //!
 //! Oracle Fusion Cloud ERP equivalent: Financials > General Ledger > Average Balances
 
-use super::{AverageBalanceRepository, AtlasResult, AverageBalanceBook, AtlasError, BookAccount, DailyBalance, AverageBalanceCalculation, AverageBalanceDashboard};
+use super::{
+    AtlasError, AtlasResult, AverageBalanceBook, AverageBalanceCalculation,
+    AverageBalanceDashboard, AverageBalanceRepository, BookAccount, DailyBalance,
+};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
@@ -56,24 +59,39 @@ impl AverageBalanceEngine {
         }
         if !VALID_PERIOD_TYPES.contains(&period_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid period type '{}'. Must be one of: {}", period_type, VALID_PERIOD_TYPES.join(", ")
+                "Invalid period type '{}'. Must be one of: {}",
+                period_type,
+                VALID_PERIOD_TYPES.join(", ")
             )));
         }
         if averaging_window_days < 1 {
-            return Err(AtlasError::ValidationFailed("Averaging window must be at least 1 day".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Averaging window must be at least 1 day".into(),
+            ));
         }
         if currency_code.is_empty() || currency_code.len() != 3 {
-            return Err(AtlasError::ValidationFailed("Currency code must be 3 characters".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Currency code must be 3 characters".into(),
+            ));
         }
         if let Some(to) = effective_to {
             if to < effective_from {
-                return Err(AtlasError::ValidationFailed("Effective to date must be after effective from date".into()));
+                return Err(AtlasError::ValidationFailed(
+                    "Effective to date must be after effective from date".into(),
+                ));
             }
         }
 
         // Check for duplicate book code
-        if self.repository.get_book_by_code(org_id, book_code).await?.is_some() {
-            return Err(AtlasError::Conflict(format!("Book code '{book_code}' already exists")));
+        if self
+            .repository
+            .get_book_by_code(org_id, book_code)
+            .await?
+            .is_some()
+        {
+            return Err(AtlasError::Conflict(format!(
+                "Book code '{book_code}' already exists"
+            )));
         }
 
         // If setting as primary, validate no other primary exists
@@ -82,19 +100,32 @@ impl AverageBalanceEngine {
             for book in &existing {
                 if book.is_primary && book.id != Uuid::nil() {
                     return Err(AtlasError::Conflict(
-                        "Another primary book already exists for this organization".into()
+                        "Another primary book already exists for this organization".into(),
                     ));
                 }
             }
         }
 
-        info!("Creating average balance book '{}' (period: {}, window: {} days)", book_code, period_type, averaging_window_days);
+        info!(
+            "Creating average balance book '{}' (period: {}, window: {} days)",
+            book_code, period_type, averaging_window_days
+        );
 
-        self.repository.create_book(
-            org_id, book_code, book_name, description, period_type,
-            averaging_window_days, is_primary, currency_code, effective_from,
-            effective_to, created_by,
-        ).await
+        self.repository
+            .create_book(
+                org_id,
+                book_code,
+                book_name,
+                description,
+                period_type,
+                averaging_window_days,
+                is_primary,
+                currency_code,
+                effective_from,
+                effective_to,
+                created_by,
+            )
+            .await
     }
 
     /// Get a book by ID
@@ -103,16 +134,26 @@ impl AverageBalanceEngine {
     }
 
     /// Get a book by code
-    pub async fn get_book_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AverageBalanceBook>> {
+    pub async fn get_book_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<AverageBalanceBook>> {
         self.repository.get_book_by_code(org_id, code).await
     }
 
     /// List books for an organization
-    pub async fn list_books(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<AverageBalanceBook>> {
+    pub async fn list_books(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<AverageBalanceBook>> {
         if let Some(s) = status {
             if !VALID_BOOK_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_BOOK_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_BOOK_STATUSES.join(", ")
                 )));
             }
         }
@@ -121,7 +162,10 @@ impl AverageBalanceEngine {
 
     /// Activate a book
     pub async fn activate_book(&self, book_id: Uuid) -> AtlasResult<AverageBalanceBook> {
-        let book = self.repository.get_book(book_id).await?
+        let book = self
+            .repository
+            .get_book(book_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         if book.status == "active" {
@@ -134,7 +178,10 @@ impl AverageBalanceEngine {
 
     /// Deactivate a book
     pub async fn deactivate_book(&self, book_id: Uuid) -> AtlasResult<AverageBalanceBook> {
-        let book = self.repository.get_book(book_id).await?
+        let book = self
+            .repository
+            .get_book(book_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         if book.status == "inactive" {
@@ -142,17 +189,22 @@ impl AverageBalanceEngine {
         }
 
         info!("Deactivating average balance book '{}'", book.book_code);
-        self.repository.update_book_status(book_id, "inactive").await
+        self.repository
+            .update_book_status(book_id, "inactive")
+            .await
     }
 
     /// Delete a book (only if inactive)
     pub async fn delete_book(&self, book_id: Uuid) -> AtlasResult<()> {
-        let book = self.repository.get_book(book_id).await?
+        let book = self
+            .repository
+            .get_book(book_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         if book.status == "active" {
             return Err(AtlasError::WorkflowError(
-                "Cannot delete an active book. Deactivate it first.".into()
+                "Cannot delete an active book. Deactivate it first.".into(),
             ));
         }
 
@@ -174,23 +226,30 @@ impl AverageBalanceEngine {
         account_type: Option<&str>,
         track_negative: bool,
     ) -> AtlasResult<BookAccount> {
-        let book = self.repository.get_book(book_id).await?
+        let book = self
+            .repository
+            .get_book(book_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         if book.status != "active" {
             return Err(AtlasError::WorkflowError(
-                "Cannot add accounts to an inactive book".into()
+                "Cannot add accounts to an inactive book".into(),
             ));
         }
 
         if gl_account.is_empty() {
-            return Err(AtlasError::ValidationFailed("GL account is required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "GL account is required".into(),
+            ));
         }
 
         if let Some(at) = account_type {
             if !VALID_ACCOUNT_TYPES.contains(&at) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid account type '{}'. Must be one of: {}", at, VALID_ACCOUNT_TYPES.join(", ")
+                    "Invalid account type '{}'. Must be one of: {}",
+                    at,
+                    VALID_ACCOUNT_TYPES.join(", ")
                 )));
             }
         }
@@ -203,11 +262,20 @@ impl AverageBalanceEngine {
             )));
         }
 
-        info!("Adding GL account '{}' to book '{}'", gl_account, book.book_code);
-        self.repository.add_account(
-            org_id, book_id, gl_account, gl_account_name,
-            account_type, track_negative,
-        ).await
+        info!(
+            "Adding GL account '{}' to book '{}'",
+            gl_account, book.book_code
+        );
+        self.repository
+            .add_account(
+                org_id,
+                book_id,
+                gl_account,
+                gl_account_name,
+                account_type,
+                track_negative,
+            )
+            .await
     }
 
     /// List accounts in a book
@@ -239,33 +307,49 @@ impl AverageBalanceEngine {
         negative_balance: &str,
     ) -> AtlasResult<DailyBalance> {
         // Validate the book exists and is active
-        let book = self.repository.get_book(book_id).await?
+        let book = self
+            .repository
+            .get_book(book_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
         if book.status != "active" {
-            return Err(AtlasError::WorkflowError("Cannot record balances for an inactive book".into()));
+            return Err(AtlasError::WorkflowError(
+                "Cannot record balances for an inactive book".into(),
+            ));
         }
 
         // Validate the account exists in this book
-        let account = self.repository.get_account(account_id).await?
+        let account = self
+            .repository
+            .get_account(account_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Account {account_id} not found")))?;
 
         if account.book_id != book_id {
-            return Err(AtlasError::ValidationFailed("Account does not belong to this book".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Account does not belong to this book".into(),
+            ));
         }
 
         let cb: f64 = closing_balance.parse().unwrap_or(f64::NAN);
         if cb.is_nan() {
-            return Err(AtlasError::ValidationFailed("Closing balance must be a valid number".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Closing balance must be a valid number".into(),
+            ));
         }
 
         let ob: f64 = opening_balance.parse().unwrap_or(f64::NAN);
         if ob.is_nan() {
-            return Err(AtlasError::ValidationFailed("Opening balance must be a valid number".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Opening balance must be a valid number".into(),
+            ));
         }
 
         if transaction_count < 0 {
-            return Err(AtlasError::ValidationFailed("Transaction count cannot be negative".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Transaction count cannot be negative".into(),
+            ));
         }
 
         // Verify that closing = opening + debits - credits
@@ -279,13 +363,25 @@ impl AverageBalanceEngine {
             )));
         }
 
-        info!("Recording daily balance for account {} on {} in book '{}'", account.gl_account, balance_date, book.book_code);
+        info!(
+            "Recording daily balance for account {} on {} in book '{}'",
+            account.gl_account, balance_date, book.book_code
+        );
 
-        self.repository.upsert_daily_balance(
-            org_id, book_id, account_id, balance_date,
-            closing_balance, opening_balance, total_debits, total_credits,
-            transaction_count, negative_balance,
-        ).await
+        self.repository
+            .upsert_daily_balance(
+                org_id,
+                book_id,
+                account_id,
+                balance_date,
+                closing_balance,
+                opening_balance,
+                total_debits,
+                total_credits,
+                transaction_count,
+                negative_balance,
+            )
+            .await
     }
 
     /// List daily balances for an account
@@ -296,7 +392,9 @@ impl AverageBalanceEngine {
         from_date: Option<chrono::NaiveDate>,
         to_date: Option<chrono::NaiveDate>,
     ) -> AtlasResult<Vec<DailyBalance>> {
-        self.repository.list_daily_balances(book_id, account_id, from_date, to_date).await
+        self.repository
+            .list_daily_balances(book_id, account_id, from_date, to_date)
+            .await
     }
 
     // ========================================================================
@@ -316,34 +414,51 @@ impl AverageBalanceEngine {
     ) -> AtlasResult<AverageBalanceCalculation> {
         if !VALID_CALC_TYPES.contains(&calculation_type) {
             return Err(AtlasError::ValidationFailed(format!(
-                "Invalid calculation type '{}'. Must be one of: {}", calculation_type, VALID_CALC_TYPES.join(", ")
+                "Invalid calculation type '{}'. Must be one of: {}",
+                calculation_type,
+                VALID_CALC_TYPES.join(", ")
             )));
         }
 
         if period_end_date < period_start_date {
-            return Err(AtlasError::ValidationFailed("Period end date must be after period start date".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Period end date must be after period start date".into(),
+            ));
         }
 
         // Validate book and account
-        let book = self.repository.get_book(book_id).await?
+        let book = self
+            .repository
+            .get_book(book_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {book_id} not found")))?;
 
-        let account = self.repository.get_account(account_id).await?
+        let account = self
+            .repository
+            .get_account(account_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Account {account_id} not found")))?;
 
         if account.book_id != book_id {
-            return Err(AtlasError::ValidationFailed("Account does not belong to this book".into()));
+            return Err(AtlasError::ValidationFailed(
+                "Account does not belong to this book".into(),
+            ));
         }
 
         // Fetch daily balances for the period
-        let daily_balances = self.repository.list_daily_balances(
-            book_id, account_id,
-            Some(period_start_date), Some(period_end_date),
-        ).await?;
+        let daily_balances = self
+            .repository
+            .list_daily_balances(
+                book_id,
+                account_id,
+                Some(period_start_date),
+                Some(period_end_date),
+            )
+            .await?;
 
         if daily_balances.is_empty() {
             return Err(AtlasError::ValidationFailed(
-                "No daily balance entries found for the specified period".into()
+                "No daily balance entries found for the specified period".into(),
             ));
         }
 
@@ -352,32 +467,39 @@ impl AverageBalanceEngine {
         let actual_days = daily_balances.len() as i32;
 
         // Simple average
-        let sum_balances: f64 = daily_balances.iter()
+        let sum_balances: f64 = daily_balances
+            .iter()
             .map(|d| d.closing_balance.parse::<f64>().unwrap_or(0.0))
             .sum();
         let average_balance = sum_balances / f64::from(actual_days);
 
         // Weighted average (balance * days weighted by recency)
         let total_weight: f64 = (1..=actual_days).map(f64::from).sum::<f64>();
-        let weighted_sum: f64 = daily_balances.iter().enumerate()
+        let weighted_sum: f64 = daily_balances
+            .iter()
+            .enumerate()
             .map(|(i, d)| d.closing_balance.parse::<f64>().unwrap_or(0.0) * (i + 1) as f64)
             .sum();
         let weighted_average = weighted_sum / total_weight;
 
         // Period totals
-        let period_total_debits: f64 = daily_balances.iter()
+        let period_total_debits: f64 = daily_balances
+            .iter()
             .map(|d| d.total_debits.parse::<f64>().unwrap_or(0.0))
             .sum();
-        let period_total_credits: f64 = daily_balances.iter()
+        let period_total_credits: f64 = daily_balances
+            .iter()
             .map(|d| d.total_credits.parse::<f64>().unwrap_or(0.0))
             .sum();
 
         // Period end balance (last entry)
-        let period_end_balance: f64 = daily_balances.last()
+        let period_end_balance: f64 = daily_balances
+            .last()
             .map_or(0.0, |d| d.closing_balance.parse::<f64>().unwrap_or(0.0));
 
         // Peak and trough
-        let balances: Vec<f64> = daily_balances.iter()
+        let balances: Vec<f64> = daily_balances
+            .iter()
             .map(|d| d.closing_balance.parse::<f64>().unwrap_or(0.0))
             .collect();
         let peak_balance = balances.iter().copied().fold(f64::NEG_INFINITY, f64::max);
@@ -424,7 +546,10 @@ impl AverageBalanceEngine {
     }
 
     /// Get a calculation by ID
-    pub async fn get_calculation(&self, id: Uuid) -> AtlasResult<Option<AverageBalanceCalculation>> {
+    pub async fn get_calculation(
+        &self,
+        id: Uuid,
+    ) -> AtlasResult<Option<AverageBalanceCalculation>> {
         self.repository.get_calculation(id).await
     }
 
@@ -439,48 +564,74 @@ impl AverageBalanceEngine {
         if let Some(ct) = calculation_type {
             if !VALID_CALC_TYPES.contains(&ct) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid calculation type '{}'. Must be one of: {}", ct, VALID_CALC_TYPES.join(", ")
+                    "Invalid calculation type '{}'. Must be one of: {}",
+                    ct,
+                    VALID_CALC_TYPES.join(", ")
                 )));
             }
         }
         if let Some(s) = status {
             if !VALID_CALC_STATUSES.contains(&s) {
                 return Err(AtlasError::ValidationFailed(format!(
-                    "Invalid status '{}'. Must be one of: {}", s, VALID_CALC_STATUSES.join(", ")
+                    "Invalid status '{}'. Must be one of: {}",
+                    s,
+                    VALID_CALC_STATUSES.join(", ")
                 )));
             }
         }
-        self.repository.list_calculations(book_id, account_id, calculation_type, status).await
+        self.repository
+            .list_calculations(book_id, account_id, calculation_type, status)
+            .await
     }
 
     /// Approve a calculated average balance
-    pub async fn approve_calculation(&self, calc_id: Uuid, approved_by: Option<Uuid>) -> AtlasResult<AverageBalanceCalculation> {
-        let calc = self.repository.get_calculation(calc_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calculation {calc_id} not found")))?;
+    pub async fn approve_calculation(
+        &self,
+        calc_id: Uuid,
+        approved_by: Option<Uuid>,
+    ) -> AtlasResult<AverageBalanceCalculation> {
+        let calc = self
+            .repository
+            .get_calculation(calc_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Calculation {calc_id} not found"))
+            })?;
 
         if calc.status != "calculated" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot approve calculation in '{}' status. Must be 'calculated'.", calc.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot approve calculation in '{}' status. Must be 'calculated'.",
+                calc.status
+            )));
         }
 
         info!("Approving average balance calculation {}", calc_id);
-        self.repository.update_calculation_status(calc_id, "approved", approved_by).await
+        self.repository
+            .update_calculation_status(calc_id, "approved", approved_by)
+            .await
     }
 
     /// Post an approved calculation
     pub async fn post_calculation(&self, calc_id: Uuid) -> AtlasResult<AverageBalanceCalculation> {
-        let calc = self.repository.get_calculation(calc_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Calculation {calc_id} not found")))?;
+        let calc = self
+            .repository
+            .get_calculation(calc_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!("Calculation {calc_id} not found"))
+            })?;
 
         if calc.status != "approved" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot post calculation in '{}' status. Must be 'approved'.", calc.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot post calculation in '{}' status. Must be 'approved'.",
+                calc.status
+            )));
         }
 
         info!("Posting average balance calculation {}", calc_id);
-        self.repository.update_calculation_status(calc_id, "posted", None).await
+        self.repository
+            .update_calculation_status(calc_id, "posted", None)
+            .await
     }
 
     /// Get dashboard
@@ -514,44 +665,90 @@ mod tests {
     #[async_trait::async_trait]
     impl AverageBalanceRepository for MockRepo {
         async fn create_book(
-            &self, org_id: Uuid, code: &str, name: &str, desc: Option<&str>,
-            period_type: &str, window: i32, primary: bool, currency: &str,
-            eff_from: chrono::NaiveDate, eff_to: Option<chrono::NaiveDate>,
+            &self,
+            org_id: Uuid,
+            code: &str,
+            name: &str,
+            desc: Option<&str>,
+            period_type: &str,
+            window: i32,
+            primary: bool,
+            currency: &str,
+            eff_from: chrono::NaiveDate,
+            eff_to: Option<chrono::NaiveDate>,
             created_by: Option<Uuid>,
         ) -> AtlasResult<AverageBalanceBook> {
             let b = AverageBalanceBook {
-                id: Uuid::new_v4(), organization_id: org_id,
-                book_code: code.into(), book_name: name.into(),
-                description: desc.map(Into::into), period_type: period_type.into(),
-                averaging_window_days: window, is_primary: primary,
-                status: "active".into(), currency_code: currency.into(),
-                effective_from: eff_from, effective_to: eff_to,
+                id: Uuid::new_v4(),
+                organization_id: org_id,
+                book_code: code.into(),
+                book_name: name.into(),
+                description: desc.map(Into::into),
+                period_type: period_type.into(),
+                averaging_window_days: window,
+                is_primary: primary,
+                status: "active".into(),
+                currency_code: currency.into(),
+                effective_from: eff_from,
+                effective_to: eff_to,
                 metadata: serde_json::json!({}),
-                created_by, created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_by,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             };
             self.books.lock().unwrap().push(b.clone());
             Ok(b)
         }
 
         async fn get_book(&self, id: Uuid) -> AtlasResult<Option<AverageBalanceBook>> {
-            Ok(self.books.lock().unwrap().iter().find(|b| b.id == id).cloned())
+            Ok(self
+                .books
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|b| b.id == id)
+                .cloned())
         }
 
-        async fn get_book_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<AverageBalanceBook>> {
-            Ok(self.books.lock().unwrap().iter()
-                .find(|b| b.organization_id == org_id && b.book_code == code).cloned())
+        async fn get_book_by_code(
+            &self,
+            org_id: Uuid,
+            code: &str,
+        ) -> AtlasResult<Option<AverageBalanceBook>> {
+            Ok(self
+                .books
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|b| b.organization_id == org_id && b.book_code == code)
+                .cloned())
         }
 
-        async fn list_books(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<AverageBalanceBook>> {
-            Ok(self.books.lock().unwrap().iter()
+        async fn list_books(
+            &self,
+            org_id: Uuid,
+            status: Option<&str>,
+        ) -> AtlasResult<Vec<AverageBalanceBook>> {
+            Ok(self
+                .books
+                .lock()
+                .unwrap()
+                .iter()
                 .filter(|b| b.organization_id == org_id)
                 .filter(|b| status.is_none_or(|s| b.status == s))
-                .cloned().collect())
+                .cloned()
+                .collect())
         }
 
-        async fn update_book_status(&self, id: Uuid, status: &str) -> AtlasResult<AverageBalanceBook> {
+        async fn update_book_status(
+            &self,
+            id: Uuid,
+            status: &str,
+        ) -> AtlasResult<AverageBalanceBook> {
             let mut bs = self.books.lock().unwrap();
-            let b = bs.iter_mut().find(|b| b.id == id)
+            let b = bs
+                .iter_mut()
+                .find(|b| b.id == id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Book {} not found", id)))?;
             b.status = status.into();
             b.updated_at = chrono::Utc::now();
@@ -565,26 +762,49 @@ mod tests {
         }
 
         async fn add_account(
-            &self, org_id: Uuid, book_id: Uuid, gl: &str, name: Option<&str>,
-            at: Option<&str>, tn: bool,
+            &self,
+            org_id: Uuid,
+            book_id: Uuid,
+            gl: &str,
+            name: Option<&str>,
+            at: Option<&str>,
+            tn: bool,
         ) -> AtlasResult<BookAccount> {
             let a = BookAccount {
-                id: Uuid::new_v4(), organization_id: org_id, book_id,
-                gl_account: gl.into(), gl_account_name: name.map(Into::into),
-                account_type: at.map(Into::into), track_negative: tn,
+                id: Uuid::new_v4(),
+                organization_id: org_id,
+                book_id,
+                gl_account: gl.into(),
+                gl_account_name: name.map(Into::into),
+                account_type: at.map(Into::into),
+                track_negative: tn,
                 metadata: serde_json::json!({}),
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             };
             self.accounts.lock().unwrap().push(a.clone());
             Ok(a)
         }
 
         async fn list_accounts(&self, book_id: Uuid) -> AtlasResult<Vec<BookAccount>> {
-            Ok(self.accounts.lock().unwrap().iter().filter(|a| a.book_id == book_id).cloned().collect())
+            Ok(self
+                .accounts
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|a| a.book_id == book_id)
+                .cloned()
+                .collect())
         }
 
         async fn get_account(&self, id: Uuid) -> AtlasResult<Option<BookAccount>> {
-            Ok(self.accounts.lock().unwrap().iter().find(|a| a.id == id).cloned())
+            Ok(self
+                .accounts
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|a| a.id == id)
+                .cloned())
         }
 
         async fn remove_account(&self, id: Uuid) -> AtlasResult<()> {
@@ -594,12 +814,22 @@ mod tests {
         }
 
         async fn upsert_daily_balance(
-            &self, org_id: Uuid, book_id: Uuid, account_id: Uuid,
-            date: chrono::NaiveDate, cb: &str, ob: &str, td: &str, tc: &str,
-            txn_count: i32, neg: &str,
+            &self,
+            org_id: Uuid,
+            book_id: Uuid,
+            account_id: Uuid,
+            date: chrono::NaiveDate,
+            cb: &str,
+            ob: &str,
+            td: &str,
+            tc: &str,
+            txn_count: i32,
+            neg: &str,
         ) -> AtlasResult<DailyBalance> {
             let mut dbs = self.daily_balances.lock().unwrap();
-            if let Some(existing) = dbs.iter_mut().find(|d| d.book_id == book_id && d.account_id == account_id && d.balance_date == date) {
+            if let Some(existing) = dbs.iter_mut().find(|d| {
+                d.book_id == book_id && d.account_id == account_id && d.balance_date == date
+            }) {
                 existing.closing_balance = cb.into();
                 existing.opening_balance = ob.into();
                 existing.total_debits = td.into();
@@ -610,52 +840,110 @@ mod tests {
                 return Ok(existing.clone());
             }
             let db = DailyBalance {
-                id: Uuid::new_v4(), organization_id: org_id, book_id, account_id,
-                balance_date: date, closing_balance: cb.into(), opening_balance: ob.into(),
-                total_debits: td.into(), total_credits: tc.into(),
-                transaction_count: txn_count, negative_balance: neg.into(),
+                id: Uuid::new_v4(),
+                organization_id: org_id,
+                book_id,
+                account_id,
+                balance_date: date,
+                closing_balance: cb.into(),
+                opening_balance: ob.into(),
+                total_debits: td.into(),
+                total_credits: tc.into(),
+                transaction_count: txn_count,
+                negative_balance: neg.into(),
                 metadata: serde_json::json!({}),
-                created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
             };
             dbs.push(db.clone());
             Ok(db)
         }
 
         async fn list_daily_balances(
-            &self, book_id: Uuid, account_id: Uuid,
-            from: Option<chrono::NaiveDate>, to: Option<chrono::NaiveDate>,
+            &self,
+            book_id: Uuid,
+            account_id: Uuid,
+            from: Option<chrono::NaiveDate>,
+            to: Option<chrono::NaiveDate>,
         ) -> AtlasResult<Vec<DailyBalance>> {
-            Ok(self.daily_balances.lock().unwrap().iter()
+            Ok(self
+                .daily_balances
+                .lock()
+                .unwrap()
+                .iter()
                 .filter(|d| d.book_id == book_id && d.account_id == account_id)
                 .filter(|d| from.is_none_or(|f| d.balance_date >= f))
                 .filter(|d| to.is_none_or(|t| d.balance_date <= t))
-                .cloned().collect())
+                .cloned()
+                .collect())
         }
 
-        async fn get_daily_balance(&self, book_id: Uuid, account_id: Uuid, date: chrono::NaiveDate) -> AtlasResult<Option<DailyBalance>> {
-            Ok(self.daily_balances.lock().unwrap().iter()
-                .find(|d| d.book_id == book_id && d.account_id == account_id && d.balance_date == date).cloned())
+        async fn get_daily_balance(
+            &self,
+            book_id: Uuid,
+            account_id: Uuid,
+            date: chrono::NaiveDate,
+        ) -> AtlasResult<Option<DailyBalance>> {
+            Ok(self
+                .daily_balances
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|d| {
+                    d.book_id == book_id && d.account_id == account_id && d.balance_date == date
+                })
+                .cloned())
         }
 
-        async fn save_calculation(&self, calc: AverageBalanceCalculation) -> AtlasResult<AverageBalanceCalculation> {
+        async fn save_calculation(
+            &self,
+            calc: AverageBalanceCalculation,
+        ) -> AtlasResult<AverageBalanceCalculation> {
             self.calculations.lock().unwrap().push(calc.clone());
             Ok(calc)
         }
 
-        async fn get_calculation(&self, id: Uuid) -> AtlasResult<Option<AverageBalanceCalculation>> {
-            Ok(self.calculations.lock().unwrap().iter().find(|c| c.id == id).cloned())
+        async fn get_calculation(
+            &self,
+            id: Uuid,
+        ) -> AtlasResult<Option<AverageBalanceCalculation>> {
+            Ok(self
+                .calculations
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|c| c.id == id)
+                .cloned())
         }
 
-        async fn list_calculations(&self, book_id: Uuid, account_id: Option<Uuid>, _: Option<&str>, _: Option<&str>) -> AtlasResult<Vec<AverageBalanceCalculation>> {
-            Ok(self.calculations.lock().unwrap().iter()
+        async fn list_calculations(
+            &self,
+            book_id: Uuid,
+            account_id: Option<Uuid>,
+            _: Option<&str>,
+            _: Option<&str>,
+        ) -> AtlasResult<Vec<AverageBalanceCalculation>> {
+            Ok(self
+                .calculations
+                .lock()
+                .unwrap()
+                .iter()
                 .filter(|c| c.book_id == book_id)
                 .filter(|c| account_id.is_none_or(|id| c.account_id == id))
-                .cloned().collect())
+                .cloned()
+                .collect())
         }
 
-        async fn update_calculation_status(&self, id: Uuid, status: &str, ab: Option<Uuid>) -> AtlasResult<AverageBalanceCalculation> {
+        async fn update_calculation_status(
+            &self,
+            id: Uuid,
+            status: &str,
+            ab: Option<Uuid>,
+        ) -> AtlasResult<AverageBalanceCalculation> {
             let mut cs = self.calculations.lock().unwrap();
-            let c = cs.iter_mut().find(|c| c.id == id)
+            let c = cs
+                .iter_mut()
+                .find(|c| c.id == id)
                 .ok_or_else(|| AtlasError::EntityNotFound(format!("Calc {} not found", id)))?;
             c.status = status.into();
             if status == "approved" {
@@ -668,10 +956,15 @@ mod tests {
 
         async fn get_dashboard(&self, _: Uuid) -> AtlasResult<AverageBalanceDashboard> {
             Ok(AverageBalanceDashboard {
-                total_books: 0, active_books: 0, tracked_accounts: 0,
-                daily_balance_entries: 0, total_average_balance: "0.00".into(),
-                total_peak_balance: "0.00".into(), total_period_debits: "0.00".into(),
-                total_period_credits: "0.00".into(), books_summary: serde_json::json!([]),
+                total_books: 0,
+                active_books: 0,
+                tracked_accounts: 0,
+                daily_balance_entries: 0,
+                total_average_balance: "0.00".into(),
+                total_peak_balance: "0.00".into(),
+                total_period_debits: "0.00".into(),
+                total_period_credits: "0.00".into(),
+                books_summary: serde_json::json!([]),
             })
         }
     }
@@ -695,11 +988,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_book() {
-        let b = eng().create_book(
-            Uuid::new_v4(), "AVG-01", "Primary Average Balance Book",
-            Some("Main averaging book"), "daily", 30, true, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
+        let b = eng()
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-01",
+                "Primary Average Balance Book",
+                Some("Main averaging book"),
+                "daily",
+                30,
+                true,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(b.book_code, "AVG-01");
         assert_eq!(b.book_name, "Primary Average Balance Book");
         assert_eq!(b.period_type, "daily");
@@ -710,46 +1014,101 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_book_empty_code_fails() {
-        let r = eng().create_book(
-            Uuid::new_v4(), "", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await;
+        let r = eng()
+            .create_book(
+                Uuid::new_v4(),
+                "",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_create_book_empty_name_fails() {
-        let r = eng().create_book(
-            Uuid::new_v4(), "AVG-X", "", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await;
+        let r = eng()
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-X",
+                "",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_create_book_invalid_period_type_fails() {
-        let r = eng().create_book(
-            Uuid::new_v4(), "AVG-X", "Book", None, "hourly", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await;
+        let r = eng()
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-X",
+                "Book",
+                None,
+                "hourly",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_create_book_zero_window_fails() {
-        let r = eng().create_book(
-            Uuid::new_v4(), "AVG-X", "Book", None, "daily", 0, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await;
+        let r = eng()
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-X",
+                "Book",
+                None,
+                "daily",
+                0,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_create_book_invalid_currency_fails() {
-        let r = eng().create_book(
-            Uuid::new_v4(), "AVG-X", "Book", None, "daily", 30, false, "US",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await;
+        let r = eng()
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-X",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "US",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
@@ -757,24 +1116,58 @@ mod tests {
     async fn test_create_book_duplicate_code_fails() {
         let org = Uuid::new_v4();
         let e = eng();
-        let _ = e.create_book(
-            org, "AVG-DUP", "Book 1", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await;
-        let r = e.create_book(
-            org, "AVG-DUP", "Book 2", None, "monthly", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await;
+        let _ = e
+            .create_book(
+                org,
+                "AVG-DUP",
+                "Book 1",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
+        let r = e
+            .create_book(
+                org,
+                "AVG-DUP",
+                "Book 2",
+                None,
+                "monthly",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await;
         assert!(matches!(r, Err(AtlasError::Conflict(_))));
     }
 
     #[tokio::test]
     async fn test_activate_deactivate_book() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-ACT", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-ACT",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(b.status, "active");
 
         let b = e.deactivate_book(b.id).await.unwrap();
@@ -787,10 +1180,22 @@ mod tests {
     #[tokio::test]
     async fn test_activate_already_active_fails() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-AA", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-AA",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         let r = e.activate_book(b.id).await;
         assert!(r.is_err());
     }
@@ -798,10 +1203,22 @@ mod tests {
     #[tokio::test]
     async fn test_delete_active_book_fails() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-DEL", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-DEL",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         let r = e.delete_book(b.id).await;
         assert!(r.is_err());
     }
@@ -809,10 +1226,22 @@ mod tests {
     #[tokio::test]
     async fn test_delete_inactive_book() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-DEL2", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-DEL2",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         e.deactivate_book(b.id).await.unwrap();
         let r = e.delete_book(b.id).await;
         assert!(r.is_ok());
@@ -825,13 +1254,33 @@ mod tests {
     #[tokio::test]
     async fn test_add_account() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-ACC", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let a = e.add_account(
-            b.organization_id, b.id, "1000-100", Some("Cash - Operating"), Some("asset"), false,
-        ).await.unwrap();
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-ACC",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let a = e
+            .add_account(
+                b.organization_id,
+                b.id,
+                "1000-100",
+                Some("Cash - Operating"),
+                Some("asset"),
+                false,
+            )
+            .await
+            .unwrap();
         assert_eq!(a.gl_account, "1000-100");
         assert_eq!(a.gl_account_name, Some("Cash - Operating".into()));
         assert_eq!(a.account_type, Some("asset".into()));
@@ -840,46 +1289,104 @@ mod tests {
     #[tokio::test]
     async fn test_add_account_empty_gl_fails() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-ACC-E", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let r = e.add_account(b.organization_id, b.id, "", None, None, false).await;
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-ACC-E",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let r = e
+            .add_account(b.organization_id, b.id, "", None, None, false)
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_add_account_invalid_type_fails() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-ACC-T", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let r = e.add_account(b.organization_id, b.id, "1000", None, Some("bogus"), false).await;
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-ACC-T",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let r = e
+            .add_account(b.organization_id, b.id, "1000", None, Some("bogus"), false)
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_add_duplicate_account_fails() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-ACC-D", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let _ = e.add_account(b.organization_id, b.id, "1000", None, None, false).await;
-        let r = e.add_account(b.organization_id, b.id, "1000", None, None, false).await;
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-ACC-D",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let _ = e
+            .add_account(b.organization_id, b.id, "1000", None, None, false)
+            .await;
+        let r = e
+            .add_account(b.organization_id, b.id, "1000", None, None, false)
+            .await;
         assert!(matches!(r, Err(AtlasError::Conflict(_))));
     }
 
     #[tokio::test]
     async fn test_add_account_to_inactive_book_fails() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-ACC-I", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-ACC-I",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
         e.deactivate_book(b.id).await.unwrap();
-        let r = e.add_account(b.organization_id, b.id, "1000", None, None, false).await;
+        let r = e
+            .add_account(b.organization_id, b.id, "1000", None, None, false)
+            .await;
         assert!(r.is_err());
     }
 
@@ -890,16 +1397,41 @@ mod tests {
     #[tokio::test]
     async fn test_upsert_daily_balance() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-DB", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let a = e.add_account(b.organization_id, b.id, "1000", None, None, false).await.unwrap();
-        let db = e.upsert_daily_balance(
-            b.organization_id, b.id, a.id,
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap(),
-            "10500.00", "10000.00", "1000.00", "500.00", 5, "0.00",
-        ).await.unwrap();
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-DB",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let a = e
+            .add_account(b.organization_id, b.id, "1000", None, None, false)
+            .await
+            .unwrap();
+        let db = e
+            .upsert_daily_balance(
+                b.organization_id,
+                b.id,
+                a.id,
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap(),
+                "10500.00",
+                "10000.00",
+                "1000.00",
+                "500.00",
+                5,
+                "0.00",
+            )
+            .await
+            .unwrap();
         assert_eq!(db.closing_balance, "10500.00");
         assert_eq!(db.opening_balance, "10000.00");
     }
@@ -907,50 +1439,122 @@ mod tests {
     #[tokio::test]
     async fn test_daily_balance_invalid_closing_fails() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-DB-I", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let a = e.add_account(b.organization_id, b.id, "1000", None, None, false).await.unwrap();
-        let r = e.upsert_daily_balance(
-            b.organization_id, b.id, a.id,
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap(),
-            "abc", "10000.00", "1000.00", "500.00", 5, "0.00",
-        ).await;
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-DB-I",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let a = e
+            .add_account(b.organization_id, b.id, "1000", None, None, false)
+            .await
+            .unwrap();
+        let r = e
+            .upsert_daily_balance(
+                b.organization_id,
+                b.id,
+                a.id,
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap(),
+                "abc",
+                "10000.00",
+                "1000.00",
+                "500.00",
+                5,
+                "0.00",
+            )
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_daily_balance_mismatch_fails() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-DB-M", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let a = e.add_account(b.organization_id, b.id, "1000", None, None, false).await.unwrap();
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-DB-M",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let a = e
+            .add_account(b.organization_id, b.id, "1000", None, None, false)
+            .await
+            .unwrap();
         // closing(9000) != opening(10000) + debits(1000) - credits(500) = 10500
-        let r = e.upsert_daily_balance(
-            b.organization_id, b.id, a.id,
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap(),
-            "9000.00", "10000.00", "1000.00", "500.00", 5, "0.00",
-        ).await;
+        let r = e
+            .upsert_daily_balance(
+                b.organization_id,
+                b.id,
+                a.id,
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap(),
+                "9000.00",
+                "10000.00",
+                "1000.00",
+                "500.00",
+                5,
+                "0.00",
+            )
+            .await;
         assert!(r.is_err());
     }
 
     #[tokio::test]
     async fn test_daily_balance_inactive_book_fails() {
         let e = eng();
-        let b = e.create_book(
-            Uuid::new_v4(), "AVG-DB-IA", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let a = e.add_account(b.organization_id, b.id, "1000", None, None, false).await.unwrap();
+        let b = e
+            .create_book(
+                Uuid::new_v4(),
+                "AVG-DB-IA",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let a = e
+            .add_account(b.organization_id, b.id, "1000", None, None, false)
+            .await
+            .unwrap();
         e.deactivate_book(b.id).await.unwrap();
-        let r = e.upsert_daily_balance(
-            b.organization_id, b.id, a.id,
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap(),
-            "10500.00", "10000.00", "1000.00", "500.00", 5, "0.00",
-        ).await;
+        let r = e
+            .upsert_daily_balance(
+                b.organization_id,
+                b.id,
+                a.id,
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 15).unwrap(),
+                "10500.00",
+                "10000.00",
+                "1000.00",
+                "500.00",
+                5,
+                "0.00",
+            )
+            .await;
         assert!(r.is_err());
     }
 
@@ -962,29 +1566,83 @@ mod tests {
     async fn test_calculate_average_balance() {
         let e = eng();
         let org = Uuid::new_v4();
-        let b = e.create_book(
-            org, "AVG-CALC", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let a = e.add_account(org, b.id, "1000", None, None, false).await.unwrap();
+        let b = e
+            .create_book(
+                org,
+                "AVG-CALC",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let a = e
+            .add_account(org, b.id, "1000", None, None, false)
+            .await
+            .unwrap();
 
         // Record 3 days of balances: 10000, 12000, 11000
-        e.upsert_daily_balance(org, b.id, a.id,
+        e.upsert_daily_balance(
+            org,
+            b.id,
+            a.id,
             chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            "10000.00", "9000.00", "2000.00", "1000.00", 3, "0.00").await.unwrap();
-        e.upsert_daily_balance(org, b.id, a.id,
+            "10000.00",
+            "9000.00",
+            "2000.00",
+            "1000.00",
+            3,
+            "0.00",
+        )
+        .await
+        .unwrap();
+        e.upsert_daily_balance(
+            org,
+            b.id,
+            a.id,
             chrono::NaiveDate::from_ymd_opt(2025, 1, 2).unwrap(),
-            "12000.00", "10000.00", "3000.00", "1000.00", 4, "0.00").await.unwrap();
-        e.upsert_daily_balance(org, b.id, a.id,
+            "12000.00",
+            "10000.00",
+            "3000.00",
+            "1000.00",
+            4,
+            "0.00",
+        )
+        .await
+        .unwrap();
+        e.upsert_daily_balance(
+            org,
+            b.id,
+            a.id,
             chrono::NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(),
-            "11000.00", "12000.00", "1000.00", "2000.00", 3, "0.00").await.unwrap();
+            "11000.00",
+            "12000.00",
+            "1000.00",
+            "2000.00",
+            3,
+            "0.00",
+        )
+        .await
+        .unwrap();
 
-        let calc = e.calculate_average_balance(
-            org, b.id, a.id,
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(),
-            "daily", None,
-        ).await.unwrap();
+        let calc = e
+            .calculate_average_balance(
+                org,
+                b.id,
+                a.id,
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(),
+                "daily",
+                None,
+            )
+            .await
+            .unwrap();
 
         assert_eq!(calc.status, "calculated");
         assert_eq!(calc.days_in_period, 3);
@@ -999,18 +1657,38 @@ mod tests {
     async fn test_calculate_empty_period_fails() {
         let e = eng();
         let org = Uuid::new_v4();
-        let b = e.create_book(
-            org, "AVG-CALC-E", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let a = e.add_account(org, b.id, "1000", None, None, false).await.unwrap();
+        let b = e
+            .create_book(
+                org,
+                "AVG-CALC-E",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let a = e
+            .add_account(org, b.id, "1000", None, None, false)
+            .await
+            .unwrap();
 
-        let r = e.calculate_average_balance(
-            org, b.id, a.id,
-            chrono::NaiveDate::from_ymd_opt(2025, 2, 1).unwrap(),
-            chrono::NaiveDate::from_ymd_opt(2025, 2, 28).unwrap(),
-            "monthly", None,
-        ).await;
+        let r = e
+            .calculate_average_balance(
+                org,
+                b.id,
+                a.id,
+                chrono::NaiveDate::from_ymd_opt(2025, 2, 1).unwrap(),
+                chrono::NaiveDate::from_ymd_opt(2025, 2, 28).unwrap(),
+                "monthly",
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 
@@ -1018,24 +1696,59 @@ mod tests {
     async fn test_approve_and_post_calculation() {
         let e = eng();
         let org = Uuid::new_v4();
-        let b = e.create_book(
-            org, "AVG-AP", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let a = e.add_account(org, b.id, "1000", None, None, false).await.unwrap();
-        e.upsert_daily_balance(org, b.id, a.id,
+        let b = e
+            .create_book(
+                org,
+                "AVG-AP",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let a = e
+            .add_account(org, b.id, "1000", None, None, false)
+            .await
+            .unwrap();
+        e.upsert_daily_balance(
+            org,
+            b.id,
+            a.id,
             chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            "5000.00", "5000.00", "0.00", "0.00", 0, "0.00").await.unwrap();
+            "5000.00",
+            "5000.00",
+            "0.00",
+            "0.00",
+            0,
+            "0.00",
+        )
+        .await
+        .unwrap();
 
-        let calc = e.calculate_average_balance(
-            org, b.id, a.id,
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            "daily", None,
-        ).await.unwrap();
+        let calc = e
+            .calculate_average_balance(
+                org,
+                b.id,
+                a.id,
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                "daily",
+                None,
+            )
+            .await
+            .unwrap();
         assert_eq!(calc.status, "calculated");
 
-        let calc = e.approve_calculation(calc.id, Some(Uuid::new_v4())).await.unwrap();
+        let calc = e
+            .approve_calculation(calc.id, Some(Uuid::new_v4()))
+            .await
+            .unwrap();
         assert_eq!(calc.status, "approved");
         assert!(calc.approved_by.is_some());
 
@@ -1047,21 +1760,53 @@ mod tests {
     async fn test_approve_non_calculated_fails() {
         let e = eng();
         let org = Uuid::new_v4();
-        let b = e.create_book(
-            org, "AVG-AP-F", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let a = e.add_account(org, b.id, "1000", None, None, false).await.unwrap();
-        e.upsert_daily_balance(org, b.id, a.id,
+        let b = e
+            .create_book(
+                org,
+                "AVG-AP-F",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let a = e
+            .add_account(org, b.id, "1000", None, None, false)
+            .await
+            .unwrap();
+        e.upsert_daily_balance(
+            org,
+            b.id,
+            a.id,
             chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            "5000.00", "5000.00", "0.00", "0.00", 0, "0.00").await.unwrap();
+            "5000.00",
+            "5000.00",
+            "0.00",
+            "0.00",
+            0,
+            "0.00",
+        )
+        .await
+        .unwrap();
 
-        let calc = e.calculate_average_balance(
-            org, b.id, a.id,
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            "daily", None,
-        ).await.unwrap();
+        let calc = e
+            .calculate_average_balance(
+                org,
+                b.id,
+                a.id,
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                "daily",
+                None,
+            )
+            .await
+            .unwrap();
         e.approve_calculation(calc.id, None).await.unwrap();
         // Try to approve again (already approved)
         let r = e.approve_calculation(calc.id, None).await;
@@ -1072,21 +1817,53 @@ mod tests {
     async fn test_post_non_approved_fails() {
         let e = eng();
         let org = Uuid::new_v4();
-        let b = e.create_book(
-            org, "AVG-POST-F", "Book", None, "daily", 30, false, "USD",
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(), None, None,
-        ).await.unwrap();
-        let a = e.add_account(org, b.id, "1000", None, None, false).await.unwrap();
-        e.upsert_daily_balance(org, b.id, a.id,
+        let b = e
+            .create_book(
+                org,
+                "AVG-POST-F",
+                "Book",
+                None,
+                "daily",
+                30,
+                false,
+                "USD",
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        let a = e
+            .add_account(org, b.id, "1000", None, None, false)
+            .await
+            .unwrap();
+        e.upsert_daily_balance(
+            org,
+            b.id,
+            a.id,
             chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            "5000.00", "5000.00", "0.00", "0.00", 0, "0.00").await.unwrap();
+            "5000.00",
+            "5000.00",
+            "0.00",
+            "0.00",
+            0,
+            "0.00",
+        )
+        .await
+        .unwrap();
 
-        let calc = e.calculate_average_balance(
-            org, b.id, a.id,
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            "daily", None,
-        ).await.unwrap();
+        let calc = e
+            .calculate_average_balance(
+                org,
+                b.id,
+                a.id,
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                "daily",
+                None,
+            )
+            .await
+            .unwrap();
         // Try to post without approving
         let r = e.post_calculation(calc.id).await;
         assert!(r.is_err());
@@ -1113,12 +1890,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_calculate_invalid_type_fails() {
-        let r = eng().calculate_average_balance(
-            Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(),
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
-            chrono::NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
-            "hourly", None,
-        ).await;
+        let r = eng()
+            .calculate_average_balance(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
+                chrono::NaiveDate::from_ymd_opt(2025, 1, 31).unwrap(),
+                "hourly",
+                None,
+            )
+            .await;
         assert!(r.is_err());
     }
 }

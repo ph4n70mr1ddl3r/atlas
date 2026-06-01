@@ -1,5 +1,5 @@
 //! Validation Engine
-//! 
+//!
 //! Declarative validation rules for record data.
 
 mod engine;
@@ -38,11 +38,14 @@ pub struct ValidationResult {
 }
 
 impl ValidationResult {
-    #[must_use] 
+    #[must_use]
     pub const fn new() -> Self {
-        Self { valid: true, errors: vec![] }
+        Self {
+            valid: true,
+            errors: vec![],
+        }
     }
-    
+
     pub fn add_error(&mut self, field: &str, code: &str, message: &str) {
         self.valid = false;
         self.errors.push(ValidationError {
@@ -52,20 +55,20 @@ impl ValidationResult {
             value: None,
         });
     }
-    
+
     pub fn merge(&mut self, other: Self) {
         if !other.valid {
             self.valid = false;
             self.errors.extend(other.errors);
         }
     }
-    
+
     pub fn into_result(self) -> AtlasResult<()> {
         if self.valid {
             Ok(())
         } else {
             Err(AtlasError::ValidationFailed(
-                serde_json::to_string(&self.errors).unwrap_or_default()
+                serde_json::to_string(&self.errors).unwrap_or_default(),
             ))
         }
     }

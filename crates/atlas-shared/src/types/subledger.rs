@@ -2140,4 +2140,3 @@ pub struct AccountingHubDashboardSummary {
     pub events_by_system: serde_json::Value,
     pub events_by_type: serde_json::Value,
 }
-

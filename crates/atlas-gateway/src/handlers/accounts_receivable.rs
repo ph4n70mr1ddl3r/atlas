@@ -5,19 +5,18 @@
 //! API endpoints for managing AR transactions, transaction lines, receipts,
 //! credit memos, adjustments, and AR aging analysis.
 
-use crate::handlers::{to_json, created_json};
+use crate::handlers::auth::Claims;
+use crate::handlers::{created_json, to_json};
+use crate::AppState;
 use axum::{
-    extract::{State, Path, Query},
-    Json,
+    extract::{Path, Query, State},
     http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use serde::Deserialize;
-use crate::AppState;
-use crate::handlers::auth::Claims;
 use std::sync::Arc;
+use tracing::{error, info};
 use uuid::Uuid;
-use tracing::{info, error};
 
 // ============================================================================
 // Transaction Handlers
@@ -44,8 +43,12 @@ pub struct CreateArTransactionRequest {
     pub notes: Option<String>,
 }
 
-fn default_currency_usd() -> String { "USD".to_string() }
-fn default_zero() -> String { "0.00".to_string() }
+fn default_currency_usd() -> String {
+    "USD".to_string()
+}
+fn default_zero() -> String {
+    "0.00".to_string()
+}
 
 /// Create a new AR transaction
 pub async fn create_ar_transaction(
@@ -56,27 +59,35 @@ pub async fn create_ar_transaction(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    info!("Creating AR transaction for org {} customer {}", org_id, payload.customer_id);
+    info!(
+        "Creating AR transaction for org {} customer {}",
+        org_id, payload.customer_id
+    );
 
-    match state.financials.accounts_receivable_engine.create_transaction(
-        org_id,
-        &payload.transaction_type,
-        payload.transaction_date,
-        payload.customer_id,
-        payload.customer_number.as_deref(),
-        payload.customer_name.as_deref(),
-        &payload.currency_code,
-        &payload.entered_amount,
-        &payload.tax_amount,
-        payload.payment_terms.as_deref(),
-        payload.due_date,
-        payload.gl_date,
-        payload.reference_number.as_deref(),
-        payload.purchase_order.as_deref(),
-        payload.sales_rep.as_deref(),
-        payload.notes.as_deref(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .create_transaction(
+            org_id,
+            &payload.transaction_type,
+            payload.transaction_date,
+            payload.customer_id,
+            payload.customer_number.as_deref(),
+            payload.customer_name.as_deref(),
+            &payload.currency_code,
+            &payload.entered_amount,
+            &payload.tax_amount,
+            payload.payment_terms.as_deref(),
+            payload.due_date,
+            payload.gl_date,
+            payload.reference_number.as_deref(),
+            payload.purchase_order.as_deref(),
+            payload.sales_rep.as_deref(),
+            payload.notes.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(txn) => Ok(created_json(txn)),
         Err(e) => {
             error!("Failed to create AR transaction: {}", e);
@@ -100,12 +111,17 @@ pub async fn list_ar_transactions(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.accounts_receivable_engine.list_transactions(
-        org_id,
-        query.status.as_deref(),
-        query.customer_id,
-        query.transaction_type.as_deref(),
-    ).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .list_transactions(
+            org_id,
+            query.status.as_deref(),
+            query.customer_id,
+            query.transaction_type.as_deref(),
+        )
+        .await
+    {
         Ok(transactions) => Ok(Json(serde_json::json!({ "data": transactions }))),
         Err(e) => {
             error!("Failed to list AR transactions: {}", e);
@@ -119,7 +135,12 @@ pub async fn get_ar_transaction(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.accounts_receivable_engine.get_transaction(id).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .get_transaction(id)
+        .await
+    {
         Ok(Some(txn)) => Ok(to_json(txn)),
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(e) => {
@@ -134,7 +155,12 @@ pub async fn complete_ar_transaction(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.accounts_receivable_engine.complete_transaction(id).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .complete_transaction(id)
+        .await
+    {
         Ok(txn) => Ok(to_json(txn)),
         Err(e) => {
             error!("Failed to complete AR transaction: {}", e);
@@ -152,7 +178,12 @@ pub async fn post_ar_transaction(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.accounts_receivable_engine.post_transaction(id).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .post_transaction(id)
+        .await
+    {
         Ok(txn) => Ok(to_json(txn)),
         Err(e) => {
             error!("Failed to post AR transaction: {}", e);
@@ -169,7 +200,12 @@ pub async fn cancel_ar_transaction(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.accounts_receivable_engine.cancel_transaction(id, None).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .cancel_transaction(id, None)
+        .await
+    {
         Ok(txn) => Ok(to_json(txn)),
         Err(e) => {
             error!("Failed to cancel AR transaction: {}", e);
@@ -211,22 +247,27 @@ pub async fn add_transaction_line(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.accounts_receivable_engine.create_transaction_line(
-        org_id,
-        transaction_id,
-        &payload.line_type,
-        payload.description.as_deref(),
-        payload.item_code.as_deref(),
-        payload.item_description.as_deref(),
-        payload.unit_of_measure.as_deref(),
-        payload.quantity.as_deref(),
-        payload.unit_price.as_deref(),
-        &payload.line_amount,
-        &payload.tax_amount,
-        payload.tax_code.as_deref(),
-        payload.revenue_account.as_deref(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .create_transaction_line(
+            org_id,
+            transaction_id,
+            &payload.line_type,
+            payload.description.as_deref(),
+            payload.item_code.as_deref(),
+            payload.item_description.as_deref(),
+            payload.unit_of_measure.as_deref(),
+            payload.quantity.as_deref(),
+            payload.unit_price.as_deref(),
+            &payload.line_amount,
+            &payload.tax_amount,
+            payload.tax_code.as_deref(),
+            payload.revenue_account.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(line) => Ok(created_json(line)),
         Err(e) => {
             error!("Failed to add AR transaction line: {}", e);
@@ -240,7 +281,12 @@ pub async fn list_transaction_lines(
     State(state): State<Arc<AppState>>,
     Path(transaction_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.accounts_receivable_engine.list_transaction_lines(transaction_id).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .list_transaction_lines(transaction_id)
+        .await
+    {
         Ok(lines) => Ok(Json(serde_json::json!({ "data": lines }))),
         Err(e) => {
             error!("Failed to list transaction lines: {}", e);
@@ -279,22 +325,27 @@ pub async fn create_receipt(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.accounts_receivable_engine.create_receipt(
-        org_id,
-        payload.receipt_date,
-        &payload.receipt_type,
-        &payload.receipt_method,
-        &payload.amount,
-        &payload.currency_code,
-        payload.customer_id,
-        payload.customer_number.as_deref(),
-        payload.customer_name.as_deref(),
-        payload.reference_number.as_deref(),
-        payload.bank_account_name.as_deref(),
-        payload.check_number.as_deref(),
-        payload.notes.as_deref(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .create_receipt(
+            org_id,
+            payload.receipt_date,
+            &payload.receipt_type,
+            &payload.receipt_method,
+            &payload.amount,
+            &payload.currency_code,
+            payload.customer_id,
+            payload.customer_number.as_deref(),
+            payload.customer_name.as_deref(),
+            payload.reference_number.as_deref(),
+            payload.bank_account_name.as_deref(),
+            payload.check_number.as_deref(),
+            payload.notes.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(receipt) => Ok(created_json(receipt)),
         Err(e) => {
             error!("Failed to create receipt: {}", e);
@@ -317,11 +368,12 @@ pub async fn list_receipts(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.accounts_receivable_engine.list_receipts(
-        org_id,
-        query.status.as_deref(),
-        query.customer_id,
-    ).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .list_receipts(org_id, query.status.as_deref(), query.customer_id)
+        .await
+    {
         Ok(receipts) => Ok(Json(serde_json::json!({ "data": receipts }))),
         Err(e) => {
             error!("Failed to list receipts: {}", e);
@@ -335,7 +387,12 @@ pub async fn confirm_receipt(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.accounts_receivable_engine.confirm_receipt(id).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .confirm_receipt(id)
+        .await
+    {
         Ok(receipt) => Ok(to_json(receipt)),
         Err(e) => {
             error!("Failed to confirm receipt: {}", e);
@@ -349,7 +406,12 @@ pub async fn apply_receipt(
     State(state): State<Arc<AppState>>,
     Path((receipt_id, transaction_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.accounts_receivable_engine.apply_receipt(receipt_id, transaction_id).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .apply_receipt(receipt_id, transaction_id)
+        .await
+    {
         Ok(receipt) => Ok(to_json(receipt)),
         Err(e) => {
             error!("Failed to apply receipt: {}", e);
@@ -363,7 +425,12 @@ pub async fn reverse_receipt(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.accounts_receivable_engine.reverse_receipt(id).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .reverse_receipt(id)
+        .await
+    {
         Ok(receipt) => Ok(to_json(receipt)),
         Err(e) => {
             error!("Failed to reverse receipt: {}", e);
@@ -401,21 +468,26 @@ pub async fn create_credit_memo(
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.accounts_receivable_engine.create_credit_memo(
-        org_id,
-        payload.customer_id,
-        payload.customer_number.as_deref(),
-        payload.customer_name.as_deref(),
-        payload.transaction_id,
-        payload.transaction_number.as_deref(),
-        payload.credit_memo_date,
-        &payload.reason_code,
-        payload.reason_description.as_deref(),
-        &payload.amount,
-        &payload.tax_amount,
-        payload.notes.as_deref(),
-        Some(user_id),
-    ).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .create_credit_memo(
+            org_id,
+            payload.customer_id,
+            payload.customer_number.as_deref(),
+            payload.customer_name.as_deref(),
+            payload.transaction_id,
+            payload.transaction_number.as_deref(),
+            payload.credit_memo_date,
+            &payload.reason_code,
+            payload.reason_description.as_deref(),
+            &payload.amount,
+            &payload.tax_amount,
+            payload.notes.as_deref(),
+            Some(user_id),
+        )
+        .await
+    {
         Ok(memo) => Ok(created_json(memo)),
         Err(e) => {
             error!("Failed to create credit memo: {}", e);
@@ -429,7 +501,12 @@ pub async fn approve_credit_memo(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.accounts_receivable_engine.approve_credit_memo(id).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .approve_credit_memo(id)
+        .await
+    {
         Ok(memo) => Ok(to_json(memo)),
         Err(e) => {
             error!("Failed to approve credit memo: {}", e);
@@ -443,7 +520,12 @@ pub async fn apply_credit_memo(
     State(state): State<Arc<AppState>>,
     Path((memo_id, transaction_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    match state.financials.accounts_receivable_engine.apply_credit_memo(memo_id, transaction_id).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .apply_credit_memo(memo_id, transaction_id)
+        .await
+    {
         Ok(memo) => Ok(to_json(memo)),
         Err(e) => {
             error!("Failed to apply credit memo: {}", e);
@@ -469,7 +551,12 @@ pub async fn get_ar_aging(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let org_id = Uuid::parse_str(&claims.org_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match state.financials.accounts_receivable_engine.get_aging_summary(org_id, query.as_of_date).await {
+    match state
+        .financials
+        .accounts_receivable_engine
+        .get_aging_summary(org_id, query.as_of_date)
+        .await
+    {
         Ok(summary) => Ok(to_json(summary)),
         Err(e) => {
             error!("Failed to get AR aging: {}", e);

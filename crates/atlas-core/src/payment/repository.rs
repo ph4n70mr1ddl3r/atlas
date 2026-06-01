@@ -3,12 +3,11 @@
 //! `PostgreSQL` storage for payment terms, payment batches, payments,
 //! payment lines, scheduled payments, payment formats, and remittance advice.
 
-use atlas_shared::{
-    PaymentTerm, PaymentBatch, Payment, PaymentLine, ScheduledPayment,
-    PaymentFormat, RemittanceAdvice,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, Payment, PaymentBatch, PaymentFormat, PaymentLine, PaymentTerm,
+    RemittanceAdvice, ScheduledPayment,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -55,9 +54,17 @@ pub trait PaymentRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<PaymentBatch>;
 
-    async fn get_payment_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<PaymentBatch>>;
+    async fn get_payment_batch(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<PaymentBatch>>;
     async fn get_payment_batch_by_id(&self, id: Uuid) -> AtlasResult<Option<PaymentBatch>>;
-    async fn list_payment_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PaymentBatch>>;
+    async fn list_payment_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PaymentBatch>>;
     async fn update_payment_batch_status(
         &self,
         id: Uuid,
@@ -99,8 +106,18 @@ pub trait PaymentRepository: Send + Sync {
     ) -> AtlasResult<Payment>;
 
     async fn get_payment(&self, id: Uuid) -> AtlasResult<Option<Payment>>;
-    async fn get_payment_by_number(&self, org_id: Uuid, payment_number: &str) -> AtlasResult<Option<Payment>>;
-    async fn list_payments(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>, batch_id: Option<Uuid>) -> AtlasResult<Vec<Payment>>;
+    async fn get_payment_by_number(
+        &self,
+        org_id: Uuid,
+        payment_number: &str,
+    ) -> AtlasResult<Option<Payment>>;
+    async fn list_payments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        supplier_id: Option<Uuid>,
+        batch_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<Payment>>;
     async fn update_payment_status(
         &self,
         id: Uuid,
@@ -145,7 +162,12 @@ pub trait PaymentRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<ScheduledPayment>;
 
-    async fn list_scheduled_payments(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<ScheduledPayment>>;
+    async fn list_scheduled_payments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        supplier_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ScheduledPayment>>;
     async fn update_scheduled_payment_status(
         &self,
         id: Uuid,
@@ -185,8 +207,17 @@ pub trait PaymentRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RemittanceAdvice>;
 
-    async fn list_remittance_advices(&self, org_id: Uuid, payment_id: Option<Uuid>) -> AtlasResult<Vec<RemittanceAdvice>>;
-    async fn update_remittance_advice_status(&self, id: Uuid, status: &str, failure_reason: Option<&str>) -> AtlasResult<RemittanceAdvice>;
+    async fn list_remittance_advices(
+        &self,
+        org_id: Uuid,
+        payment_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<RemittanceAdvice>>;
+    async fn update_remittance_advice_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        failure_reason: Option<&str>,
+    ) -> AtlasResult<RemittanceAdvice>;
 }
 
 /// `PostgreSQL` implementation
@@ -195,7 +226,7 @@ pub struct PostgresPaymentRepository {
 }
 
 impl PostgresPaymentRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -215,7 +246,10 @@ fn row_to_payment_term(row: &sqlx::postgres::PgRow) -> PaymentTerm {
         description: row.get("description"),
         due_days: row.get("due_days"),
         discount_days: row.get("discount_days"),
-        discount_percentage: row.try_get("discount_percentage").ok().map(|v: serde_json::Value| v.to_string()),
+        discount_percentage: row
+            .try_get("discount_percentage")
+            .ok()
+            .map(|v: serde_json::Value| v.to_string()),
         is_installment: row.get("is_installment"),
         installment_count: row.get("installment_count"),
         installment_frequency: row.get("installment_frequency"),
@@ -241,7 +275,9 @@ fn row_to_payment_batch(row: &sqlx::postgres::PgRow) -> PaymentBatch {
         bank_account_id: row.get("bank_account_id"),
         payment_method: row.get("payment_method"),
         currency_code: row.get("currency_code"),
-        selection_criteria: row.try_get("selection_criteria").unwrap_or(serde_json::json!({})),
+        selection_criteria: row
+            .try_get("selection_criteria")
+            .unwrap_or(serde_json::json!({})),
         total_invoice_count: row.get("total_invoice_count"),
         total_payment_count: row.get("total_payment_count"),
         total_payment_amount: get_num(row, "total_payment_amount"),
@@ -321,7 +357,10 @@ fn row_to_payment_line(row: &sqlx::postgres::PgRow) -> PaymentLine {
         invoice_number: row.get("invoice_number"),
         invoice_date: row.get("invoice_date"),
         invoice_due_date: row.get("invoice_due_date"),
-        invoice_amount: row.try_get("invoice_amount").ok().map(|v: serde_json::Value| v.to_string()),
+        invoice_amount: row
+            .try_get("invoice_amount")
+            .ok()
+            .map(|v: serde_json::Value| v.to_string()),
         amount_paid: get_num(row, "amount_paid"),
         discount_taken: get_num(row, "discount_taken"),
         withholding_amount: get_num(row, "withholding_amount"),
@@ -364,7 +403,9 @@ fn row_to_payment_format(row: &sqlx::postgres::PgRow) -> PaymentFormat {
         description: row.get("description"),
         format_type: row.get("format_type"),
         template_reference: row.get("template_reference"),
-        applicable_methods: row.try_get("applicable_methods").unwrap_or(serde_json::json!([])),
+        applicable_methods: row
+            .try_get("applicable_methods")
+            .unwrap_or(serde_json::json!([])),
         is_system: row.get("is_system"),
         is_active: row.get("is_active"),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
@@ -388,7 +429,9 @@ fn row_to_remittance_advice(row: &sqlx::postgres::PgRow) -> RemittanceAdvice {
         sent_at: row.get("sent_at"),
         delivered_at: row.get("delivered_at"),
         failure_reason: row.get("failure_reason"),
-        payment_summary: row.try_get("payment_summary").unwrap_or(serde_json::json!({})),
+        payment_summary: row
+            .try_get("payment_summary")
+            .unwrap_or(serde_json::json!({})),
         metadata: row.try_get("metadata").unwrap_or(serde_json::json!({})),
         created_by: row.get("created_by"),
         created_at: row.get("created_at"),
@@ -437,10 +480,20 @@ impl PaymentRepository for PostgresPaymentRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(due_days)
-        .bind(discount_days).bind(discount_percentage).bind(is_installment)
-        .bind(installment_count).bind(installment_frequency).bind(default_payment_method)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(due_days)
+        .bind(discount_days)
+        .bind(discount_percentage)
+        .bind(is_installment)
+        .bind(installment_count)
+        .bind(installment_frequency)
+        .bind(default_payment_method)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -517,9 +570,16 @@ impl PaymentRepository for PostgresPaymentRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(batch_number).bind(name).bind(description)
-        .bind(payment_date).bind(bank_account_id).bind(payment_method)
-        .bind(currency_code).bind(selection_criteria).bind(created_by)
+        .bind(org_id)
+        .bind(batch_number)
+        .bind(name)
+        .bind(description)
+        .bind(payment_date)
+        .bind(bank_account_id)
+        .bind(payment_method)
+        .bind(currency_code)
+        .bind(selection_criteria)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -527,11 +587,16 @@ impl PaymentRepository for PostgresPaymentRepository {
         Ok(row_to_payment_batch(&row))
     }
 
-    async fn get_payment_batch(&self, org_id: Uuid, batch_number: &str) -> AtlasResult<Option<PaymentBatch>> {
+    async fn get_payment_batch(
+        &self,
+        org_id: Uuid,
+        batch_number: &str,
+    ) -> AtlasResult<Option<PaymentBatch>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.payment_batches WHERE organization_id = $1 AND batch_number = $2"
+            "SELECT * FROM _atlas.payment_batches WHERE organization_id = $1 AND batch_number = $2",
         )
-        .bind(org_id).bind(batch_number)
+        .bind(org_id)
+        .bind(batch_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -547,7 +612,11 @@ impl PaymentRepository for PostgresPaymentRepository {
         Ok(row.map(|r| row_to_payment_batch(&r)))
     }
 
-    async fn list_payment_batches(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<PaymentBatch>> {
+    async fn list_payment_batches(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<PaymentBatch>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.payment_batches
@@ -555,7 +624,8 @@ impl PaymentRepository for PostgresPaymentRepository {
             ORDER BY payment_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(status)
+        .bind(org_id)
+        .bind(status)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -613,8 +683,11 @@ impl PaymentRepository for PostgresPaymentRepository {
             WHERE id = $1
             ",
         )
-        .bind(id).bind(invoice_count).bind(payment_count)
-        .bind(payment_amount).bind(discount_taken)
+        .bind(id)
+        .bind(invoice_count)
+        .bind(payment_count)
+        .bind(payment_amount)
+        .bind(discount_taken)
         .execute(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -662,13 +735,25 @@ impl PaymentRepository for PostgresPaymentRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(payment_number).bind(batch_id)
-        .bind(supplier_id).bind(supplier_number).bind(supplier_name).bind(supplier_site)
-        .bind(payment_date).bind(payment_method).bind(currency_code)
-        .bind(payment_amount).bind(discount_taken)
-        .bind(bank_account_id).bind(bank_account_name)
-        .bind(cash_account_code).bind(ap_account_code).bind(discount_account_code)
-        .bind(check_number).bind(created_by)
+        .bind(org_id)
+        .bind(payment_number)
+        .bind(batch_id)
+        .bind(supplier_id)
+        .bind(supplier_number)
+        .bind(supplier_name)
+        .bind(supplier_site)
+        .bind(payment_date)
+        .bind(payment_method)
+        .bind(currency_code)
+        .bind(payment_amount)
+        .bind(discount_taken)
+        .bind(bank_account_id)
+        .bind(bank_account_name)
+        .bind(cash_account_code)
+        .bind(ap_account_code)
+        .bind(discount_account_code)
+        .bind(check_number)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -685,18 +770,29 @@ impl PaymentRepository for PostgresPaymentRepository {
         Ok(row.map(|r| row_to_payment(&r)))
     }
 
-    async fn get_payment_by_number(&self, org_id: Uuid, payment_number: &str) -> AtlasResult<Option<Payment>> {
+    async fn get_payment_by_number(
+        &self,
+        org_id: Uuid,
+        payment_number: &str,
+    ) -> AtlasResult<Option<Payment>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.payments WHERE organization_id = $1 AND payment_number = $2"
+            "SELECT * FROM _atlas.payments WHERE organization_id = $1 AND payment_number = $2",
         )
-        .bind(org_id).bind(payment_number)
+        .bind(org_id)
+        .bind(payment_number)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_payment(&r)))
     }
 
-    async fn list_payments(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>, batch_id: Option<Uuid>) -> AtlasResult<Vec<Payment>> {
+    async fn list_payments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        supplier_id: Option<Uuid>,
+        batch_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<Payment>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.payments
@@ -707,7 +803,10 @@ impl PaymentRepository for PostgresPaymentRepository {
             ORDER BY payment_date DESC, created_at DESC
             ",
         )
-        .bind(org_id).bind(status).bind(supplier_id).bind(batch_id)
+        .bind(org_id)
+        .bind(status)
+        .bind(supplier_id)
+        .bind(batch_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -739,8 +838,12 @@ impl PaymentRepository for PostgresPaymentRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(cleared_date).bind(cleared_by)
-        .bind(void_reason).bind(voided_by)
+        .bind(id)
+        .bind(status)
+        .bind(cleared_date)
+        .bind(cleared_by)
+        .bind(void_reason)
+        .bind(voided_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -776,9 +879,17 @@ impl PaymentRepository for PostgresPaymentRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(payment_id).bind(line_number)
-        .bind(invoice_id).bind(invoice_number).bind(invoice_date).bind(invoice_due_date)
-        .bind(invoice_amount).bind(amount_paid).bind(discount_taken).bind(withholding_amount)
+        .bind(org_id)
+        .bind(payment_id)
+        .bind(line_number)
+        .bind(invoice_id)
+        .bind(invoice_number)
+        .bind(invoice_date)
+        .bind(invoice_due_date)
+        .bind(invoice_amount)
+        .bind(amount_paid)
+        .bind(discount_taken)
+        .bind(withholding_amount)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -788,7 +899,7 @@ impl PaymentRepository for PostgresPaymentRepository {
 
     async fn list_payment_lines(&self, payment_id: Uuid) -> AtlasResult<Vec<PaymentLine>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.payment_lines WHERE payment_id = $1 ORDER BY line_number"
+            "SELECT * FROM _atlas.payment_lines WHERE payment_id = $1 ORDER BY line_number",
         )
         .bind(payment_id)
         .fetch_all(&self.pool)
@@ -826,10 +937,17 @@ impl PaymentRepository for PostgresPaymentRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(invoice_id).bind(invoice_number)
-        .bind(supplier_id).bind(supplier_name)
-        .bind(scheduled_payment_date).bind(scheduled_amount)
-        .bind(installment_number).bind(payment_method).bind(bank_account_id).bind(created_by)
+        .bind(org_id)
+        .bind(invoice_id)
+        .bind(invoice_number)
+        .bind(supplier_id)
+        .bind(supplier_name)
+        .bind(scheduled_payment_date)
+        .bind(scheduled_amount)
+        .bind(installment_number)
+        .bind(payment_method)
+        .bind(bank_account_id)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -837,7 +955,12 @@ impl PaymentRepository for PostgresPaymentRepository {
         Ok(row_to_scheduled_payment(&row))
     }
 
-    async fn list_scheduled_payments(&self, org_id: Uuid, status: Option<&str>, supplier_id: Option<Uuid>) -> AtlasResult<Vec<ScheduledPayment>> {
+    async fn list_scheduled_payments(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+        supplier_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<ScheduledPayment>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.scheduled_payments
@@ -847,7 +970,9 @@ impl PaymentRepository for PostgresPaymentRepository {
             ORDER BY scheduled_payment_date, supplier_name
             ",
         )
-        .bind(org_id).bind(status).bind(supplier_id)
+        .bind(org_id)
+        .bind(status)
+        .bind(supplier_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -873,7 +998,10 @@ impl PaymentRepository for PostgresPaymentRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(selected_batch_id).bind(payment_id)
+        .bind(id)
+        .bind(status)
+        .bind(selected_batch_id)
+        .bind(payment_id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -908,8 +1036,14 @@ impl PaymentRepository for PostgresPaymentRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(format_type).bind(template_reference).bind(applicable_methods).bind(is_system)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(format_type)
+        .bind(template_reference)
+        .bind(applicable_methods)
+        .bind(is_system)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -966,9 +1100,16 @@ impl PaymentRepository for PostgresPaymentRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(payment_id).bind(delivery_method).bind(delivery_address)
-        .bind(contact_name).bind(contact_email).bind(subject).bind(body)
-        .bind(payment_summary).bind(created_by)
+        .bind(org_id)
+        .bind(payment_id)
+        .bind(delivery_method)
+        .bind(delivery_address)
+        .bind(contact_name)
+        .bind(contact_email)
+        .bind(subject)
+        .bind(body)
+        .bind(payment_summary)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -976,7 +1117,11 @@ impl PaymentRepository for PostgresPaymentRepository {
         Ok(row_to_remittance_advice(&row))
     }
 
-    async fn list_remittance_advices(&self, org_id: Uuid, payment_id: Option<Uuid>) -> AtlasResult<Vec<RemittanceAdvice>> {
+    async fn list_remittance_advices(
+        &self,
+        org_id: Uuid,
+        payment_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<RemittanceAdvice>> {
         let rows = sqlx::query(
             r"
             SELECT * FROM _atlas.remittance_advices
@@ -984,14 +1129,20 @@ impl PaymentRepository for PostgresPaymentRepository {
             ORDER BY created_at DESC
             ",
         )
-        .bind(org_id).bind(payment_id)
+        .bind(org_id)
+        .bind(payment_id)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_remittance_advice).collect())
     }
 
-    async fn update_remittance_advice_status(&self, id: Uuid, status: &str, failure_reason: Option<&str>) -> AtlasResult<RemittanceAdvice> {
+    async fn update_remittance_advice_status(
+        &self,
+        id: Uuid,
+        status: &str,
+        failure_reason: Option<&str>,
+    ) -> AtlasResult<RemittanceAdvice> {
         let row = sqlx::query(
             r"
             UPDATE _atlas.remittance_advices
@@ -1004,7 +1155,9 @@ impl PaymentRepository for PostgresPaymentRepository {
             RETURNING *
             ",
         )
-        .bind(id).bind(status).bind(failure_reason)
+        .bind(id)
+        .bind(status)
+        .bind(failure_reason)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;

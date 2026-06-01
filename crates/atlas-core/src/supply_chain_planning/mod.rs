@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: Supply Chain Management > Planning > MRP
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::SupplyChainPlanningEngine;
 pub use repository::{PlanningRepository, PostgresPlanningRepository};

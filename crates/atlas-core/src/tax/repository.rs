@@ -3,11 +3,10 @@
 //! `PostgreSQL` storage for tax regimes, jurisdictions, rates,
 //! determination rules, tax lines, and reports.
 
-use atlas_shared::{
-    TaxRegime, TaxJurisdiction, TaxRate, TaxDeterminationRule, TaxLine,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, TaxDeterminationRule, TaxJurisdiction, TaxLine, TaxRate, TaxRegime,
+};
 use sqlx::PgPool;
 use sqlx::Row;
 use uuid::Uuid;
@@ -53,9 +52,23 @@ pub trait TaxRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxJurisdiction>;
 
-    async fn get_jurisdiction(&self, org_id: Uuid, regime_id: Uuid, code: &str) -> AtlasResult<Option<TaxJurisdiction>>;
-    async fn list_jurisdictions(&self, org_id: Uuid, regime_id: Option<Uuid>) -> AtlasResult<Vec<TaxJurisdiction>>;
-    async fn delete_jurisdiction(&self, org_id: Uuid, regime_id: Uuid, code: &str) -> AtlasResult<()>;
+    async fn get_jurisdiction(
+        &self,
+        org_id: Uuid,
+        regime_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TaxJurisdiction>>;
+    async fn list_jurisdictions(
+        &self,
+        org_id: Uuid,
+        regime_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<TaxJurisdiction>>;
+    async fn delete_jurisdiction(
+        &self,
+        org_id: Uuid,
+        regime_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<()>;
 
     // Tax Rates
     async fn create_tax_rate(
@@ -75,10 +88,20 @@ pub trait TaxRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxRate>;
 
-    async fn get_tax_rate(&self, org_id: Uuid, regime_id: Uuid, code: &str) -> AtlasResult<Option<TaxRate>>;
+    async fn get_tax_rate(
+        &self,
+        org_id: Uuid,
+        regime_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TaxRate>>;
     async fn get_tax_rate_by_id(&self, id: Uuid) -> AtlasResult<Option<TaxRate>>;
     async fn get_tax_rate_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<TaxRate>>;
-    async fn get_effective_tax_rates(&self, org_id: Uuid, regime_id: Uuid, on_date: chrono::NaiveDate) -> AtlasResult<Vec<TaxRate>>;
+    async fn get_effective_tax_rates(
+        &self,
+        org_id: Uuid,
+        regime_id: Uuid,
+        on_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<TaxRate>>;
     async fn list_tax_rates(&self, org_id: Uuid, regime_id: Uuid) -> AtlasResult<Vec<TaxRate>>;
     async fn delete_tax_rate(&self, org_id: Uuid, regime_id: Uuid, code: &str) -> AtlasResult<()>;
 
@@ -98,7 +121,11 @@ pub trait TaxRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<TaxDeterminationRule>;
 
-    async fn list_determination_rules(&self, org_id: Uuid, regime_id: Uuid) -> AtlasResult<Vec<TaxDeterminationRule>>;
+    async fn list_determination_rules(
+        &self,
+        org_id: Uuid,
+        regime_id: Uuid,
+    ) -> AtlasResult<Vec<TaxDeterminationRule>>;
 
     // Tax Lines
     async fn create_tax_line(
@@ -135,7 +162,11 @@ pub trait TaxRepository: Send + Sync {
         created_by: Option<Uuid>,
     ) -> AtlasResult<atlas_shared::TaxReport>;
 
-    async fn list_tax_reports(&self, org_id: Uuid, regime_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::TaxReport>>;
+    async fn list_tax_reports(
+        &self,
+        org_id: Uuid,
+        regime_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<atlas_shared::TaxReport>>;
 }
 
 /// `PostgreSQL` implementation
@@ -144,7 +175,7 @@ pub struct PostgresTaxRepository {
 }
 
 impl PostgresTaxRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -191,10 +222,13 @@ impl PostgresTaxRepository {
     }
 
     fn row_to_tax_rate(&self, row: &sqlx::postgres::PgRow) -> TaxRate {
-        let rate_val: serde_json::Value = row.try_get::<serde_json::Value, _>("rate_percentage")
+        let rate_val: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("rate_percentage")
             .unwrap_or(serde_json::json!("0"));
-        let rec_val: Option<serde_json::Value> = row.try_get::<Option<serde_json::Value>, _>("recovery_percentage")
-            .ok().flatten();
+        let rec_val: Option<serde_json::Value> = row
+            .try_get::<Option<serde_json::Value>, _>("recovery_percentage")
+            .ok()
+            .flatten();
 
         TaxRate {
             id: row.get("id"),
@@ -238,18 +272,27 @@ impl PostgresTaxRepository {
     }
 
     fn row_to_tax_line(&self, row: &sqlx::postgres::PgRow) -> TaxLine {
-        let taxable: serde_json::Value = row.try_get::<serde_json::Value, _>("taxable_amount")
+        let taxable: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("taxable_amount")
             .unwrap_or(serde_json::json!("0"));
-        let rate_pct: serde_json::Value = row.try_get::<serde_json::Value, _>("tax_rate_percentage")
+        let rate_pct: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("tax_rate_percentage")
             .unwrap_or(serde_json::json!("0"));
-        let tax_amt: serde_json::Value = row.try_get::<serde_json::Value, _>("tax_amount")
+        let tax_amt: serde_json::Value = row
+            .try_get::<serde_json::Value, _>("tax_amount")
             .unwrap_or(serde_json::json!("0"));
-        let orig: Option<serde_json::Value> = row.try_get::<Option<serde_json::Value>, _>("original_amount")
-            .ok().flatten();
-        let recov: Option<serde_json::Value> = row.try_get::<Option<serde_json::Value>, _>("recoverable_amount")
-            .ok().flatten();
-        let non_recov: Option<serde_json::Value> = row.try_get::<Option<serde_json::Value>, _>("non_recoverable_amount")
-            .ok().flatten();
+        let orig: Option<serde_json::Value> = row
+            .try_get::<Option<serde_json::Value>, _>("original_amount")
+            .ok()
+            .flatten();
+        let recov: Option<serde_json::Value> = row
+            .try_get::<Option<serde_json::Value>, _>("recoverable_amount")
+            .ok()
+            .flatten();
+        let non_recov: Option<serde_json::Value> = row
+            .try_get::<Option<serde_json::Value>, _>("non_recoverable_amount")
+            .ok()
+            .flatten();
 
         TaxLine {
             id: row.get("id"),
@@ -311,9 +354,18 @@ impl TaxRepository for PostgresTaxRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(code).bind(name).bind(description).bind(tax_type)
-        .bind(default_inclusive).bind(allows_recovery).bind(rounding_rule).bind(rounding_precision)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(tax_type)
+        .bind(default_inclusive)
+        .bind(allows_recovery)
+        .bind(rounding_rule)
+        .bind(rounding_precision)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -333,13 +385,11 @@ impl TaxRepository for PostgresTaxRepository {
     }
 
     async fn get_regime_by_id(&self, id: Uuid) -> AtlasResult<Option<TaxRegime>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.tax_regimes WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.tax_regimes WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_regime(&r)))
     }
 
@@ -396,16 +446,29 @@ impl TaxRepository for PostgresTaxRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(regime_id).bind(code).bind(name).bind(geographic_level)
-        .bind(country_code).bind(state_code).bind(county).bind(city)
-        .bind(postal_code_pattern).bind(created_by)
+        .bind(org_id)
+        .bind(regime_id)
+        .bind(code)
+        .bind(name)
+        .bind(geographic_level)
+        .bind(country_code)
+        .bind(state_code)
+        .bind(county)
+        .bind(city)
+        .bind(postal_code_pattern)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_jurisdiction(&row))
     }
 
-    async fn get_jurisdiction(&self, org_id: Uuid, regime_id: Uuid, code: &str) -> AtlasResult<Option<TaxJurisdiction>> {
+    async fn get_jurisdiction(
+        &self,
+        org_id: Uuid,
+        regime_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TaxJurisdiction>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.tax_jurisdictions WHERE organization_id = $1 AND regime_id = $2 AND code = $3 AND is_active = true"
         )
@@ -416,7 +479,11 @@ impl TaxRepository for PostgresTaxRepository {
         Ok(row.map(|r| self.row_to_jurisdiction(&r)))
     }
 
-    async fn list_jurisdictions(&self, org_id: Uuid, regime_id: Option<Uuid>) -> AtlasResult<Vec<TaxJurisdiction>> {
+    async fn list_jurisdictions(
+        &self,
+        org_id: Uuid,
+        regime_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<TaxJurisdiction>> {
         let rows = match regime_id {
             Some(rid) => sqlx::query(
                 "SELECT * FROM _atlas.tax_jurisdictions WHERE organization_id = $1 AND regime_id = $2 AND is_active = true ORDER BY code"
@@ -433,7 +500,12 @@ impl TaxRepository for PostgresTaxRepository {
         Ok(rows.iter().map(|r| self.row_to_jurisdiction(r)).collect())
     }
 
-    async fn delete_jurisdiction(&self, org_id: Uuid, regime_id: Uuid, code: &str) -> AtlasResult<()> {
+    async fn delete_jurisdiction(
+        &self,
+        org_id: Uuid,
+        regime_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<()> {
         sqlx::query(
             "UPDATE _atlas.tax_jurisdictions SET is_active = false, updated_at = now() WHERE organization_id = $1 AND regime_id = $2 AND code = $3"
         )
@@ -479,16 +551,31 @@ impl TaxRepository for PostgresTaxRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(regime_id).bind(jurisdiction_id).bind(code).bind(name)
-        .bind(rate_percentage).bind(rate_type).bind(tax_account_code).bind(recoverable)
-        .bind(recovery_percentage).bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(regime_id)
+        .bind(jurisdiction_id)
+        .bind(code)
+        .bind(name)
+        .bind(rate_percentage)
+        .bind(rate_type)
+        .bind(tax_account_code)
+        .bind(recoverable)
+        .bind(recovery_percentage)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_tax_rate(&row))
     }
 
-    async fn get_tax_rate(&self, org_id: Uuid, regime_id: Uuid, code: &str) -> AtlasResult<Option<TaxRate>> {
+    async fn get_tax_rate(
+        &self,
+        org_id: Uuid,
+        regime_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TaxRate>> {
         let row = sqlx::query(
             "SELECT * FROM _atlas.tax_rates WHERE organization_id = $1 AND regime_id = $2 AND code = $3 AND is_active = true"
         )
@@ -500,13 +587,11 @@ impl TaxRepository for PostgresTaxRepository {
     }
 
     async fn get_tax_rate_by_id(&self, id: Uuid) -> AtlasResult<Option<TaxRate>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.tax_rates WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.tax_rates WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| self.row_to_tax_rate(&r)))
     }
 
@@ -521,14 +606,21 @@ impl TaxRepository for PostgresTaxRepository {
         Ok(row.map(|r| self.row_to_tax_rate(&r)))
     }
 
-    async fn get_effective_tax_rates(&self, org_id: Uuid, regime_id: Uuid, on_date: chrono::NaiveDate) -> AtlasResult<Vec<TaxRate>> {
+    async fn get_effective_tax_rates(
+        &self,
+        org_id: Uuid,
+        regime_id: Uuid,
+        on_date: chrono::NaiveDate,
+    ) -> AtlasResult<Vec<TaxRate>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.tax_rates
             WHERE organization_id = $1 AND regime_id = $2 AND is_active = true
               AND effective_from <= $3 AND (effective_to IS NULL OR effective_to >= $3)
-            ORDER BY code"
+            ORDER BY code",
         )
-        .bind(org_id).bind(regime_id).bind(on_date)
+        .bind(org_id)
+        .bind(regime_id)
+        .bind(on_date)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -584,16 +676,28 @@ impl TaxRepository for PostgresTaxRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(regime_id).bind(name).bind(description).bind(priority)
-        .bind(condition).bind(action).bind(stop_on_match)
-        .bind(effective_from).bind(effective_to).bind(created_by)
+        .bind(org_id)
+        .bind(regime_id)
+        .bind(name)
+        .bind(description)
+        .bind(priority)
+        .bind(condition)
+        .bind(action)
+        .bind(stop_on_match)
+        .bind(effective_from)
+        .bind(effective_to)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(self.row_to_determination_rule(&row))
     }
 
-    async fn list_determination_rules(&self, org_id: Uuid, regime_id: Uuid) -> AtlasResult<Vec<TaxDeterminationRule>> {
+    async fn list_determination_rules(
+        &self,
+        org_id: Uuid,
+        regime_id: Uuid,
+    ) -> AtlasResult<Vec<TaxDeterminationRule>> {
         let rows = sqlx::query(
             "SELECT * FROM _atlas.tax_determination_rules WHERE organization_id = $1 AND regime_id = $2 AND is_active = true ORDER BY priority"
         )
@@ -601,7 +705,10 @@ impl TaxRepository for PostgresTaxRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
-        Ok(rows.iter().map(|r| self.row_to_determination_rule(r)).collect())
+        Ok(rows
+            .iter()
+            .map(|r| self.row_to_determination_rule(r))
+            .collect())
     }
 
     // ========================================================================
@@ -643,11 +750,23 @@ impl TaxRepository for PostgresTaxRepository {
             RETURNING *
             ",
         )
-        .bind(org_id).bind(entity_type).bind(entity_id).bind(line_id)
-        .bind(regime_id).bind(jurisdiction_id).bind(tax_rate_id)
-        .bind(taxable_amount).bind(tax_rate_percentage).bind(tax_amount)
-        .bind(is_inclusive).bind(original_amount).bind(recoverable_amount).bind(non_recoverable_amount)
-        .bind(tax_account_code).bind(determination_rule_id).bind(created_by)
+        .bind(org_id)
+        .bind(entity_type)
+        .bind(entity_id)
+        .bind(line_id)
+        .bind(regime_id)
+        .bind(jurisdiction_id)
+        .bind(tax_rate_id)
+        .bind(taxable_amount)
+        .bind(tax_rate_percentage)
+        .bind(tax_amount)
+        .bind(is_inclusive)
+        .bind(original_amount)
+        .bind(recoverable_amount)
+        .bind(non_recoverable_amount)
+        .bind(tax_account_code)
+        .bind(determination_rule_id)
+        .bind(created_by)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
@@ -692,16 +811,25 @@ impl TaxRepository for PostgresTaxRepository {
               AND created_at >= $3 AND created_at <= $4
             ",
         )
-        .bind(org_id).bind(regime_id)
-        .bind(period_start).bind(period_end)
+        .bind(org_id)
+        .bind(regime_id)
+        .bind(period_start)
+        .bind(period_end)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let total_taxable: serde_json::Value = agg.try_get("total_taxable").unwrap_or(serde_json::json!("0"));
-        let total_tax: serde_json::Value = agg.try_get("total_tax").unwrap_or(serde_json::json!("0"));
-        let total_recoverable: serde_json::Value = agg.try_get("total_recoverable").unwrap_or(serde_json::json!("0"));
-        let total_non_recoverable: serde_json::Value = agg.try_get("total_non_recoverable").unwrap_or(serde_json::json!("0"));
+        let total_taxable: serde_json::Value = agg
+            .try_get("total_taxable")
+            .unwrap_or(serde_json::json!("0"));
+        let total_tax: serde_json::Value =
+            agg.try_get("total_tax").unwrap_or(serde_json::json!("0"));
+        let total_recoverable: serde_json::Value = agg
+            .try_get("total_recoverable")
+            .unwrap_or(serde_json::json!("0"));
+        let total_non_recoverable: serde_json::Value = agg
+            .try_get("total_non_recoverable")
+            .unwrap_or(serde_json::json!("0"));
         let txn_count: i64 = agg.try_get("txn_count").unwrap_or(0);
 
         let row = sqlx::query(
@@ -733,10 +861,18 @@ impl TaxRepository for PostgresTaxRepository {
         .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        let report_total_taxable: serde_json::Value = row.try_get("total_taxable_amount").unwrap_or(serde_json::json!("0"));
-        let report_total_tax: serde_json::Value = row.try_get("total_tax_amount").unwrap_or(serde_json::json!("0"));
-        let report_total_recoverable: serde_json::Value = row.try_get("total_recoverable_amount").unwrap_or(serde_json::json!("0"));
-        let report_total_non_recoverable: serde_json::Value = row.try_get("total_non_recoverable_amount").unwrap_or(serde_json::json!("0"));
+        let report_total_taxable: serde_json::Value = row
+            .try_get("total_taxable_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let report_total_tax: serde_json::Value = row
+            .try_get("total_tax_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let report_total_recoverable: serde_json::Value = row
+            .try_get("total_recoverable_amount")
+            .unwrap_or(serde_json::json!("0"));
+        let report_total_non_recoverable: serde_json::Value = row
+            .try_get("total_non_recoverable_amount")
+            .unwrap_or(serde_json::json!("0"));
 
         Ok(atlas_shared::TaxReport {
             id: row.get("id"),
@@ -760,7 +896,11 @@ impl TaxRepository for PostgresTaxRepository {
         })
     }
 
-    async fn list_tax_reports(&self, org_id: Uuid, regime_id: Option<Uuid>) -> AtlasResult<Vec<atlas_shared::TaxReport>> {
+    async fn list_tax_reports(
+        &self,
+        org_id: Uuid,
+        regime_id: Option<Uuid>,
+    ) -> AtlasResult<Vec<atlas_shared::TaxReport>> {
         let rows = match regime_id {
             Some(rid) => sqlx::query(
                 "SELECT * FROM _atlas.tax_reports WHERE organization_id = $1 AND regime_id = $2 ORDER BY period_start DESC"
@@ -775,32 +915,43 @@ impl TaxRepository for PostgresTaxRepository {
         }
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
-        Ok(rows.iter().map(|row| {
-            let total_taxable: serde_json::Value = row.try_get("total_taxable_amount").unwrap_or(serde_json::json!("0"));
-            let total_tax: serde_json::Value = row.try_get("total_tax_amount").unwrap_or(serde_json::json!("0"));
-            let total_recoverable: serde_json::Value = row.try_get("total_recoverable_amount").unwrap_or(serde_json::json!("0"));
-            let total_non_recoverable: serde_json::Value = row.try_get("total_non_recoverable_amount").unwrap_or(serde_json::json!("0"));
+        Ok(rows
+            .iter()
+            .map(|row| {
+                let total_taxable: serde_json::Value = row
+                    .try_get("total_taxable_amount")
+                    .unwrap_or(serde_json::json!("0"));
+                let total_tax: serde_json::Value = row
+                    .try_get("total_tax_amount")
+                    .unwrap_or(serde_json::json!("0"));
+                let total_recoverable: serde_json::Value = row
+                    .try_get("total_recoverable_amount")
+                    .unwrap_or(serde_json::json!("0"));
+                let total_non_recoverable: serde_json::Value = row
+                    .try_get("total_non_recoverable_amount")
+                    .unwrap_or(serde_json::json!("0"));
 
-            atlas_shared::TaxReport {
-                id: row.get("id"),
-                organization_id: row.get("organization_id"),
-                regime_id: row.get("regime_id"),
-                jurisdiction_id: row.get("jurisdiction_id"),
-                period_start: row.get("period_start"),
-                period_end: row.get("period_end"),
-                total_taxable_amount: total_taxable.to_string(),
-                total_tax_amount: total_tax.to_string(),
-                total_recoverable_amount: total_recoverable.to_string(),
-                total_non_recoverable_amount: total_non_recoverable.to_string(),
-                transaction_count: row.get("transaction_count"),
-                status: row.get("status"),
-                filed_by: row.get("filed_by"),
-                filed_at: row.get("filed_at"),
-                metadata: row.get("metadata"),
-                created_by: row.get("created_by"),
-                created_at: row.get("created_at"),
-                updated_at: row.get("updated_at"),
-            }
-        }).collect())
+                atlas_shared::TaxReport {
+                    id: row.get("id"),
+                    organization_id: row.get("organization_id"),
+                    regime_id: row.get("regime_id"),
+                    jurisdiction_id: row.get("jurisdiction_id"),
+                    period_start: row.get("period_start"),
+                    period_end: row.get("period_end"),
+                    total_taxable_amount: total_taxable.to_string(),
+                    total_tax_amount: total_tax.to_string(),
+                    total_recoverable_amount: total_recoverable.to_string(),
+                    total_non_recoverable_amount: total_non_recoverable.to_string(),
+                    transaction_count: row.get("transaction_count"),
+                    status: row.get("status"),
+                    filed_by: row.get("filed_by"),
+                    filed_at: row.get("filed_at"),
+                    metadata: row.get("metadata"),
+                    created_by: row.get("created_by"),
+                    created_at: row.get("created_at"),
+                    updated_at: row.get("updated_at"),
+                }
+            })
+            .collect())
     }
 }

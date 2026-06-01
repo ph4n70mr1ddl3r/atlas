@@ -6,8 +6,8 @@
 //!
 //! Oracle Fusion equivalent: Financials > Profitability Analysis
 
-pub mod repository;
 pub mod engine;
+pub mod repository;
 
 pub use engine::ProfitabilityAnalysisEngine;
-pub use repository::{ProfitabilityAnalysisRepository, PostgresProfitabilityAnalysisRepository};
+pub use repository::{PostgresProfitabilityAnalysisRepository, ProfitabilityAnalysisRepository};

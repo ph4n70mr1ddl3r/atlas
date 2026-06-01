@@ -2,12 +2,11 @@
 //!
 //! `PostgreSQL` storage for transaction calendars, exceptions, and calculation audit.
 
-use atlas_shared::{
-    TransactionCalendar, CalendarException, CalendarDateCalculation,
-    TransactionCalendarDashboard,
-    AtlasError, AtlasResult,
-};
 use async_trait::async_trait;
+use atlas_shared::{
+    AtlasError, AtlasResult, CalendarDateCalculation, CalendarException, TransactionCalendar,
+    TransactionCalendarDashboard,
+};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
@@ -16,45 +15,82 @@ use uuid::Uuid;
 pub trait TransactionCalendarRepository: Send + Sync {
     // Calendars
     async fn create_calendar(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
         working_days: &serde_json::Value,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransactionCalendar>;
 
-    async fn get_calendar(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<TransactionCalendar>>;
+    async fn get_calendar(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TransactionCalendar>>;
     async fn get_calendar_by_id(&self, id: Uuid) -> AtlasResult<Option<TransactionCalendar>>;
-    async fn list_calendars(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<TransactionCalendar>>;
-    async fn update_calendar_status(&self, id: Uuid, status: &str) -> AtlasResult<TransactionCalendar>;
+    async fn list_calendars(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<TransactionCalendar>>;
+    async fn update_calendar_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<TransactionCalendar>;
     async fn delete_calendar(&self, org_id: Uuid, code: &str) -> AtlasResult<()>;
 
     // Exceptions
     async fn create_exception(
-        &self, org_id: Uuid, calendar_id: Uuid,
-        exception_date: chrono::NaiveDate, exception_type: &str,
-        name: &str, description: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        calendar_id: Uuid,
+        exception_date: chrono::NaiveDate,
+        exception_type: &str,
+        name: &str,
+        description: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<CalendarException>;
 
-    async fn get_exception(&self, calendar_id: Uuid, exception_date: chrono::NaiveDate) -> AtlasResult<Option<CalendarException>>;
+    async fn get_exception(
+        &self,
+        calendar_id: Uuid,
+        exception_date: chrono::NaiveDate,
+    ) -> AtlasResult<Option<CalendarException>>;
     async fn list_exceptions(&self, calendar_id: Uuid) -> AtlasResult<Vec<CalendarException>>;
     async fn list_exceptions_range(
-        &self, calendar_id: Uuid,
-        from_date: chrono::NaiveDate, to_date: chrono::NaiveDate,
+        &self,
+        calendar_id: Uuid,
+        from_date: chrono::NaiveDate,
+        to_date: chrono::NaiveDate,
     ) -> AtlasResult<Vec<CalendarException>>;
     async fn delete_exception(&self, id: Uuid) -> AtlasResult<()>;
 
     // Calculations
     async fn create_calculation(
-        &self, org_id: Uuid, calendar_id: Uuid, calendar_code: &str,
-        operation: &str, input_date: chrono::NaiveDate,
-        result_date: Option<chrono::NaiveDate>, result_boolean: Option<bool>,
+        &self,
+        org_id: Uuid,
+        calendar_id: Uuid,
+        calendar_code: &str,
+        operation: &str,
+        input_date: chrono::NaiveDate,
+        result_date: Option<chrono::NaiveDate>,
+        result_boolean: Option<bool>,
         business_days_added: Option<i32>,
-        reference_type: Option<&str>, reference_id: Option<Uuid>,
+        reference_type: Option<&str>,
+        reference_id: Option<Uuid>,
         calculated_by: Option<Uuid>,
     ) -> AtlasResult<CalendarDateCalculation>;
 
     async fn list_calculations(
-        &self, org_id: Uuid, calendar_id: Option<Uuid>, limit: Option<i32>,
+        &self,
+        org_id: Uuid,
+        calendar_id: Option<Uuid>,
+        limit: Option<i32>,
     ) -> AtlasResult<Vec<CalendarDateCalculation>>;
 
     // Dashboard
@@ -67,7 +103,7 @@ pub struct PostgresTransactionCalendarRepository {
 }
 
 impl PostgresTransactionCalendarRepository {
-    #[must_use] 
+    #[must_use]
     pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -126,9 +162,14 @@ fn row_to_calculation(row: &sqlx::postgres::PgRow) -> CalendarDateCalculation {
 #[async_trait]
 impl TransactionCalendarRepository for PostgresTransactionCalendarRepository {
     async fn create_calendar(
-        &self, org_id: Uuid, code: &str, name: &str, description: Option<&str>,
+        &self,
+        org_id: Uuid,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
         working_days: &serde_json::Value,
-        effective_from: Option<chrono::NaiveDate>, effective_to: Option<chrono::NaiveDate>,
+        effective_from: Option<chrono::NaiveDate>,
+        effective_to: Option<chrono::NaiveDate>,
         created_by: Option<Uuid>,
     ) -> AtlasResult<TransactionCalendar> {
         let row = sqlx::query(
@@ -138,72 +179,102 @@ impl TransactionCalendarRepository for PostgresTransactionCalendarRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
             RETURNING *",
         )
-        .bind(org_id).bind(code).bind(name).bind(description)
-        .bind(working_days).bind(effective_from).bind(effective_to)
+        .bind(org_id)
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(working_days)
+        .bind(effective_from)
+        .bind(effective_to)
         .bind(created_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_calendar(&row))
     }
 
-    async fn get_calendar(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<TransactionCalendar>> {
+    async fn get_calendar(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<TransactionCalendar>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.transaction_calendars WHERE organization_id=$1 AND code=$2"
+            "SELECT * FROM _atlas.transaction_calendars WHERE organization_id=$1 AND code=$2",
         )
-        .bind(org_id).bind(code)
-        .fetch_optional(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_calendar(&r)))
     }
 
     async fn get_calendar_by_id(&self, id: Uuid) -> AtlasResult<Option<TransactionCalendar>> {
-        let row = sqlx::query(
-            "SELECT * FROM _atlas.transaction_calendars WHERE id=$1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool).await
-        .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
+        let row = sqlx::query("SELECT * FROM _atlas.transaction_calendars WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_calendar(&r)))
     }
 
-    async fn list_calendars(&self, org_id: Uuid, status: Option<&str>) -> AtlasResult<Vec<TransactionCalendar>> {
+    async fn list_calendars(
+        &self,
+        org_id: Uuid,
+        status: Option<&str>,
+    ) -> AtlasResult<Vec<TransactionCalendar>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.transaction_calendars
             WHERE organization_id=$1
               AND ($2::text IS NULL OR status=$2)
             ORDER BY code",
         )
-        .bind(org_id).bind(status)
-        .fetch_all(&self.pool).await
+        .bind(org_id)
+        .bind(status)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_calendar).collect())
     }
 
-    async fn update_calendar_status(&self, id: Uuid, status: &str) -> AtlasResult<TransactionCalendar> {
+    async fn update_calendar_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AtlasResult<TransactionCalendar> {
         let row = sqlx::query(
             r"UPDATE _atlas.transaction_calendars SET status=$2, updated_at=now()
             WHERE id=$1 RETURNING *",
         )
-        .bind(id).bind(status)
-        .fetch_one(&self.pool).await
+        .bind(id)
+        .bind(status)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_calendar(&row))
     }
 
     async fn delete_calendar(&self, org_id: Uuid, code: &str) -> AtlasResult<()> {
         sqlx::query(
-            "DELETE FROM _atlas.transaction_calendars WHERE organization_id=$1 AND code=$2"
+            "DELETE FROM _atlas.transaction_calendars WHERE organization_id=$1 AND code=$2",
         )
-        .bind(org_id).bind(code)
-        .execute(&self.pool).await
+        .bind(org_id)
+        .bind(code)
+        .execute(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn create_exception(
-        &self, org_id: Uuid, calendar_id: Uuid,
-        exception_date: chrono::NaiveDate, exception_type: &str,
-        name: &str, description: Option<&str>, created_by: Option<Uuid>,
+        &self,
+        org_id: Uuid,
+        calendar_id: Uuid,
+        exception_date: chrono::NaiveDate,
+        exception_type: &str,
+        name: &str,
+        description: Option<&str>,
+        created_by: Option<Uuid>,
     ) -> AtlasResult<CalendarException> {
         let row = sqlx::query(
             r"INSERT INTO _atlas.calendar_exceptions
@@ -212,62 +283,87 @@ impl TransactionCalendarRepository for PostgresTransactionCalendarRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7)
             RETURNING *",
         )
-        .bind(org_id).bind(calendar_id).bind(exception_date)
-        .bind(exception_type).bind(name).bind(description)
+        .bind(org_id)
+        .bind(calendar_id)
+        .bind(exception_date)
+        .bind(exception_type)
+        .bind(name)
+        .bind(description)
         .bind(created_by)
-        .fetch_one(&self.pool).await
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_exception(&row))
     }
 
-    async fn get_exception(&self, calendar_id: Uuid, exception_date: chrono::NaiveDate) -> AtlasResult<Option<CalendarException>> {
+    async fn get_exception(
+        &self,
+        calendar_id: Uuid,
+        exception_date: chrono::NaiveDate,
+    ) -> AtlasResult<Option<CalendarException>> {
         let row = sqlx::query(
-            "SELECT * FROM _atlas.calendar_exceptions WHERE calendar_id=$1 AND exception_date=$2"
+            "SELECT * FROM _atlas.calendar_exceptions WHERE calendar_id=$1 AND exception_date=$2",
         )
-        .bind(calendar_id).bind(exception_date)
-        .fetch_optional(&self.pool).await
+        .bind(calendar_id)
+        .bind(exception_date)
+        .fetch_optional(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row.map(|r| row_to_exception(&r)))
     }
 
     async fn list_exceptions(&self, calendar_id: Uuid) -> AtlasResult<Vec<CalendarException>> {
         let rows = sqlx::query(
-            "SELECT * FROM _atlas.calendar_exceptions WHERE calendar_id=$1 ORDER BY exception_date"
+            "SELECT * FROM _atlas.calendar_exceptions WHERE calendar_id=$1 ORDER BY exception_date",
         )
         .bind(calendar_id)
-        .fetch_all(&self.pool).await
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_exception).collect())
     }
 
     async fn list_exceptions_range(
-        &self, calendar_id: Uuid,
-        from_date: chrono::NaiveDate, to_date: chrono::NaiveDate,
+        &self,
+        calendar_id: Uuid,
+        from_date: chrono::NaiveDate,
+        to_date: chrono::NaiveDate,
     ) -> AtlasResult<Vec<CalendarException>> {
         let rows = sqlx::query(
             r"SELECT * FROM _atlas.calendar_exceptions
             WHERE calendar_id=$1 AND exception_date >= $2 AND exception_date <= $3
             ORDER BY exception_date",
         )
-        .bind(calendar_id).bind(from_date).bind(to_date)
-        .fetch_all(&self.pool).await
+        .bind(calendar_id)
+        .bind(from_date)
+        .bind(to_date)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(rows.iter().map(row_to_exception).collect())
     }
 
     async fn delete_exception(&self, id: Uuid) -> AtlasResult<()> {
         sqlx::query("DELETE FROM _atlas.calendar_exceptions WHERE id=$1")
-            .bind(id).execute(&self.pool).await
+            .bind(id)
+            .execute(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn create_calculation(
-        &self, org_id: Uuid, calendar_id: Uuid, calendar_code: &str,
-        operation: &str, input_date: chrono::NaiveDate,
-        result_date: Option<chrono::NaiveDate>, result_boolean: Option<bool>,
+        &self,
+        org_id: Uuid,
+        calendar_id: Uuid,
+        calendar_code: &str,
+        operation: &str,
+        input_date: chrono::NaiveDate,
+        result_date: Option<chrono::NaiveDate>,
+        result_boolean: Option<bool>,
         business_days_added: Option<i32>,
-        reference_type: Option<&str>, reference_id: Option<Uuid>,
+        reference_type: Option<&str>,
+        reference_id: Option<Uuid>,
         calculated_by: Option<Uuid>,
     ) -> AtlasResult<CalendarDateCalculation> {
         let row = sqlx::query(
@@ -278,17 +374,28 @@ impl TransactionCalendarRepository for PostgresTransactionCalendarRepository {
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
             RETURNING *",
         )
-        .bind(org_id).bind(calendar_id).bind(calendar_code)
-        .bind(operation).bind(input_date).bind(result_date)
-        .bind(result_boolean).bind(business_days_added)
-        .bind(reference_type).bind(reference_id).bind(calculated_by)
-        .fetch_one(&self.pool).await
+        .bind(org_id)
+        .bind(calendar_id)
+        .bind(calendar_code)
+        .bind(operation)
+        .bind(input_date)
+        .bind(result_date)
+        .bind(result_boolean)
+        .bind(business_days_added)
+        .bind(reference_type)
+        .bind(reference_id)
+        .bind(calculated_by)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
         Ok(row_to_calculation(&row))
     }
 
     async fn list_calculations(
-        &self, org_id: Uuid, calendar_id: Option<Uuid>, limit: Option<i32>,
+        &self,
+        org_id: Uuid,
+        calendar_id: Option<Uuid>,
+        limit: Option<i32>,
     ) -> AtlasResult<Vec<CalendarDateCalculation>> {
         let limit_val = limit.unwrap_or(100);
         let rows = if calendar_id.is_some() {
@@ -297,8 +404,11 @@ impl TransactionCalendarRepository for PostgresTransactionCalendarRepository {
                 WHERE organization_id=$1 AND calendar_id=$2
                 ORDER BY calculated_at DESC LIMIT $3",
             )
-            .bind(org_id).bind(calendar_id).bind(limit_val)
-            .fetch_all(&self.pool).await
+            .bind(org_id)
+            .bind(calendar_id)
+            .bind(limit_val)
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         } else {
             sqlx::query(
@@ -306,8 +416,10 @@ impl TransactionCalendarRepository for PostgresTransactionCalendarRepository {
                 WHERE organization_id=$1
                 ORDER BY calculated_at DESC LIMIT $2",
             )
-            .bind(org_id).bind(limit_val)
-            .fetch_all(&self.pool).await
+            .bind(org_id)
+            .bind(limit_val)
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| AtlasError::DatabaseError(e.to_string()))?
         };
         Ok(rows.iter().map(row_to_calculation).collect())
@@ -320,7 +432,9 @@ impl TransactionCalendarRepository for PostgresTransactionCalendarRepository {
                 COUNT(*) FILTER (WHERE status = 'active') as active
             FROM _atlas.transaction_calendars WHERE organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let total: i64 = row.try_get("total").unwrap_or(0);
@@ -331,13 +445,17 @@ impl TransactionCalendarRepository for PostgresTransactionCalendarRepository {
             JOIN _atlas.transaction_calendars tc ON ce.calendar_id = tc.id
             WHERE tc.organization_id = $1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let calculation_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _atlas.calendar_date_calculations WHERE organization_id=$1"
+            "SELECT COUNT(*) FROM _atlas.calendar_date_calculations WHERE organization_id=$1",
         )
-        .bind(org_id).fetch_one(&self.pool).await
+        .bind(org_id)
+        .fetch_one(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         let recent_rows = sqlx::query(
@@ -345,7 +463,9 @@ impl TransactionCalendarRepository for PostgresTransactionCalendarRepository {
             WHERE organization_id=$1
             ORDER BY calculated_at DESC LIMIT 10",
         )
-        .bind(org_id).fetch_all(&self.pool).await
+        .bind(org_id)
+        .fetch_all(&self.pool)
+        .await
         .map_err(|e| AtlasError::DatabaseError(e.to_string()))?;
 
         Ok(TransactionCalendarDashboard {

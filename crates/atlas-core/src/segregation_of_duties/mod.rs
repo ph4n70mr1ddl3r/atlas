@@ -16,8 +16,8 @@
 //!
 //! Oracle Fusion equivalent: Advanced Access Control > Segregation of Duties
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::SegregationOfDutiesEngine;
-pub use repository::{SegregationOfDutiesRepository, PostgresSegregationOfDutiesRepository};
+pub use repository::{PostgresSegregationOfDutiesRepository, SegregationOfDutiesRepository};

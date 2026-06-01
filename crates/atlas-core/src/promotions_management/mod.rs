@@ -10,4 +10,4 @@ mod engine;
 mod repository;
 
 pub use engine::PromotionsManagementEngine;
-pub use repository::{PromotionsManagementRepository, PostgresPromotionsManagementRepository};
+pub use repository::{PostgresPromotionsManagementRepository, PromotionsManagementRepository};

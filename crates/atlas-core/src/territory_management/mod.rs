@@ -10,4 +10,4 @@ mod engine;
 mod repository;
 
 pub use engine::TerritoryManagementEngine;
-pub use repository::{TerritoryManagementRepository, PostgresTerritoryManagementRepository};
+pub use repository::{PostgresTerritoryManagementRepository, TerritoryManagementRepository};

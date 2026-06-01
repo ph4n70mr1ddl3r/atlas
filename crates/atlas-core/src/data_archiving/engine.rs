@@ -3,16 +3,15 @@
 //! Business logic for managing data lifecycle: retention policies,
 //! archival, purging, legal holds, and restoration.
 
-use atlas_shared::{
-    ArchivedRecord, ArchiveAudit, ArchiveBatch,
-    CreateLegalHoldRequest, CreateRetentionPolicyRequest,
-    DataArchivingDashboard, LegalHold, LegalHoldItem, RetentionPolicy,
-    AtlasError, AtlasResult,
-};
 use super::DataArchivingRepository;
+use atlas_shared::{
+    ArchiveAudit, ArchiveBatch, ArchivedRecord, AtlasError, AtlasResult, CreateLegalHoldRequest,
+    CreateRetentionPolicyRequest, DataArchivingDashboard, LegalHold, LegalHoldItem,
+    RetentionPolicy,
+};
 use std::sync::Arc;
-use uuid::Uuid;
 use tracing::info;
+use uuid::Uuid;
 
 /// Valid action types for retention policies
 const VALID_ACTION_TYPES: &[&str] = &["archive", "purge", "archive_then_purge"];
@@ -51,13 +50,17 @@ impl DataArchivingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<RetentionPolicy> {
         if request.policy_code.is_empty() {
-            return Err(AtlasError::ValidationFailed("policy_code is required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "policy_code is required".into(),
+            ));
         }
         if request.name.is_empty() {
             return Err(AtlasError::ValidationFailed("name is required".into()));
         }
         if request.entity_type.is_empty() {
-            return Err(AtlasError::ValidationFailed("entity_type is required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "entity_type is required".into(),
+            ));
         }
         if request.retention_days < 0 {
             return Err(AtlasError::ValidationFailed(
@@ -82,30 +85,37 @@ impl DataArchivingEngine {
         }
 
         // Uniqueness check
-        if self.repository.get_policy_by_code(org_id, &request.policy_code).await?.is_some() {
+        if self
+            .repository
+            .get_policy_by_code(org_id, &request.policy_code)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
-                "Retention policy with code '{}' already exists", request.policy_code
+                "Retention policy with code '{}' already exists",
+                request.policy_code
             )));
         }
 
         info!(
             "Creating retention policy {} for entity {} ({} days, {})",
-            request.policy_code, request.entity_type,
-            request.retention_days, request.action_type
+            request.policy_code, request.entity_type, request.retention_days, request.action_type
         );
 
-        self.repository.create_policy(
-            org_id,
-            &request.policy_code,
-            &request.name,
-            request.description.as_deref(),
-            &request.entity_type,
-            request.retention_days,
-            &request.action_type,
-            request.purge_after_days,
-            request.condition_expression.as_deref(),
-            created_by,
-        ).await
+        self.repository
+            .create_policy(
+                org_id,
+                &request.policy_code,
+                &request.name,
+                request.description.as_deref(),
+                &request.entity_type,
+                request.retention_days,
+                &request.action_type,
+                request.purge_after_days,
+                request.condition_expression.as_deref(),
+                created_by,
+            )
+            .await
     }
 
     /// Get a retention policy by ID.
@@ -114,7 +124,11 @@ impl DataArchivingEngine {
     }
 
     /// Get a retention policy by code.
-    pub async fn get_policy_by_code(&self, org_id: Uuid, code: &str) -> AtlasResult<Option<RetentionPolicy>> {
+    pub async fn get_policy_by_code(
+        &self,
+        org_id: Uuid,
+        code: &str,
+    ) -> AtlasResult<Option<RetentionPolicy>> {
         self.repository.get_policy_by_code(org_id, code).await
     }
 
@@ -125,12 +139,16 @@ impl DataArchivingEngine {
         status: Option<&str>,
         entity_type: Option<&str>,
     ) -> AtlasResult<Vec<RetentionPolicy>> {
-        self.repository.list_policies(org_id, status, entity_type).await
+        self.repository
+            .list_policies(org_id, status, entity_type)
+            .await
     }
 
     /// Activate a retention policy.
     pub async fn activate_policy(&self, id: Uuid) -> AtlasResult<RetentionPolicy> {
-        let policy = self.get_policy(id).await?
+        let policy = self
+            .get_policy(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {id} not found")))?;
 
         if policy.status == "active" {
@@ -143,11 +161,15 @@ impl DataArchivingEngine {
 
     /// Deactivate a retention policy.
     pub async fn deactivate_policy(&self, id: Uuid) -> AtlasResult<RetentionPolicy> {
-        let policy = self.get_policy(id).await?
+        let policy = self
+            .get_policy(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {id} not found")))?;
 
         if policy.status == "inactive" {
-            return Err(AtlasError::WorkflowError("Policy is already inactive".into()));
+            return Err(AtlasError::WorkflowError(
+                "Policy is already inactive".into(),
+            ));
         }
 
         info!("Deactivated retention policy {}", policy.policy_code);
@@ -172,20 +194,29 @@ impl DataArchivingEngine {
         created_by: Option<Uuid>,
     ) -> AtlasResult<LegalHold> {
         if request.hold_number.is_empty() {
-            return Err(AtlasError::ValidationFailed("hold_number is required".into()));
+            return Err(AtlasError::ValidationFailed(
+                "hold_number is required".into(),
+            ));
         }
         if request.name.is_empty() {
             return Err(AtlasError::ValidationFailed("name is required".into()));
         }
 
         // Uniqueness check
-        if self.repository.get_legal_hold_by_number(org_id, &request.hold_number).await?.is_some() {
+        if self
+            .repository
+            .get_legal_hold_by_number(org_id, &request.hold_number)
+            .await?
+            .is_some()
+        {
             return Err(AtlasError::Conflict(format!(
-                "Legal hold with number '{}' already exists", request.hold_number
+                "Legal hold with number '{}' already exists",
+                request.hold_number
             )));
         }
 
-        let effective_from = request.effective_from
+        let effective_from = request
+            .effective_from
             .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
         if let (Some(from), Some(to)) = (Some(effective_from), request.effective_to) {
@@ -196,19 +227,24 @@ impl DataArchivingEngine {
             }
         }
 
-        info!("Creating legal hold {} ({})", request.hold_number, request.name);
+        info!(
+            "Creating legal hold {} ({})",
+            request.hold_number, request.name
+        );
 
-        self.repository.create_legal_hold(
-            org_id,
-            &request.hold_number,
-            &request.name,
-            request.description.as_deref(),
-            request.reason.as_deref(),
-            request.case_reference.as_deref(),
-            created_by,
-            effective_from,
-            request.effective_to,
-        ).await
+        self.repository
+            .create_legal_hold(
+                org_id,
+                &request.hold_number,
+                &request.name,
+                request.description.as_deref(),
+                request.reason.as_deref(),
+                request.case_reference.as_deref(),
+                created_by,
+                effective_from,
+                request.effective_to,
+            )
+            .await
     }
 
     /// Get a legal hold by ID.
@@ -232,17 +268,22 @@ impl DataArchivingEngine {
         released_by: Uuid,
         reason: Option<&str>,
     ) -> AtlasResult<LegalHold> {
-        let hold = self.get_legal_hold(id).await?
+        let hold = self
+            .get_legal_hold(id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Legal hold {id} not found")))?;
 
         if hold.status != "active" {
-            return Err(AtlasError::WorkflowError(
-                format!("Legal hold is '{}' (not active), cannot release", hold.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Legal hold is '{}' (not active), cannot release",
+                hold.status
+            )));
         }
 
         info!("Releasing legal hold {}", hold.hold_number);
-        self.repository.release_legal_hold(id, released_by, reason).await
+        self.repository
+            .release_legal_hold(id, released_by, reason)
+            .await
     }
 
     /// Delete a legal hold.
@@ -260,10 +301,11 @@ impl DataArchivingEngine {
         &self,
         org_id: Uuid,
         legal_hold_id: Uuid,
-        items: Vec<(String, Uuid)>,  // (entity_type, record_id)
+        items: Vec<(String, Uuid)>, // (entity_type, record_id)
     ) -> AtlasResult<Vec<LegalHoldItem>> {
-        let hold = self.get_legal_hold(legal_hold_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(format!("Legal hold {legal_hold_id} not found")))?;
+        let hold = self.get_legal_hold(legal_hold_id).await?.ok_or_else(|| {
+            AtlasError::EntityNotFound(format!("Legal hold {legal_hold_id} not found"))
+        })?;
 
         if hold.status != "active" {
             return Err(AtlasError::WorkflowError(
@@ -274,26 +316,43 @@ impl DataArchivingEngine {
         let mut results = Vec::new();
         for (entity_type, record_id) in items {
             // Check if already under hold
-            if self.repository.is_record_under_hold(org_id, &entity_type, record_id).await? {
+            if self
+                .repository
+                .is_record_under_hold(org_id, &entity_type, record_id)
+                .await?
+            {
                 continue; // Skip duplicates
             }
 
-            let item = self.repository.add_legal_hold_item(
-                org_id, legal_hold_id, &entity_type, record_id,
-            ).await?;
+            let item = self
+                .repository
+                .add_legal_hold_item(org_id, legal_hold_id, &entity_type, record_id)
+                .await?;
 
             // Audit
-            self.repository.create_audit_entry(
-                org_id, "legal_hold", &entity_type, Some(record_id),
-                None, Some(legal_hold_id), None, "success",
-                Some(&format!("Added to legal hold {}", hold.hold_number)),
-                None,
-            ).await?;
+            self.repository
+                .create_audit_entry(
+                    org_id,
+                    "legal_hold",
+                    &entity_type,
+                    Some(record_id),
+                    None,
+                    Some(legal_hold_id),
+                    None,
+                    "success",
+                    Some(&format!("Added to legal hold {}", hold.hold_number)),
+                    None,
+                )
+                .await?;
 
             results.push(item);
         }
 
-        info!("Added {} items to legal hold {}", results.len(), hold.hold_number);
+        info!(
+            "Added {} items to legal hold {}",
+            results.len(),
+            hold.hold_number
+        );
         Ok(results)
     }
 
@@ -317,7 +376,9 @@ impl DataArchivingEngine {
         entity_type: &str,
         record_id: Uuid,
     ) -> AtlasResult<bool> {
-        self.repository.is_record_under_hold(org_id, entity_type, record_id).await
+        self.repository
+            .is_record_under_hold(org_id, entity_type, record_id)
+            .await
     }
 
     // ========================================================================
@@ -332,7 +393,9 @@ impl DataArchivingEngine {
         batch_number: &str,
         performed_by: Option<Uuid>,
     ) -> AtlasResult<ArchiveBatch> {
-        let policy = self.get_policy(policy_id).await?
+        let policy = self
+            .get_policy(policy_id)
+            .await?
             .ok_or_else(|| AtlasError::EntityNotFound(format!("Policy {policy_id} not found")))?;
 
         if policy.status != "active" {
@@ -348,22 +411,29 @@ impl DataArchivingEngine {
         }
 
         // Create batch
-        let batch = self.repository.create_archive_batch(
-            org_id,
-            batch_number,
-            Some(policy_id),
-            &policy.entity_type,
-            performed_by,
-        ).await?;
+        let batch = self
+            .repository
+            .create_archive_batch(
+                org_id,
+                batch_number,
+                Some(policy_id),
+                &policy.entity_type,
+                performed_by,
+            )
+            .await?;
 
         // Update batch status to in_progress
-        self.repository.update_archive_batch_status(batch.id, "in_progress").await?;
+        self.repository
+            .update_archive_batch_status(batch.id, "in_progress")
+            .await?;
 
         // Find qualifying records: records older than retention_days that aren't under legal hold
-        let cutoff_date = chrono::Utc::now() - chrono::Duration::days(i64::from(policy.retention_days));
-        let records = self.repository.find_qualifying_records(
-            org_id, &policy.entity_type, cutoff_date,
-        ).await?;
+        let cutoff_date =
+            chrono::Utc::now() - chrono::Duration::days(i64::from(policy.retention_days));
+        let records = self
+            .repository
+            .find_qualifying_records(org_id, &policy.entity_type, cutoff_date)
+            .await?;
 
         let total = records.len() as i32;
         let mut archived = 0i32;
@@ -371,61 +441,112 @@ impl DataArchivingEngine {
 
         for (record_id, record_data, created_at, updated_at) in &records {
             // Check legal hold
-            if self.is_record_under_hold(org_id, &policy.entity_type, *record_id).await? {
-                self.repository.create_audit_entry(
-                    org_id, "archive", &policy.entity_type, Some(*record_id),
-                    Some(batch.id), None, Some(policy_id), "skipped",
-                    Some("Record under legal hold"), performed_by,
-                ).await?;
+            if self
+                .is_record_under_hold(org_id, &policy.entity_type, *record_id)
+                .await?
+            {
+                self.repository
+                    .create_audit_entry(
+                        org_id,
+                        "archive",
+                        &policy.entity_type,
+                        Some(*record_id),
+                        Some(batch.id),
+                        None,
+                        Some(policy_id),
+                        "skipped",
+                        Some("Record under legal hold"),
+                        performed_by,
+                    )
+                    .await?;
                 failed += 1;
                 continue;
             }
 
             // Check if already archived
-            if self.repository.is_record_archived(org_id, &policy.entity_type, *record_id).await? {
-                self.repository.create_audit_entry(
-                    org_id, "archive", &policy.entity_type, Some(*record_id),
-                    Some(batch.id), None, Some(policy_id), "skipped",
-                    Some("Record already archived"), performed_by,
-                ).await?;
+            if self
+                .repository
+                .is_record_archived(org_id, &policy.entity_type, *record_id)
+                .await?
+            {
+                self.repository
+                    .create_audit_entry(
+                        org_id,
+                        "archive",
+                        &policy.entity_type,
+                        Some(*record_id),
+                        Some(batch.id),
+                        None,
+                        Some(policy_id),
+                        "skipped",
+                        Some("Record already archived"),
+                        performed_by,
+                    )
+                    .await?;
                 failed += 1;
                 continue;
             }
 
             // Archive the record
-            match self.repository.create_archived_record(
-                org_id,
-                &policy.entity_type,
-                *record_id,
-                record_data,
-                Some(policy_id),
-                Some(batch.id),
-                *created_at,
-                *updated_at,
-                performed_by,
-            ).await {
+            match self
+                .repository
+                .create_archived_record(
+                    org_id,
+                    &policy.entity_type,
+                    *record_id,
+                    record_data,
+                    Some(policy_id),
+                    Some(batch.id),
+                    *created_at,
+                    *updated_at,
+                    performed_by,
+                )
+                .await
+            {
                 Ok(_) => {
-                    self.repository.create_audit_entry(
-                        org_id, "archive", &policy.entity_type, Some(*record_id),
-                        Some(batch.id), None, Some(policy_id), "success",
-                        None, performed_by,
-                    ).await?;
+                    self.repository
+                        .create_audit_entry(
+                            org_id,
+                            "archive",
+                            &policy.entity_type,
+                            Some(*record_id),
+                            Some(batch.id),
+                            None,
+                            Some(policy_id),
+                            "success",
+                            None,
+                            performed_by,
+                        )
+                        .await?;
                     archived += 1;
                 }
                 Err(e) => {
-                    self.repository.create_audit_entry(
-                        org_id, "archive", &policy.entity_type, Some(*record_id),
-                        Some(batch.id), None, Some(policy_id), "failed",
-                        Some(&e.to_string()), performed_by,
-                    ).await?;
+                    self.repository
+                        .create_audit_entry(
+                            org_id,
+                            "archive",
+                            &policy.entity_type,
+                            Some(*record_id),
+                            Some(batch.id),
+                            None,
+                            Some(policy_id),
+                            "failed",
+                            Some(&e.to_string()),
+                            performed_by,
+                        )
+                        .await?;
                     failed += 1;
                 }
             }
         }
 
         // Update batch counts
-        self.repository.update_archive_batch_counts(batch.id, total, archived, failed).await?;
-        self.repository.update_archive_batch_status(batch.id, "completed").await?;
+        self.repository
+            .update_archive_batch_counts(batch.id, total, archived, failed)
+            .await?;
+        self.repository
+            .update_archive_batch_status(batch.id, "completed")
+            .await?;
 
         info!(
             "Archive batch {} completed: {}/{} archived, {} failed",
@@ -433,7 +554,9 @@ impl DataArchivingEngine {
         );
 
         // Fetch updated batch
-        self.repository.get_archive_batch(batch.id).await
+        self.repository
+            .get_archive_batch(batch.id)
+            .await
             .map(|opt| opt.unwrap())
     }
 
@@ -444,26 +567,42 @@ impl DataArchivingEngine {
         archived_record_id: Uuid,
         performed_by: Option<Uuid>,
     ) -> AtlasResult<ArchivedRecord> {
-        let record = self.repository.get_archived_record(archived_record_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Archived record {archived_record_id} not found")
-            ))?;
+        let record = self
+            .repository
+            .get_archived_record(archived_record_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Archived record {archived_record_id} not found"
+                ))
+            })?;
 
         if record.status != "archived" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot restore record with status '{}'", record.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot restore record with status '{}'",
+                record.status
+            )));
         }
 
-        let updated = self.repository.restore_archived_record(archived_record_id, performed_by).await?;
+        let updated = self
+            .repository
+            .restore_archived_record(archived_record_id, performed_by)
+            .await?;
 
-        self.repository.create_audit_entry(
-            org_id, "restore", &record.entity_type,
-            Some(record.original_record_id),
-            record.archive_batch_id, None,
-            record.retention_policy_id, "success",
-            None, performed_by,
-        ).await?;
+        self.repository
+            .create_audit_entry(
+                org_id,
+                "restore",
+                &record.entity_type,
+                Some(record.original_record_id),
+                record.archive_batch_id,
+                None,
+                record.retention_policy_id,
+                "success",
+                None,
+                performed_by,
+            )
+            .await?;
 
         info!(
             "Restored archived record {} ({}/{})",
@@ -480,33 +619,52 @@ impl DataArchivingEngine {
         archived_record_id: Uuid,
         performed_by: Option<Uuid>,
     ) -> AtlasResult<ArchivedRecord> {
-        let record = self.repository.get_archived_record(archived_record_id).await?
-            .ok_or_else(|| AtlasError::EntityNotFound(
-                format!("Archived record {archived_record_id} not found")
-            ))?;
+        let record = self
+            .repository
+            .get_archived_record(archived_record_id)
+            .await?
+            .ok_or_else(|| {
+                AtlasError::EntityNotFound(format!(
+                    "Archived record {archived_record_id} not found"
+                ))
+            })?;
 
         if record.status != "archived" {
-            return Err(AtlasError::WorkflowError(
-                format!("Cannot purge record with status '{}'. Only 'archived' records can be purged.", record.status)
-            ));
+            return Err(AtlasError::WorkflowError(format!(
+                "Cannot purge record with status '{}'. Only 'archived' records can be purged.",
+                record.status
+            )));
         }
 
         // Check legal hold
-        if self.is_record_under_hold(org_id, &record.entity_type, record.original_record_id).await? {
+        if self
+            .is_record_under_hold(org_id, &record.entity_type, record.original_record_id)
+            .await?
+        {
             return Err(AtlasError::WorkflowError(
                 "Cannot purge: record is under an active legal hold".into(),
             ));
         }
 
-        let updated = self.repository.purge_archived_record(archived_record_id, performed_by).await?;
+        let updated = self
+            .repository
+            .purge_archived_record(archived_record_id, performed_by)
+            .await?;
 
-        self.repository.create_audit_entry(
-            org_id, "purge", &record.entity_type,
-            Some(record.original_record_id),
-            record.archive_batch_id, None,
-            record.retention_policy_id, "success",
-            None, performed_by,
-        ).await?;
+        self.repository
+            .create_audit_entry(
+                org_id,
+                "purge",
+                &record.entity_type,
+                Some(record.original_record_id),
+                record.archive_batch_id,
+                None,
+                record.retention_policy_id,
+                "success",
+                None,
+                performed_by,
+            )
+            .await?;
 
         info!(
             "Purged archived record {} ({}/{})",
@@ -533,7 +691,9 @@ impl DataArchivingEngine {
         status: Option<&str>,
         limit: Option<i32>,
     ) -> AtlasResult<Vec<ArchivedRecord>> {
-        self.repository.list_archived_records(org_id, entity_type, status, limit).await
+        self.repository
+            .list_archived_records(org_id, entity_type, status, limit)
+            .await
     }
 
     /// List archive batches.
@@ -558,7 +718,9 @@ impl DataArchivingEngine {
         entity_type: Option<&str>,
         limit: Option<i32>,
     ) -> AtlasResult<Vec<ArchiveAudit>> {
-        self.repository.list_audit_entries(org_id, operation, entity_type, limit).await
+        self.repository
+            .list_audit_entries(org_id, operation, entity_type, limit)
+            .await
     }
 
     // ========================================================================

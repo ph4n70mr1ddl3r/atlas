@@ -10,4 +10,4 @@ mod engine;
 mod repository;
 
 pub use engine::TransferPricingEngine;
-pub use repository::{TransferPricingRepository, PostgresTransferPricingRepository};
+pub use repository::{PostgresTransferPricingRepository, TransferPricingRepository};

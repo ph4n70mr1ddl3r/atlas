@@ -7,8 +7,8 @@
 //!
 //! Oracle Fusion equivalent: Treasury > Trade Finance > Letters of Credit
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::LetterOfCreditEngine;
 pub use repository::{LetterOfCreditRepository, PostgresLetterOfCreditRepository};

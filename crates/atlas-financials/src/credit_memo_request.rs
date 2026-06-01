@@ -54,7 +54,7 @@ impl CreditMemoRequestService {
                 status: "REJECTED_MISSING_REASON".to_string(),
             };
         }
-        
+
         CreditMemoRequestResult {
             request_id: format!("CMR-{}-{}", transaction_id, requested_amount),
             transaction_id: transaction_id.to_string(),
@@ -66,7 +66,11 @@ impl CreditMemoRequestService {
 
     /// Approves or Rejects a pending Credit Memo Request.
     #[must_use]
-    pub fn process_approval(request_id: &str, approver_id: &str, is_approved: bool) -> ApprovalResult {
+    pub fn process_approval(
+        request_id: &str,
+        approver_id: &str,
+        is_approved: bool,
+    ) -> ApprovalResult {
         if request_id.is_empty() {
             return ApprovalResult {
                 request_id: "".to_string(),
@@ -86,7 +90,11 @@ impl CreditMemoRequestService {
         ApprovalResult {
             request_id: request_id.to_string(),
             approver_id: approver_id.to_string(),
-            status: if is_approved { "APPROVED".to_string() } else { "REJECTED".to_string() },
+            status: if is_approved {
+                "APPROVED".to_string()
+            } else {
+                "REJECTED".to_string()
+            },
         }
     }
 }
@@ -97,7 +105,8 @@ mod tests {
 
     #[test]
     fn test_submit_request_valid() {
-        let result = CreditMemoRequestService::submit_request("TRX-100", 250.0, 1000.0, "RETURNED_GOODS");
+        let result =
+            CreditMemoRequestService::submit_request("TRX-100", 250.0, 1000.0, "RETURNED_GOODS");
         assert_eq!(result.transaction_id, "TRX-100");
         assert_eq!(result.requested_amount, 250.0);
         assert_eq!(result.reason_code, "RETURNED_GOODS");
@@ -107,14 +116,16 @@ mod tests {
 
     #[test]
     fn test_submit_request_invalid_amount() {
-        let result = CreditMemoRequestService::submit_request("TRX-101", -50.0, 1000.0, "PRICING_ERROR");
+        let result =
+            CreditMemoRequestService::submit_request("TRX-101", -50.0, 1000.0, "PRICING_ERROR");
         assert_eq!(result.requested_amount, 0.0);
         assert_eq!(result.status, "REJECTED_INVALID_AMOUNT");
     }
 
     #[test]
     fn test_submit_request_exceeds_balance() {
-        let result = CreditMemoRequestService::submit_request("TRX-102", 1500.0, 1000.0, "PRICING_ERROR");
+        let result =
+            CreditMemoRequestService::submit_request("TRX-102", 1500.0, 1000.0, "PRICING_ERROR");
         assert_eq!(result.status, "REJECTED_EXCEEDS_BALANCE");
     }
 
@@ -134,7 +145,8 @@ mod tests {
 
     #[test]
     fn test_process_approval_rejected() {
-        let result = CreditMemoRequestService::process_approval("CMR-TRX-100-250", "MGR-001", false);
+        let result =
+            CreditMemoRequestService::process_approval("CMR-TRX-100-250", "MGR-001", false);
         assert_eq!(result.status, "REJECTED");
     }
 

@@ -11,8 +11,8 @@
 //!
 //! Oracle Fusion equivalent: HCM > Learning
 
-mod repository;
 pub mod engine;
+mod repository;
 
 pub use engine::LearningManagementEngine;
 pub use repository::{LearningManagementRepository, PostgresLearningManagementRepository};

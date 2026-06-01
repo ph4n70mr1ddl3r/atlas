@@ -47,7 +47,10 @@ impl PaymentProcessRequestService {
         method: String,
     ) -> Result<PaymentProcessRequest, String> {
         let mut requests = self.requests.write().unwrap();
-        if requests.iter().any(|r| r.organization_id == organization_id && r.request_number == number) {
+        if requests
+            .iter()
+            .any(|r| r.organization_id == organization_id && r.request_number == number)
+        {
             return Err("Request with this number already exists".to_string());
         }
 
@@ -71,7 +74,9 @@ impl PaymentProcessRequestService {
         amount: f64,
     ) -> Result<SelectedDocument, String> {
         let mut requests = self.requests.write().unwrap();
-        let ppr = requests.iter_mut().find(|r| r.id == ppr_id)
+        let ppr = requests
+            .iter_mut()
+            .find(|r| r.id == ppr_id)
             .ok_or_else(|| "Request not found".to_string())?;
 
         if ppr.status != "draft" {
@@ -95,16 +100,18 @@ impl PaymentProcessRequestService {
 
     pub fn confirm_payment(&self, id: Uuid) -> Result<(), String> {
         let mut requests = self.requests.write().unwrap();
-        let ppr = requests.iter_mut().find(|r| r.id == id)
+        let ppr = requests
+            .iter_mut()
+            .find(|r| r.id == id)
             .ok_or_else(|| "Request not found".to_string())?;
-        
+
         ppr.status = "confirmed".to_string();
 
         let mut documents = self.documents.write().unwrap();
         for doc in documents.iter_mut().filter(|d| d.ppr_id == id) {
             doc.status = "paid".to_string();
         }
-        
+
         Ok(())
     }
 }
@@ -117,12 +124,18 @@ mod tests {
     fn test_create_and_confirm_ppr() {
         let service = PaymentProcessRequestService::new();
         let org_id = Uuid::new_v4();
-        
-        let ppr = service.create_request(org_id, "PPR-2026-01".to_string(), "wire".to_string()).unwrap();
+
+        let ppr = service
+            .create_request(org_id, "PPR-2026-01".to_string(), "wire".to_string())
+            .unwrap();
         assert_eq!(ppr.status, "draft");
 
-        service.add_document(ppr.id, Uuid::new_v4(), 5000.0).unwrap();
-        service.add_document(ppr.id, Uuid::new_v4(), 2500.0).unwrap();
+        service
+            .add_document(ppr.id, Uuid::new_v4(), 5000.0)
+            .unwrap();
+        service
+            .add_document(ppr.id, Uuid::new_v4(), 2500.0)
+            .unwrap();
 
         {
             let requests = service.requests.read().unwrap();
@@ -144,7 +157,9 @@ mod tests {
     fn test_duplicate_ppr_number() {
         let service = PaymentProcessRequestService::new();
         let org_id = Uuid::new_v4();
-        service.create_request(org_id, "REQ-1".to_string(), "ach".to_string()).unwrap();
+        service
+            .create_request(org_id, "REQ-1".to_string(), "ach".to_string())
+            .unwrap();
         let res = service.create_request(org_id, "REQ-1".to_string(), "ach".to_string());
         assert!(res.is_err());
     }

@@ -91,7 +91,7 @@ pub fn build_router(state: Arc<atlas_gateway::AppState>) -> Router {
 pub async fn build_test_state() -> Arc<atlas_gateway::AppState> {
     let database_url = std::env::var("TEST_DATABASE_URL")
         .or_else(|_| std::env::var("DATABASE_URL"))
-        .unwrap_or_else(|_| "postgres://atlas:atlas@localhost:5432/atlas".to_string());
+        .unwrap_or_else(|_| "postgres:///atlas".to_string());
 
     let db_pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(5)

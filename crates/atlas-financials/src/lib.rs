@@ -9,13 +9,13 @@
 //! - Budgeting & Planning
 //! - Expense Reports
 
-pub mod average_daily_balance;
+pub mod average_balance;
 pub mod customer_refund;
 pub mod entities;
 pub mod late_charges;
 pub mod services;
 
-pub use average_daily_balance::*;
+pub use average_balance::*;
 pub use customer_refund::*;
 pub use late_charges::*;
 pub mod asset_revaluation;
@@ -108,8 +108,6 @@ pub mod journal_approval;
 pub use journal_approval::*;
 pub mod automatch_rules;
 pub use automatch_rules::*;
-pub mod average_balance_processing;
-pub use average_balance_processing::*;
 pub mod autoaccounting;
 pub use autoaccounting::*;
 pub mod tax_exemptions;

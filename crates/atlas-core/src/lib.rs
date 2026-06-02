@@ -94,7 +94,8 @@ pub mod financials {
         AvailableFundsEngine, PostgresAvailableFundsRepository as PostgresAvailableFundsRepo,
     };
     pub use crate::average_balance::{
-        AverageBalanceEngine, PostgresAverageBalanceRepository as PostgresAverageBalanceRepo,
+        AverageBalanceBook, AverageBalanceCalculation, AverageBalanceEngine,
+        PostgresAverageBalanceRepository as PostgresAverageBalanceRepo,
     };
     pub use crate::bank_account_transfer::{
         BankAccountTransferEngine,

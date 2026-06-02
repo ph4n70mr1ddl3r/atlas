@@ -124,13 +124,13 @@ CREATE TABLE IF NOT EXISTS _atlas.config_instances (
 );
 
 -- Create indexes
-CREATE INDEX idx_config_models_org ON _atlas.config_models(organization_id);
-CREATE INDEX idx_config_models_status ON _atlas.config_models(status);
-CREATE INDEX idx_config_features_model ON _atlas.config_features(model_id);
-CREATE INDEX idx_config_options_feature ON _atlas.config_options(feature_id);
-CREATE INDEX idx_config_rules_model ON _atlas.config_rules(model_id);
-CREATE INDEX idx_config_rules_type ON _atlas.config_rules(rule_type);
-CREATE INDEX idx_config_instances_org ON _atlas.config_instances(organization_id);
-CREATE INDEX idx_config_instances_model ON _atlas.config_instances(model_id);
-CREATE INDEX idx_config_instances_status ON _atlas.config_instances(status);
-CREATE INDEX idx_config_instances_order ON _atlas.config_instances(sales_order_id);
+CREATE INDEX IF NOT EXISTS idx_config_models_org ON _atlas.config_models(organization_id);
+CREATE INDEX IF NOT EXISTS idx_config_models_status ON _atlas.config_models(status);
+CREATE INDEX IF NOT EXISTS idx_config_features_model ON _atlas.config_features(model_id);
+CREATE INDEX IF NOT EXISTS idx_config_options_feature ON _atlas.config_options(feature_id);
+CREATE INDEX IF NOT EXISTS idx_config_rules_model ON _atlas.config_rules(model_id);
+CREATE INDEX IF NOT EXISTS idx_config_rules_type ON _atlas.config_rules(rule_type);
+CREATE INDEX IF NOT EXISTS idx_config_instances_org ON _atlas.config_instances(organization_id);
+CREATE INDEX IF NOT EXISTS idx_config_instances_model ON _atlas.config_instances(model_id);
+CREATE INDEX IF NOT EXISTS idx_config_instances_status ON _atlas.config_instances(status);
+CREATE INDEX IF NOT EXISTS idx_config_instances_order ON _atlas.config_instances(sales_order_id);

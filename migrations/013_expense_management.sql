@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS _atlas.expense_categories (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_expense_categories_org ON _atlas.expense_categories(organization_id);
-CREATE INDEX idx_expense_categories_active ON _atlas.expense_categories(organization_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_expense_categories_org ON _atlas.expense_categories(organization_id);
+CREATE INDEX IF NOT EXISTS idx_expense_categories_active ON _atlas.expense_categories(organization_id, is_active) WHERE is_active = true;
 
 -- ============================================================================
 -- Expense Policies
@@ -75,9 +75,9 @@ CREATE TABLE IF NOT EXISTS _atlas.expense_policies (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_expense_policies_org ON _atlas.expense_policies(organization_id);
-CREATE INDEX idx_expense_policies_category ON _atlas.expense_policies(category_id);
-CREATE INDEX idx_expense_policies_active ON _atlas.expense_policies(organization_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_expense_policies_org ON _atlas.expense_policies(organization_id);
+CREATE INDEX IF NOT EXISTS idx_expense_policies_category ON _atlas.expense_policies(category_id);
+CREATE INDEX IF NOT EXISTS idx_expense_policies_active ON _atlas.expense_policies(organization_id, is_active) WHERE is_active = true;
 
 -- ============================================================================
 -- Expense Reports (Header)
@@ -131,10 +131,10 @@ CREATE TABLE IF NOT EXISTS _atlas.expense_reports (
     UNIQUE(organization_id, report_number)
 );
 
-CREATE INDEX idx_expense_reports_org ON _atlas.expense_reports(organization_id);
-CREATE INDEX idx_expense_reports_employee ON _atlas.expense_reports(employee_id);
-CREATE INDEX idx_expense_reports_status ON _atlas.expense_reports(organization_id, status);
-CREATE INDEX idx_expense_reports_dates ON _atlas.expense_reports(created_at);
+CREATE INDEX IF NOT EXISTS idx_expense_reports_org ON _atlas.expense_reports(organization_id);
+CREATE INDEX IF NOT EXISTS idx_expense_reports_employee ON _atlas.expense_reports(employee_id);
+CREATE INDEX IF NOT EXISTS idx_expense_reports_status ON _atlas.expense_reports(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_expense_reports_dates ON _atlas.expense_reports(created_at);
 
 -- ============================================================================
 -- Expense Lines (Individual expenses within a report)
@@ -194,7 +194,7 @@ CREATE TABLE IF NOT EXISTS _atlas.expense_lines (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_expense_lines_report ON _atlas.expense_lines(report_id);
-CREATE INDEX idx_expense_lines_org ON _atlas.expense_lines(organization_id);
-CREATE INDEX idx_expense_lines_category ON _atlas.expense_lines(expense_category_id);
-CREATE INDEX idx_expense_lines_date ON _atlas.expense_lines(expense_date);
+CREATE INDEX IF NOT EXISTS idx_expense_lines_report ON _atlas.expense_lines(report_id);
+CREATE INDEX IF NOT EXISTS idx_expense_lines_org ON _atlas.expense_lines(organization_id);
+CREATE INDEX IF NOT EXISTS idx_expense_lines_category ON _atlas.expense_lines(expense_category_id);
+CREATE INDEX IF NOT EXISTS idx_expense_lines_date ON _atlas.expense_lines(expense_date);

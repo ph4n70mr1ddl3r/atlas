@@ -25,9 +25,9 @@ CREATE TABLE IF NOT EXISTS financials.statistical_units (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_su_org ON financials.statistical_units(organization_id);
-CREATE INDEX idx_su_type ON financials.statistical_units(stat_type);
-CREATE INDEX idx_su_active ON financials.statistical_units(is_active);
+CREATE INDEX IF NOT EXISTS idx_su_org ON financials.statistical_units(organization_id);
+CREATE INDEX IF NOT EXISTS idx_su_type ON financials.statistical_units(stat_type);
+CREATE INDEX IF NOT EXISTS idx_su_active ON financials.statistical_units(is_active);
 
 -- ============================================================================
 -- Statistical Entries (actual statistical data records)
@@ -59,12 +59,12 @@ CREATE TABLE IF NOT EXISTS financials.statistical_entries (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_se_org ON financials.statistical_entries(organization_id);
-CREATE INDEX idx_se_unit ON financials.statistical_entries(statistical_unit_id);
-CREATE INDEX idx_se_status ON financials.statistical_entries(status);
-CREATE INDEX idx_se_fiscal ON financials.statistical_entries(fiscal_year, period_number);
-CREATE INDEX idx_se_number ON financials.statistical_entries(entry_number);
-CREATE INDEX idx_se_unit_period ON financials.statistical_entries(statistical_unit_id, fiscal_year, period_number);
+CREATE INDEX IF NOT EXISTS idx_se_org ON financials.statistical_entries(organization_id);
+CREATE INDEX IF NOT EXISTS idx_se_unit ON financials.statistical_entries(statistical_unit_id);
+CREATE INDEX IF NOT EXISTS idx_se_status ON financials.statistical_entries(status);
+CREATE INDEX IF NOT EXISTS idx_se_fiscal ON financials.statistical_entries(fiscal_year, period_number);
+CREATE INDEX IF NOT EXISTS idx_se_number ON financials.statistical_entries(entry_number);
+CREATE INDEX IF NOT EXISTS idx_se_unit_period ON financials.statistical_entries(statistical_unit_id, fiscal_year, period_number);
 
 -- ============================================================================
 -- Statistical Balances (materialized balances per unit/period)
@@ -87,9 +87,9 @@ CREATE TABLE IF NOT EXISTS financials.statistical_balances (
     UNIQUE(statistical_unit_id, fiscal_year, period_number)
 );
 
-CREATE INDEX idx_sb_org ON financials.statistical_balances(organization_id);
-CREATE INDEX idx_sb_unit ON financials.statistical_balances(statistical_unit_id);
-CREATE INDEX idx_sb_fiscal ON financials.statistical_balances(fiscal_year, period_number);
+CREATE INDEX IF NOT EXISTS idx_sb_org ON financials.statistical_balances(organization_id);
+CREATE INDEX IF NOT EXISTS idx_sb_unit ON financials.statistical_balances(statistical_unit_id);
+CREATE INDEX IF NOT EXISTS idx_sb_fiscal ON financials.statistical_balances(fiscal_year, period_number);
 
 -- ============================================================================
 -- Statistical Entry Audit Trail
@@ -108,9 +108,9 @@ CREATE TABLE IF NOT EXISTS financials.statistical_entry_audit (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_sea_entry ON financials.statistical_entry_audit(entry_id);
-CREATE INDEX idx_sea_action ON financials.statistical_entry_audit(action);
-CREATE INDEX idx_sea_performed ON financials.statistical_entry_audit(performed_at);
+CREATE INDEX IF NOT EXISTS idx_sea_entry ON financials.statistical_entry_audit(entry_id);
+CREATE INDEX IF NOT EXISTS idx_sea_action ON financials.statistical_entry_audit(action);
+CREATE INDEX IF NOT EXISTS idx_sea_performed ON financials.statistical_entry_audit(performed_at);
 
 -- ============================================================================
 -- Dashboard View

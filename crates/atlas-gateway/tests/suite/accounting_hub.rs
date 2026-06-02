@@ -71,7 +71,7 @@ async fn test_register_external_system_and_create_rule() {
                         "code": "MAP-E2E-001",
                         "name": "Invoice Mapping",
                         "event_type": "invoice_created",
-                        "event_class": "ar",
+                        "event_class": "invoice",
                         "conditions": {},
                         "field_mappings": {},
                     }))

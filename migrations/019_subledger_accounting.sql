@@ -65,8 +65,8 @@ CREATE TABLE _atlas.accounting_methods (
     UNIQUE(organization_id, application, transaction_type, event_class)
 );
 
-CREATE INDEX idx_accounting_methods_org ON _atlas.accounting_methods(organization_id);
-CREATE INDEX idx_accounting_methods_app ON _atlas.accounting_methods(application, transaction_type);
+CREATE INDEX IF NOT EXISTS idx_accounting_methods_org ON _atlas.accounting_methods(organization_id);
+CREATE INDEX IF NOT EXISTS idx_accounting_methods_app ON _atlas.accounting_methods(application, transaction_type);
 
 -- ============================================================================
 -- Accounting Derivation Rules
@@ -129,8 +129,8 @@ CREATE TABLE _atlas.accounting_derivation_rules (
     UNIQUE(organization_id, accounting_method_id, code)
 );
 
-CREATE INDEX idx_derivation_rules_method ON _atlas.accounting_derivation_rules(accounting_method_id);
-CREATE INDEX idx_derivation_rules_org ON _atlas.accounting_derivation_rules(organization_id);
+CREATE INDEX IF NOT EXISTS idx_derivation_rules_method ON _atlas.accounting_derivation_rules(accounting_method_id);
+CREATE INDEX IF NOT EXISTS idx_derivation_rules_org ON _atlas.accounting_derivation_rules(organization_id);
 
 -- ============================================================================
 -- Subledger Journal Entries
@@ -207,12 +207,12 @@ CREATE TABLE _atlas.subledger_journal_entries (
     UNIQUE(organization_id, entry_number)
 );
 
-CREATE INDEX idx_sla_entries_org ON _atlas.subledger_journal_entries(organization_id);
-CREATE INDEX idx_sla_entries_source ON _atlas.subledger_journal_entries(source_application, source_transaction_type, source_transaction_id);
-CREATE INDEX idx_sla_entries_status ON _atlas.subledger_journal_entries(status);
-CREATE INDEX idx_sla_entries_date ON _atlas.subledger_journal_entries(accounting_date);
-CREATE INDEX idx_sla_entries_period ON _atlas.subledger_journal_entries(period_name);
-CREATE INDEX idx_sla_entries_gl_transfer ON _atlas.subledger_journal_entries(gl_transfer_status);
+CREATE INDEX IF NOT EXISTS idx_sla_entries_org ON _atlas.subledger_journal_entries(organization_id);
+CREATE INDEX IF NOT EXISTS idx_sla_entries_source ON _atlas.subledger_journal_entries(source_application, source_transaction_type, source_transaction_id);
+CREATE INDEX IF NOT EXISTS idx_sla_entries_status ON _atlas.subledger_journal_entries(status);
+CREATE INDEX IF NOT EXISTS idx_sla_entries_date ON _atlas.subledger_journal_entries(accounting_date);
+CREATE INDEX IF NOT EXISTS idx_sla_entries_period ON _atlas.subledger_journal_entries(period_name);
+CREATE INDEX IF NOT EXISTS idx_sla_entries_gl_transfer ON _atlas.subledger_journal_entries(gl_transfer_status);
 
 -- ============================================================================
 -- Subledger Journal Entry Lines
@@ -275,9 +275,9 @@ CREATE TABLE _atlas.subledger_journal_lines (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_sla_lines_entry ON _atlas.subledger_journal_lines(journal_entry_id);
-CREATE INDEX idx_sla_lines_account ON _atlas.subledger_journal_lines(account_code);
-CREATE INDEX idx_sla_lines_type ON _atlas.subledger_journal_lines(line_type);
+CREATE INDEX IF NOT EXISTS idx_sla_lines_entry ON _atlas.subledger_journal_lines(journal_entry_id);
+CREATE INDEX IF NOT EXISTS idx_sla_lines_account ON _atlas.subledger_journal_lines(account_code);
+CREATE INDEX IF NOT EXISTS idx_sla_lines_type ON _atlas.subledger_journal_lines(line_type);
 
 -- ============================================================================
 -- Subledger Journal Entry Distributions
@@ -307,7 +307,7 @@ CREATE TABLE _atlas.subledger_distributions (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_sla_dist_entry ON _atlas.subledger_distributions(journal_entry_id);
+CREATE INDEX IF NOT EXISTS idx_sla_dist_entry ON _atlas.subledger_distributions(journal_entry_id);
 
 -- ============================================================================
 -- Subledger Accounting Events
@@ -342,10 +342,10 @@ CREATE TABLE _atlas.sla_events (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_sla_events_org ON _atlas.sla_events(organization_id);
-CREATE INDEX idx_sla_events_source ON _atlas.sla_events(source_application, source_transaction_id);
-CREATE INDEX idx_sla_events_type ON _atlas.sla_events(event_type);
-CREATE INDEX idx_sla_events_date ON _atlas.sla_events(event_date);
+CREATE INDEX IF NOT EXISTS idx_sla_events_org ON _atlas.sla_events(organization_id);
+CREATE INDEX IF NOT EXISTS idx_sla_events_source ON _atlas.sla_events(source_application, source_transaction_id);
+CREATE INDEX IF NOT EXISTS idx_sla_events_type ON _atlas.sla_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_sla_events_date ON _atlas.sla_events(event_date);
 
 -- ============================================================================
 -- GL Transfer Log
@@ -385,6 +385,6 @@ CREATE TABLE _atlas.gl_transfer_log (
     UNIQUE(organization_id, transfer_number)
 );
 
-CREATE INDEX idx_gl_transfer_log_org ON _atlas.gl_transfer_log(organization_id);
-CREATE INDEX idx_gl_transfer_log_status ON _atlas.gl_transfer_log(status);
-CREATE INDEX idx_gl_transfer_log_date ON _atlas.gl_transfer_log(transfer_date);
+CREATE INDEX IF NOT EXISTS idx_gl_transfer_log_org ON _atlas.gl_transfer_log(organization_id);
+CREATE INDEX IF NOT EXISTS idx_gl_transfer_log_status ON _atlas.gl_transfer_log(status);
+CREATE INDEX IF NOT EXISTS idx_gl_transfer_log_date ON _atlas.gl_transfer_log(transfer_date);

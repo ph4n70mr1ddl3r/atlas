@@ -31,9 +31,9 @@ CREATE TABLE IF NOT EXISTS cash_flow_statements (
     UNIQUE(organization_id, statement_number)
 );
 
-CREATE INDEX idx_cash_flow_stmts_org ON cash_flow_statements(organization_id);
-CREATE INDEX idx_cash_flow_stmts_status ON cash_flow_statements(status);
-CREATE INDEX idx_cash_flow_stmts_period ON cash_flow_statements(period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_cash_flow_stmts_org ON cash_flow_statements(organization_id);
+CREATE INDEX IF NOT EXISTS idx_cash_flow_stmts_status ON cash_flow_statements(status);
+CREATE INDEX IF NOT EXISTS idx_cash_flow_stmts_period ON cash_flow_statements(period_start, period_end);
 
 -- ============================================================================
 -- Cash Flow Statement Lines
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS cash_flow_statement_lines (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_cash_flow_lines_stmt ON cash_flow_statement_lines(statement_id);
+CREATE INDEX IF NOT EXISTS idx_cash_flow_lines_stmt ON cash_flow_statement_lines(statement_id);
 
 -- ============================================================================
 -- Receivable Application Rules (Oracle Fusion: AR > Receipts > Application Rules)
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS receivable_application_rules (
     UNIQUE(organization_id, rule_code)
 );
 
-CREATE INDEX idx_recv_app_rules_org ON receivable_application_rules(organization_id);
+CREATE INDEX IF NOT EXISTS idx_recv_app_rules_org ON receivable_application_rules(organization_id);
 
 -- ============================================================================
 -- Accounting Event Definitions (Oracle Fusion: SLA > Event Definitions)
@@ -107,8 +107,8 @@ CREATE TABLE IF NOT EXISTS accounting_event_definitions (
     UNIQUE(organization_id, event_code)
 );
 
-CREATE INDEX idx_acct_event_defs_org ON accounting_event_definitions(organization_id);
-CREATE INDEX idx_acct_event_defs_entity ON accounting_event_definitions(entity_type);
+CREATE INDEX IF NOT EXISTS idx_acct_event_defs_org ON accounting_event_definitions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_acct_event_defs_entity ON accounting_event_definitions(entity_type);
 
 -- ============================================================================
 -- Accounting Event Line Templates
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS accounting_event_line_templates (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_acct_event_line_tmpls_evt ON accounting_event_line_templates(event_definition_id);
+CREATE INDEX IF NOT EXISTS idx_acct_event_line_tmpls_evt ON accounting_event_line_templates(event_definition_id);
 
 -- ============================================================================
 -- Tax Jurisdiction Rules (Oracle Fusion: Tax > Jurisdiction Rules)
@@ -156,8 +156,8 @@ CREATE TABLE IF NOT EXISTS tax_jurisdiction_rules (
     UNIQUE(organization_id, rule_code)
 );
 
-CREATE INDEX idx_tax_jurisdiction_rules_org ON tax_jurisdiction_rules(organization_id);
-CREATE INDEX idx_tax_jurisdiction_rules_regime ON tax_jurisdiction_rules(tax_regime_code);
+CREATE INDEX IF NOT EXISTS idx_tax_jurisdiction_rules_org ON tax_jurisdiction_rules(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tax_jurisdiction_rules_regime ON tax_jurisdiction_rules(tax_regime_code);
 
 -- ============================================================================
 -- Asset Depreciation Schedules (Oracle Fusion: FA > Depreciation Schedules)
@@ -184,8 +184,8 @@ CREATE TABLE IF NOT EXISTS asset_depreciation_schedules (
     UNIQUE(organization_id, schedule_number)
 );
 
-CREATE INDEX idx_asset_dep_schedules_org ON asset_depreciation_schedules(organization_id);
-CREATE INDEX idx_asset_dep_schedules_asset ON asset_depreciation_schedules(asset_id);
+CREATE INDEX IF NOT EXISTS idx_asset_dep_schedules_org ON asset_depreciation_schedules(organization_id);
+CREATE INDEX IF NOT EXISTS idx_asset_dep_schedules_asset ON asset_depreciation_schedules(asset_id);
 
 -- ============================================================================
 -- Depreciation Schedule Lines
@@ -208,5 +208,5 @@ CREATE TABLE IF NOT EXISTS depreciation_schedule_lines (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_dep_schedule_lines_schedule ON depreciation_schedule_lines(schedule_id);
-CREATE INDEX idx_dep_schedule_lines_period ON depreciation_schedule_lines(fiscal_year, period_number);
+CREATE INDEX IF NOT EXISTS idx_dep_schedule_lines_schedule ON depreciation_schedule_lines(schedule_id);
+CREATE INDEX IF NOT EXISTS idx_dep_schedule_lines_period ON depreciation_schedule_lines(fiscal_year, period_number);

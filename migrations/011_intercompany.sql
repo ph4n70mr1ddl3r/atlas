@@ -58,10 +58,10 @@ CREATE TABLE IF NOT EXISTS _atlas.intercompany_batches (
     UNIQUE(organization_id, batch_number)
 );
 
-CREATE INDEX idx_ic_batches_org ON _atlas.intercompany_batches(organization_id);
-CREATE INDEX idx_ic_batches_status ON _atlas.intercompany_batches(organization_id, status);
-CREATE INDEX idx_ic_batches_from_entity ON _atlas.intercompany_batches(from_entity_id);
-CREATE INDEX idx_ic_batches_to_entity ON _atlas.intercompany_batches(to_entity_id);
+CREATE INDEX IF NOT EXISTS idx_ic_batches_org ON _atlas.intercompany_batches(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ic_batches_status ON _atlas.intercompany_batches(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_ic_batches_from_entity ON _atlas.intercompany_batches(from_entity_id);
+CREATE INDEX IF NOT EXISTS idx_ic_batches_to_entity ON _atlas.intercompany_batches(to_entity_id);
 
 -- ============================================================================
 -- Intercompany Transactions
@@ -116,13 +116,13 @@ CREATE TABLE IF NOT EXISTS _atlas.intercompany_transactions (
     UNIQUE(organization_id, transaction_number)
 );
 
-CREATE INDEX idx_ic_transactions_org ON _atlas.intercompany_transactions(organization_id);
-CREATE INDEX idx_ic_transactions_batch ON _atlas.intercompany_transactions(batch_id);
-CREATE INDEX idx_ic_transactions_status ON _atlas.intercompany_transactions(organization_id, status);
-CREATE INDEX idx_ic_transactions_from ON _atlas.intercompany_transactions(from_entity_id);
-CREATE INDEX idx_ic_transactions_to ON _atlas.intercompany_transactions(to_entity_id);
-CREATE INDEX idx_ic_transactions_date ON _atlas.intercompany_transactions(transaction_date);
-CREATE INDEX idx_ic_transactions_type ON _atlas.intercompany_transactions(transaction_type);
+CREATE INDEX IF NOT EXISTS idx_ic_transactions_org ON _atlas.intercompany_transactions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ic_transactions_batch ON _atlas.intercompany_transactions(batch_id);
+CREATE INDEX IF NOT EXISTS idx_ic_transactions_status ON _atlas.intercompany_transactions(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_ic_transactions_from ON _atlas.intercompany_transactions(from_entity_id);
+CREATE INDEX IF NOT EXISTS idx_ic_transactions_to ON _atlas.intercompany_transactions(to_entity_id);
+CREATE INDEX IF NOT EXISTS idx_ic_transactions_date ON _atlas.intercompany_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_ic_transactions_type ON _atlas.intercompany_transactions(transaction_type);
 
 -- ============================================================================
 -- Intercompany Settlements
@@ -159,10 +159,10 @@ CREATE TABLE IF NOT EXISTS _atlas.intercompany_settlements (
     UNIQUE(organization_id, settlement_number)
 );
 
-CREATE INDEX idx_ic_settlements_org ON _atlas.intercompany_settlements(organization_id);
-CREATE INDEX idx_ic_settlements_from ON _atlas.intercompany_settlements(from_entity_id);
-CREATE INDEX idx_ic_settlements_to ON _atlas.intercompany_settlements(to_entity_id);
-CREATE INDEX idx_ic_settlements_status ON _atlas.intercompany_settlements(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_ic_settlements_org ON _atlas.intercompany_settlements(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ic_settlements_from ON _atlas.intercompany_settlements(from_entity_id);
+CREATE INDEX IF NOT EXISTS idx_ic_settlements_to ON _atlas.intercompany_settlements(to_entity_id);
+CREATE INDEX IF NOT EXISTS idx_ic_settlements_status ON _atlas.intercompany_settlements(organization_id, status);
 
 -- ============================================================================
 -- Intercompany Balances (materialized view of outstanding balances)
@@ -189,6 +189,6 @@ CREATE TABLE IF NOT EXISTS _atlas.intercompany_balances (
     UNIQUE(organization_id, from_entity_id, to_entity_id, currency_code, as_of_date)
 );
 
-CREATE INDEX idx_ic_balances_org ON _atlas.intercompany_balances(organization_id);
-CREATE INDEX idx_ic_balances_entities ON _atlas.intercompany_balances(from_entity_id, to_entity_id);
-CREATE INDEX idx_ic_balances_date ON _atlas.intercompany_balances(as_of_date);
+CREATE INDEX IF NOT EXISTS idx_ic_balances_org ON _atlas.intercompany_balances(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ic_balances_entities ON _atlas.intercompany_balances(from_entity_id, to_entity_id);
+CREATE INDEX IF NOT EXISTS idx_ic_balances_date ON _atlas.intercompany_balances(as_of_date);

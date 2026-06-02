@@ -50,12 +50,12 @@ CREATE TABLE IF NOT EXISTS financials.invoice_matches (
     UNIQUE(organization_id, match_number)
 );
 
-CREATE INDEX idx_invoice_matches_org ON financials.invoice_matches(organization_id);
-CREATE INDEX idx_invoice_matches_invoice ON financials.invoice_matches(invoice_id);
-CREATE INDEX idx_invoice_matches_po ON financials.invoice_matches(purchase_order_id);
-CREATE INDEX idx_invoice_matches_supplier ON financials.invoice_matches(supplier_id);
-CREATE INDEX idx_invoice_matches_status ON financials.invoice_matches(status);
-CREATE INDEX idx_invoice_matches_type ON financials.invoice_matches(match_type);
+CREATE INDEX IF NOT EXISTS idx_invoice_matches_org ON financials.invoice_matches(organization_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_matches_invoice ON financials.invoice_matches(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_matches_po ON financials.invoice_matches(purchase_order_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_matches_supplier ON financials.invoice_matches(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_matches_status ON financials.invoice_matches(status);
+CREATE INDEX IF NOT EXISTS idx_invoice_matches_type ON financials.invoice_matches(match_type);
 
 -- ============================================================================
 -- Invoice Match Lines (line-level matching detail)
@@ -88,8 +88,8 @@ CREATE TABLE IF NOT EXISTS financials.invoice_match_lines (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_invoice_match_lines_match ON financials.invoice_match_lines(match_id);
-CREATE INDEX idx_invoice_match_lines_status ON financials.invoice_match_lines(status);
+CREATE INDEX IF NOT EXISTS idx_invoice_match_lines_match ON financials.invoice_match_lines(match_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_match_lines_status ON financials.invoice_match_lines(status);
 
 -- ============================================================================
 -- Dashboard View

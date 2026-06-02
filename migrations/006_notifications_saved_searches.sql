@@ -40,12 +40,12 @@ CREATE TABLE IF NOT EXISTS _atlas.notifications (
     expires_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_notifications_user ON _atlas.notifications(user_id, is_read, is_dismissed);
-CREATE INDEX idx_notifications_org ON _atlas.notifications(organization_id);
-CREATE INDEX idx_notifications_type ON _atlas.notifications(notification_type);
-CREATE INDEX idx_notifications_entity ON _atlas.notifications(entity_type, entity_id);
-CREATE INDEX idx_notifications_scheduled ON _atlas.notifications(scheduled_for) WHERE scheduled_for IS NOT NULL AND sent_at IS NULL;
-CREATE INDEX idx_notifications_created ON _atlas.notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON _atlas.notifications(user_id, is_read, is_dismissed);
+CREATE INDEX IF NOT EXISTS idx_notifications_org ON _atlas.notifications(organization_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON _atlas.notifications(notification_type);
+CREATE INDEX IF NOT EXISTS idx_notifications_entity ON _atlas.notifications(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_scheduled ON _atlas.notifications(scheduled_for) WHERE scheduled_for IS NOT NULL AND sent_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON _atlas.notifications(created_at DESC);
 
 -- ============================================================================
 -- Notification Preferences (per user)
@@ -100,9 +100,9 @@ CREATE TABLE IF NOT EXISTS _atlas.saved_searches (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_saved_searches_user ON _atlas.saved_searches(user_id, entity_type);
-CREATE INDEX idx_saved_searches_entity ON _atlas.saved_searches(entity_type);
-CREATE INDEX idx_saved_searches_shared ON _atlas.saved_searches(organization_id, is_shared) WHERE is_shared = true;
+CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON _atlas.saved_searches(user_id, entity_type);
+CREATE INDEX IF NOT EXISTS idx_saved_searches_entity ON _atlas.saved_searches(entity_type);
+CREATE INDEX IF NOT EXISTS idx_saved_searches_shared ON _atlas.saved_searches(organization_id, is_shared) WHERE is_shared = true;
 
 -- ============================================================================
 -- Approval Chains (Multi-Level Approval)
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS _atlas.approval_chains (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_approval_chains_entity ON _atlas.approval_chains(entity_type);
+CREATE INDEX IF NOT EXISTS idx_approval_chains_entity ON _atlas.approval_chains(entity_type);
 
 -- ============================================================================
 -- Approval Requests (runtime approval instances)
@@ -164,9 +164,9 @@ CREATE TABLE IF NOT EXISTS _atlas.approval_requests (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_approval_requests_entity ON _atlas.approval_requests(entity_type, entity_id);
-CREATE INDEX idx_approval_requests_status ON _atlas.approval_requests(status);
-CREATE INDEX idx_approval_requests_requested_by ON _atlas.approval_requests(requested_by);
+CREATE INDEX IF NOT EXISTS idx_approval_requests_entity ON _atlas.approval_requests(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_approval_requests_status ON _atlas.approval_requests(status);
+CREATE INDEX IF NOT EXISTS idx_approval_requests_requested_by ON _atlas.approval_requests(requested_by);
 
 -- ============================================================================
 -- Approval Steps (individual steps within a chain)
@@ -197,9 +197,9 @@ CREATE TABLE IF NOT EXISTS _atlas.approval_steps (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_approval_steps_request ON _atlas.approval_steps(approval_request_id);
-CREATE INDEX idx_approval_steps_approver ON _atlas.approval_steps(approver_user_id) WHERE approver_user_id IS NOT NULL;
-CREATE INDEX idx_approval_steps_pending ON _atlas.approval_steps(status) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_approval_steps_request ON _atlas.approval_steps(approval_request_id);
+CREATE INDEX IF NOT EXISTS idx_approval_steps_approver ON _atlas.approval_steps(approver_user_id) WHERE approver_user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_approval_steps_pending ON _atlas.approval_steps(status) WHERE status = 'pending';
 
 -- ============================================================================
 -- Duplicate Detection Rules
@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS _atlas.duplicate_rules (
     UNIQUE(organization_id, entity_type, name)
 );
 
-CREATE INDEX idx_duplicate_rules_entity ON _atlas.duplicate_rules(entity_type);
+CREATE INDEX IF NOT EXISTS idx_duplicate_rules_entity ON _atlas.duplicate_rules(entity_type);
 
 -- ============================================================================
 -- Computed Field Cache
@@ -243,7 +243,7 @@ CREATE TABLE IF NOT EXISTS _atlas.computed_field_cache (
     UNIQUE(entity_type, entity_id, field_name)
 );
 
-CREATE INDEX idx_computed_cache_entity ON _atlas.computed_field_cache(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_computed_cache_entity ON _atlas.computed_field_cache(entity_type, entity_id);
 
 -- ============================================================================
 -- Data Import Jobs
@@ -284,5 +284,5 @@ CREATE TABLE IF NOT EXISTS _atlas.import_jobs (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_import_jobs_user ON _atlas.import_jobs(user_id);
-CREATE INDEX idx_import_jobs_status ON _atlas.import_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_import_jobs_user ON _atlas.import_jobs(user_id);
+CREATE INDEX IF NOT EXISTS idx_import_jobs_status ON _atlas.import_jobs(status);

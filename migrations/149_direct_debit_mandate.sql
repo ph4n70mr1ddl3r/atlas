@@ -60,12 +60,12 @@ CREATE TABLE IF NOT EXISTS financials.direct_debit_mandates (
     UNIQUE(organization_id, mandate_number)
 );
 
-CREATE INDEX idx_ddm_org ON financials.direct_debit_mandates(organization_id);
-CREATE INDEX idx_ddm_customer ON financials.direct_debit_mandates(customer_id);
-CREATE INDEX idx_ddm_status ON financials.direct_debit_mandates(status);
-CREATE INDEX idx_ddm_date ON financials.direct_debit_mandates(mandate_date);
-CREATE INDEX idx_ddm_ref ON financials.direct_debit_mandates(mandate_reference);
-CREATE INDEX idx_ddm_expiry ON financials.direct_debit_mandates(expiry_date);
+CREATE INDEX IF NOT EXISTS idx_ddm_org ON financials.direct_debit_mandates(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ddm_customer ON financials.direct_debit_mandates(customer_id);
+CREATE INDEX IF NOT EXISTS idx_ddm_status ON financials.direct_debit_mandates(status);
+CREATE INDEX IF NOT EXISTS idx_ddm_date ON financials.direct_debit_mandates(mandate_date);
+CREATE INDEX IF NOT EXISTS idx_ddm_ref ON financials.direct_debit_mandates(mandate_reference);
+CREATE INDEX IF NOT EXISTS idx_ddm_expiry ON financials.direct_debit_mandates(expiry_date);
 
 -- ============================================================================
 -- Mandate Collections (track each debit collection under a mandate)
@@ -102,11 +102,11 @@ CREATE TABLE IF NOT EXISTS financials.mandate_collections (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_mc_org ON financials.mandate_collections(organization_id);
-CREATE INDEX idx_mc_mandate ON financials.mandate_collections(mandate_id);
-CREATE INDEX idx_mc_status ON financials.mandate_collections(status);
-CREATE INDEX idx_mc_date ON financials.mandate_collections(scheduled_date);
-CREATE INDEX idx_mc_invoice ON financials.mandate_collections(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_mc_org ON financials.mandate_collections(organization_id);
+CREATE INDEX IF NOT EXISTS idx_mc_mandate ON financials.mandate_collections(mandate_id);
+CREATE INDEX IF NOT EXISTS idx_mc_status ON financials.mandate_collections(status);
+CREATE INDEX IF NOT EXISTS idx_mc_date ON financials.mandate_collections(scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_mc_invoice ON financials.mandate_collections(invoice_id);
 
 -- ============================================================================
 -- Mandate Audit Trail
@@ -125,9 +125,9 @@ CREATE TABLE IF NOT EXISTS financials.direct_debit_mandate_audit (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_ddma_mandate ON financials.direct_debit_mandate_audit(mandate_id);
-CREATE INDEX idx_ddma_action ON financials.direct_debit_mandate_audit(action);
-CREATE INDEX idx_ddma_performed ON financials.direct_debit_mandate_audit(performed_at);
+CREATE INDEX IF NOT EXISTS idx_ddma_mandate ON financials.direct_debit_mandate_audit(mandate_id);
+CREATE INDEX IF NOT EXISTS idx_ddma_action ON financials.direct_debit_mandate_audit(action);
+CREATE INDEX IF NOT EXISTS idx_ddma_performed ON financials.direct_debit_mandate_audit(performed_at);
 
 -- ============================================================================
 -- Dashboard View

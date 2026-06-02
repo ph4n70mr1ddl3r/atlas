@@ -76,22 +76,34 @@ impl Default for FieldType {
 
 /// Field definition within an entity
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct FieldDefinition {
+    #[serde(default)]
     pub id: Option<FieldId>,
     pub name: String,
     pub label: String,
     pub field_type: FieldType,
+    #[serde(default)]
     pub is_required: bool,
+    #[serde(default)]
     pub is_unique: bool,
+    #[serde(default)]
     pub is_read_only: bool,
+    #[serde(default = "default_true")]
     pub is_searchable: bool,
+    #[serde(default)]
     pub default_value: Option<serde_json::Value>,
+    #[serde(default)]
     pub help_text: Option<String>,
+    #[serde(default)]
     pub display_order: i32,
+    #[serde(default)]
     pub placeholder: Option<String>,
+    #[serde(default)]
     pub validations: Vec<ValidationRule>,
+    #[serde(default)]
     pub visibility: VisibilityRule,
+    #[serde(default)]
     pub formatting: Option<FormatRule>,
 }
 
@@ -135,7 +147,7 @@ pub enum ValidationRule {
 
 /// Rules for field visibility
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct VisibilityRule {
     pub condition: Option<String>,
     pub roles: Vec<String>,
@@ -144,7 +156,7 @@ pub struct VisibilityRule {
 
 /// Formatting rules for display
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct FormatRule {
     pub format: Option<String>,
     pub currency_code: Option<String>,
@@ -153,7 +165,7 @@ pub struct FormatRule {
 
 /// Entity definition (the schema for a business object)
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct EntityDefinition {
     #[serde(default)]
     pub id: Option<EntityId>,
@@ -198,7 +210,7 @@ pub const fn default_true() -> bool {
 
 /// Index definition for an entity
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct IndexDefinition {
     pub name: String,
     pub fields: Vec<String>,
@@ -207,7 +219,7 @@ pub struct IndexDefinition {
 
 /// Workflow definition for an entity
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct WorkflowDefinition {
     #[serde(default)]
     pub id: Option<Uuid>,
@@ -226,7 +238,7 @@ pub struct WorkflowDefinition {
 
 /// State within a workflow
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct StateDefinition {
     pub name: String,
     pub label: String,
@@ -253,7 +265,7 @@ pub enum StateType {
 
 /// Transition between workflow states
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct TransitionDefinition {
     pub name: String,
     pub from_state: String,
@@ -338,7 +350,7 @@ impl ActionDefinition {
 
 /// Security policy for an entity
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct SecurityPolicy {
     pub name: String,
     #[serde(default)]

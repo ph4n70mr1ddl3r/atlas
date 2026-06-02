@@ -38,9 +38,9 @@ CREATE TABLE IF NOT EXISTS asset_retirements (
     UNIQUE(organization_id, retirement_number)
 );
 
-CREATE INDEX idx_asset_retirements_org ON asset_retirements(organization_id);
-CREATE INDEX idx_asset_retirements_asset ON asset_retirements(asset_id);
-CREATE INDEX idx_asset_retirements_status ON asset_retirements(status);
+CREATE INDEX IF NOT EXISTS idx_asset_retirements_org ON asset_retirements(organization_id);
+CREATE INDEX IF NOT EXISTS idx_asset_retirements_asset ON asset_retirements(asset_id);
+CREATE INDEX IF NOT EXISTS idx_asset_retirements_status ON asset_retirements(status);
 
 -- ============================================================================
 -- CIP Capitalization (Oracle Fusion: FA > CIP Capitalization)
@@ -98,9 +98,9 @@ CREATE TABLE IF NOT EXISTS cip_capitalization_cost_lines (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_cip_caps_org ON cip_capitalizations(organization_id);
-CREATE INDEX idx_cip_caps_status ON cip_capitalizations(status);
-CREATE INDEX idx_cip_cost_lines_cap ON cip_capitalization_cost_lines(capitalization_id);
+CREATE INDEX IF NOT EXISTS idx_cip_caps_org ON cip_capitalizations(organization_id);
+CREATE INDEX IF NOT EXISTS idx_cip_caps_status ON cip_capitalizations(status);
+CREATE INDEX IF NOT EXISTS idx_cip_cost_lines_cap ON cip_capitalization_cost_lines(capitalization_id);
 
 -- ============================================================================
 -- Available Funds Check (Oracle Fusion: GL > Budgetary Control)
@@ -150,11 +150,11 @@ CREATE TABLE IF NOT EXISTS funds_overrides (
     UNIQUE(organization_id, override_number)
 );
 
-CREATE INDEX idx_funds_checks_org ON funds_check_results(organization_id);
-CREATE INDEX idx_funds_checks_budget ON funds_check_results(budget_code);
-CREATE INDEX idx_funds_checks_result ON funds_check_results(check_result);
-CREATE INDEX idx_funds_overrides_org ON funds_overrides(organization_id);
-CREATE INDEX idx_funds_overrides_status ON funds_overrides(status);
+CREATE INDEX IF NOT EXISTS idx_funds_checks_org ON funds_check_results(organization_id);
+CREATE INDEX IF NOT EXISTS idx_funds_checks_budget ON funds_check_results(budget_code);
+CREATE INDEX IF NOT EXISTS idx_funds_checks_result ON funds_check_results(check_result);
+CREATE INDEX IF NOT EXISTS idx_funds_overrides_org ON funds_overrides(organization_id);
+CREATE INDEX IF NOT EXISTS idx_funds_overrides_status ON funds_overrides(status);
 
 -- ============================================================================
 -- Statistical Accounting (Oracle Fusion: GL > Statistical Accounting)
@@ -202,10 +202,10 @@ CREATE TABLE IF NOT EXISTS statistical_entries (
     UNIQUE(organization_id, entry_number)
 );
 
-CREATE INDEX idx_stat_units_org ON statistical_units(organization_id);
-CREATE INDEX idx_stat_entries_org ON statistical_entries(organization_id);
-CREATE INDEX idx_stat_entries_unit ON statistical_entries(statistical_unit_id);
-CREATE INDEX idx_stat_entries_period ON statistical_entries(fiscal_year, period_number);
+CREATE INDEX IF NOT EXISTS idx_stat_units_org ON statistical_units(organization_id);
+CREATE INDEX IF NOT EXISTS idx_stat_entries_org ON statistical_entries(organization_id);
+CREATE INDEX IF NOT EXISTS idx_stat_entries_unit ON statistical_entries(statistical_unit_id);
+CREATE INDEX IF NOT EXISTS idx_stat_entries_period ON statistical_entries(fiscal_year, period_number);
 
 -- ============================================================================
 -- Account Hierarchy (Oracle Fusion: GL > Chart of Accounts > Hierarchies)
@@ -245,7 +245,7 @@ CREATE TABLE IF NOT EXISTS account_hierarchy_nodes (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_acct_hierarchies_org ON account_hierarchies(organization_id);
-CREATE INDEX idx_acct_hier_nodes_hierarchy ON account_hierarchy_nodes(hierarchy_id);
-CREATE INDEX idx_acct_hier_nodes_parent ON account_hierarchy_nodes(parent_id);
-CREATE INDEX idx_acct_hier_nodes_code ON account_hierarchy_nodes(account_code);
+CREATE INDEX IF NOT EXISTS idx_acct_hierarchies_org ON account_hierarchies(organization_id);
+CREATE INDEX IF NOT EXISTS idx_acct_hier_nodes_hierarchy ON account_hierarchy_nodes(hierarchy_id);
+CREATE INDEX IF NOT EXISTS idx_acct_hier_nodes_parent ON account_hierarchy_nodes(parent_id);
+CREATE INDEX IF NOT EXISTS idx_acct_hier_nodes_code ON account_hierarchy_nodes(account_code);

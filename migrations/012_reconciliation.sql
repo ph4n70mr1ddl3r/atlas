@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS _atlas.bank_accounts (
     UNIQUE(organization_id, account_number)
 );
 
-CREATE INDEX idx_bank_accounts_org ON _atlas.bank_accounts(organization_id);
-CREATE INDEX idx_bank_accounts_active ON _atlas.bank_accounts(organization_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_bank_accounts_org ON _atlas.bank_accounts(organization_id);
+CREATE INDEX IF NOT EXISTS idx_bank_accounts_active ON _atlas.bank_accounts(organization_id, is_active) WHERE is_active = true;
 
 -- ============================================================================
 -- Bank Statements
@@ -90,10 +90,10 @@ CREATE TABLE IF NOT EXISTS _atlas.bank_statements (
     UNIQUE(organization_id, bank_account_id, statement_number)
 );
 
-CREATE INDEX idx_bank_statements_org ON _atlas.bank_statements(organization_id);
-CREATE INDEX idx_bank_statements_account ON _atlas.bank_statements(bank_account_id);
-CREATE INDEX idx_bank_statements_status ON _atlas.bank_statements(status);
-CREATE INDEX idx_bank_statements_date ON _atlas.bank_statements(statement_date);
+CREATE INDEX IF NOT EXISTS idx_bank_statements_org ON _atlas.bank_statements(organization_id);
+CREATE INDEX IF NOT EXISTS idx_bank_statements_account ON _atlas.bank_statements(bank_account_id);
+CREATE INDEX IF NOT EXISTS idx_bank_statements_status ON _atlas.bank_statements(status);
+CREATE INDEX IF NOT EXISTS idx_bank_statements_date ON _atlas.bank_statements(statement_date);
 
 -- ============================================================================
 -- Bank Statement Lines
@@ -134,10 +134,10 @@ CREATE TABLE IF NOT EXISTS _atlas.bank_statement_lines (
     UNIQUE(statement_id, line_number)
 );
 
-CREATE INDEX idx_stmt_lines_statement ON _atlas.bank_statement_lines(statement_id);
-CREATE INDEX idx_stmt_lines_status ON _atlas.bank_statement_lines(match_status);
-CREATE INDEX idx_stmt_lines_date ON _atlas.bank_statement_lines(transaction_date);
-CREATE INDEX idx_stmt_lines_amount ON _atlas.bank_statement_lines(amount);
+CREATE INDEX IF NOT EXISTS idx_stmt_lines_statement ON _atlas.bank_statement_lines(statement_id);
+CREATE INDEX IF NOT EXISTS idx_stmt_lines_status ON _atlas.bank_statement_lines(match_status);
+CREATE INDEX IF NOT EXISTS idx_stmt_lines_date ON _atlas.bank_statement_lines(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_stmt_lines_amount ON _atlas.bank_statement_lines(amount);
 
 -- ============================================================================
 -- System Transactions
@@ -179,12 +179,12 @@ CREATE TABLE IF NOT EXISTS _atlas.system_transactions (
     metadata JSONB DEFAULT '{}'
 );
 
-CREATE INDEX idx_sys_trans_org ON _atlas.system_transactions(organization_id);
-CREATE INDEX idx_sys_trans_account ON _atlas.system_transactions(bank_account_id);
-CREATE INDEX idx_sys_trans_status ON _atlas.system_transactions(status);
-CREATE INDEX idx_sys_trans_date ON _atlas.system_transactions(transaction_date);
-CREATE INDEX idx_sys_trans_amount ON _atlas.system_transactions(amount);
-CREATE INDEX idx_sys_trans_source ON _atlas.system_transactions(source_type, source_id);
+CREATE INDEX IF NOT EXISTS idx_sys_trans_org ON _atlas.system_transactions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_sys_trans_account ON _atlas.system_transactions(bank_account_id);
+CREATE INDEX IF NOT EXISTS idx_sys_trans_status ON _atlas.system_transactions(status);
+CREATE INDEX IF NOT EXISTS idx_sys_trans_date ON _atlas.system_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_sys_trans_amount ON _atlas.system_transactions(amount);
+CREATE INDEX IF NOT EXISTS idx_sys_trans_source ON _atlas.system_transactions(source_type, source_id);
 
 -- ============================================================================
 -- Reconciliation Matches (linking statement lines to system transactions)
@@ -219,11 +219,11 @@ CREATE TABLE IF NOT EXISTS _atlas.reconciliation_matches (
     UNIQUE(statement_line_id, system_transaction_id)
 );
 
-CREATE INDEX idx_recon_matches_statement ON _atlas.reconciliation_matches(statement_id);
-CREATE INDEX idx_recon_matches_line ON _atlas.reconciliation_matches(statement_line_id);
-CREATE INDEX idx_recon_matches_trans ON _atlas.reconciliation_matches(system_transaction_id);
-CREATE INDEX idx_recon_matches_status ON _atlas.reconciliation_matches(status);
-CREATE INDEX idx_recon_matches_org ON _atlas.reconciliation_matches(organization_id);
+CREATE INDEX IF NOT EXISTS idx_recon_matches_statement ON _atlas.reconciliation_matches(statement_id);
+CREATE INDEX IF NOT EXISTS idx_recon_matches_line ON _atlas.reconciliation_matches(statement_line_id);
+CREATE INDEX IF NOT EXISTS idx_recon_matches_trans ON _atlas.reconciliation_matches(system_transaction_id);
+CREATE INDEX IF NOT EXISTS idx_recon_matches_status ON _atlas.reconciliation_matches(status);
+CREATE INDEX IF NOT EXISTS idx_recon_matches_org ON _atlas.reconciliation_matches(organization_id);
 
 -- ============================================================================
 -- Reconciliation Summary (per account per period)
@@ -267,10 +267,10 @@ CREATE TABLE IF NOT EXISTS _atlas.reconciliation_summaries (
     UNIQUE(organization_id, bank_account_id, period_start, period_end)
 );
 
-CREATE INDEX idx_recon_summary_org ON _atlas.reconciliation_summaries(organization_id);
-CREATE INDEX idx_recon_summary_account ON _atlas.reconciliation_summaries(bank_account_id);
-CREATE INDEX idx_recon_summary_status ON _atlas.reconciliation_summaries(status);
-CREATE INDEX idx_recon_summary_period ON _atlas.reconciliation_summaries(period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_recon_summary_org ON _atlas.reconciliation_summaries(organization_id);
+CREATE INDEX IF NOT EXISTS idx_recon_summary_account ON _atlas.reconciliation_summaries(bank_account_id);
+CREATE INDEX IF NOT EXISTS idx_recon_summary_status ON _atlas.reconciliation_summaries(status);
+CREATE INDEX IF NOT EXISTS idx_recon_summary_period ON _atlas.reconciliation_summaries(period_start, period_end);
 
 -- ============================================================================
 -- Auto-Matching Rules
@@ -301,6 +301,6 @@ CREATE TABLE IF NOT EXISTS _atlas.reconciliation_matching_rules (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_recon_rules_org ON _atlas.reconciliation_matching_rules(organization_id);
-CREATE INDEX idx_recon_rules_account ON _atlas.reconciliation_matching_rules(bank_account_id);
-CREATE INDEX idx_recon_rules_priority ON _atlas.reconciliation_matching_rules(priority);
+CREATE INDEX IF NOT EXISTS idx_recon_rules_org ON _atlas.reconciliation_matching_rules(organization_id);
+CREATE INDEX IF NOT EXISTS idx_recon_rules_account ON _atlas.reconciliation_matching_rules(bank_account_id);
+CREATE INDEX IF NOT EXISTS idx_recon_rules_priority ON _atlas.reconciliation_matching_rules(priority);

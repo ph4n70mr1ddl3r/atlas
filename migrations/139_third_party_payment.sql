@@ -56,13 +56,13 @@ CREATE TABLE IF NOT EXISTS financials.third_party_payments (
     UNIQUE(organization_id, payment_number)
 );
 
-CREATE INDEX idx_tpp_org ON financials.third_party_payments(organization_id);
-CREATE INDEX idx_tpp_status ON financials.third_party_payments(status);
-CREATE INDEX idx_tpp_type ON financials.third_party_payments(payment_type);
-CREATE INDEX idx_tpp_source ON financials.third_party_payments(source_entity_type, source_entity_id);
-CREATE INDEX idx_tpp_payee ON financials.third_party_payments(payee_name);
-CREATE INDEX idx_tpp_due_date ON financials.third_party_payments(due_date) WHERE status IN ('draft', 'submitted', 'approved');
-CREATE INDEX idx_tpp_recurring ON financials.third_party_payments(is_recurring) WHERE is_recurring = true;
+CREATE INDEX IF NOT EXISTS idx_tpp_org ON financials.third_party_payments(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tpp_status ON financials.third_party_payments(status);
+CREATE INDEX IF NOT EXISTS idx_tpp_type ON financials.third_party_payments(payment_type);
+CREATE INDEX IF NOT EXISTS idx_tpp_source ON financials.third_party_payments(source_entity_type, source_entity_id);
+CREATE INDEX IF NOT EXISTS idx_tpp_payee ON financials.third_party_payments(payee_name);
+CREATE INDEX IF NOT EXISTS idx_tpp_due_date ON financials.third_party_payments(due_date) WHERE status IN ('draft', 'submitted', 'approved');
+CREATE INDEX IF NOT EXISTS idx_tpp_recurring ON financials.third_party_payments(is_recurring) WHERE is_recurring = true;
 
 -- ============================================================================
 -- Third-Party Payment Lines (breakdown of payment amount by GL account)
@@ -84,8 +84,8 @@ CREATE TABLE IF NOT EXISTS financials.third_party_payment_lines (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_tppl_payment ON financials.third_party_payment_lines(payment_id);
-CREATE INDEX idx_tppl_type ON financials.third_party_payment_lines(line_type);
+CREATE INDEX IF NOT EXISTS idx_tppl_payment ON financials.third_party_payment_lines(payment_id);
+CREATE INDEX IF NOT EXISTS idx_tppl_type ON financials.third_party_payment_lines(line_type);
 
 -- ============================================================================
 -- Third-Party Payment Audit Trail
@@ -105,9 +105,9 @@ CREATE TABLE IF NOT EXISTS financials.third_party_payment_audit (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_tppa_payment ON financials.third_party_payment_audit(payment_id);
-CREATE INDEX idx_tppa_action ON financials.third_party_payment_audit(action);
-CREATE INDEX idx_tppa_performed ON financials.third_party_payment_audit(performed_at);
+CREATE INDEX IF NOT EXISTS idx_tppa_payment ON financials.third_party_payment_audit(payment_id);
+CREATE INDEX IF NOT EXISTS idx_tppa_action ON financials.third_party_payment_audit(action);
+CREATE INDEX IF NOT EXISTS idx_tppa_performed ON financials.third_party_payment_audit(performed_at);
 
 -- ============================================================================
 -- Dashboard View

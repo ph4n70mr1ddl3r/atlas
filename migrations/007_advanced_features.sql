@@ -35,11 +35,11 @@ CREATE TABLE IF NOT EXISTS _atlas.comments (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_comments_entity ON _atlas.comments(entity_type, entity_id, created_at);
-CREATE INDEX idx_comments_parent ON _atlas.comments(parent_id);
-CREATE INDEX idx_comments_thread ON _atlas.comments(thread_root_id) WHERE thread_root_id IS NOT NULL;
-CREATE INDEX idx_comments_user ON _atlas.comments(user_id);
-CREATE INDEX idx_comments_pinned ON _atlas.comments(entity_type, entity_id, is_pinned) WHERE is_pinned = true AND deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_comments_entity ON _atlas.comments(entity_type, entity_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_comments_parent ON _atlas.comments(parent_id);
+CREATE INDEX IF NOT EXISTS idx_comments_thread ON _atlas.comments(thread_root_id) WHERE thread_root_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_comments_user ON _atlas.comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_pinned ON _atlas.comments(entity_type, entity_id, is_pinned) WHERE is_pinned = true AND deleted_at IS NULL;
 
 -- ============================================================================
 -- Favorites / Bookmarks
@@ -64,8 +64,8 @@ CREATE TABLE IF NOT EXISTS _atlas.favorites (
     UNIQUE(user_id, entity_type, entity_id)
 );
 
-CREATE INDEX idx_favorites_user ON _atlas.favorites(user_id, entity_type);
-CREATE INDEX idx_favorites_entity ON _atlas.favorites(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_user ON _atlas.favorites(user_id, entity_type);
+CREATE INDEX IF NOT EXISTS idx_favorites_entity ON _atlas.favorites(entity_type, entity_id);
 
 -- ============================================================================
 -- Bulk Operation Jobs
@@ -101,8 +101,8 @@ CREATE TABLE IF NOT EXISTS _atlas.bulk_operations (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_bulk_ops_user ON _atlas.bulk_operations(user_id);
-CREATE INDEX idx_bulk_ops_status ON _atlas.bulk_operations(status);
+CREATE INDEX IF NOT EXISTS idx_bulk_ops_user ON _atlas.bulk_operations(user_id);
+CREATE INDEX IF NOT EXISTS idx_bulk_ops_status ON _atlas.bulk_operations(status);
 
 -- ============================================================================
 -- Effective Dating
@@ -132,9 +132,9 @@ CREATE TABLE IF NOT EXISTS _atlas.effective_dated_records (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_eff_dated_entity ON _atlas.effective_dated_records(entity_type, base_record_id, effective_from);
-CREATE INDEX idx_eff_dated_current ON _atlas.effective_dated_records(entity_type, base_record_id, is_current) WHERE is_current = true;
-CREATE INDEX idx_eff_dated_date ON _atlas.effective_dated_records(effective_from, effective_to);
+CREATE INDEX IF NOT EXISTS idx_eff_dated_entity ON _atlas.effective_dated_records(entity_type, base_record_id, effective_from);
+CREATE INDEX IF NOT EXISTS idx_eff_dated_current ON _atlas.effective_dated_records(entity_type, base_record_id, is_current) WHERE is_current = true;
+CREATE INDEX IF NOT EXISTS idx_eff_dated_date ON _atlas.effective_dated_records(effective_from, effective_to);
 
 -- ============================================================================
 -- File Attachments
@@ -171,6 +171,6 @@ CREATE TABLE IF NOT EXISTS _atlas.attachments (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_attachments_entity ON _atlas.attachments(entity_type, entity_id);
-CREATE INDEX idx_attachments_uploaded_by ON _atlas.attachments(uploaded_by);
-CREATE INDEX idx_attachments_category ON _atlas.attachments(category);
+CREATE INDEX IF NOT EXISTS idx_attachments_entity ON _atlas.attachments(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_attachments_uploaded_by ON _atlas.attachments(uploaded_by);
+CREATE INDEX IF NOT EXISTS idx_attachments_category ON _atlas.attachments(category);

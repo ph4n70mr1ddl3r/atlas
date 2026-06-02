@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS _atlas.subscription_price_tiers (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_sub_price_tiers_product ON _atlas.subscription_price_tiers(product_id);
+CREATE INDEX IF NOT EXISTS idx_sub_price_tiers_product ON _atlas.subscription_price_tiers(product_id);
 
 -- Subscriptions (main header)
 CREATE TABLE IF NOT EXISTS _atlas.subscriptions (
@@ -87,11 +87,11 @@ CREATE TABLE IF NOT EXISTS _atlas.subscriptions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_subscriptions_org ON _atlas.subscriptions(organization_id);
-CREATE INDEX idx_subscriptions_customer ON _atlas.subscriptions(customer_id);
-CREATE INDEX idx_subscriptions_product ON _atlas.subscriptions(product_id);
-CREATE INDEX idx_subscriptions_status ON _atlas.subscriptions(organization_id, status);
-CREATE INDEX idx_subscriptions_renewal ON _atlas.subscriptions(renewal_date) WHERE status = 'active' AND is_auto_renew = true;
+CREATE INDEX IF NOT EXISTS idx_subscriptions_org ON _atlas.subscriptions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_customer ON _atlas.subscriptions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_product ON _atlas.subscriptions(product_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON _atlas.subscriptions(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_renewal ON _atlas.subscriptions(renewal_date) WHERE status = 'active' AND is_auto_renew = true;
 
 -- Subscription amendments (changes to active subscriptions)
 CREATE TABLE IF NOT EXISTS _atlas.subscription_amendments (
@@ -122,8 +122,8 @@ CREATE TABLE IF NOT EXISTS _atlas.subscription_amendments (
     UNIQUE(subscription_id, amendment_number)
 );
 
-CREATE INDEX idx_sub_amendments_subscription ON _atlas.subscription_amendments(subscription_id);
-CREATE INDEX idx_sub_amendments_status ON _atlas.subscription_amendments(subscription_id, status);
+CREATE INDEX IF NOT EXISTS idx_sub_amendments_subscription ON _atlas.subscription_amendments(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_sub_amendments_status ON _atlas.subscription_amendments(subscription_id, status);
 
 -- Subscription billing schedule
 CREATE TABLE IF NOT EXISTS _atlas.subscription_billing_schedule (
@@ -146,8 +146,8 @@ CREATE TABLE IF NOT EXISTS _atlas.subscription_billing_schedule (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_sub_billing_subscription ON _atlas.subscription_billing_schedule(subscription_id);
-CREATE INDEX idx_sub_billing_date ON _atlas.subscription_billing_schedule(organization_id, billing_date) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_sub_billing_subscription ON _atlas.subscription_billing_schedule(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_sub_billing_date ON _atlas.subscription_billing_schedule(organization_id, billing_date) WHERE status = 'pending';
 
 -- Subscription revenue schedule (ASC 606 / IFRS 15)
 CREATE TABLE IF NOT EXISTS _atlas.subscription_revenue_schedule (
@@ -169,5 +169,5 @@ CREATE TABLE IF NOT EXISTS _atlas.subscription_revenue_schedule (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_sub_revenue_subscription ON _atlas.subscription_revenue_schedule(subscription_id);
-CREATE INDEX idx_sub_revenue_status ON _atlas.subscription_revenue_schedule(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_sub_revenue_subscription ON _atlas.subscription_revenue_schedule(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_sub_revenue_status ON _atlas.subscription_revenue_schedule(organization_id, status);

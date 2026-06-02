@@ -585,10 +585,15 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
     ) -> AtlasResult<WithholdingTaxGroupMember> {
         let row = sqlx::query(
             r"
-            INSERT INTO _atlas.withholding_tax_group_members
-                (group_id, tax_code_id, rate_override, display_order)
-            VALUES ($1, $2, $3::numeric, $4)
-            RETURNING *
+            WITH inserted AS (
+                INSERT INTO _atlas.withholding_tax_group_members
+                    (group_id, tax_code_id, rate_override, display_order)
+                VALUES ($1, $2, $3::numeric, $4)
+                RETURNING *
+            )
+            SELECT m.*, c.code as tax_code, c.name as tax_code_name
+            FROM inserted m
+            JOIN _atlas.withholding_tax_codes c ON c.id = m.tax_code_id
             ",
         )
         .bind(group_id)
@@ -652,16 +657,21 @@ impl WithholdingTaxRepository for PostgresWithholdingTaxRepository {
     ) -> AtlasResult<SupplierWithholdingAssignment> {
         let row = sqlx::query(
             r"
-            INSERT INTO _atlas.supplier_withholding_assignments
-                (organization_id, supplier_id, supplier_number, supplier_name,
-                 tax_group_id, is_exempt, exemption_reason, exemption_certificate,
-                 exemption_valid_until, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT (organization_id, supplier_id) DO UPDATE
-                SET tax_group_id = $5, is_exempt = $6, exemption_reason = $7,
-                    exemption_certificate = $8, exemption_valid_until = $9,
-                    updated_at = now()
-            RETURNING *
+            WITH inserted AS (
+                INSERT INTO _atlas.supplier_withholding_assignments
+                    (organization_id, supplier_id, supplier_number, supplier_name,
+                     tax_group_id, is_exempt, exemption_reason, exemption_certificate,
+                     exemption_valid_until, created_by)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                ON CONFLICT (organization_id, supplier_id) DO UPDATE
+                    SET tax_group_id = $5, is_exempt = $6, exemption_reason = $7,
+                        exemption_certificate = $8, exemption_valid_until = $9,
+                        updated_at = now()
+                RETURNING *
+            )
+            SELECT a.*, g.code as tax_group_code, g.name as tax_group_name
+            FROM inserted a
+            JOIN _atlas.withholding_tax_groups g ON g.id = a.tax_group_id
             ",
         )
         .bind(org_id)

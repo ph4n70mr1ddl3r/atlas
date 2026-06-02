@@ -47,8 +47,8 @@ CREATE TABLE _atlas.payment_terms (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_payment_terms_org ON _atlas.payment_terms(organization_id);
-CREATE INDEX idx_payment_terms_active ON _atlas.payment_terms(organization_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_payment_terms_org ON _atlas.payment_terms(organization_id);
+CREATE INDEX IF NOT EXISTS idx_payment_terms_active ON _atlas.payment_terms(organization_id, is_active);
 
 -- ============================================================================
 -- Payment Batches
@@ -105,9 +105,9 @@ CREATE TABLE _atlas.payment_batches (
     UNIQUE(organization_id, batch_number)
 );
 
-CREATE INDEX idx_payment_batches_org ON _atlas.payment_batches(organization_id);
-CREATE INDEX idx_payment_batches_status ON _atlas.payment_batches(organization_id, status);
-CREATE INDEX idx_payment_batches_date ON _atlas.payment_batches(payment_date);
+CREATE INDEX IF NOT EXISTS idx_payment_batches_org ON _atlas.payment_batches(organization_id);
+CREATE INDEX IF NOT EXISTS idx_payment_batches_status ON _atlas.payment_batches(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_payment_batches_date ON _atlas.payment_batches(payment_date);
 
 -- ============================================================================
 -- Payments (Individual)
@@ -184,12 +184,12 @@ CREATE TABLE _atlas.payments (
     UNIQUE(organization_id, payment_number)
 );
 
-CREATE INDEX idx_payments_org ON _atlas.payments(organization_id);
-CREATE INDEX idx_payments_batch ON _atlas.payments(batch_id);
-CREATE INDEX idx_payments_supplier ON _atlas.payments(organization_id, supplier_id);
-CREATE INDEX idx_payments_status ON _atlas.payments(organization_id, status);
-CREATE INDEX idx_payments_date ON _atlas.payments(payment_date);
-CREATE INDEX idx_payments_check ON _atlas.payments(check_number);
+CREATE INDEX IF NOT EXISTS idx_payments_org ON _atlas.payments(organization_id);
+CREATE INDEX IF NOT EXISTS idx_payments_batch ON _atlas.payments(batch_id);
+CREATE INDEX IF NOT EXISTS idx_payments_supplier ON _atlas.payments(organization_id, supplier_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON _atlas.payments(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_payments_date ON _atlas.payments(payment_date);
+CREATE INDEX IF NOT EXISTS idx_payments_check ON _atlas.payments(check_number);
 
 -- ============================================================================
 -- Payment Lines (invoices covered by a payment)
@@ -223,8 +223,8 @@ CREATE TABLE _atlas.payment_lines (
     UNIQUE(payment_id, line_number)
 );
 
-CREATE INDEX idx_payment_lines_payment ON _atlas.payment_lines(payment_id);
-CREATE INDEX idx_payment_lines_invoice ON _atlas.payment_lines(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_payment_lines_payment ON _atlas.payment_lines(payment_id);
+CREATE INDEX IF NOT EXISTS idx_payment_lines_invoice ON _atlas.payment_lines(invoice_id);
 
 -- ============================================================================
 -- Scheduled Payments (automatic payment proposals)
@@ -264,10 +264,10 @@ CREATE TABLE _atlas.scheduled_payments (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_scheduled_payments_org ON _atlas.scheduled_payments(organization_id);
-CREATE INDEX idx_scheduled_payments_date ON _atlas.scheduled_payments(scheduled_payment_date);
-CREATE INDEX idx_scheduled_payments_status ON _atlas.scheduled_payments(organization_id, status);
-CREATE INDEX idx_scheduled_payments_supplier ON _atlas.scheduled_payments(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_scheduled_payments_org ON _atlas.scheduled_payments(organization_id);
+CREATE INDEX IF NOT EXISTS idx_scheduled_payments_date ON _atlas.scheduled_payments(scheduled_payment_date);
+CREATE INDEX IF NOT EXISTS idx_scheduled_payments_status ON _atlas.scheduled_payments(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_scheduled_payments_supplier ON _atlas.scheduled_payments(supplier_id);
 
 -- ============================================================================
 -- Payment Formats (output file formats for payment files)
@@ -335,8 +335,8 @@ CREATE TABLE _atlas.remittance_advices (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_remittance_advices_payment ON _atlas.remittance_advices(payment_id);
-CREATE INDEX idx_remittance_advices_org ON _atlas.remittance_advices(organization_id);
+CREATE INDEX IF NOT EXISTS idx_remittance_advices_payment ON _atlas.remittance_advices(payment_id);
+CREATE INDEX IF NOT EXISTS idx_remittance_advices_org ON _atlas.remittance_advices(organization_id);
 
 -- ============================================================================
 -- Payment Dashboard View (convenience)

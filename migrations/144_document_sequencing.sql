@@ -37,9 +37,9 @@ CREATE TABLE IF NOT EXISTS _atlas.document_sequences (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_docseq_org ON _atlas.document_sequences(organization_id);
-CREATE INDEX idx_docseq_status ON _atlas.document_sequences(status);
-CREATE INDEX idx_docseq_doc_type ON _atlas.document_sequences(document_type);
+CREATE INDEX IF NOT EXISTS idx_docseq_org ON _atlas.document_sequences(organization_id);
+CREATE INDEX IF NOT EXISTS idx_docseq_status ON _atlas.document_sequences(status);
+CREATE INDEX IF NOT EXISTS idx_docseq_doc_type ON _atlas.document_sequences(document_type);
 
 -- ============================================================================
 -- Sequence Assignments (map sequences to document categories)
@@ -63,10 +63,10 @@ CREATE TABLE IF NOT EXISTS _atlas.document_sequence_assignments (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_docseqassign_org ON _atlas.document_sequence_assignments(organization_id);
-CREATE INDEX idx_docseqassign_seq ON _atlas.document_sequence_assignments(sequence_id);
-CREATE INDEX idx_docseqassign_cat ON _atlas.document_sequence_assignments(document_category);
-CREATE INDEX idx_docseqassign_status ON _atlas.document_sequence_assignments(status);
+CREATE INDEX IF NOT EXISTS idx_docseqassign_org ON _atlas.document_sequence_assignments(organization_id);
+CREATE INDEX IF NOT EXISTS idx_docseqassign_seq ON _atlas.document_sequence_assignments(sequence_id);
+CREATE INDEX IF NOT EXISTS idx_docseqassign_cat ON _atlas.document_sequence_assignments(document_category);
+CREATE INDEX IF NOT EXISTS idx_docseqassign_status ON _atlas.document_sequence_assignments(status);
 
 -- ============================================================================
 -- Sequence Audit Trail (every generated number is logged)
@@ -89,11 +89,11 @@ CREATE TABLE IF NOT EXISTS _atlas.document_sequence_audit (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_docseqaudit_org ON _atlas.document_sequence_audit(organization_id);
-CREATE INDEX idx_docseqaudit_seq ON _atlas.document_sequence_audit(sequence_id);
-CREATE INDEX idx_docseqaudit_cat ON _atlas.document_sequence_audit(document_category);
-CREATE INDEX idx_docseqaudit_doc ON _atlas.document_sequence_audit(document_id);
-CREATE INDEX idx_docseqaudit_gen ON _atlas.document_sequence_audit(generated_at);
+CREATE INDEX IF NOT EXISTS idx_docseqaudit_org ON _atlas.document_sequence_audit(organization_id);
+CREATE INDEX IF NOT EXISTS idx_docseqaudit_seq ON _atlas.document_sequence_audit(sequence_id);
+CREATE INDEX IF NOT EXISTS idx_docseqaudit_cat ON _atlas.document_sequence_audit(document_category);
+CREATE INDEX IF NOT EXISTS idx_docseqaudit_doc ON _atlas.document_sequence_audit(document_id);
+CREATE INDEX IF NOT EXISTS idx_docseqaudit_gen ON _atlas.document_sequence_audit(generated_at);
 
 COMMENT ON TABLE _atlas.document_sequences IS 'Defines document numbering sequences for regulatory compliance';
 COMMENT ON TABLE _atlas.document_sequence_assignments IS 'Maps sequences to document categories, business units, and ledgers';

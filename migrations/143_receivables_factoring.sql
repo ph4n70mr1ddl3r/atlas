@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS financials.factor_companies (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_fc_org ON financials.factor_companies(organization_id);
-CREATE INDEX idx_fc_active ON financials.factor_companies(is_active);
+CREATE INDEX IF NOT EXISTS idx_fc_org ON financials.factor_companies(organization_id);
+CREATE INDEX IF NOT EXISTS idx_fc_active ON financials.factor_companies(is_active);
 
 -- ============================================================================
 -- Factoring Agreements (Master contracts with factor companies)
@@ -74,11 +74,11 @@ CREATE TABLE IF NOT EXISTS financials.factoring_agreements (
     UNIQUE(organization_id, agreement_number)
 );
 
-CREATE INDEX idx_fa_org ON financials.factoring_agreements(organization_id);
-CREATE INDEX idx_fa_factor ON financials.factoring_agreements(factor_company_id);
-CREATE INDEX idx_fa_status ON financials.factoring_agreements(status);
-CREATE INDEX idx_fa_number ON financials.factoring_agreements(agreement_number);
-CREATE INDEX idx_fa_dates ON financials.factoring_agreements(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_fa_org ON financials.factoring_agreements(organization_id);
+CREATE INDEX IF NOT EXISTS idx_fa_factor ON financials.factoring_agreements(factor_company_id);
+CREATE INDEX IF NOT EXISTS idx_fa_status ON financials.factoring_agreements(status);
+CREATE INDEX IF NOT EXISTS idx_fa_number ON financials.factoring_agreements(agreement_number);
+CREATE INDEX IF NOT EXISTS idx_fa_dates ON financials.factoring_agreements(start_date, end_date);
 
 -- ============================================================================
 -- Factoring Requests (Individual requests to factor receivables)
@@ -120,11 +120,11 @@ CREATE TABLE IF NOT EXISTS financials.factoring_requests (
     UNIQUE(organization_id, request_number)
 );
 
-CREATE INDEX idx_fr_org ON financials.factoring_requests(organization_id);
-CREATE INDEX idx_fr_agreement ON financials.factoring_requests(agreement_id);
-CREATE INDEX idx_fr_status ON financials.factoring_requests(status);
-CREATE INDEX idx_fr_number ON financials.factoring_requests(request_number);
-CREATE INDEX idx_fr_date ON financials.factoring_requests(request_date);
+CREATE INDEX IF NOT EXISTS idx_fr_org ON financials.factoring_requests(organization_id);
+CREATE INDEX IF NOT EXISTS idx_fr_agreement ON financials.factoring_requests(agreement_id);
+CREATE INDEX IF NOT EXISTS idx_fr_status ON financials.factoring_requests(status);
+CREATE INDEX IF NOT EXISTS idx_fr_number ON financials.factoring_requests(request_number);
+CREATE INDEX IF NOT EXISTS idx_fr_date ON financials.factoring_requests(request_date);
 
 -- ============================================================================
 -- Factoring Request Lines (Individual receivables being factored)
@@ -159,10 +159,10 @@ CREATE TABLE IF NOT EXISTS financials.factoring_request_lines (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_frl_request ON financials.factoring_request_lines(request_id);
-CREATE INDEX idx_frl_transaction ON financials.factoring_request_lines(transaction_id);
-CREATE INDEX idx_frl_customer ON financials.factoring_request_lines(customer_id);
-CREATE INDEX idx_frl_status ON financials.factoring_request_lines(status);
+CREATE INDEX IF NOT EXISTS idx_frl_request ON financials.factoring_request_lines(request_id);
+CREATE INDEX IF NOT EXISTS idx_frl_transaction ON financials.factoring_request_lines(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_frl_customer ON financials.factoring_request_lines(customer_id);
+CREATE INDEX IF NOT EXISTS idx_frl_status ON financials.factoring_request_lines(status);
 
 -- ============================================================================
 -- Factoring Settlements (When customers pay the factor)
@@ -192,10 +192,10 @@ CREATE TABLE IF NOT EXISTS financials.factoring_settlements (
     UNIQUE(organization_id, settlement_number)
 );
 
-CREATE INDEX idx_fs_org ON financials.factoring_settlements(organization_id);
-CREATE INDEX idx_fs_agreement ON financials.factoring_settlements(agreement_id);
-CREATE INDEX idx_fs_request ON financials.factoring_settlements(request_id);
-CREATE INDEX idx_fs_status ON financials.factoring_settlements(status);
+CREATE INDEX IF NOT EXISTS idx_fs_org ON financials.factoring_settlements(organization_id);
+CREATE INDEX IF NOT EXISTS idx_fs_agreement ON financials.factoring_settlements(agreement_id);
+CREATE INDEX IF NOT EXISTS idx_fs_request ON financials.factoring_settlements(request_id);
+CREATE INDEX IF NOT EXISTS idx_fs_status ON financials.factoring_settlements(status);
 
 -- ============================================================================
 -- Factoring Audit Trail
@@ -214,9 +214,9 @@ CREATE TABLE IF NOT EXISTS financials.factoring_audit (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_fat_entity ON financials.factoring_audit(entity_type, entity_id);
-CREATE INDEX idx_fat_action ON financials.factoring_audit(action);
-CREATE INDEX idx_fat_performed ON financials.factoring_audit(performed_at);
+CREATE INDEX IF NOT EXISTS idx_fat_entity ON financials.factoring_audit(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_fat_action ON financials.factoring_audit(action);
+CREATE INDEX IF NOT EXISTS idx_fat_performed ON financials.factoring_audit(performed_at);
 
 -- ============================================================================
 -- Dashboard View

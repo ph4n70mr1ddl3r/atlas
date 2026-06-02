@@ -45,10 +45,10 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_mass_additions (
     metadata JSONB DEFAULT '{}'
 );
 
-CREATE INDEX idx_mass_additions_org ON _atlas.fin_mass_additions(organization_id);
-CREATE INDEX idx_mass_additions_status ON _atlas.fin_mass_additions(status);
-CREATE INDEX idx_mass_additions_invoice ON _atlas.fin_mass_additions(invoice_id);
-CREATE UNIQUE INDEX idx_mass_additions_number ON _atlas.fin_mass_additions(organization_id, mass_addition_number);
+CREATE INDEX IF NOT EXISTS idx_mass_additions_org ON _atlas.fin_mass_additions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_mass_additions_status ON _atlas.fin_mass_additions(status);
+CREATE INDEX IF NOT EXISTS idx_mass_additions_invoice ON _atlas.fin_mass_additions(invoice_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mass_additions_number ON _atlas.fin_mass_additions(organization_id, mass_addition_number);
 
 -- Asset Reclassification (Oracle Fusion: Fixed Assets > Asset Reclassification)
 CREATE TABLE IF NOT EXISTS _atlas.fin_asset_reclassifications (
@@ -86,10 +86,10 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_asset_reclassifications (
     metadata JSONB DEFAULT '{}'
 );
 
-CREATE INDEX idx_asset_reclass_org ON _atlas.fin_asset_reclassifications(organization_id);
-CREATE INDEX idx_asset_reclass_status ON _atlas.fin_asset_reclassifications(status);
-CREATE INDEX idx_asset_reclass_asset ON _atlas.fin_asset_reclassifications(asset_id);
-CREATE UNIQUE INDEX idx_asset_reclass_number ON _atlas.fin_asset_reclassifications(organization_id, reclassification_number);
+CREATE INDEX IF NOT EXISTS idx_asset_reclass_org ON _atlas.fin_asset_reclassifications(organization_id);
+CREATE INDEX IF NOT EXISTS idx_asset_reclass_status ON _atlas.fin_asset_reclassifications(status);
+CREATE INDEX IF NOT EXISTS idx_asset_reclass_asset ON _atlas.fin_asset_reclassifications(asset_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_asset_reclass_number ON _atlas.fin_asset_reclassifications(organization_id, reclassification_number);
 
 -- GL Budget Transfer (Oracle Fusion: General Ledger > Budget Transfers)
 CREATE TABLE IF NOT EXISTS _atlas.fin_gl_budget_transfers (
@@ -119,9 +119,9 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_gl_budget_transfers (
     metadata JSONB DEFAULT '{}'
 );
 
-CREATE INDEX idx_gl_budget_transfer_org ON _atlas.fin_gl_budget_transfers(organization_id);
-CREATE INDEX idx_gl_budget_transfer_status ON _atlas.fin_gl_budget_transfers(status);
-CREATE UNIQUE INDEX idx_gl_budget_transfer_number ON _atlas.fin_gl_budget_transfers(organization_id, transfer_number);
+CREATE INDEX IF NOT EXISTS idx_gl_budget_transfer_org ON _atlas.fin_gl_budget_transfers(organization_id);
+CREATE INDEX IF NOT EXISTS idx_gl_budget_transfer_status ON _atlas.fin_gl_budget_transfers(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gl_budget_transfer_number ON _atlas.fin_gl_budget_transfers(organization_id, transfer_number);
 
 -- Payment Format (Oracle Fusion: Payables > Payment Formats)
 CREATE TABLE IF NOT EXISTS _atlas.fin_payment_formats (
@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_payment_formats (
     metadata JSONB DEFAULT '{}'
 );
 
-CREATE UNIQUE INDEX idx_payment_format_code ON _atlas.fin_payment_formats(organization_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_format_code ON _atlas.fin_payment_formats(organization_id, code);
 
 -- Financial Dimension Set (Oracle Fusion: GL > Financial Dimension Sets)
 CREATE TABLE IF NOT EXISTS _atlas.fin_financial_dimension_sets (
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_financial_dimension_sets (
     metadata JSONB DEFAULT '{}'
 );
 
-CREATE UNIQUE INDEX idx_fin_dim_set_code ON _atlas.fin_financial_dimension_sets(organization_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_fin_dim_set_code ON _atlas.fin_financial_dimension_sets(organization_id, code);
 
 -- Financial Dimension Set Members
 CREATE TABLE IF NOT EXISTS _atlas.fin_financial_dimension_set_members (
@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_financial_dimension_set_members (
     metadata JSONB DEFAULT '{}'
 );
 
-CREATE INDEX idx_fin_dim_set_member_set ON _atlas.fin_financial_dimension_set_members(dimension_set_id);
+CREATE INDEX IF NOT EXISTS idx_fin_dim_set_member_set ON _atlas.fin_financial_dimension_set_members(dimension_set_id);
 
 -- Receipt Write-Off (Oracle Fusion: Receivables > Receipt Write-Off)
 CREATE TABLE IF NOT EXISTS _atlas.fin_receipt_write_offs (
@@ -210,10 +210,10 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_receipt_write_offs (
     metadata JSONB DEFAULT '{}'
 );
 
-CREATE INDEX idx_receipt_write_off_org ON _atlas.fin_receipt_write_offs(organization_id);
-CREATE INDEX idx_receipt_write_off_status ON _atlas.fin_receipt_write_offs(status);
-CREATE INDEX idx_receipt_write_off_receipt ON _atlas.fin_receipt_write_offs(receipt_id);
-CREATE UNIQUE INDEX idx_receipt_write_off_number ON _atlas.fin_receipt_write_offs(organization_id, write_off_number);
+CREATE INDEX IF NOT EXISTS idx_receipt_write_off_org ON _atlas.fin_receipt_write_offs(organization_id);
+CREATE INDEX IF NOT EXISTS idx_receipt_write_off_status ON _atlas.fin_receipt_write_offs(status);
+CREATE INDEX IF NOT EXISTS idx_receipt_write_off_receipt ON _atlas.fin_receipt_write_offs(receipt_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_receipt_write_off_number ON _atlas.fin_receipt_write_offs(organization_id, write_off_number);
 
 -- Prepayment Application (Oracle Fusion: Payables > Prepayment Application)
 CREATE TABLE IF NOT EXISTS _atlas.fin_prepayment_applications (
@@ -241,7 +241,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_prepayment_applications (
     metadata JSONB DEFAULT '{}'
 );
 
-CREATE INDEX idx_prepayment_app_org ON _atlas.fin_prepayment_applications(organization_id);
-CREATE INDEX idx_prepayment_app_status ON _atlas.fin_prepayment_applications(status);
-CREATE INDEX idx_prepayment_app_supplier ON _atlas.fin_prepayment_applications(supplier_id);
-CREATE UNIQUE INDEX idx_prepayment_app_number ON _atlas.fin_prepayment_applications(organization_id, application_number);
+CREATE INDEX IF NOT EXISTS idx_prepayment_app_org ON _atlas.fin_prepayment_applications(organization_id);
+CREATE INDEX IF NOT EXISTS idx_prepayment_app_status ON _atlas.fin_prepayment_applications(status);
+CREATE INDEX IF NOT EXISTS idx_prepayment_app_supplier ON _atlas.fin_prepayment_applications(supplier_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_prepayment_app_number ON _atlas.fin_prepayment_applications(organization_id, application_number);

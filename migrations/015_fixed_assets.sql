@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS _atlas.asset_categories (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_asset_categories_org ON _atlas.asset_categories(organization_id);
-CREATE INDEX idx_asset_categories_active ON _atlas.asset_categories(organization_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_asset_categories_org ON _atlas.asset_categories(organization_id);
+CREATE INDEX IF NOT EXISTS idx_asset_categories_active ON _atlas.asset_categories(organization_id, is_active) WHERE is_active = true;
 
 -- ============================================================================
 -- Asset Books
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS _atlas.asset_books (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_asset_books_org ON _atlas.asset_books(organization_id);
+CREATE INDEX IF NOT EXISTS idx_asset_books_org ON _atlas.asset_books(organization_id);
 
 -- ============================================================================
 -- Fixed Assets
@@ -169,12 +169,12 @@ CREATE TABLE IF NOT EXISTS _atlas.fixed_assets (
     UNIQUE(organization_id, asset_number)
 );
 
-CREATE INDEX idx_fixed_assets_org ON _atlas.fixed_assets(organization_id);
-CREATE INDEX idx_fixed_assets_status ON _atlas.fixed_assets(organization_id, status);
-CREATE INDEX idx_fixed_assets_category ON _atlas.fixed_assets(category_id);
-CREATE INDEX idx_fixed_assets_book ON _atlas.fixed_assets(book_id);
-CREATE INDEX idx_fixed_assets_dept ON _atlas.fixed_assets(department_id);
-CREATE INDEX idx_fixed_assets_number ON _atlas.fixed_assets(asset_number);
+CREATE INDEX IF NOT EXISTS idx_fixed_assets_org ON _atlas.fixed_assets(organization_id);
+CREATE INDEX IF NOT EXISTS idx_fixed_assets_status ON _atlas.fixed_assets(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_fixed_assets_category ON _atlas.fixed_assets(category_id);
+CREATE INDEX IF NOT EXISTS idx_fixed_assets_book ON _atlas.fixed_assets(book_id);
+CREATE INDEX IF NOT EXISTS idx_fixed_assets_dept ON _atlas.fixed_assets(department_id);
+CREATE INDEX IF NOT EXISTS idx_fixed_assets_number ON _atlas.fixed_assets(asset_number);
 
 -- ============================================================================
 -- Asset Depreciation History
@@ -203,9 +203,9 @@ CREATE TABLE IF NOT EXISTS _atlas.asset_depreciation_history (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_asset_depr_hist_org ON _atlas.asset_depreciation_history(organization_id);
-CREATE INDEX idx_asset_depr_hist_asset ON _atlas.asset_depreciation_history(asset_id);
-CREATE INDEX idx_asset_depr_hist_period ON _atlas.asset_depreciation_history(fiscal_year, period_number);
+CREATE INDEX IF NOT EXISTS idx_asset_depr_hist_org ON _atlas.asset_depreciation_history(organization_id);
+CREATE INDEX IF NOT EXISTS idx_asset_depr_hist_asset ON _atlas.asset_depreciation_history(asset_id);
+CREATE INDEX IF NOT EXISTS idx_asset_depr_hist_period ON _atlas.asset_depreciation_history(fiscal_year, period_number);
 
 -- ============================================================================
 -- Asset Transfers
@@ -246,9 +246,9 @@ CREATE TABLE IF NOT EXISTS _atlas.asset_transfers (
     UNIQUE(organization_id, transfer_number)
 );
 
-CREATE INDEX idx_asset_transfers_org ON _atlas.asset_transfers(organization_id);
-CREATE INDEX idx_asset_transfers_asset ON _atlas.asset_transfers(asset_id);
-CREATE INDEX idx_asset_transfers_status ON _atlas.asset_transfers(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_asset_transfers_org ON _atlas.asset_transfers(organization_id);
+CREATE INDEX IF NOT EXISTS idx_asset_transfers_asset ON _atlas.asset_transfers(asset_id);
+CREATE INDEX IF NOT EXISTS idx_asset_transfers_status ON _atlas.asset_transfers(organization_id, status);
 
 -- ============================================================================
 -- Asset Retirements
@@ -300,6 +300,6 @@ CREATE TABLE IF NOT EXISTS _atlas.asset_retirements (
     UNIQUE(organization_id, retirement_number)
 );
 
-CREATE INDEX idx_asset_retirements_org ON _atlas.asset_retirements(organization_id);
-CREATE INDEX idx_asset_retirements_asset ON _atlas.asset_retirements(asset_id);
-CREATE INDEX idx_asset_retirements_status ON _atlas.asset_retirements(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_asset_retirements_org ON _atlas.asset_retirements(organization_id);
+CREATE INDEX IF NOT EXISTS idx_asset_retirements_asset ON _atlas.asset_retirements(asset_id);
+CREATE INDEX IF NOT EXISTS idx_asset_retirements_status ON _atlas.asset_retirements(organization_id, status);

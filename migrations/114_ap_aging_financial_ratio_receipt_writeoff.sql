@@ -227,13 +227,13 @@ CREATE TABLE IF NOT EXISTS _atlas.receipt_write_off_policies (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_ap_aging_defs_org ON _atlas.ap_aging_definitions(organization_id);
-CREATE INDEX idx_ap_aging_snapshots_org ON _atlas.ap_aging_snapshots(organization_id);
-CREATE INDEX idx_ap_aging_lines_snapshot ON _atlas.ap_aging_snapshot_lines(snapshot_id);
-CREATE INDEX idx_fin_ratio_defs_org ON _atlas.financial_ratio_definitions(organization_id);
-CREATE INDEX idx_fin_ratio_snapshots_org ON _atlas.financial_ratio_snapshots(organization_id);
-CREATE INDEX idx_fin_ratio_results_snapshot ON _atlas.financial_ratio_results(snapshot_id);
-CREATE INDEX idx_wo_reasons_org ON _atlas.receipt_write_off_reasons(organization_id);
-CREATE INDEX idx_wo_requests_org ON _atlas.receipt_write_off_requests(organization_id);
-CREATE INDEX idx_wo_batches_org ON _atlas.receipt_write_off_batches(organization_id);
-CREATE INDEX idx_wo_policies_org ON _atlas.receipt_write_off_policies(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ap_aging_defs_org ON _atlas.ap_aging_definitions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ap_aging_snapshots_org ON _atlas.ap_aging_snapshots(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ap_aging_lines_snapshot ON _atlas.ap_aging_snapshot_lines(snapshot_id);
+CREATE INDEX IF NOT EXISTS idx_fin_ratio_defs_org ON _atlas.financial_ratio_definitions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_fin_ratio_snapshots_org ON _atlas.financial_ratio_snapshots(organization_id);
+CREATE INDEX IF NOT EXISTS idx_fin_ratio_results_snapshot ON _atlas.financial_ratio_results(snapshot_id);
+CREATE INDEX IF NOT EXISTS idx_wo_reasons_org ON _atlas.receipt_write_off_reasons(organization_id);
+CREATE INDEX IF NOT EXISTS idx_wo_requests_org ON _atlas.receipt_write_off_requests(organization_id);
+CREATE INDEX IF NOT EXISTS idx_wo_batches_org ON _atlas.receipt_write_off_batches(organization_id);
+CREATE INDEX IF NOT EXISTS idx_wo_policies_org ON _atlas.receipt_write_off_policies(organization_id);

@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS _atlas.withholding_tax_codes (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_wht_codes_org ON _atlas.withholding_tax_codes(organization_id);
-CREATE INDEX idx_wht_codes_type ON _atlas.withholding_tax_codes(organization_id, tax_type);
+CREATE INDEX IF NOT EXISTS idx_wht_codes_org ON _atlas.withholding_tax_codes(organization_id);
+CREATE INDEX IF NOT EXISTS idx_wht_codes_type ON _atlas.withholding_tax_codes(organization_id, tax_type);
 COMMENT ON TABLE _atlas.withholding_tax_codes IS 'Withholding tax code definitions with rates and thresholds';
 
 -- Withholding Tax Groups
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS _atlas.withholding_tax_groups (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_wht_groups_org ON _atlas.withholding_tax_groups(organization_id);
+CREATE INDEX IF NOT EXISTS idx_wht_groups_org ON _atlas.withholding_tax_groups(organization_id);
 COMMENT ON TABLE _atlas.withholding_tax_groups IS 'Withholding tax groups - reusable collections of tax codes';
 
 -- Withholding Tax Group Members
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS _atlas.withholding_tax_group_members (
     UNIQUE(group_id, tax_code_id)
 );
 
-CREATE INDEX idx_wht_group_members_group ON _atlas.withholding_tax_group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_wht_group_members_group ON _atlas.withholding_tax_group_members(group_id);
 COMMENT ON TABLE _atlas.withholding_tax_group_members IS 'Tax codes within a withholding tax group';
 
 -- Supplier Withholding Tax Assignments
@@ -96,8 +96,8 @@ CREATE TABLE IF NOT EXISTS _atlas.supplier_withholding_assignments (
     UNIQUE(organization_id, supplier_id)
 );
 
-CREATE INDEX idx_wht_supplier_assign_org ON _atlas.supplier_withholding_assignments(organization_id);
-CREATE INDEX idx_wht_supplier_assign_supplier ON _atlas.supplier_withholding_assignments(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_wht_supplier_assign_org ON _atlas.supplier_withholding_assignments(organization_id);
+CREATE INDEX IF NOT EXISTS idx_wht_supplier_assign_supplier ON _atlas.supplier_withholding_assignments(supplier_id);
 COMMENT ON TABLE _atlas.supplier_withholding_assignments IS 'Supplier assignments to withholding tax groups';
 
 -- Withholding Tax Lines
@@ -138,11 +138,11 @@ CREATE TABLE IF NOT EXISTS _atlas.withholding_tax_lines (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_wht_lines_org ON _atlas.withholding_tax_lines(organization_id);
-CREATE INDEX idx_wht_lines_payment ON _atlas.withholding_tax_lines(payment_id);
-CREATE INDEX idx_wht_lines_supplier ON _atlas.withholding_tax_lines(organization_id, supplier_id);
-CREATE INDEX idx_wht_lines_status ON _atlas.withholding_tax_lines(status);
-CREATE INDEX idx_wht_lines_date ON _atlas.withholding_tax_lines(created_at);
+CREATE INDEX IF NOT EXISTS idx_wht_lines_org ON _atlas.withholding_tax_lines(organization_id);
+CREATE INDEX IF NOT EXISTS idx_wht_lines_payment ON _atlas.withholding_tax_lines(payment_id);
+CREATE INDEX IF NOT EXISTS idx_wht_lines_supplier ON _atlas.withholding_tax_lines(organization_id, supplier_id);
+CREATE INDEX IF NOT EXISTS idx_wht_lines_status ON _atlas.withholding_tax_lines(status);
+CREATE INDEX IF NOT EXISTS idx_wht_lines_date ON _atlas.withholding_tax_lines(created_at);
 COMMENT ON TABLE _atlas.withholding_tax_lines IS 'Withholding tax lines recorded from supplier payments';
 
 -- Withholding Tax Certificates
@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS _atlas.withholding_certificates (
     UNIQUE(organization_id, certificate_number)
 );
 
-CREATE INDEX idx_wht_certs_org ON _atlas.withholding_certificates(organization_id);
-CREATE INDEX idx_wht_certs_supplier ON _atlas.withholding_certificates(organization_id, supplier_id);
-CREATE INDEX idx_wht_certs_status ON _atlas.withholding_certificates(status);
+CREATE INDEX IF NOT EXISTS idx_wht_certs_org ON _atlas.withholding_certificates(organization_id);
+CREATE INDEX IF NOT EXISTS idx_wht_certs_supplier ON _atlas.withholding_certificates(organization_id, supplier_id);
+CREATE INDEX IF NOT EXISTS idx_wht_certs_status ON _atlas.withholding_certificates(status);
 COMMENT ON TABLE _atlas.withholding_certificates IS 'Withholding tax certificates issued to suppliers';

@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS _atlas.transaction_calendars (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_txncal_org ON _atlas.transaction_calendars(organization_id);
-CREATE INDEX idx_txncal_status ON _atlas.transaction_calendars(status);
+CREATE INDEX IF NOT EXISTS idx_txncal_org ON _atlas.transaction_calendars(organization_id);
+CREATE INDEX IF NOT EXISTS idx_txncal_status ON _atlas.transaction_calendars(status);
 
 -- ============================================================================
 -- Calendar Exceptions (holidays, non-working days, special working days)
@@ -48,9 +48,9 @@ CREATE TABLE IF NOT EXISTS _atlas.calendar_exceptions (
     UNIQUE(calendar_id, exception_date)
 );
 
-CREATE INDEX idx_cal_exc_cal ON _atlas.calendar_exceptions(calendar_id);
-CREATE INDEX idx_cal_exc_date ON _atlas.calendar_exceptions(exception_date);
-CREATE INDEX idx_cal_exc_type ON _atlas.calendar_exceptions(exception_type);
+CREATE INDEX IF NOT EXISTS idx_cal_exc_cal ON _atlas.calendar_exceptions(calendar_id);
+CREATE INDEX IF NOT EXISTS idx_cal_exc_date ON _atlas.calendar_exceptions(exception_date);
+CREATE INDEX IF NOT EXISTS idx_cal_exc_type ON _atlas.calendar_exceptions(exception_type);
 
 -- ============================================================================
 -- Calendar Usage Audit (tracks date calculations performed)
@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS _atlas.calendar_date_calculations (
     calculated_by UUID
 );
 
-CREATE INDEX idx_calcalc_cal ON _atlas.calendar_date_calculations(calendar_id);
-CREATE INDEX idx_calcalc_date ON _atlas.calendar_date_calculations(calculated_at);
+CREATE INDEX IF NOT EXISTS idx_calcalc_cal ON _atlas.calendar_date_calculations(calendar_id);
+CREATE INDEX IF NOT EXISTS idx_calcalc_date ON _atlas.calendar_date_calculations(calculated_at);
 
 COMMENT ON TABLE _atlas.transaction_calendars IS 'Defines business calendars with working day patterns for date calculations';
 COMMENT ON TABLE _atlas.calendar_exceptions IS 'Holidays, non-working days, and special working days for transaction calendars';

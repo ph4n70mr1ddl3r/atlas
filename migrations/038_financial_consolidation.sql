@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS _atlas.consolidation_ledgers (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_conso_ledgers_org ON _atlas.consolidation_ledgers(organization_id);
+CREATE INDEX IF NOT EXISTS idx_conso_ledgers_org ON _atlas.consolidation_ledgers(organization_id);
 
 -- ============================================================================
 -- Consolidation Entities (subsidiaries / business units participating)
@@ -60,8 +60,8 @@ CREATE TABLE IF NOT EXISTS _atlas.consolidation_entities (
     UNIQUE(ledger_id, entity_code)
 );
 
-CREATE INDEX idx_conso_entities_ledger ON _atlas.consolidation_entities(ledger_id);
-CREATE INDEX idx_conso_entities_entity ON _atlas.consolidation_entities(entity_id);
+CREATE INDEX IF NOT EXISTS idx_conso_entities_ledger ON _atlas.consolidation_entities(ledger_id);
+CREATE INDEX IF NOT EXISTS idx_conso_entities_entity ON _atlas.consolidation_entities(entity_id);
 
 -- ============================================================================
 -- Consolidation Scenarios (periodic consolidation runs)
@@ -97,9 +97,9 @@ CREATE TABLE IF NOT EXISTS _atlas.consolidation_scenarios (
     UNIQUE(organization_id, scenario_number)
 );
 
-CREATE INDEX idx_conso_scenarios_ledger ON _atlas.consolidation_scenarios(ledger_id);
-CREATE INDEX idx_conso_scenarios_status ON _atlas.consolidation_scenarios(organization_id, status);
-CREATE INDEX idx_conso_scenarios_period ON _atlas.consolidation_scenarios(fiscal_year, period_name);
+CREATE INDEX IF NOT EXISTS idx_conso_scenarios_ledger ON _atlas.consolidation_scenarios(ledger_id);
+CREATE INDEX IF NOT EXISTS idx_conso_scenarios_status ON _atlas.consolidation_scenarios(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_conso_scenarios_period ON _atlas.consolidation_scenarios(fiscal_year, period_name);
 
 -- ============================================================================
 -- Consolidation Trial Balance Lines (per entity per scenario)
@@ -137,10 +137,10 @@ CREATE TABLE IF NOT EXISTS _atlas.consolidation_trial_balance (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_conso_tb_scenario ON _atlas.consolidation_trial_balance(scenario_id);
-CREATE INDEX idx_conso_tb_entity ON _atlas.consolidation_trial_balance(scenario_id, entity_id);
-CREATE INDEX idx_conso_tb_account ON _atlas.consolidation_trial_balance(scenario_id, account_code);
-CREATE INDEX idx_conso_tb_line_type ON _atlas.consolidation_trial_balance(scenario_id, line_type);
+CREATE INDEX IF NOT EXISTS idx_conso_tb_scenario ON _atlas.consolidation_trial_balance(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_conso_tb_entity ON _atlas.consolidation_trial_balance(scenario_id, entity_id);
+CREATE INDEX IF NOT EXISTS idx_conso_tb_account ON _atlas.consolidation_trial_balance(scenario_id, account_code);
+CREATE INDEX IF NOT EXISTS idx_conso_tb_line_type ON _atlas.consolidation_trial_balance(scenario_id, line_type);
 
 -- ============================================================================
 -- Intercompany Elimination Rules
@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS _atlas.consolidation_elimination_rules (
     UNIQUE(ledger_id, rule_code)
 );
 
-CREATE INDEX idx_conso_elim_rules_ledger ON _atlas.consolidation_elimination_rules(ledger_id);
+CREATE INDEX IF NOT EXISTS idx_conso_elim_rules_ledger ON _atlas.consolidation_elimination_rules(ledger_id);
 
 -- ============================================================================
 -- Consolidation Adjustments (manual journal adjustments)
@@ -196,8 +196,8 @@ CREATE TABLE IF NOT EXISTS _atlas.consolidation_adjustments (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_conso_adj_scenario ON _atlas.consolidation_adjustments(scenario_id);
-CREATE INDEX idx_conso_adj_status ON _atlas.consolidation_adjustments(status);
+CREATE INDEX IF NOT EXISTS idx_conso_adj_scenario ON _atlas.consolidation_adjustments(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_conso_adj_status ON _atlas.consolidation_adjustments(status);
 
 -- ============================================================================
 -- Consolidation Currency Translation Rates
@@ -217,4 +217,4 @@ CREATE TABLE IF NOT EXISTS _atlas.consolidation_translation_rates (
     UNIQUE(scenario_id, entity_id, rate_type)
 );
 
-CREATE INDEX idx_conso_rates_scenario ON _atlas.consolidation_translation_rates(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_conso_rates_scenario ON _atlas.consolidation_translation_rates(scenario_id);

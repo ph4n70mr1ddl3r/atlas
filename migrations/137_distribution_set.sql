@@ -31,10 +31,10 @@ CREATE TABLE IF NOT EXISTS financials.distribution_sets (
     UNIQUE(organization_id, set_code)
 );
 
-CREATE INDEX idx_distribution_sets_org ON financials.distribution_sets(organization_id);
-CREATE INDEX idx_distribution_sets_status ON financials.distribution_sets(status);
-CREATE INDEX idx_distribution_sets_type ON financials.distribution_sets(distribution_type);
-CREATE INDEX idx_distribution_sets_default ON financials.distribution_sets(organization_id) WHERE is_default = true;
+CREATE INDEX IF NOT EXISTS idx_distribution_sets_org ON financials.distribution_sets(organization_id);
+CREATE INDEX IF NOT EXISTS idx_distribution_sets_status ON financials.distribution_sets(status);
+CREATE INDEX IF NOT EXISTS idx_distribution_sets_type ON financials.distribution_sets(distribution_type);
+CREATE INDEX IF NOT EXISTS idx_distribution_sets_default ON financials.distribution_sets(organization_id) WHERE is_default = true;
 
 -- ============================================================================
 -- Distribution Set Lines (individual account distributions)
@@ -64,8 +64,8 @@ CREATE TABLE IF NOT EXISTS financials.distribution_set_lines (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_distribution_set_lines_set ON financials.distribution_set_lines(distribution_set_id);
-CREATE INDEX idx_distribution_set_lines_active ON financials.distribution_set_lines(is_active);
+CREATE INDEX IF NOT EXISTS idx_distribution_set_lines_set ON financials.distribution_set_lines(distribution_set_id);
+CREATE INDEX IF NOT EXISTS idx_distribution_set_lines_active ON financials.distribution_set_lines(is_active);
 
 -- ============================================================================
 -- Distribution Set Usage Log (audit trail of when sets are applied)
@@ -86,9 +86,9 @@ CREATE TABLE IF NOT EXISTS financials.distribution_set_usage_log (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_distribution_set_usage_set ON financials.distribution_set_usage_log(distribution_set_id);
-CREATE INDEX idx_distribution_set_usage_target ON financials.distribution_set_usage_log(target_entity_type, target_entity_id);
-CREATE INDEX idx_distribution_set_usage_applied ON financials.distribution_set_usage_log(applied_at);
+CREATE INDEX IF NOT EXISTS idx_distribution_set_usage_set ON financials.distribution_set_usage_log(distribution_set_id);
+CREATE INDEX IF NOT EXISTS idx_distribution_set_usage_target ON financials.distribution_set_usage_log(target_entity_type, target_entity_id);
+CREATE INDEX IF NOT EXISTS idx_distribution_set_usage_applied ON financials.distribution_set_usage_log(applied_at);
 
 -- ============================================================================
 -- Dashboard View

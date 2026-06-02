@@ -46,9 +46,9 @@ CREATE TABLE IF NOT EXISTS _atlas.budget_definitions (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_budget_definitions_org ON _atlas.budget_definitions(organization_id);
-CREATE INDEX idx_budget_definitions_active ON _atlas.budget_definitions(organization_id, is_active) WHERE is_active = true;
-CREATE INDEX idx_budget_definitions_fiscal_year ON _atlas.budget_definitions(organization_id, fiscal_year);
+CREATE INDEX IF NOT EXISTS idx_budget_definitions_org ON _atlas.budget_definitions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_budget_definitions_active ON _atlas.budget_definitions(organization_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_budget_definitions_fiscal_year ON _atlas.budget_definitions(organization_id, fiscal_year);
 
 -- ============================================================================
 -- Budget Versions (Snapshots with workflow)
@@ -91,9 +91,9 @@ CREATE TABLE IF NOT EXISTS _atlas.budget_versions (
     UNIQUE(definition_id, version_number)
 );
 
-CREATE INDEX idx_budget_versions_org ON _atlas.budget_versions(organization_id);
-CREATE INDEX idx_budget_versions_definition ON _atlas.budget_versions(definition_id);
-CREATE INDEX idx_budget_versions_status ON _atlas.budget_versions(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_budget_versions_org ON _atlas.budget_versions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_budget_versions_definition ON _atlas.budget_versions(definition_id);
+CREATE INDEX IF NOT EXISTS idx_budget_versions_status ON _atlas.budget_versions(organization_id, status);
 
 -- ============================================================================
 -- Budget Lines (Individual budget amounts)
@@ -143,12 +143,12 @@ CREATE TABLE IF NOT EXISTS _atlas.budget_lines (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_budget_lines_org ON _atlas.budget_lines(organization_id);
-CREATE INDEX idx_budget_lines_version ON _atlas.budget_lines(version_id);
-CREATE INDEX idx_budget_lines_account ON _atlas.budget_lines(account_code);
-CREATE INDEX idx_budget_lines_period ON _atlas.budget_lines(period_name);
-CREATE INDEX idx_budget_lines_dept ON _atlas.budget_lines(department_id);
-CREATE INDEX idx_budget_lines_project ON _atlas.budget_lines(project_id);
+CREATE INDEX IF NOT EXISTS idx_budget_lines_org ON _atlas.budget_lines(organization_id);
+CREATE INDEX IF NOT EXISTS idx_budget_lines_version ON _atlas.budget_lines(version_id);
+CREATE INDEX IF NOT EXISTS idx_budget_lines_account ON _atlas.budget_lines(account_code);
+CREATE INDEX IF NOT EXISTS idx_budget_lines_period ON _atlas.budget_lines(period_name);
+CREATE INDEX IF NOT EXISTS idx_budget_lines_dept ON _atlas.budget_lines(department_id);
+CREATE INDEX IF NOT EXISTS idx_budget_lines_project ON _atlas.budget_lines(project_id);
 
 -- ============================================================================
 -- Budget Transfers
@@ -190,6 +190,6 @@ CREATE TABLE IF NOT EXISTS _atlas.budget_transfers (
     UNIQUE(organization_id, transfer_number)
 );
 
-CREATE INDEX idx_budget_transfers_org ON _atlas.budget_transfers(organization_id);
-CREATE INDEX idx_budget_transfers_version ON _atlas.budget_transfers(version_id);
-CREATE INDEX idx_budget_transfers_status ON _atlas.budget_transfers(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_budget_transfers_org ON _atlas.budget_transfers(organization_id);
+CREATE INDEX IF NOT EXISTS idx_budget_transfers_version ON _atlas.budget_transfers(version_id);
+CREATE INDEX IF NOT EXISTS idx_budget_transfers_status ON _atlas.budget_transfers(organization_id, status);

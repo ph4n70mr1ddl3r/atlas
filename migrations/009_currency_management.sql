@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS _atlas.currencies (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_currencies_org ON _atlas.currencies(organization_id);
-CREATE INDEX idx_currencies_base ON _atlas.currencies(organization_id, is_base_currency) WHERE is_base_currency = true;
+CREATE INDEX IF NOT EXISTS idx_currencies_org ON _atlas.currencies(organization_id);
+CREATE INDEX IF NOT EXISTS idx_currencies_base ON _atlas.currencies(organization_id, is_base_currency) WHERE is_base_currency = true;
 
 -- ============================================================================
 -- Exchange Rates (Daily Rates)
@@ -70,14 +70,14 @@ CREATE TABLE IF NOT EXISTS _atlas.exchange_rates (
     UNIQUE(organization_id, from_currency, to_currency, rate_type, effective_date)
 );
 
-CREATE INDEX idx_exchange_rates_lookup ON _atlas.exchange_rates(
+CREATE INDEX IF NOT EXISTS idx_exchange_rates_lookup ON _atlas.exchange_rates(
     organization_id, from_currency, to_currency, rate_type, effective_date DESC
 );
-CREATE INDEX idx_exchange_rates_inverse ON _atlas.exchange_rates(
+CREATE INDEX IF NOT EXISTS idx_exchange_rates_inverse ON _atlas.exchange_rates(
     organization_id, to_currency, from_currency, rate_type, effective_date DESC
 );
-CREATE INDEX idx_exchange_rates_date ON _atlas.exchange_rates(effective_date DESC);
-CREATE INDEX idx_exchange_rates_org ON _atlas.exchange_rates(organization_id);
+CREATE INDEX IF NOT EXISTS idx_exchange_rates_date ON _atlas.exchange_rates(effective_date DESC);
+CREATE INDEX IF NOT EXISTS idx_exchange_rates_org ON _atlas.exchange_rates(organization_id);
 
 -- ============================================================================
 -- Currency Conversion History
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS _atlas.currency_conversions (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_currency_conv_entity ON _atlas.currency_conversions(entity_type, entity_id);
-CREATE INDEX idx_currency_conv_org ON _atlas.currency_conversions(organization_id);
-CREATE INDEX idx_currency_conv_currencies ON _atlas.currency_conversions(from_currency, to_currency);
-CREATE INDEX idx_currency_conv_date ON _atlas.currency_conversions(effective_date);
+CREATE INDEX IF NOT EXISTS idx_currency_conv_entity ON _atlas.currency_conversions(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_currency_conv_org ON _atlas.currency_conversions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_currency_conv_currencies ON _atlas.currency_conversions(from_currency, to_currency);
+CREATE INDEX IF NOT EXISTS idx_currency_conv_date ON _atlas.currency_conversions(effective_date);

@@ -198,15 +198,15 @@ CREATE TABLE IF NOT EXISTS _atlas.trade_settlements (
 );
 
 -- Create indexes
-CREATE INDEX idx_trade_promotions_org ON _atlas.trade_promotions(organization_id);
-CREATE INDEX idx_trade_promotions_status ON _atlas.trade_promotions(status);
-CREATE INDEX idx_trade_promotions_partner ON _atlas.trade_promotions(partner_id);
-CREATE INDEX idx_trade_promotions_dates ON _atlas.trade_promotions(start_date, end_date);
-CREATE INDEX idx_trade_promotion_lines_promo ON _atlas.trade_promotion_lines(promotion_id);
-CREATE INDEX idx_promotion_funds_org ON _atlas.promotion_funds(organization_id);
-CREATE INDEX idx_promotion_funds_status ON _atlas.promotion_funds(status);
-CREATE INDEX idx_trade_claims_org ON _atlas.trade_claims(organization_id);
-CREATE INDEX idx_trade_claims_status ON _atlas.trade_claims(status);
-CREATE INDEX idx_trade_claims_promotion ON _atlas.trade_claims(promotion_id);
-CREATE INDEX idx_trade_settlements_org ON _atlas.trade_settlements(organization_id);
-CREATE INDEX idx_trade_settlements_claim ON _atlas.trade_settlements(claim_id);
+CREATE INDEX IF NOT EXISTS idx_trade_promotions_org ON _atlas.trade_promotions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_trade_promotions_status ON _atlas.trade_promotions(status);
+CREATE INDEX IF NOT EXISTS idx_trade_promotions_partner ON _atlas.trade_promotions(partner_id);
+CREATE INDEX IF NOT EXISTS idx_trade_promotions_dates ON _atlas.trade_promotions(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_trade_promotion_lines_promo ON _atlas.trade_promotion_lines(promotion_id);
+CREATE INDEX IF NOT EXISTS idx_promotion_funds_org ON _atlas.promotion_funds(organization_id);
+CREATE INDEX IF NOT EXISTS idx_promotion_funds_status ON _atlas.promotion_funds(status);
+CREATE INDEX IF NOT EXISTS idx_trade_claims_org ON _atlas.trade_claims(organization_id);
+CREATE INDEX IF NOT EXISTS idx_trade_claims_status ON _atlas.trade_claims(status);
+CREATE INDEX IF NOT EXISTS idx_trade_claims_promotion ON _atlas.trade_claims(promotion_id);
+CREATE INDEX IF NOT EXISTS idx_trade_settlements_org ON _atlas.trade_settlements(organization_id);
+CREATE INDEX IF NOT EXISTS idx_trade_settlements_claim ON _atlas.trade_settlements(claim_id);

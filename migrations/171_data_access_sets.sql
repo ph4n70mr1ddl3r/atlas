@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_data_access_sets (
     UNIQUE(organization_id, name)
 );
 
-CREATE INDEX idx_data_access_sets_org ON _atlas.fin_data_access_sets(organization_id);
+CREATE INDEX IF NOT EXISTS idx_data_access_sets_org ON _atlas.fin_data_access_sets(organization_id);
 
 -- ============================================================================
 -- Data Access Set Details
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_data_access_set_details (
     CHECK (ledger_id IS NOT NULL OR ledger_set_id IS NOT NULL)
 );
 
-CREATE INDEX idx_data_access_details_set ON _atlas.fin_data_access_set_details(data_access_set_id);
+CREATE INDEX IF NOT EXISTS idx_data_access_details_set ON _atlas.fin_data_access_set_details(data_access_set_id);
 
 COMMENT ON TABLE _atlas.fin_data_access_sets IS 'Security sets for ledger and segment value access';
 COMMENT ON TABLE _atlas.fin_data_access_set_details IS 'Individual access rules within a data access set';

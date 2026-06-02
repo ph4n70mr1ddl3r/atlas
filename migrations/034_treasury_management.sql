@@ -62,11 +62,11 @@ CREATE TABLE IF NOT EXISTS _atlas.treasury_deals (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_treasury_deals_org ON _atlas.treasury_deals(organization_id);
-CREATE INDEX idx_treasury_deals_type ON _atlas.treasury_deals(organization_id, deal_type);
-CREATE INDEX idx_treasury_deals_status ON _atlas.treasury_deals(organization_id, status);
-CREATE INDEX idx_treasury_deals_counterparty ON _atlas.treasury_deals(counterparty_id);
-CREATE INDEX idx_treasury_deals_maturity ON _atlas.treasury_deals(maturity_date) WHERE status IN ('authorized', 'settled');
+CREATE INDEX IF NOT EXISTS idx_treasury_deals_org ON _atlas.treasury_deals(organization_id);
+CREATE INDEX IF NOT EXISTS idx_treasury_deals_type ON _atlas.treasury_deals(organization_id, deal_type);
+CREATE INDEX IF NOT EXISTS idx_treasury_deals_status ON _atlas.treasury_deals(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_treasury_deals_counterparty ON _atlas.treasury_deals(counterparty_id);
+CREATE INDEX IF NOT EXISTS idx_treasury_deals_maturity ON _atlas.treasury_deals(maturity_date) WHERE status IN ('authorized', 'settled');
 
 -- Deal settlements
 CREATE TABLE IF NOT EXISTS _atlas.treasury_settlements (
@@ -89,4 +89,4 @@ CREATE TABLE IF NOT EXISTS _atlas.treasury_settlements (
     UNIQUE(deal_id, settlement_number)
 );
 
-CREATE INDEX idx_treasury_settlements_deal ON _atlas.treasury_settlements(deal_id);
+CREATE INDEX IF NOT EXISTS idx_treasury_settlements_deal ON _atlas.treasury_settlements(deal_id);

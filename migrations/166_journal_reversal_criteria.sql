@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_journal_reversal_criteria_sets (
     UNIQUE(organization_id, name)
 );
 
-CREATE INDEX idx_reversal_criteria_org ON _atlas.fin_journal_reversal_criteria_sets(organization_id);
+CREATE INDEX IF NOT EXISTS idx_reversal_criteria_org ON _atlas.fin_journal_reversal_criteria_sets(organization_id);
 
 -- ============================================================================
 -- Journal Reversal Criteria Rules
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_journal_reversal_criteria_rules (
     UNIQUE(criteria_set_id, journal_category)
 );
 
-CREATE INDEX idx_reversal_rules_set ON _atlas.fin_journal_reversal_criteria_rules(criteria_set_id);
+CREATE INDEX IF NOT EXISTS idx_reversal_rules_set ON _atlas.fin_journal_reversal_criteria_rules(criteria_set_id);
 
 -- ============================================================================
 -- Add reference to Accounting Books

@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS _atlas.qualification_areas (
     UNIQUE(organization_id, area_code)
 );
 
-CREATE INDEX idx_qual_areas_org ON _atlas.qualification_areas(organization_id);
+CREATE INDEX IF NOT EXISTS idx_qual_areas_org ON _atlas.qualification_areas(organization_id);
 
 -- ============================================================================
 -- Qualification Questions
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS _atlas.qualification_questions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_qual_questions_area ON _atlas.qualification_questions(area_id);
+CREATE INDEX IF NOT EXISTS idx_qual_questions_area ON _atlas.qualification_questions(area_id);
 
 -- ============================================================================
 -- Supplier Qualification Initiatives (qualification runs/campaigns)
@@ -90,8 +90,8 @@ CREATE TABLE IF NOT EXISTS _atlas.supplier_qualification_initiatives (
     UNIQUE(organization_id, initiative_number)
 );
 
-CREATE INDEX idx_qual_initiatives_org ON _atlas.supplier_qualification_initiatives(organization_id);
-CREATE INDEX idx_qual_initiatives_status ON _atlas.supplier_qualification_initiatives(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_qual_initiatives_org ON _atlas.supplier_qualification_initiatives(organization_id);
+CREATE INDEX IF NOT EXISTS idx_qual_initiatives_status ON _atlas.supplier_qualification_initiatives(organization_id, status);
 
 -- ============================================================================
 -- Supplier Qualification Invitations (per supplier per initiative)
@@ -122,9 +122,9 @@ CREATE TABLE IF NOT EXISTS _atlas.supplier_qualification_invitations (
     UNIQUE(initiative_id, supplier_id)
 );
 
-CREATE INDEX idx_qual_invitations_initiative ON _atlas.supplier_qualification_invitations(initiative_id);
-CREATE INDEX idx_qual_invitations_supplier ON _atlas.supplier_qualification_invitations(supplier_id);
-CREATE INDEX idx_qual_invitations_status ON _atlas.supplier_qualification_invitations(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_qual_invitations_initiative ON _atlas.supplier_qualification_invitations(initiative_id);
+CREATE INDEX IF NOT EXISTS idx_qual_invitations_supplier ON _atlas.supplier_qualification_invitations(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_qual_invitations_status ON _atlas.supplier_qualification_invitations(organization_id, status);
 
 -- ============================================================================
 -- Supplier Qualification Responses (answers to individual questions)
@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS _atlas.supplier_qualification_responses (
     UNIQUE(invitation_id, question_id)
 );
 
-CREATE INDEX idx_qual_responses_invitation ON _atlas.supplier_qualification_responses(invitation_id);
+CREATE INDEX IF NOT EXISTS idx_qual_responses_invitation ON _atlas.supplier_qualification_responses(invitation_id);
 
 -- ============================================================================
 -- Supplier Certifications (track ongoing certifications / qualifications)
@@ -175,6 +175,6 @@ CREATE TABLE IF NOT EXISTS _atlas.supplier_certifications (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_supplier_certs_supplier ON _atlas.supplier_certifications(supplier_id);
-CREATE INDEX idx_supplier_certs_status ON _atlas.supplier_certifications(organization_id, status);
-CREATE INDEX idx_supplier_certs_expiry ON _atlas.supplier_certifications(expiry_date);
+CREATE INDEX IF NOT EXISTS idx_supplier_certs_supplier ON _atlas.supplier_certifications(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_certs_status ON _atlas.supplier_certifications(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_supplier_certs_expiry ON _atlas.supplier_certifications(expiry_date);

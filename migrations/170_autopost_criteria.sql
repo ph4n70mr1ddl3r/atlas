@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_autopost_criteria_sets (
     UNIQUE(organization_id, name)
 );
 
-CREATE INDEX idx_autopost_sets_org ON _atlas.fin_autopost_criteria_sets(organization_id);
+CREATE INDEX IF NOT EXISTS idx_autopost_sets_org ON _atlas.fin_autopost_criteria_sets(organization_id);
 
 -- ============================================================================
 -- AutoPost Criteria
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_autopost_criteria (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_autopost_criteria_set ON _atlas.fin_autopost_criteria(criteria_set_id);
+CREATE INDEX IF NOT EXISTS idx_autopost_criteria_set ON _atlas.fin_autopost_criteria(criteria_set_id);
 
 COMMENT ON TABLE _atlas.fin_autopost_criteria_sets IS 'Sets of criteria for automatic journal posting';
 COMMENT ON TABLE _atlas.fin_autopost_criteria IS 'Individual rule lines within an AutoPost criteria set';

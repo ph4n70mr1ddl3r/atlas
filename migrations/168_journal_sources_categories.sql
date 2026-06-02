@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_journal_sources (
     UNIQUE(organization_id, name)
 );
 
-CREATE INDEX idx_journal_sources_org ON _atlas.fin_journal_sources(organization_id);
+CREATE INDEX IF NOT EXISTS idx_journal_sources_org ON _atlas.fin_journal_sources(organization_id);
 
 -- ============================================================================
 -- Journal Categories
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_journal_categories (
     UNIQUE(organization_id, name)
 );
 
-CREATE INDEX idx_journal_categories_org ON _atlas.fin_journal_categories(organization_id);
+CREATE INDEX IF NOT EXISTS idx_journal_categories_org ON _atlas.fin_journal_categories(organization_id);
 
 COMMENT ON TABLE _atlas.fin_journal_sources IS 'Definitions of journal entry sources and their processing rules';
 COMMENT ON TABLE _atlas.fin_journal_categories IS 'Definitions of journal entry categories';

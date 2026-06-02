@@ -33,10 +33,10 @@ CREATE TABLE IF NOT EXISTS financials.cash_flow_statements (
     UNIQUE(organization_id, statement_number)
 );
 
-CREATE INDEX idx_cfs_org ON financials.cash_flow_statements(organization_id);
-CREATE INDEX idx_cfs_status ON financials.cash_flow_statements(status);
-CREATE INDEX idx_cfs_method ON financials.cash_flow_statements(method);
-CREATE INDEX idx_cfs_period ON financials.cash_flow_statements(period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_cfs_org ON financials.cash_flow_statements(organization_id);
+CREATE INDEX IF NOT EXISTS idx_cfs_status ON financials.cash_flow_statements(status);
+CREATE INDEX IF NOT EXISTS idx_cfs_method ON financials.cash_flow_statements(method);
+CREATE INDEX IF NOT EXISTS idx_cfs_period ON financials.cash_flow_statements(period_start, period_end);
 
 -- ============================================================================
 -- Cash Flow Statement Lines
@@ -58,8 +58,8 @@ CREATE TABLE IF NOT EXISTS financials.cash_flow_statement_lines (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_cfsl_statement ON financials.cash_flow_statement_lines(statement_id);
-CREATE INDEX idx_cfsl_category ON financials.cash_flow_statement_lines(category);
+CREATE INDEX IF NOT EXISTS idx_cfsl_statement ON financials.cash_flow_statement_lines(statement_id);
+CREATE INDEX IF NOT EXISTS idx_cfsl_category ON financials.cash_flow_statement_lines(category);
 
 -- ============================================================================
 -- Dashboard View

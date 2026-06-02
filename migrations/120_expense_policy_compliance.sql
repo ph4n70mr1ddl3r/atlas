@@ -50,10 +50,10 @@ CREATE TABLE IF NOT EXISTS fin_expense_policy_rules (
     UNIQUE(org_id, rule_code)
 );
 
-CREATE INDEX idx_expense_policy_rules_org ON fin_expense_policy_rules(org_id);
-CREATE INDEX idx_expense_policy_rules_type ON fin_expense_policy_rules(org_id, rule_type);
-CREATE INDEX idx_expense_policy_rules_category ON fin_expense_policy_rules(org_id, expense_category);
-CREATE INDEX idx_expense_policy_rules_active ON fin_expense_policy_rules(org_id, is_active) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_expense_policy_rules_org ON fin_expense_policy_rules(org_id);
+CREATE INDEX IF NOT EXISTS idx_expense_policy_rules_type ON fin_expense_policy_rules(org_id, rule_type);
+CREATE INDEX IF NOT EXISTS idx_expense_policy_rules_category ON fin_expense_policy_rules(org_id, expense_category);
+CREATE INDEX IF NOT EXISTS idx_expense_policy_rules_active ON fin_expense_policy_rules(org_id, is_active) WHERE is_active = TRUE;
 
 -- ============================================================================
 -- Expense Compliance Audits
@@ -101,11 +101,11 @@ CREATE TABLE IF NOT EXISTS fin_expense_compliance_audits (
     UNIQUE(org_id, audit_number)
 );
 
-CREATE INDEX idx_expense_compliance_audits_org ON fin_expense_compliance_audits(org_id);
-CREATE INDEX idx_expense_compliance_audits_report ON fin_expense_compliance_audits(report_id);
-CREATE INDEX idx_expense_compliance_audits_employee ON fin_expense_compliance_audits(employee_id);
-CREATE INDEX idx_expense_compliance_audits_status ON fin_expense_compliance_audits(org_id, status);
-CREATE INDEX idx_expense_compliance_audits_risk ON fin_expense_compliance_audits(org_id, risk_level) WHERE risk_level IN ('high', 'critical');
+CREATE INDEX IF NOT EXISTS idx_expense_compliance_audits_org ON fin_expense_compliance_audits(org_id);
+CREATE INDEX IF NOT EXISTS idx_expense_compliance_audits_report ON fin_expense_compliance_audits(report_id);
+CREATE INDEX IF NOT EXISTS idx_expense_compliance_audits_employee ON fin_expense_compliance_audits(employee_id);
+CREATE INDEX IF NOT EXISTS idx_expense_compliance_audits_status ON fin_expense_compliance_audits(org_id, status);
+CREATE INDEX IF NOT EXISTS idx_expense_compliance_audits_risk ON fin_expense_compliance_audits(org_id, risk_level) WHERE risk_level IN ('high', 'critical');
 
 -- ============================================================================
 -- Expense Compliance Violations
@@ -144,11 +144,11 @@ CREATE TABLE IF NOT EXISTS fin_expense_compliance_violations (
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_expense_compliance_violations_audit ON fin_expense_compliance_violations(audit_id);
-CREATE INDEX idx_expense_compliance_violations_report ON fin_expense_compliance_violations(report_id);
-CREATE INDEX idx_expense_compliance_violations_rule ON fin_expense_compliance_violations(policy_rule_id);
-CREATE INDEX idx_expense_compliance_violations_severity ON fin_expense_compliance_violations(org_id, severity);
-CREATE INDEX idx_expense_compliance_violations_resolution ON fin_expense_compliance_violations(resolution_status) WHERE resolution_status = 'open';
+CREATE INDEX IF NOT EXISTS idx_expense_compliance_violations_audit ON fin_expense_compliance_violations(audit_id);
+CREATE INDEX IF NOT EXISTS idx_expense_compliance_violations_report ON fin_expense_compliance_violations(report_id);
+CREATE INDEX IF NOT EXISTS idx_expense_compliance_violations_rule ON fin_expense_compliance_violations(policy_rule_id);
+CREATE INDEX IF NOT EXISTS idx_expense_compliance_violations_severity ON fin_expense_compliance_violations(org_id, severity);
+CREATE INDEX IF NOT EXISTS idx_expense_compliance_violations_resolution ON fin_expense_compliance_violations(resolution_status) WHERE resolution_status = 'open';
 
 -- ============================================================================
 -- Comments

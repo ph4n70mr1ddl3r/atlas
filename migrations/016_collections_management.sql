@@ -64,10 +64,10 @@ CREATE TABLE IF NOT EXISTS _atlas.customer_credit_profiles (
     UNIQUE(organization_id, customer_id)
 );
 
-CREATE INDEX idx_credit_profiles_org ON _atlas.customer_credit_profiles(organization_id);
-CREATE INDEX idx_credit_profiles_customer ON _atlas.customer_credit_profiles(customer_id);
-CREATE INDEX idx_credit_profiles_risk ON _atlas.customer_credit_profiles(organization_id, risk_classification);
-CREATE INDEX idx_credit_profiles_hold ON _atlas.customer_credit_profiles(credit_hold) WHERE credit_hold = true;
+CREATE INDEX IF NOT EXISTS idx_credit_profiles_org ON _atlas.customer_credit_profiles(organization_id);
+CREATE INDEX IF NOT EXISTS idx_credit_profiles_customer ON _atlas.customer_credit_profiles(customer_id);
+CREATE INDEX IF NOT EXISTS idx_credit_profiles_risk ON _atlas.customer_credit_profiles(organization_id, risk_classification);
+CREATE INDEX IF NOT EXISTS idx_credit_profiles_hold ON _atlas.customer_credit_profiles(credit_hold) WHERE credit_hold = true;
 
 -- ============================================================================
 -- Collection Strategies
@@ -107,8 +107,8 @@ CREATE TABLE IF NOT EXISTS _atlas.collection_strategies (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_coll_strategies_org ON _atlas.collection_strategies(organization_id);
-CREATE INDEX idx_coll_strategies_active ON _atlas.collection_strategies(organization_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_coll_strategies_org ON _atlas.collection_strategies(organization_id);
+CREATE INDEX IF NOT EXISTS idx_coll_strategies_active ON _atlas.collection_strategies(organization_id, is_active) WHERE is_active = true;
 
 -- ============================================================================
 -- Collection Cases
@@ -167,11 +167,11 @@ CREATE TABLE IF NOT EXISTS _atlas.collection_cases (
     UNIQUE(organization_id, case_number)
 );
 
-CREATE INDEX idx_coll_cases_org ON _atlas.collection_cases(organization_id);
-CREATE INDEX idx_coll_cases_customer ON _atlas.collection_cases(customer_id);
-CREATE INDEX idx_coll_cases_status ON _atlas.collection_cases(organization_id, status);
-CREATE INDEX idx_coll_cases_assigned ON _atlas.collection_cases(assigned_to) WHERE status IN ('open', 'in_progress');
-CREATE INDEX idx_coll_cases_next_action ON _atlas.collection_cases(next_action_date) WHERE status IN ('open', 'in_progress');
+CREATE INDEX IF NOT EXISTS idx_coll_cases_org ON _atlas.collection_cases(organization_id);
+CREATE INDEX IF NOT EXISTS idx_coll_cases_customer ON _atlas.collection_cases(customer_id);
+CREATE INDEX IF NOT EXISTS idx_coll_cases_status ON _atlas.collection_cases(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_coll_cases_assigned ON _atlas.collection_cases(assigned_to) WHERE status IN ('open', 'in_progress');
+CREATE INDEX IF NOT EXISTS idx_coll_cases_next_action ON _atlas.collection_cases(next_action_date) WHERE status IN ('open', 'in_progress');
 
 -- ============================================================================
 -- Customer Interactions (calls, emails, meetings)
@@ -220,11 +220,11 @@ CREATE TABLE IF NOT EXISTS _atlas.customer_interactions (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_interactions_org ON _atlas.customer_interactions(organization_id);
-CREATE INDEX idx_interactions_case ON _atlas.customer_interactions(case_id);
-CREATE INDEX idx_interactions_customer ON _atlas.customer_interactions(customer_id);
-CREATE INDEX idx_interactions_date ON _atlas.customer_interactions(performed_at);
-CREATE INDEX idx_interactions_follow_up ON _atlas.customer_interactions(follow_up_date) WHERE follow_up_date IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_interactions_org ON _atlas.customer_interactions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_interactions_case ON _atlas.customer_interactions(case_id);
+CREATE INDEX IF NOT EXISTS idx_interactions_customer ON _atlas.customer_interactions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_interactions_date ON _atlas.customer_interactions(performed_at);
+CREATE INDEX IF NOT EXISTS idx_interactions_follow_up ON _atlas.customer_interactions(follow_up_date) WHERE follow_up_date IS NOT NULL;
 
 -- ============================================================================
 -- Promise to Pay
@@ -277,11 +277,11 @@ CREATE TABLE IF NOT EXISTS _atlas.promise_to_pay (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_ptp_org ON _atlas.promise_to_pay(organization_id);
-CREATE INDEX idx_ptp_case ON _atlas.promise_to_pay(case_id);
-CREATE INDEX idx_ptp_customer ON _atlas.promise_to_pay(customer_id);
-CREATE INDEX idx_ptp_status ON _atlas.promise_to_pay(organization_id, status);
-CREATE INDEX idx_ptp_promise_date ON _atlas.promise_to_pay(promise_date);
+CREATE INDEX IF NOT EXISTS idx_ptp_org ON _atlas.promise_to_pay(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ptp_case ON _atlas.promise_to_pay(case_id);
+CREATE INDEX IF NOT EXISTS idx_ptp_customer ON _atlas.promise_to_pay(customer_id);
+CREATE INDEX IF NOT EXISTS idx_ptp_status ON _atlas.promise_to_pay(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_ptp_promise_date ON _atlas.promise_to_pay(promise_date);
 
 -- ============================================================================
 -- Dunning Campaigns
@@ -331,9 +331,9 @@ CREATE TABLE IF NOT EXISTS _atlas.dunning_campaigns (
     UNIQUE(organization_id, campaign_number)
 );
 
-CREATE INDEX idx_dunning_campaigns_org ON _atlas.dunning_campaigns(organization_id);
-CREATE INDEX idx_dunning_campaigns_status ON _atlas.dunning_campaigns(organization_id, status);
-CREATE INDEX idx_dunning_campaigns_scheduled ON _atlas.dunning_campaigns(scheduled_date) WHERE status = 'scheduled';
+CREATE INDEX IF NOT EXISTS idx_dunning_campaigns_org ON _atlas.dunning_campaigns(organization_id);
+CREATE INDEX IF NOT EXISTS idx_dunning_campaigns_status ON _atlas.dunning_campaigns(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_dunning_campaigns_scheduled ON _atlas.dunning_campaigns(scheduled_date) WHERE status = 'scheduled';
 
 -- ============================================================================
 -- Dunning Letters (individual letters sent per customer)
@@ -383,10 +383,10 @@ CREATE TABLE IF NOT EXISTS _atlas.dunning_letters (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_dunning_letters_org ON _atlas.dunning_letters(organization_id);
-CREATE INDEX idx_dunning_letters_campaign ON _atlas.dunning_letters(campaign_id);
-CREATE INDEX idx_dunning_letters_customer ON _atlas.dunning_letters(customer_id);
-CREATE INDEX idx_dunning_letters_status ON _atlas.dunning_letters(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_dunning_letters_org ON _atlas.dunning_letters(organization_id);
+CREATE INDEX IF NOT EXISTS idx_dunning_letters_campaign ON _atlas.dunning_letters(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_dunning_letters_customer ON _atlas.dunning_letters(customer_id);
+CREATE INDEX IF NOT EXISTS idx_dunning_letters_status ON _atlas.dunning_letters(organization_id, status);
 
 -- ============================================================================
 -- Receivables Aging Snapshot
@@ -429,9 +429,9 @@ CREATE TABLE IF NOT EXISTS _atlas.receivables_aging_snapshots (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_aging_snapshots_org ON _atlas.receivables_aging_snapshots(organization_id);
-CREATE INDEX idx_aging_snapshots_date ON _atlas.receivables_aging_snapshots(snapshot_date);
-CREATE INDEX idx_aging_snapshots_customer ON _atlas.receivables_aging_snapshots(customer_id, snapshot_date);
+CREATE INDEX IF NOT EXISTS idx_aging_snapshots_org ON _atlas.receivables_aging_snapshots(organization_id);
+CREATE INDEX IF NOT EXISTS idx_aging_snapshots_date ON _atlas.receivables_aging_snapshots(snapshot_date);
+CREATE INDEX IF NOT EXISTS idx_aging_snapshots_customer ON _atlas.receivables_aging_snapshots(customer_id, snapshot_date);
 
 -- ============================================================================
 -- Write-Off Requests
@@ -478,6 +478,6 @@ CREATE TABLE IF NOT EXISTS _atlas.write_off_requests (
     UNIQUE(organization_id, request_number)
 );
 
-CREATE INDEX idx_write_offs_org ON _atlas.write_off_requests(organization_id);
-CREATE INDEX idx_write_offs_customer ON _atlas.write_off_requests(customer_id);
-CREATE INDEX idx_write_offs_status ON _atlas.write_off_requests(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_write_offs_org ON _atlas.write_off_requests(organization_id);
+CREATE INDEX IF NOT EXISTS idx_write_offs_customer ON _atlas.write_off_requests(customer_id);
+CREATE INDEX IF NOT EXISTS idx_write_offs_status ON _atlas.write_off_requests(organization_id, status);

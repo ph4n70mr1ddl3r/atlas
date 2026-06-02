@@ -22,8 +22,8 @@ CREATE TABLE _atlas.fin_fa_revaluation_lines (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_fa_revaluations_book ON _atlas.fin_fa_revaluations(book_type_code);
-CREATE INDEX idx_fa_revaluation_lines_rev ON _atlas.fin_fa_revaluation_lines(revaluation_id);
+CREATE INDEX IF NOT EXISTS idx_fa_revaluations_book ON _atlas.fin_fa_revaluations(book_type_code);
+CREATE INDEX IF NOT EXISTS idx_fa_revaluation_lines_rev ON _atlas.fin_fa_revaluation_lines(revaluation_id);
 
 COMMENT ON TABLE _atlas.fin_fa_revaluations IS 'Fixed asset revaluation events for a corporate or tax book';
 COMMENT ON TABLE _atlas.fin_fa_revaluation_lines IS 'Individual asset adjustments for a revaluation event';

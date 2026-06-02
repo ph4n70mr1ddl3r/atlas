@@ -38,8 +38,8 @@ CREATE TABLE IF NOT EXISTS _atlas.corporate_card_programs (
     UNIQUE(organization_id, program_code)
 );
 
-CREATE INDEX idx_cc_programs_org ON _atlas.corporate_card_programs(organization_id);
-CREATE INDEX idx_cc_programs_active ON _atlas.corporate_card_programs(organization_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_cc_programs_org ON _atlas.corporate_card_programs(organization_id);
+CREATE INDEX IF NOT EXISTS idx_cc_programs_active ON _atlas.corporate_card_programs(organization_id, is_active);
 
 -- ============================================================================
 -- Corporate Cards
@@ -74,10 +74,10 @@ CREATE TABLE IF NOT EXISTS _atlas.corporate_cards (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_cc_cards_org ON _atlas.corporate_cards(organization_id);
-CREATE INDEX idx_cc_cards_program ON _atlas.corporate_cards(program_id);
-CREATE INDEX idx_cc_cards_cardholder ON _atlas.corporate_cards(cardholder_id);
-CREATE INDEX idx_cc_cards_status ON _atlas.corporate_cards(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_cc_cards_org ON _atlas.corporate_cards(organization_id);
+CREATE INDEX IF NOT EXISTS idx_cc_cards_program ON _atlas.corporate_cards(program_id);
+CREATE INDEX IF NOT EXISTS idx_cc_cards_cardholder ON _atlas.corporate_cards(cardholder_id);
+CREATE INDEX IF NOT EXISTS idx_cc_cards_status ON _atlas.corporate_cards(organization_id, status);
 
 -- ============================================================================
 -- Card Transactions
@@ -116,11 +116,11 @@ CREATE TABLE IF NOT EXISTS _atlas.corporate_card_transactions (
     UNIQUE(organization_id, transaction_reference)
 );
 
-CREATE INDEX idx_cc_txns_org ON _atlas.corporate_card_transactions(organization_id);
-CREATE INDEX idx_cc_txns_card ON _atlas.corporate_card_transactions(card_id);
-CREATE INDEX idx_cc_txns_status ON _atlas.corporate_card_transactions(organization_id, status);
-CREATE INDEX idx_cc_txns_date ON _atlas.corporate_card_transactions(transaction_date);
-CREATE INDEX idx_cc_txns_expense ON _atlas.corporate_card_transactions(expense_report_id)
+CREATE INDEX IF NOT EXISTS idx_cc_txns_org ON _atlas.corporate_card_transactions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_cc_txns_card ON _atlas.corporate_card_transactions(card_id);
+CREATE INDEX IF NOT EXISTS idx_cc_txns_status ON _atlas.corporate_card_transactions(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_cc_txns_date ON _atlas.corporate_card_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_cc_txns_expense ON _atlas.corporate_card_transactions(expense_report_id)
     WHERE expense_report_id IS NOT NULL;
 
 -- ============================================================================
@@ -157,9 +157,9 @@ CREATE TABLE IF NOT EXISTS _atlas.corporate_card_statements (
     UNIQUE(organization_id, statement_number)
 );
 
-CREATE INDEX idx_cc_stmts_org ON _atlas.corporate_card_statements(organization_id);
-CREATE INDEX idx_cc_stmts_program ON _atlas.corporate_card_statements(program_id);
-CREATE INDEX idx_cc_stmts_status ON _atlas.corporate_card_statements(status);
+CREATE INDEX IF NOT EXISTS idx_cc_stmts_org ON _atlas.corporate_card_statements(organization_id);
+CREATE INDEX IF NOT EXISTS idx_cc_stmts_program ON _atlas.corporate_card_statements(program_id);
+CREATE INDEX IF NOT EXISTS idx_cc_stmts_status ON _atlas.corporate_card_statements(status);
 
 -- ============================================================================
 -- Spending Limit Overrides
@@ -183,5 +183,5 @@ CREATE TABLE IF NOT EXISTS _atlas.corporate_card_limit_overrides (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_cc_limits_card ON _atlas.corporate_card_limit_overrides(card_id);
-CREATE INDEX idx_cc_limits_status ON _atlas.corporate_card_limit_overrides(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_cc_limits_card ON _atlas.corporate_card_limit_overrides(card_id);
+CREATE INDEX IF NOT EXISTS idx_cc_limits_status ON _atlas.corporate_card_limit_overrides(organization_id, status);

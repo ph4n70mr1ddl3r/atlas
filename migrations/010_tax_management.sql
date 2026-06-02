@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS _atlas.tax_regimes (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_tax_regimes_org ON _atlas.tax_regimes(organization_id);
-CREATE INDEX idx_tax_regimes_active ON _atlas.tax_regimes(organization_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_tax_regimes_org ON _atlas.tax_regimes(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tax_regimes_active ON _atlas.tax_regimes(organization_id, is_active) WHERE is_active = true;
 
 -- ============================================================================
 -- Tax Jurisdictions
@@ -81,8 +81,8 @@ CREATE TABLE IF NOT EXISTS _atlas.tax_jurisdictions (
     UNIQUE(organization_id, regime_id, code)
 );
 
-CREATE INDEX idx_tax_jurisdictions_org ON _atlas.tax_jurisdictions(organization_id);
-CREATE INDEX idx_tax_jurisdictions_regime ON _atlas.tax_jurisdictions(regime_id);
+CREATE INDEX IF NOT EXISTS idx_tax_jurisdictions_org ON _atlas.tax_jurisdictions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tax_jurisdictions_regime ON _atlas.tax_jurisdictions(regime_id);
 
 -- ============================================================================
 -- Tax Rates
@@ -120,11 +120,11 @@ CREATE TABLE IF NOT EXISTS _atlas.tax_rates (
     UNIQUE(organization_id, regime_id, code)
 );
 
-CREATE INDEX idx_tax_rates_org ON _atlas.tax_regimes(organization_id);
-CREATE INDEX idx_tax_rates_regime ON _atlas.tax_rates(regime_id);
-CREATE INDEX idx_tax_rates_jurisdiction ON _atlas.tax_rates(jurisdiction_id);
-CREATE INDEX idx_tax_rates_effective ON _atlas.tax_rates(effective_from, effective_to);
-CREATE INDEX idx_tax_rates_active ON _atlas.tax_rates(organization_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_tax_rates_org ON _atlas.tax_regimes(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tax_rates_regime ON _atlas.tax_rates(regime_id);
+CREATE INDEX IF NOT EXISTS idx_tax_rates_jurisdiction ON _atlas.tax_rates(jurisdiction_id);
+CREATE INDEX IF NOT EXISTS idx_tax_rates_effective ON _atlas.tax_rates(effective_from, effective_to);
+CREATE INDEX IF NOT EXISTS idx_tax_rates_active ON _atlas.tax_rates(organization_id, is_active) WHERE is_active = true;
 
 -- ============================================================================
 -- Tax Determination Rules
@@ -161,9 +161,9 @@ CREATE TABLE IF NOT EXISTS _atlas.tax_determination_rules (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_tax_det_rules_org ON _atlas.tax_determination_rules(organization_id);
-CREATE INDEX idx_tax_det_rules_regime ON _atlas.tax_determination_rules(regime_id);
-CREATE INDEX idx_tax_det_rules_priority ON _atlas.tax_determination_rules(priority);
+CREATE INDEX IF NOT EXISTS idx_tax_det_rules_org ON _atlas.tax_determination_rules(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tax_det_rules_regime ON _atlas.tax_determination_rules(regime_id);
+CREATE INDEX IF NOT EXISTS idx_tax_det_rules_priority ON _atlas.tax_determination_rules(priority);
 
 -- ============================================================================
 -- Tax Lines (calculated taxes on transactions)
@@ -202,11 +202,11 @@ CREATE TABLE IF NOT EXISTS _atlas.tax_lines (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_tax_lines_entity ON _atlas.tax_lines(entity_type, entity_id);
-CREATE INDEX idx_tax_lines_org ON _atlas.tax_lines(organization_id);
-CREATE INDEX idx_tax_lines_regime ON _atlas.tax_lines(regime_id);
-CREATE INDEX idx_tax_lines_rate ON _atlas.tax_rates(id);
-CREATE INDEX idx_tax_lines_date ON _atlas.tax_lines(created_at);
+CREATE INDEX IF NOT EXISTS idx_tax_lines_entity ON _atlas.tax_lines(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_tax_lines_org ON _atlas.tax_lines(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tax_lines_regime ON _atlas.tax_lines(regime_id);
+CREATE INDEX IF NOT EXISTS idx_tax_lines_rate ON _atlas.tax_rates(id);
+CREATE INDEX IF NOT EXISTS idx_tax_lines_date ON _atlas.tax_lines(created_at);
 
 -- ============================================================================
 -- Tax Reporting Summary
@@ -239,5 +239,5 @@ CREATE TABLE IF NOT EXISTS _atlas.tax_reports (
     UNIQUE(organization_id, regime_id, jurisdiction_id, period_start, period_end)
 );
 
-CREATE INDEX idx_tax_reports_org ON _atlas.tax_reports(organization_id);
-CREATE INDEX idx_tax_reports_period ON _atlas.tax_reports(period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_tax_reports_org ON _atlas.tax_reports(organization_id);
+CREATE INDEX IF NOT EXISTS idx_tax_reports_period ON _atlas.tax_reports(period_start, period_end);

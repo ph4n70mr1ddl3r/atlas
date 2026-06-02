@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS financials.receipt_batches (
     UNIQUE(organization_id, batch_number)
 );
 
-CREATE INDEX idx_rb_org ON financials.receipt_batches(organization_id);
-CREATE INDEX idx_rb_status ON financials.receipt_batches(status);
+CREATE INDEX IF NOT EXISTS idx_rb_org ON financials.receipt_batches(organization_id);
+CREATE INDEX IF NOT EXISTS idx_rb_status ON financials.receipt_batches(status);
 
 -- ============================================================================
 -- Cash Receipts (individual receipt records)
@@ -75,12 +75,12 @@ CREATE TABLE IF NOT EXISTS financials.cash_receipts (
     UNIQUE(organization_id, receipt_number)
 );
 
-CREATE INDEX idx_cr_org ON financials.cash_receipts(organization_id);
-CREATE INDEX idx_cr_batch ON financials.cash_receipts(batch_id);
-CREATE INDEX idx_cr_customer ON financials.cash_receipts(customer_id);
-CREATE INDEX idx_cr_status ON financials.cash_receipts(status);
-CREATE INDEX idx_cr_date ON financials.cash_receipts(receipt_date);
-CREATE INDEX idx_cr_ref ON financials.cash_receipts(reference_number);
+CREATE INDEX IF NOT EXISTS idx_cr_org ON financials.cash_receipts(organization_id);
+CREATE INDEX IF NOT EXISTS idx_cr_batch ON financials.cash_receipts(batch_id);
+CREATE INDEX IF NOT EXISTS idx_cr_customer ON financials.cash_receipts(customer_id);
+CREATE INDEX IF NOT EXISTS idx_cr_status ON financials.cash_receipts(status);
+CREATE INDEX IF NOT EXISTS idx_cr_date ON financials.cash_receipts(receipt_date);
+CREATE INDEX IF NOT EXISTS idx_cr_ref ON financials.cash_receipts(reference_number);
 
 -- ============================================================================
 -- Receipt Applications (linking receipts to invoices/transactions)
@@ -111,11 +111,11 @@ CREATE TABLE IF NOT EXISTS financials.receipt_applications (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_ra_org ON financials.receipt_applications(organization_id);
-CREATE INDEX idx_ra_receipt ON financials.receipt_applications(receipt_id);
-CREATE INDEX idx_ra_invoice ON financials.receipt_applications(invoice_id);
-CREATE INDEX idx_ra_status ON financials.receipt_applications(status);
-CREATE INDEX idx_ra_date ON financials.receipt_applications(application_date);
+CREATE INDEX IF NOT EXISTS idx_ra_org ON financials.receipt_applications(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ra_receipt ON financials.receipt_applications(receipt_id);
+CREATE INDEX IF NOT EXISTS idx_ra_invoice ON financials.receipt_applications(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_ra_status ON financials.receipt_applications(status);
+CREATE INDEX IF NOT EXISTS idx_ra_date ON financials.receipt_applications(application_date);
 
 -- ============================================================================
 -- Receipt Audit Trail
@@ -135,9 +135,9 @@ CREATE TABLE IF NOT EXISTS financials.cash_receipt_audit (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_cra_receipt ON financials.cash_receipt_audit(receipt_id);
-CREATE INDEX idx_cra_action ON financials.cash_receipt_audit(action);
-CREATE INDEX idx_cra_performed ON financials.cash_receipt_audit(performed_at);
+CREATE INDEX IF NOT EXISTS idx_cra_receipt ON financials.cash_receipt_audit(receipt_id);
+CREATE INDEX IF NOT EXISTS idx_cra_action ON financials.cash_receipt_audit(action);
+CREATE INDEX IF NOT EXISTS idx_cra_performed ON financials.cash_receipt_audit(performed_at);
 
 -- ============================================================================
 -- Dashboard View

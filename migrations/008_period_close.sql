@@ -39,8 +39,8 @@ CREATE TABLE IF NOT EXISTS _atlas.accounting_calendars (
     UNIQUE(organization_id, name)
 );
 
-CREATE INDEX idx_calendars_org ON _atlas.accounting_calendars(organization_id);
-CREATE INDEX idx_calendars_active ON _atlas.accounting_calendars(organization_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_calendars_org ON _atlas.accounting_calendars(organization_id);
+CREATE INDEX IF NOT EXISTS idx_calendars_active ON _atlas.accounting_calendars(organization_id, is_active);
 
 -- ============================================================================
 -- Accounting Periods
@@ -90,11 +90,11 @@ CREATE TABLE IF NOT EXISTS _atlas.accounting_periods (
     UNIQUE(calendar_id, period_name)
 );
 
-CREATE INDEX idx_periods_calendar ON _atlas.accounting_periods(calendar_id, fiscal_year, period_number);
-CREATE INDEX idx_periods_org ON _atlas.accounting_periods(organization_id);
-CREATE INDEX idx_periods_status ON _atlas.accounting_periods(organization_id, status);
-CREATE INDEX idx_periods_dates ON _atlas.accounting_periods(start_date, end_date);
-CREATE INDEX idx_periods_fiscal_year ON _atlas.accounting_periods(organization_id, fiscal_year);
+CREATE INDEX IF NOT EXISTS idx_periods_calendar ON _atlas.accounting_periods(calendar_id, fiscal_year, period_number);
+CREATE INDEX IF NOT EXISTS idx_periods_org ON _atlas.accounting_periods(organization_id);
+CREATE INDEX IF NOT EXISTS idx_periods_status ON _atlas.accounting_periods(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_periods_dates ON _atlas.accounting_periods(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_periods_fiscal_year ON _atlas.accounting_periods(organization_id, fiscal_year);
 
 -- ============================================================================
 -- Period Close Checklist Items
@@ -130,10 +130,10 @@ CREATE TABLE IF NOT EXISTS _atlas.period_close_checklist (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_checklist_period ON _atlas.period_close_checklist(period_id, task_order);
-CREATE INDEX idx_checklist_org ON _atlas.period_close_checklist(organization_id);
-CREATE INDEX idx_checklist_status ON _atlas.period_close_checklist(period_id, status);
-CREATE INDEX idx_checklist_assigned ON _atlas.period_close_checklist(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_checklist_period ON _atlas.period_close_checklist(period_id, task_order);
+CREATE INDEX IF NOT EXISTS idx_checklist_org ON _atlas.period_close_checklist(organization_id);
+CREATE INDEX IF NOT EXISTS idx_checklist_status ON _atlas.period_close_checklist(period_id, status);
+CREATE INDEX IF NOT EXISTS idx_checklist_assigned ON _atlas.period_close_checklist(assigned_to);
 
 -- ============================================================================
 -- Period Close Lock Exceptions
@@ -157,5 +157,5 @@ CREATE TABLE IF NOT EXISTS _atlas.period_close_exceptions (
     UNIQUE(period_id, user_id)
 );
 
-CREATE INDEX idx_period_exceptions_period ON _atlas.period_close_exceptions(period_id);
-CREATE INDEX idx_period_exceptions_user ON _atlas.period_close_exceptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_period_exceptions_period ON _atlas.period_close_exceptions(period_id);
+CREATE INDEX IF NOT EXISTS idx_period_exceptions_user ON _atlas.period_close_exceptions(user_id);

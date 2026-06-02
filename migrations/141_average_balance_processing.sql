@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS financials.average_balance_books (
     UNIQUE(organization_id, book_code)
 );
 
-CREATE INDEX idx_abb_org ON financials.average_balance_books(organization_id);
-CREATE INDEX idx_abb_status ON financials.average_balance_books(status);
+CREATE INDEX IF NOT EXISTS idx_abb_org ON financials.average_balance_books(organization_id);
+CREATE INDEX IF NOT EXISTS idx_abb_status ON financials.average_balance_books(status);
 
 -- ============================================================================
 -- Average Balance Book Accounts (GL accounts tracked in each book)
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS financials.average_balance_book_accounts (
     UNIQUE(book_id, gl_account)
 );
 
-CREATE INDEX idx_abba_book ON financials.average_balance_book_accounts(book_id);
+CREATE INDEX IF NOT EXISTS idx_abba_book ON financials.average_balance_book_accounts(book_id);
 
 -- ============================================================================
 -- Daily Balance Entries (the raw daily balances for each account)
@@ -86,11 +86,11 @@ CREATE TABLE IF NOT EXISTS financials.daily_balances (
     UNIQUE(book_id, account_id, balance_date)
 );
 
-CREATE INDEX idx_db_org ON financials.daily_balances(organization_id);
-CREATE INDEX idx_db_book ON financials.daily_balances(book_id);
-CREATE INDEX idx_db_account ON financials.daily_balances(account_id);
-CREATE INDEX idx_db_date ON financials.daily_balances(balance_date);
-CREATE INDEX idx_db_book_date ON financials.daily_balances(book_id, balance_date);
+CREATE INDEX IF NOT EXISTS idx_db_org ON financials.daily_balances(organization_id);
+CREATE INDEX IF NOT EXISTS idx_db_book ON financials.daily_balances(book_id);
+CREATE INDEX IF NOT EXISTS idx_db_account ON financials.daily_balances(account_id);
+CREATE INDEX IF NOT EXISTS idx_db_date ON financials.daily_balances(balance_date);
+CREATE INDEX IF NOT EXISTS idx_db_book_date ON financials.daily_balances(book_id, balance_date);
 
 -- ============================================================================
 -- Average Balance Calculations (computed averages per account per period)
@@ -135,12 +135,12 @@ CREATE TABLE IF NOT EXISTS financials.average_balance_calculations (
     UNIQUE(book_id, account_id, period_start_date, calculation_type)
 );
 
-CREATE INDEX idx_abc_org ON financials.average_balance_calculations(organization_id);
-CREATE INDEX idx_abc_book ON financials.average_balance_calculations(book_id);
-CREATE INDEX idx_abc_account ON financials.average_balance_calculations(account_id);
-CREATE INDEX idx_abc_period ON financials.average_balance_calculations(period_start_date, period_end_date);
-CREATE INDEX idx_abc_status ON financials.average_balance_calculations(status);
-CREATE INDEX idx_abc_type ON financials.average_balance_calculations(calculation_type);
+CREATE INDEX IF NOT EXISTS idx_abc_org ON financials.average_balance_calculations(organization_id);
+CREATE INDEX IF NOT EXISTS idx_abc_book ON financials.average_balance_calculations(book_id);
+CREATE INDEX IF NOT EXISTS idx_abc_account ON financials.average_balance_calculations(account_id);
+CREATE INDEX IF NOT EXISTS idx_abc_period ON financials.average_balance_calculations(period_start_date, period_end_date);
+CREATE INDEX IF NOT EXISTS idx_abc_status ON financials.average_balance_calculations(status);
+CREATE INDEX IF NOT EXISTS idx_abc_type ON financials.average_balance_calculations(calculation_type);
 
 -- ============================================================================
 -- Average Balance Audit Trail
@@ -160,9 +160,9 @@ CREATE TABLE IF NOT EXISTS financials.average_balance_audit (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_abau_book ON financials.average_balance_audit(book_id);
-CREATE INDEX idx_abau_action ON financials.average_balance_audit(action);
-CREATE INDEX idx_abau_performed ON financials.average_balance_audit(performed_at);
+CREATE INDEX IF NOT EXISTS idx_abau_book ON financials.average_balance_audit(book_id);
+CREATE INDEX IF NOT EXISTS idx_abau_action ON financials.average_balance_audit(action);
+CREATE INDEX IF NOT EXISTS idx_abau_performed ON financials.average_balance_audit(performed_at);
 
 -- ============================================================================
 -- Dashboard View

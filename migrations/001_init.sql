@@ -27,8 +27,8 @@ CREATE TABLE _atlas.users (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_users_email ON _atlas.users(email);
-CREATE INDEX idx_users_org ON _atlas.users(organization_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON _atlas.users(email);
+CREATE INDEX IF NOT EXISTS idx_users_org ON _atlas.users(organization_id);
 
 -- ============================================================================
 -- Organizations (Tenants)
@@ -46,8 +46,8 @@ CREATE TABLE _atlas.organizations (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_orgs_code ON _atlas.organizations(code);
-CREATE INDEX idx_orgs_parent ON _atlas.organizations(parent_id);
+CREATE INDEX IF NOT EXISTS idx_orgs_code ON _atlas.organizations(code);
+CREATE INDEX IF NOT EXISTS idx_orgs_parent ON _atlas.organizations(parent_id);
 
 -- Add foreign key to users
 ALTER TABLE _atlas.users 
@@ -85,7 +85,7 @@ CREATE TABLE _atlas.entities (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_entities_name ON _atlas.entities(name);
+CREATE INDEX IF NOT EXISTS idx_entities_name ON _atlas.entities(name);
 
 -- ============================================================================
 -- Configuration Versions (for hot-reload)
@@ -101,9 +101,9 @@ CREATE TABLE _atlas.config_versions (
     created_by UUID REFERENCES _atlas.users(id)
 );
 
-CREATE INDEX idx_config_versions_entity ON _atlas.config_versions(entity_name);
-CREATE INDEX idx_config_versions_name ON _atlas.config_versions(config_name);
-CREATE INDEX idx_config_versions_version ON _atlas.config_versions(entity_name, version DESC);
+CREATE INDEX IF NOT EXISTS idx_config_versions_entity ON _atlas.config_versions(entity_name);
+CREATE INDEX IF NOT EXISTS idx_config_versions_name ON _atlas.config_versions(config_name);
+CREATE INDEX IF NOT EXISTS idx_config_versions_version ON _atlas.config_versions(entity_name, version DESC);
 
 -- ============================================================================
 -- Audit Log
@@ -123,9 +123,9 @@ CREATE TABLE _atlas.audit_log (
     user_agent TEXT
 );
 
-CREATE INDEX idx_audit_entity ON _atlas.audit_log(entity_type, entity_id);
-CREATE INDEX idx_audit_changed_by ON _atlas.audit_log(changed_by);
-CREATE INDEX idx_audit_changed_at ON _atlas.audit_log(changed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_entity ON _atlas.audit_log(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_changed_by ON _atlas.audit_log(changed_by);
+CREATE INDEX IF NOT EXISTS idx_audit_changed_at ON _atlas.audit_log(changed_at DESC);
 
 -- Partition audit log by month for better performance (optional)
 -- See: https://www.postgresql.org/docs/current/sql-createtable.html#SQL-CREATETABLE-PARTITIONING
@@ -149,8 +149,8 @@ CREATE TABLE _atlas.workflow_states (
     UNIQUE(entity_type, record_id)
 );
 
-CREATE INDEX idx_workflow_record ON _atlas.workflow_states(entity_type, record_id);
-CREATE INDEX idx_workflow_state ON _atlas.workflow_states(workflow_name, current_state);
+CREATE INDEX IF NOT EXISTS idx_workflow_record ON _atlas.workflow_states(entity_type, record_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_state ON _atlas.workflow_states(workflow_name, current_state);
 
 -- ============================================================================
 -- System Configuration

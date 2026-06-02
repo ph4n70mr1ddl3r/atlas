@@ -102,11 +102,11 @@ CREATE TABLE IF NOT EXISTS _atlas.grant_awards (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_grant_awards_org ON _atlas.grant_awards(organization_id);
-CREATE INDEX idx_grant_awards_sponsor ON _atlas.grant_awards(sponsor_id);
-CREATE INDEX idx_grant_awards_status ON _atlas.grant_awards(organization_id, status);
-CREATE INDEX idx_grant_awards_pi ON _atlas.grant_awards(principal_investigator_id);
-CREATE INDEX idx_grant_awards_dates ON _atlas.grant_awards(start_date, end_date) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_grant_awards_org ON _atlas.grant_awards(organization_id);
+CREATE INDEX IF NOT EXISTS idx_grant_awards_sponsor ON _atlas.grant_awards(sponsor_id);
+CREATE INDEX IF NOT EXISTS idx_grant_awards_status ON _atlas.grant_awards(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_grant_awards_pi ON _atlas.grant_awards(principal_investigator_id);
+CREATE INDEX IF NOT EXISTS idx_grant_awards_dates ON _atlas.grant_awards(start_date, end_date) WHERE status = 'active';
 
 -- Grant Budget Lines
 CREATE TABLE IF NOT EXISTS _atlas.grant_budget_lines (
@@ -133,8 +133,8 @@ CREATE TABLE IF NOT EXISTS _atlas.grant_budget_lines (
     UNIQUE(award_id, line_number)
 );
 
-CREATE INDEX idx_grant_budget_award ON _atlas.grant_budget_lines(award_id);
-CREATE INDEX idx_grant_budget_category ON _atlas.grant_budget_lines(award_id, budget_category);
+CREATE INDEX IF NOT EXISTS idx_grant_budget_award ON _atlas.grant_budget_lines(award_id);
+CREATE INDEX IF NOT EXISTS idx_grant_budget_category ON _atlas.grant_budget_lines(award_id, budget_category);
 
 -- Grant Expenditures
 CREATE TABLE IF NOT EXISTS _atlas.grant_expenditures (
@@ -172,10 +172,10 @@ CREATE TABLE IF NOT EXISTS _atlas.grant_expenditures (
     UNIQUE(award_id, expenditure_number)
 );
 
-CREATE INDEX idx_grant_expenditures_award ON _atlas.grant_expenditures(award_id);
-CREATE INDEX idx_grant_expenditures_status ON _atlas.grant_expenditures(award_id, status);
-CREATE INDEX idx_grant_expenditures_type ON _atlas.grant_expenditures(organization_id, expenditure_type);
-CREATE INDEX idx_grant_expenditures_date ON _atlas.grant_expenditures(expenditure_date);
+CREATE INDEX IF NOT EXISTS idx_grant_expenditures_award ON _atlas.grant_expenditures(award_id);
+CREATE INDEX IF NOT EXISTS idx_grant_expenditures_status ON _atlas.grant_expenditures(award_id, status);
+CREATE INDEX IF NOT EXISTS idx_grant_expenditures_type ON _atlas.grant_expenditures(organization_id, expenditure_type);
+CREATE INDEX IF NOT EXISTS idx_grant_expenditures_date ON _atlas.grant_expenditures(expenditure_date);
 
 -- Grant Billing (invoices to sponsor)
 CREATE TABLE IF NOT EXISTS _atlas.grant_billings (
@@ -208,9 +208,9 @@ CREATE TABLE IF NOT EXISTS _atlas.grant_billings (
     UNIQUE(award_id, invoice_number)
 );
 
-CREATE INDEX idx_grant_billings_award ON _atlas.grant_billings(award_id);
-CREATE INDEX idx_grant_billings_status ON _atlas.grant_billings(organization_id, status);
-CREATE INDEX idx_grant_billings_date ON _atlas.grant_billings(invoice_date);
+CREATE INDEX IF NOT EXISTS idx_grant_billings_award ON _atlas.grant_billings(award_id);
+CREATE INDEX IF NOT EXISTS idx_grant_billings_status ON _atlas.grant_billings(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_grant_billings_date ON _atlas.grant_billings(invoice_date);
 
 -- Grant Compliance Reports
 CREATE TABLE IF NOT EXISTS _atlas.grant_compliance_reports (
@@ -240,6 +240,6 @@ CREATE TABLE IF NOT EXISTS _atlas.grant_compliance_reports (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_grant_compliance_award ON _atlas.grant_compliance_reports(award_id);
-CREATE INDEX idx_grant_compliance_status ON _atlas.grant_compliance_reports(organization_id, status);
-CREATE INDEX idx_grant_compliance_due ON _atlas.grant_compliance_reports(due_date) WHERE status IN ('draft', 'in_review');
+CREATE INDEX IF NOT EXISTS idx_grant_compliance_award ON _atlas.grant_compliance_reports(award_id);
+CREATE INDEX IF NOT EXISTS idx_grant_compliance_status ON _atlas.grant_compliance_reports(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_grant_compliance_due ON _atlas.grant_compliance_reports(due_date) WHERE status IN ('draft', 'in_review');

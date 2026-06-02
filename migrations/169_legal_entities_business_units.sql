@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_legal_entities (
     UNIQUE(organization_id, name)
 );
 
-CREATE INDEX idx_legal_entities_org ON _atlas.fin_legal_entities(organization_id);
+CREATE INDEX IF NOT EXISTS idx_legal_entities_org ON _atlas.fin_legal_entities(organization_id);
 
 -- ============================================================================
 -- Business Units
@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_business_units (
     UNIQUE(organization_id, code)
 );
 
-CREATE INDEX idx_business_units_org ON _atlas.fin_business_units(organization_id);
-CREATE INDEX idx_business_units_legal_entity ON _atlas.fin_business_units(default_legal_entity_id);
+CREATE INDEX IF NOT EXISTS idx_business_units_org ON _atlas.fin_business_units(organization_id);
+CREATE INDEX IF NOT EXISTS idx_business_units_legal_entity ON _atlas.fin_business_units(default_legal_entity_id);
 
 COMMENT ON TABLE _atlas.fin_legal_entities IS 'Legal entities representing legal existence for reporting and tax';
 COMMENT ON TABLE _atlas.fin_business_units IS 'Business units for grouping transactions and management reporting';

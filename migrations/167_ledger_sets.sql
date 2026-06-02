@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_ledger_sets (
     UNIQUE(organization_id, name)
 );
 
-CREATE INDEX idx_ledger_sets_org ON _atlas.fin_ledger_sets(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ledger_sets_org ON _atlas.fin_ledger_sets(organization_id);
 
 -- ============================================================================
 -- Ledger Set Assignments
@@ -42,8 +42,8 @@ CREATE TABLE IF NOT EXISTS _atlas.fin_ledger_set_assignments (
     UNIQUE(ledger_set_id, ledger_id)
 );
 
-CREATE INDEX idx_ledger_set_assignments_set ON _atlas.fin_ledger_set_assignments(ledger_set_id);
-CREATE INDEX idx_ledger_set_assignments_ledger ON _atlas.fin_ledger_set_assignments(ledger_id);
+CREATE INDEX IF NOT EXISTS idx_ledger_set_assignments_set ON _atlas.fin_ledger_set_assignments(ledger_set_id);
+CREATE INDEX IF NOT EXISTS idx_ledger_set_assignments_ledger ON _atlas.fin_ledger_set_assignments(ledger_id);
 
 COMMENT ON TABLE _atlas.fin_ledger_sets IS 'Groups of ledgers sharing same COA and Calendar';
 COMMENT ON TABLE _atlas.fin_ledger_set_assignments IS 'Links individual ledgers to a ledger set';
